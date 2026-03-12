@@ -1,0 +1,6 @@
+measurement_tool_id,brand_id,name,version,tool_types,plugin_formats,description,workflow_notes,tags
+ef16a8da-7b6e-4dce-a793-cfa047234dce,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ARC 4 Analysis,4.0.1,Standalone,,Room analysis tool,<null>,Mastering
+fc08d7f2-3d35-4dd4-9bc8-d81a204bb5a1,2f5610b9-b864-4c87-9ece-73c73aad85f5,Audiolens,v1.5.0.511,Standalone,,,,
+63797637-df0d-484b-9a0e-e8ca5afc2be3,2f5610b9-b864-4c87-9ece-73c73aad85f5,RX 11 Audio Editor,11.3.0.4679,Standalone,,Standalone audio repair and restoration editor.,,"Mastering,Restoration"
+ee25541c-9085-4be0-b4a3-c653bc1cabdd,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,SpectraLayers Pro,12.0.40,"Standalone,Plugin",VST3,"AI-driven audio spectral editor that visualizes sound as a 3D spectrogram, allowing users to manipulate, repair, and isolate audio elements like image files. Excels at unmixing songs into stems, removing noise, restoring audio, and creative sound design.",,"Mastering,Restoration"
+a6e6f776-4df0-4168-8db9-f47fea5342d4,3db42cd7-d301-48f9-a79f-70e3adb4ee0c,UAD Meter & Control Panel,11.8.2.180,Standalone,,UAD hardware monitoring and control.,,

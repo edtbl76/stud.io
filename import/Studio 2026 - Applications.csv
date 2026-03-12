@@ -1,0 +1,49 @@
+Name,Manufacturer,Category,Column 10,Form Factor,Tags,Version,Format,Model,Workflow Notes,Notes
+8dio Downloader,8Dio,Administrative Tools,Administrative Tools,Standalone,,v0.1.26,,,,
+Activation Manager 3,Ample Sound,Administrative Tools,Administrative Tools,Standalone,,1.0.0,,,,
+Arturia Software Center,Arturia,Administrative Tools,Administrative Tools,Standalone,,2.12.0.3157,,,,
+Auto-Tune Central,Antares,Administrative Tools,Administrative Tools,Standalone,,2.0.1.7200,,,,
+BFD License Manager,BFD Drums,Administrative Tools,Administrative Tools,Standalone,,3.0.6.22,,,,
+Custom Shop,IK Multimedia,Administrative Tools,Administrative Tools,Standalone,,2.0.0,,,,Allows to shop / purchase specific plugins from IK Multimedia
+IK Product Manager,IK Multimedia,Administrative Tools,Administrative Tools,Standalone,,1.1.0,,,,
+iLok License Manager,PACE Anti-Piracy,Administrative Tools,Administrative Tools,Standalone,,5.10.3,,,,
+inMusic Software Center,inMusic,Administrative Tools,Administrative Tools,Standalone,,1.35.0,,,,
+iZotope Product Portal,iZotope,Administrative Tools,Administrative Tools,Standalone,,1.4.9b409,,,,
+Korg Software Pass,Korg,Administrative Tools,Administrative Tools,Standalone,,1.3.13,,,,
+MuseHub,MuseHub,Administrative Tools,Administrative Tools,Standalone,,2.9.0,,,,
+Native Access,Native Instruments,Administrative Tools,Administrative Tools,Standalone,,3.22.0,,,,
+Output Hub,Output,Administrative Tools,Administrative Tools,Standalone,,v2.0.21.308,,,,
+Reason Companion,Reason Studios,Administrative Tools,Administrative Tools,Standalone,Deprecated,3.0.18,,,,
+Spitfire Audio,Spitfire Audio,Administrative Tools,Administrative Tools,Standalone,,3.4.13,,,,
+Steinberg Activation Manager,Steinberg,Administrative Tools,Administrative Tools,Standalone,,1.8.1.1383,,,,
+Steinberg Download Assistant,Steinberg,Administrative Tools,Administrative Tools,Standalone,,1.39.3,,,,
+Steinberg Library Manager,Steinberg,Administrative Tools,Administrative Tools,Standalone,,3.2.71,,,,
+T-Racks 6 Modules Manager,IK Multimedia,Administrative Tools,Administrative Tools,Standalone,,6.3.0,,,,
+Toontrack Product Manager,Toontrack,Administrative Tools,Administrative Tools,Standalone,,1.1.6.42669,,,,
+UA Connect,Universal Audio,Administrative Tools,Administrative Tools,Standalone,,1.9.0.3512,,,,
+Waves Central,Waves,Administrative Tools,Administrative Tools,Standalone,,16.1.6,,,,
+XLN Online Installer,XLN Audio,Administrative Tools,Administrative Tools,Standalone,,4.5.0,,,,
+Dorico Pro 6,Steinberg,Composition Tools,Composition Tools,Standalone,,6.1.10,,,Primary scoring and tab utility (Steinberg ecosystem) ,
+Guitar Pro 8,Arobas Music,Composition Tools,Composition Tools,Standalone,,8.1.4 - Build 43,,,"This is parallel to Dorico for working w/ tab. Entry is faster, because it's purpose built for stringed instruments. The *.gp file is an industry pseudo standard. Better playback. ",
+MuseScore 4,MuseScore,Composition Tools,Composition Tools,Standalone,,4.6.5,,,Secondary scoring tool. (Good for lightweight scoring and compatibility) It's also free. ,
+Ableton Live 12 Suite,Ableton ,DAW / Workstation,DAW / Workstation,Standalone,,12.3.2,,,"This is my primary sound design sandbox (Creative)
+- (Excellent - high quality plugin management) ",
+Cubase 15,Steinberg,DAW / Workstation,DAW / Workstation,Standalone,,15.0.6,,,This is our primary DAW (Production HUB),
+LUNA,Universal Audio,DAW / Workstation,DAW / Workstation,Standalone,,2.0.1.4206,,,"This is generally for tracking only because of the UAD hardware. [Try to track in Cubase first, but come here second if we run into hardware / interface limitations]
+- (Excellent - High quality plugin management)",
+Reason,Reason Studios,DAW / Workstation,DAW / Workstation,Standalone,Deprecated,13.4.d15,,,Secondary sound design soundbox (Ableton first) ,
+WaveLab Pro,Steinberg,DAW / Workstation,DAW / Workstation,"Plugin, Standalone",Mastering,12.0.51.3,VST3,,This is our primary mastering DAW. (It is a secondary analysis tool) ,
+ARC 4 Analysis,IK Multimedia,Measurement & Diagnostics,Measurement & Diagnostics,Standalone,Mastering,4.0.1,,,,Room Analysis Tool
+Audiolens,iZotope,Measurement & Diagnostics,Measurement & Diagnostics,Standalone,,v1.5.0.511,,,,
+RX 11 Audio Editor,iZotope,Measurement & Diagnostics,Measurement & Diagnostics,Standalone,Restoration,11.3.0.4679,,,,
+SpectraLayers Pro,Steinberg,Measurement & Diagnostics,Measurement & Diagnostics,"Plugin, Standalone","Mastering, Restoration",12.0.40,VST3,,,"AI-driven audio spectral editor that visualizes sound as a 3D spectrogram, allowing users to manipulate, repair, and isolate audio elements like image files. It excels at unmixing songs into stems, removing noise, restoring audio, and creative sound design using specialized tools and layers"
+UAD Meter & Control Panel,Universal Audio,Measurement & Diagnostics,Measurement & Diagnostics,Standalone,,11.8.2.180,,,,
+BOSS Tone Studio,Roland,Workflow Tools,Workflow Tools,Standalone,Hardware,1.1.0 (26),,,,(editor for BOSS Katana amp) 
+Controller Editor,Native Instruments,Workflow Tools,Workflow Tools,Standalone,Hardware,2.8.2,,,,(For Komplete Kontrol)
+Loopback,Rogue Amoeba,Workflow Tools,Workflow Tools,Standalone,,2.4.8,,,,
+Mapping Utility,8Dio,Workflow Tools,Workflow Tools,Standalone,,1.3.2,,,,MIDI Mapping Utility
+Soundpaint Editor,Soundpaint,Workflow Tools,Workflow Tools,Standalone,,4.5.0,,,,
+TONEX Editor,IK Multimedia,Workflow Tools,Workflow Tools,Standalone,Hardware,1.10.5,,,,
+TONEX Modeler,IK Multimedia,Workflow Tools,Workflow Tools,Standalone,,1.10.5,,,,
+UAD Console,Universal Audio,Workflow Tools,Workflow Tools,Standalone,,1.2.8.797,,,,
+V6 Plus,Soundminer,Workflow Tools,Workflow Tools,Standalone,,,,,,
