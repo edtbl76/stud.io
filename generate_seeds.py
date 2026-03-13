@@ -55,15 +55,15 @@ def seed_header(table, csv_file):
     ]
 
 
-def tool_row(table, id_col, id_val, brand_id, name, version,
+def tool_row(table, id_col, id_val, brand_id, tool_name, version,
              tool_types, plugin_formats, description, workflow_notes, tags):
     return (
         f"INSERT INTO {table}"
-        f" ({id_col}, brand_id, name, version, tool_types, plugin_formats, description, workflow_notes, tags)"
+        f" ({id_col}, brand_id, tool_name, version, tool_types, plugin_formats, description, workflow_notes, tags)"
         f" VALUES ("
         f"{escape(id_val)}, "
         f"{escape(brand_id) if brand_id else 'NULL'}, "
-        f"{escape(name)}, "
+        f"{escape(tool_name)}, "
         f"{escape(version)}, "
         f"{escape_array(tool_types, 'tool_type')}, "
         f"{escape_array(plugin_formats, 'plugin_format')}, "
@@ -82,13 +82,13 @@ def read_tool_csv(src, id_col):
     rows = []
     with open(src, newline='', encoding='utf-8') as f:
         for row in csv.DictReader(f):
-            name = clean(row.get("name"))
-            if not name:
+            tool_name = clean(row.get("tool_name"))
+            if not tool_name:
                 continue
             rows.append((
                 clean(row.get(id_col)),
                 clean(row.get("brand_id")),
-                name,
+                tool_name,
                 clean(row.get("version")),
                 clean(row.get("tool_types")),
                 clean(row.get("plugin_formats")),
@@ -110,23 +110,23 @@ def generate_brands():
     with open(src, newline='', encoding='utf-8') as f:
         for row in csv.DictReader(f):
             brand_id    = clean(row.get("brand_id"))
-            name        = clean(row.get("name"))
+            brand_name  = clean(row.get("brand_name"))
             common_name = clean(row.get("common_name"))
             entity_type = clean(row.get("entity_type")) or "Manufacturer"
             website     = clean(row.get("website"))
             description = clean(row.get("description"))
             founder     = clean(row.get("founder"))
             years       = clean(row.get("years"))
-            if not name:
+            if not brand_name:
                 continue
-            rows.append((brand_id, name, common_name, entity_type, website, description, founder, years))
+            rows.append((brand_id, brand_name, common_name, entity_type, website, description, founder, years))
 
     lines = seed_header("brands", "brands.csv")
 
-    for brand_id, name, common_name, entity_type, website, description, founder, years in rows:
+    for brand_id, brand_name, common_name, entity_type, website, description, founder, years in rows:
         lines.append(
-            f"INSERT INTO brands (brand_id, name, common_name, entity_type, website, description, founder, years)"
-            f" VALUES ({escape(brand_id)}, {escape(name)}, {escape(common_name)}, {escape(entity_type)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
+            f"INSERT INTO brands (brand_id, brand_name, common_name, entity_type, website, description, founder, years)"
+            f" VALUES ({escape(brand_id)}, {escape(brand_name)}, {escape(common_name)}, {escape(entity_type)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
             f" ON CONFLICT (brand_id) DO UPDATE SET"
             f" website = EXCLUDED.website,"
             f" entity_type = EXCLUDED.entity_type,"
@@ -257,7 +257,7 @@ def generate_models():
     for (model_id, brand_id, model_name, model_types, creator,
          years_active, links, description, recording_notes, artist_reference,
          attributes) in rows:
-        attrs_sql = f"'{attributes}'::jsonb" if attributes else "NULL::jsonb"
+        attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
         lines.append(
             f"INSERT INTO models"
             f" (model_id, brand_id, model_name, model_types, creator, years_active,"

@@ -1,4 +1,4 @@
-workflow_tool_id,brand_id,name,version,tool_types,plugin_formats,description,workflow_notes,tags
+workflow_tool_id,brand_id,tool_name,version,tool_types,plugin_formats,description,workflow_notes,tags
 48f28c27-22be-4ae6-81c0-c06856bae2b2,3db42cd7-d301-48f9-a79f-70e3adb4ee0c,UAD Console,1.2.8.797,Standalone,,UAD hardware mixer and audio routing for Apollo interface.,<null>,
 4bb67344-9213-4eaa-9e17-1c880f626f3a,ea8cd6c6-4d59-4e81-b9fa-889b421aaa31,Loopback,2.4.8,Standalone,,Virtual audio routing between applications on macOS.,<null>,
 54c6b229-158a-405d-9c33-f24e0969ca8d,3edd4e7b-8665-4884-a0b1-8e5ee44b263d,Mapping Utility,1.3.2,Standalone,,MIDI mapping utility for 8Dio instruments.,<null>,

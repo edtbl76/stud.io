@@ -76,7 +76,7 @@ def build_brand_map():
             brand_id = clean(row.get("brand_id"))
             if not brand_id:
                 continue
-            for field in ("common_name", "name"):
+            for field in ("common_name", "brand_name"):
                 val = clean(row.get(field))
                 if val:
                     brand_map[val.lower()] = brand_id

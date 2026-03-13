@@ -1,4 +1,4 @@
-composition_tool_id,brand_id,name,version,tool_types,plugin_formats,description,workflow_notes,tags
+composition_tool_id,brand_id,tool_name,version,tool_types,plugin_formats,description,workflow_notes,tags
 765bf1f8-7b86-45d5-bc6a-851ad0538dfb,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,Dorico Pro 6,6.1.10,Standalone,,,Primary scoring and tab utility (Steinberg ecosystem).,
 8932f19e-d0f2-4500-b0da-ca7babe09389,ea02082d-1715-4dfc-b954-3c0074cb4704,Guitar Pro 8,8.1.4 - Build 43,Standalone,,,Parallel to Dorico for working with tab. Entry is faster because it is purpose built for stringed instruments. The .gp file is an industry pseudo standard. Better playback.,
 7c968e2b-ed8c-4bdf-8d8c-3c5c50c8ded4,1f13ae58-faac-41b6-82a3-01a7e8407503,MuseScore 4,4.6.5,Standalone,,,Secondary scoring tool. Good for lightweight scoring and compatibility. Free.,

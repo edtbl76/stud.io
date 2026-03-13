@@ -17,7 +17,7 @@ CREATE TYPE tag_type AS ENUM ('Deprecated', 'Hardware', 'Mastering', 'Restoratio
 -- =============================================================================
 CREATE TABLE brands (
     brand_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name         TEXT NOT NULL,
+    brand_name   TEXT NOT NULL,
     common_name  TEXT,
     entity_type  entity_type NOT NULL DEFAULT 'Manufacturer',
     website      TEXT,
@@ -35,7 +35,7 @@ CREATE TABLE brands (
 CREATE TABLE workstations (
     workstation_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id        UUID REFERENCES brands(brand_id),
-    name            TEXT NOT NULL,
+    tool_name       TEXT NOT NULL,
     version         TEXT,
     tool_types      tool_type[],
     plugin_formats  plugin_format[],
@@ -53,7 +53,7 @@ CREATE TABLE workstations (
 CREATE TABLE measurement_tools (
     measurement_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id             UUID REFERENCES brands(brand_id),
-    name                 TEXT NOT NULL,
+    tool_name            TEXT NOT NULL,
     version              TEXT,
     tool_types           tool_type[],
     plugin_formats       plugin_format[],
@@ -71,7 +71,7 @@ CREATE TABLE measurement_tools (
 CREATE TABLE reference_tools (
     reference_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id           UUID REFERENCES brands(brand_id),
-    name               TEXT NOT NULL,
+    tool_name          TEXT NOT NULL,
     version            TEXT,
     tool_types         tool_type[],
     plugin_formats     plugin_format[],
@@ -89,7 +89,7 @@ CREATE TABLE reference_tools (
 CREATE TABLE workflow_tools (
     workflow_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id          UUID REFERENCES brands(brand_id),
-    name              TEXT NOT NULL,
+    tool_name         TEXT NOT NULL,
     version           TEXT,
     tool_types        tool_type[],
     plugin_formats    plugin_format[],
@@ -107,7 +107,7 @@ CREATE TABLE workflow_tools (
 CREATE TABLE composition_tools (
     composition_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id             UUID REFERENCES brands(brand_id),
-    name                 TEXT NOT NULL,
+    tool_name            TEXT NOT NULL,
     version              TEXT,
     tool_types           tool_type[],
     plugin_formats       plugin_format[],
@@ -149,6 +149,46 @@ CREATE TABLE models (
 
 CREATE INDEX idx_models_attributes ON models USING GIN (attributes);
 
+CREATE VIEW models_view AS
+    SELECT
+        models.*,
+        brands.common_name || ' ' || models.model_name AS full_model_name
+    FROM models
+LEFT JOIN brands ON brands.brand_id = models.brand_id;
+
+
+-- =============================================================================
+-- EFFECTS
+-- Software and hardware effects, optionally linked to a hardware model
+-- =============================================================================
+CREATE TYPE effect_type AS ENUM (
+    'Cabinet', 'Channel Strip', 'Combo', 'Console', 'Container','Delay',
+    'Dynamics', 'EQ', 'Harmonic Coloration', 'Head',
+    'Microphone', 'Modulation', 'Pitch Tools', 'Preamp', 'DI', 'Reverb&Room',
+    'Spatial Processing', 'Time/Phase'
+);
+
+CREATE TABLE effects (
+    effect_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id         UUID REFERENCES brands(brand_id),
+    model_id         UUID REFERENCES models(model_id),
+    effect_name      TEXT NOT NULL,
+    version          TEXT,
+    effect_types     effect_type[],
+    tool_types       tool_type[],
+    plugin_formats   plugin_format[],
+    description      TEXT,
+    recording_notes  TEXT,
+    artist_reference TEXT,
+    attributes       JSONB,
+    tags             tag_type[],
+    created_at       TIMESTAMP DEFAULT NOW(),
+    updated_at       TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
+
+
 -- =============================================================================
 -- ADMIN TOOLS
 -- License managers, downloaders, product portals — never recommended
@@ -156,7 +196,7 @@ CREATE INDEX idx_models_attributes ON models USING GIN (attributes);
 CREATE TABLE admin_tools (
     admin_tool_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id        UUID REFERENCES brands(brand_id),
-    name            TEXT NOT NULL,
+    tool_name       TEXT NOT NULL,
     version         TEXT,
     tool_types      tool_type[],
     plugin_formats  plugin_format[],
