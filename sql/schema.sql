@@ -21,6 +21,9 @@ CREATE TABLE brands (
     common_name  TEXT,
     entity_type  entity_type NOT NULL DEFAULT 'Manufacturer',
     website      TEXT,
+    description  TEXT,
+    founder      TEXT,
+    years        TEXT,
     created_at   TIMESTAMP DEFAULT NOW(),
     updated_at   TIMESTAMP DEFAULT NOW()
 );

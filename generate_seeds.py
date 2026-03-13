@@ -114,19 +114,25 @@ def generate_brands():
             common_name = clean(row.get("common_name"))
             entity_type = clean(row.get("entity_type")) or "Manufacturer"
             website     = clean(row.get("website"))
+            description = clean(row.get("description"))
+            founder     = clean(row.get("founder"))
+            years       = clean(row.get("years"))
             if not name:
                 continue
-            rows.append((brand_id, name, common_name, entity_type, website))
+            rows.append((brand_id, name, common_name, entity_type, website, description, founder, years))
 
     lines = seed_header("brands", "brands.csv")
 
-    for brand_id, name, common_name, entity_type, website in rows:
+    for brand_id, name, common_name, entity_type, website, description, founder, years in rows:
         lines.append(
-            f"INSERT INTO brands (brand_id, name, common_name, entity_type, website)"
-            f" VALUES ({escape(brand_id)}, {escape(name)}, {escape(common_name)}, {escape(entity_type)}, {escape(website)})"
+            f"INSERT INTO brands (brand_id, name, common_name, entity_type, website, description, founder, years)"
+            f" VALUES ({escape(brand_id)}, {escape(name)}, {escape(common_name)}, {escape(entity_type)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
             f" ON CONFLICT (brand_id) DO UPDATE SET"
             f" website = EXCLUDED.website,"
             f" entity_type = EXCLUDED.entity_type,"
+            f" description = EXCLUDED.description,"
+            f" founder = EXCLUDED.founder,"
+            f" years = EXCLUDED.years,"
             f" updated_at = NOW();"
             f"  -- common_name intentionally not updated (manually maintained)"
         )
