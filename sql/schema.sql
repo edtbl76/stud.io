@@ -119,6 +119,37 @@ CREATE TABLE composition_tools (
 );
 
 -- =============================================================================
+-- MODELS
+-- Physical/hardware gear: amps, microphones, synths, keyboards, etc.
+-- =============================================================================
+CREATE TYPE model_type AS ENUM (
+    'Bass', 'Cabinet', 'Channel Strip', 'Combo', 'Console', 'Delay',
+    'Drums', 'Dynamics', 'EQ', 'Harmonic Coloration', 'Head',
+    'Keyboard', 'Microphone', 'Modulation', 'Multi Effects',
+    'Pitch Tools', 'Preamp', 'DI', 'Reverb', 'Sampler',
+    'Spatial Processing', 'Speaker','Stomp', 'Studio', 'Synth',
+    'Tape Machine', 'Utility'
+);
+
+CREATE TABLE models (
+    model_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    model_name       TEXT NOT NULL,
+    brand_id         UUID REFERENCES brands(brand_id),
+    model_types      model_type[],
+    creator          TEXT,
+    years_active     TEXT,
+    links            TEXT,
+    description      TEXT,
+    recording_notes  TEXT,
+    artist_reference TEXT,
+    attributes       JSONB,
+    created_at       TIMESTAMP DEFAULT NOW(),
+    updated_at       TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_models_attributes ON models USING GIN (attributes);
+
+-- =============================================================================
 -- ADMIN TOOLS
 -- License managers, downloaders, product portals — never recommended
 -- =============================================================================

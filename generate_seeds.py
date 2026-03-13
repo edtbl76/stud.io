@@ -223,6 +223,73 @@ def generate_composition_tools():
 
 
 # ---------------------------------------------------------------------------
+# Models
+# ---------------------------------------------------------------------------
+def generate_models():
+    src  = CSV_DIR / "models.csv"
+    dest = SEED_DIR / "08_models.sql"
+
+    if not src.exists():
+        log("models.csv not found — run convert_models.py first, then re-run")
+        return
+
+    rows = []
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            model_name = clean(row.get("model_name"))
+            if not model_name:
+                continue
+            rows.append((
+                clean(row.get("model_id")),
+                clean(row.get("brand_id")),
+                model_name,
+                clean(row.get("model_types")),
+                clean(row.get("creator")),
+                clean(row.get("years_active")),
+                clean(row.get("links")),
+                clean(row.get("description")),
+                clean(row.get("recording_notes")),
+                clean(row.get("artist_reference")),
+                clean(row.get("attributes")),
+            ))
+
+    lines = seed_header("models", "models.csv")
+    for (model_id, brand_id, model_name, model_types, creator,
+         years_active, links, description, recording_notes, artist_reference,
+         attributes) in rows:
+        attrs_sql = f"'{attributes}'::jsonb" if attributes else "NULL::jsonb"
+        lines.append(
+            f"INSERT INTO models"
+            f" (model_id, brand_id, model_name, model_types, creator, years_active,"
+            f" links, description, recording_notes, artist_reference, attributes)"
+            f" VALUES ("
+            f"{escape(model_id)}, "
+            f"{escape(brand_id) if brand_id else 'NULL'}, "
+            f"{escape(model_name)}, "
+            f"{escape_array(model_types, 'model_type')}, "
+            f"{escape(creator)}, "
+            f"{escape(years_active)}, "
+            f"{escape(links)}, "
+            f"{escape(description)}, "
+            f"{escape(recording_notes)}, "
+            f"{escape(artist_reference)}, "
+            f"{attrs_sql}"
+            f") ON CONFLICT (model_id) DO UPDATE SET"
+            f" model_types = EXCLUDED.model_types,"
+            f" creator = EXCLUDED.creator,"
+            f" years_active = EXCLUDED.years_active,"
+            f" description = EXCLUDED.description,"
+            f" recording_notes = EXCLUDED.recording_notes,"
+            f" artist_reference = EXCLUDED.artist_reference,"
+            f" attributes = EXCLUDED.attributes,"
+            f" updated_at = NOW();"
+        )
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} models → {dest.name}")
+
+
+# ---------------------------------------------------------------------------
 # Admin Tools
 # ---------------------------------------------------------------------------
 def generate_admin_tools():
@@ -256,6 +323,7 @@ def main():
     generate_reference_tools()
     generate_composition_tools()
     generate_admin_tools()
+    generate_models()
 
     print("\n" + "=" * 60)
     print("  Seed files written to sql/seeds/")
