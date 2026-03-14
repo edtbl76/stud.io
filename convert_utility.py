@@ -5,9 +5,10 @@ STUD.io — Utility CSV Converter
 Reads import/Studio 2026 - Utility.csv and dispatches rows by Sorted Category.
 
 Current categories handled:
-  - Composition Tools → csv/composition_tools.csv
-  - Management Tools  → csv/workflow_tools.csv
-  - Metering & Signal → csv/measurement_tools.csv
+  - Composition Tools                    → csv/composition_tools.csv
+  - Management Tools                     → csv/workflow_tools.csv
+  - Metering & Signal + Spatial Tools    → csv/measurement_tools.csv
+  - Reference Monitoring & Room Correction → csv/reference_tools.csv
 
 Future categories (Reference Monitoring, Metering & Signal, etc.) can be added
 as new handler functions in the dispatch table.
@@ -75,6 +76,11 @@ WORKFLOW_FIELDNAMES = [
 ]
 
 MEASURE_OUT_CSV    = BASE / "csv" / "measurement_tools.csv"
+REFERENCE_OUT_CSV  = BASE / "csv" / "reference_tools.csv"
+REFERENCE_FIELDNAMES = [
+    "reference_tool_id", "brand_id", "model_ids", "tool_name", "version",
+    "tool_types", "plugin_formats", "description", "workflow_notes", "tags",
+]
 MODELS_CSV         = BASE / "csv" / "models.csv"
 MEASURE_FIELDNAMES = [
     "measurement_tool_id", "brand_id", "model_ids", "tool_name", "version",
@@ -391,6 +397,70 @@ def handle_metering_signal(import_rows, brand_map, model_map, existing_ids):
     return out_rows, unmatched_manufacturers, unmatched_models
 
 
+# ── Reference Monitoring & Room Correction → reference_tools ─────────────────
+
+def load_existing_reference_tools():
+    """Return (rows_list, {tool_name: reference_tool_id}) from existing CSV."""
+    rows   = []
+    id_map = {}
+    if not REFERENCE_OUT_CSV.exists():
+        return rows, id_map
+    with open(REFERENCE_OUT_CSV, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            name = clean(row.get("tool_name"))
+            tid  = clean(row.get("reference_tool_id"))
+            rows.append(row)
+            if name and tid:
+                id_map[name] = tid
+    return rows, id_map
+
+
+def handle_reference_monitoring(import_rows, brand_map, model_map, existing_ids):
+    """Convert Reference Monitoring & Room Correction import rows → reference_tools output dicts."""
+    out_rows                = []
+    unmatched_manufacturers = set()
+    unmatched_models        = set()
+
+    for row in import_rows:
+        name         = clean(row.get("Name"))
+        manufacturer = clean(row.get("Manufacturer"))
+        version      = clean(row.get("Version"))
+        form_factor  = clean(row.get("Form Factor"))
+        fmt          = clean(row.get("Format"))
+        notes        = clean(row.get("Notes"))
+        tags_str     = clean(row.get("Tags"))
+        model_str    = clean(row.get("Model"))
+
+        if not name:
+            continue
+
+        brand_id = lookup_brand(manufacturer, brand_map)
+        if manufacturer and not brand_id:
+            unmatched_manufacturers.add(manufacturer)
+
+        model_ids_list, unmatched = lookup_models(model_str, model_map)
+        unmatched_models.update(unmatched)
+
+        tool_types_list     = map_tool_types(form_factor)
+        plugin_formats_list = map_plugin_formats(fmt)
+        tags_list           = map_tags(tags_str)
+
+        out_rows.append({
+            "reference_tool_id": existing_ids.get(name) or str(uuid.uuid4()),
+            "brand_id":          brand_id,
+            "model_ids":         ",".join(model_ids_list),
+            "tool_name":         name,
+            "version":           version,
+            "tool_types":        ",".join(tool_types_list),
+            "plugin_formats":    ",".join(plugin_formats_list),
+            "description":       notes,
+            "workflow_notes":    "",
+            "tags":              ",".join(tags_list),
+        })
+
+    return out_rows, unmatched_manufacturers, unmatched_models
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -469,7 +539,7 @@ def main():
         print(f"\n  Loaded {len(ms_preserved)} existing measurement_tools rows (UUIDs preserved)")
 
     ms_import_rows, ms_unmatched_mfr, ms_unmatched_models = handle_metering_signal(
-        category_buckets.get("Metering & Signal", []),
+        category_buckets.get("Metering & Signal", []) + category_buckets.get("Spatial Tools", []),
         brand_map,
         model_map,
         ms_existing_ids,
@@ -494,6 +564,39 @@ def main():
     if ms_unmatched_models:
         print(f"\n  Unmatched models ({len(ms_unmatched_models)}) — model_id left blank:")
         for v in sorted(ms_unmatched_models):
+            print(f"    - {v!r}")
+
+    # ── Reference Monitoring & Room Correction → reference_tools ─────────────
+    ref_preserved, ref_existing_ids = load_existing_reference_tools()
+    if ref_preserved:
+        print(f"\n  Loaded {len(ref_preserved)} existing reference_tools rows (UUIDs preserved)")
+
+    ref_import_rows, ref_unmatched_mfr, ref_unmatched_models = handle_reference_monitoring(
+        category_buckets.get("Reference Monitoring & Room Correction", []),
+        brand_map,
+        model_map,
+        ref_existing_ids,
+    )
+
+    ref_import_names = {r["tool_name"] for r in ref_import_rows}
+    ref_merged = [r for r in ref_preserved if r.get("tool_name") not in ref_import_names]
+    ref_merged.extend(ref_import_rows)
+
+    with open(REFERENCE_OUT_CSV, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=REFERENCE_FIELDNAMES, extrasaction="ignore")
+        writer.writeheader()
+        writer.writerows(ref_merged)
+
+    print(f"\n  {len(ref_merged)} reference tools → {REFERENCE_OUT_CSV.name}")
+
+    if ref_unmatched_mfr:
+        print(f"\n  Unmatched manufacturers ({len(ref_unmatched_mfr)}) — brand_id left blank:")
+        for v in sorted(ref_unmatched_mfr):
+            print(f"    - {v!r}")
+
+    if ref_unmatched_models:
+        print(f"\n  Unmatched models ({len(ref_unmatched_models)}) — model_id left blank:")
+        for v in sorted(ref_unmatched_models):
             print(f"    - {v!r}")
 
     print("\n" + "=" * 60)

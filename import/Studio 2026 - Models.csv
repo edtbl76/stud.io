@@ -3,7 +3,7 @@ DG412,3rd Power,Amp & Cab,Top 2 Drivers: Celestion G12-T75; Bottom 2 Drivers. To
 Dragon,3rd Power,Amp & Cab,,Amp & Cab,3rd Power Special Design Amps,,,,Joe Satriani,
 Flanger,A/DA (Analog Digital Associates) ,Modulation,"First A/DA product which became A/DA’s most successful pedal, shipping more than 50,000 units before it was discontinued in the early 80s.",Modulation,,Dave Tarnowski,,,Eddie Van Halen (Unchained) ,
 STD-1 Stereo Tapped Delay,A/DA (Analog Digital Associates) ,Delay,Analog Tapped Delay w/ LFO feedback modulation,Delay,,,1980,,,
-Abbey Road Studios 3,Abbey Road,Studio,Studios for spatial reference (headphones) ,Studio,,,,,,
+Studio 3,Abbey Road,Studio,Studios for spatial reference (headphones) ,Studio,,,,,,
 Cats on Amps,AC Noises,"Harmonic Coloration, Stomp","limited-edition, ""super gated and sputtering"" fuzz pedal designed for, and in collaboration with, the Cats on Amps Instagram account. Known for creating, ""noisy/destructive riffs and gnarly solos,"" this pedal features a large volume knob and very few controls, with only 15 units produced. It is designed for high-gain, harsh tone","Harmonic Coloration, Stomp",,,,,,
 301,Acoustic (ACC - Acoustic Control Corporation) ,"Amp & Cab, Bass",1x18 folded horn bass cabinet; 200/300W,"Amp & Cab, Bass",,,,"deep, powerful, resonant low end",,
 360,Acoustic (ACC - Acoustic Control Corporation) ,Amp & Cab,"Legendary solid state bass amp to match volume of high-output guitar amps. 200W preamp/head w/ built-in fuzz. Often paired w/ the 361 cab w/ an 18"" speaker",Amp & Cab,"360 Bass Preamp
@@ -679,7 +679,7 @@ Zendrive,Hermida (Lovepedal),Harmonic Coloration,"renowned, low-to-medium gain o
 Demon,Hesu,Amp & Cab,"12"" spoeaker.. ",Amp & Cab,Hesu Demon 12,,,,,
 M412BK-B,Hesu,Amp & Cab,4x12 240W. Defaut Driver HESU Demon,Amp & Cab,M412,,,,Jeff Loomis (Nevermore); Misha Mansoor,
 Invader Vintage 35,HH Audio,Amp & Cab,"Classic 12"" speaker common in Laney Amps",Amp & Cab,,,,,,
-The Hit Factory,"Hit Factory, The (NY) ",Studio,"Reference spatial processing for mixes. (Place on master buss, and bypass it when bouncing the mix) REFERENCE ONLY",Studio,The Hit Factory,Troy Germano,1975,,,
+Germano Studios,The Hit Factory,Studio,"Reference spatial processing for mixes. (Place on master buss, and bypass it when bouncing the mix) REFERENCE ONLY",Studio,The Hit Factory,Troy Germano,1975,,,
 EQ,Hitsville USA,EQ,"Custom-built inductor based graphic EQ used in the Motown Detroit studio. 7 bands of fixed-frequency (50, 130, 320, 800, 2k 12.5k), w/ proportional Q (narrower at higher boost/cut levels). UTC (United Tech. Corp.) and Freed transformers for warmth and harmanoic saturation. Specialized mastering version has a 1/2-speed option and mid-side functionality for stereo image control. ",EQ,,,1960s,secret sauce of Motown sound. ,,
 Motown Studios,Hitsville USA,Studio,,Studio,Hitsville USA,,1960s,,,
 DR103 Custom 100,Hiwatt,Amp & Cab,"100W, 2 ch (normal, bright), 4 x 12AX7 (ECC83) , 4 x EL 34, 3 band EQ",Amp & Cab,DR103 ,Dave Reeve,,"Hi-Headroom, crystal-clean tonal character, instantaneous response, sonic depth and detail. ""iconic British sound"". Joe Satriani",,
@@ -935,7 +935,7 @@ UMT800,MicroTech Gefell,Microphone,Multi-pattern large diaphragm FET condenser. 
 Super Creamer,Milkman,Amp & Cab,"""Princeton Reverb"" type amp. 2x10 20w custom combo w/ adjustable cathode bias circuit. Default Jupiter 10SC",Amp & Cab,"Milkman Creamer
 Milkman Creamer 2x10",,,,,
 NSEQ-2,Millenia,EQ,2-channel sonically neutral analog EQ (50V solid-state amps + 400V tube amps) ,EQ,Nillenia NSEQ-2 Twin Topology 2 Channel PEQ,,,,,
-MIX LA Control Room,"Mix LA Studios (Los Angeles, CA)",Studio,"MIX LA Studios. Los Angeles, CA",Studio,MIX LA Studios,,,,,
+Control Room,Mix LA Studios,Studio,"MIX LA Studios. Los Angeles, CA",Studio,MIX LA Studios,,,,,
 BV-25M,Mojotone,Amp & Cab,"12"" 25W British vintage voiced speaker. Highly rated, cost-effective alternative to vintage Celestion Greenbacks. ",Amp & Cab,BV-25M,,,"smooth, warm midrange with a tight low end and, notably, less harsh high-end frequencies compared to similar speakers. It is widely recommended for classic rock, blues, and high-gain tones, particularly when paired with Marshall-style amps. ",,
 ShimVerb,Mooer,"Reverb, Stomp",Recreates vintage 60's surf spring reverb,"Reverb, Stomp",ShimVerb,,,,,
 Memorymoog,Moog,Synth / Samplers,last (official) synth to be made by Moog (in 1982) before they went bankrupt. (Autotune feature was in the Memorymoog Plus). The device  and MIDI implementation was never quite finished. ,Synth / Samplers,Memorymoog,,1982-85,,"The Crystal Method, Jan Hammer, Bon Jovi, INXS, Rick Wakeman, Duran Duran (Nick Rhodes), George Duke",
