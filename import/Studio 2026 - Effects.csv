@@ -5,19 +5,19 @@ Name,Manufacturer,Category,Sorted Category,Tags,Sorted Tags,Parent,Model,Series 
 635A,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Electro-Voice 635A,,,,,,,,,,,,,,,,
 95Ni,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,CAD D90,,,,,,,,,,,,,,,,
 AM61,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Alesis AM61,,,,,,,,,,,,,,,,
-AT 4033a/Sm,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT4033a/SM,,,,,,,,,,,,,,,,
-AT 4047/SV,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT4047/SV,,,,,,,,,,,,,,,,
-AT 4050,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT4050,,,,,,,,,,,,,,,,
-AT 4051,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT4051b,,,,,,,,,,,,,,,,
-AT 4055,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT4055,,,,,,,,,,,,,,,,
-AT 4060,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT4060,,,,,,,,,,,,,,,,
-AT2020,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT2020,,,,,,,,,,,,,,,,
-AT3525,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT3525,,,,,,,,,,,,,,,,
-AT813a,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT813a,,,,,,,,,,,,,,,,
-AT853Rx,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica AT853Rx,,,,,,,,,,,,,,,,
-ATM11,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica ATM11,,,,,,,,,,,,,,,,
-ATM25,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica ATM25,,,,,,,,,,,,,,,,
-ATM31,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio Technica ATM31,,,,,,,,,,,,,,,,
+AT 4033a/Sm,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT4033a/SM,,,,,,,,,,,,,,,,
+AT 4047/SV,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT4047/SV,,,,,,,,,,,,,,,,
+AT 4050,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT4050,,,,,,,,,,,,,,,,
+AT 4051,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT4051b,,,,,,,,,,,,,,,,
+AT 4055,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT4055,,,,,,,,,,,,,,,,
+AT 4060,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT4060,,,,,,,,,,,,,,,,
+AT2020,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT2020,,,,,,,,,,,,,,,,
+AT3525,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT3525,,,,,,,,,,,,,,,,
+AT813a,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT813a,,,,,,,,,,,,,,,,
+AT853Rx,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica AT853Rx,,,,,,,,,,,,,,,,
+ATM11,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica ATM11,,,,,,,,,,,,,,,,
+ATM25,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica ATM25,,,,,,,,,,,,,,,,
+ATM31,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Audio-Technica ATM31,,,,,,,,,,,,,,,,
 Beta 52,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Shure Beta 52,,,,,,,,,,,,,,,,
 Beta 57A,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Shure Beta 57A,,,,,,,,,,,,,,,,
 Beta 58,Antares,Microphone,Microphone,Modeled,Modeled,Mic Mod,Shure Beta 58A,,,,,,,,,,,,,,,,
@@ -135,8 +135,8 @@ Crystals,Eventide,"Delay, Pitch, Reverb & Room","Delay, Pitch, Reverb & Room",,,
 DeBoom,Eventide,EQ,EQ,Restoration,Restoration,,,,"Corrective low-frequency EQ; 
 STRUCTURAL SPLIT separates TRANSIENT + TONAL audio content",,,Plugin,"AU, VST3",1.3.4,,,,,,,,,
 EChannel,Eventide,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Channel Strip,Channel Strip,,,,"Channel w/ routable Gate, 5-band parametric EQ, Compressor, De-Esser, analog transformer saturation",,,Plugin,"AU, VST3",3.11.4,,,,,,,,,
-EQ45,Eventide,EQ,EQ,Modeled,Modeled,,UREI 545 Parametric EQ,,,,,Plugin,"AU, VST3",3.11.4,,,,,,,,,
-EQ65,Eventide,EQ,EQ,Modeled,Modeled,,UREI 546 Dual Parametric EQ,,,,,Plugin,"AU, VST3",3.11.4,,,,,,,,,
+EQ45,Eventide,EQ,EQ,Modeled,Modeled,,UREI 545 Parametric Equalizer,,,,,Plugin,"AU, VST3",3.11.4,,,,,,,,,
+EQ65,Eventide,EQ,EQ,Modeled,Modeled,,UREI 546 Dual Parametric Equalizer,,,,,Plugin,"AU, VST3",3.11.4,,,,,,,,,
 H3000 Band Delays Mk II,Eventide,"Delay, Modulation","Delay, Modulation",Modeled,Modeled,,Eventide H3000 Ultra-Harmonizer,,"8 voices of tempo-based, filtered delays. 
 [ Function Generator (LFO) based feedback modulation. LPF, HPF, All-Pass, Band-Pass and Shelving EQ (per-voice) ]",Eventide H3000 Ultra-Harmonizer TOP,,Plugin,"AU, VST3",1.3.4,,,,,,,,,
 H3000 Factory Mk II,Eventide,"Delay, Modulation, Pitch","Delay, Modulation, Pitch",Modeled,Modeled,,Eventide H3000 Ultra-Harmonizer,,"18 block effects processor
@@ -193,11 +193,11 @@ Verve Analog Machines","10 band parametric EQ (various shapes and filters, inclu
 CSR Inverse,IK Multimedia,Reverb & Room,Reverb & Room,,,,,"Classik Studio Reverb
 T-Racks",Inverse reverb,,"80s snare drum. Drums and percussion, creative effect for vocals",Plugin,"AU, VST3",6.3.0,,,,,,,,,
 JCM Slash,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall JCM 25/50 2555 Silver Jubilee,,(high-gain),Marshall 2555 Silver Jubilee TOP,Based on 1987 Silver Jubilee that Slash preferred,,,,,,,,,,,,
-Sunset Plates,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,Sunset Sound Studios,Sunset Studios,,,Based on Plate Reverbs 1 and 2 from Sunset Sound Studios. Two different plate reverb models switchable within the module.,,,,,,,,,,,,
-Sunset Chamber,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,Sunset Sound Studios,Sunset Studios,,,Based on the chamber reverb located in Studio 1 of Sunset Sound Studios. A chamber style reverb with strong ambience and generous reverberation times.,,,,,,,,,,,,
-Sunset ISO Booth,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,Sunset Sound Studios,Sunset Studios,,,Based on the ISO Booth of Studio 1 of Sunset Sound Studios. Instant ambiance with shorter decay times.,,,,,,,,,,,,
-Sunset Live Room,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,Sunset Sound Studios,Sunset Studios,,,Based on the Live Room of Studio 1 of Sunset Sound Studios. A room reverberation sound for realistic ambience.,,,,,,,,,,,,
-Sunset Spring,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,Sunset Sound Studios,Sunset Studios,,,Based on the Spring Reverb unit in Sunset Sound Studios. Spring reverbs create an artificial reverb by connecting a transducer and pickup on either end of a mechanical spring.,,,,,,,,,,,,
+Sunset Plates,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,"Sunset Sound Studios Hollywood, CA",Sunset Studios,,,Based on Plate Reverbs 1 and 2 from Sunset Sound Studios. Two different plate reverb models switchable within the module.,,,,,,,,,,,,
+Sunset Chamber,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,"Sunset Sound Studios Hollywood, CA",Sunset Studios,,,Based on the chamber reverb located in Studio 1 of Sunset Sound Studios. A chamber style reverb with strong ambience and generous reverberation times.,,,,,,,,,,,,
+Sunset ISO Booth,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,"Sunset Sound Studios Hollywood, CA",Sunset Studios,,,Based on the ISO Booth of Studio 1 of Sunset Sound Studios. Instant ambiance with shorter decay times.,,,,,,,,,,,,
+Sunset Live Room,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,"Sunset Sound Studios Hollywood, CA",Sunset Studios,,,Based on the Live Room of Studio 1 of Sunset Sound Studios. A room reverberation sound for realistic ambience.,,,,,,,,,,,,
+Sunset Spring,IK Multimedia,Reverb & Room,Reverb & Room,Modeled,Modeled,MixBox,"Sunset Sound Studios Hollywood, CA",Sunset Studios,,,Based on the Spring Reverb unit in Sunset Sound Studios. Spring reverbs create an artificial reverb by connecting a transducer and pickup on either end of a mechanical spring.,,,,,,,,,,,,
 CSR Plate,IK Multimedia,Reverb & Room,Reverb & Room,,,,,"Classik Studio Reverb
 T-Racks",Plate reverb,,"bright, slightly metallic. Vocals and Drums",Plugin,"AU, VST3",6.3.0,,,,,,,,,
 Reverb Delay,IK Multimedia,"Delay, Reverb & Room","Delay, Reverb & Room",,,MixBox,,,,,Combined reverb w/ delay mixed in for a spacious effect,,,,,,,,,,,,
@@ -220,12 +220,12 @@ Embedded in Amplitube",,,,,,,,,,,,,
 Embedded in Amplitube",,,,,,,,,,,,,
 1x12 57 Custom Deluxe,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender '57 Custom Deluxe,Fender Collection,1x12 CAB,,,,,,,,,,,,,,
 1x12 California Tweed,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie 1x12 California Tweed 23,Mesa/Boogie Collection,1x12 CAB,,,,,,,,,,,,,,
-1x12 Combo,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall Valvestate,Amplitube Collection,1x12 CAB,,,,,,,,,,,,,,
+1x12 Combo,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall Valvestate VS100,Amplitube Collection,1x12 CAB,,,,,,,,,,,,,,
 1x12 Mark III,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie Mark III,Mesa/Boogie Collection,1x12 CAB,Mesa/Boogie Mark III (CAB) TOP,,,,,,,,,,,,,
 1x12 Mark IV,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie Mark IV A,,1x12 CAB,Mesa/Boogie Mark IV A (CAB) ALT (Tone),,,,,,,,,,,,,
 1x12 MAZ 18 Jr.,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Dr. Z Maz 18 Jr.,Dr. Z Collection,1x12 CAB,,,,,,,,,,,,,,
 1x12 MB 150 S,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Gallien-Krueger MB150S,Galien Krueger Collection,1x12 CAB,,,,,,,,,,,,,,
-1x12 MB II,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie Mark II,Amplitube Collection,1x12 CAB,,,,,,,,,,,,,,
+1x12 MB II,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie Mark IIC+,Amplitube Collection,1x12 CAB,,,,,,,,,,,,,,
 1x12 MB III,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie Mark III,Amplitube Collection,1x12 CAB,Mesa/Boogie Mark III (CAB) TOP,,,,,,,,,,,,,
 1x12 Open Modern,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,VHT Pittbull 5012,Amplitube Collection,1x12 CAB (Combo),,,,,,,,,,,,,,
 1x12 Open Vintage,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Celestion Blue,Amplitube Collection,1x12 CAB,,,,,,,,,,,,,,
@@ -259,13 +259,13 @@ Embedded in Amplitube",,,,,,,,,,,,,
 2x15 Closed D J130,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender Dual Showman,Electric Gypsy Collection,2x15 CAB,Fender Dual Showman (CAB) ALT (Tone),,,,,,,,,,,,,
 3300W,IK Multimedia,"Amp & Cab, Modulation",Amp & Cab,Modeled,Modeled,Amplitube,Leslie 3300w,Leslie Collection,(clean),Leslie 3300w ALT (Tone),,,,,,,,,,,,,
 360Bass Preamp,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,Acoustic 360,Amplitube Collection,,Acoustic 360 ALT (Tone),,,,,,,,,,,,,
-3x10 57 Bandmaster,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender Bandmaster,Fender Collection,3x10 CAB,,,,,,,,,,,,,,
+3x10 57 Bandmaster,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender 57 Bandmaster,Fender Collection,3x10 CAB,,,,,,,,,,,,,,
 4x10 65 Super Reverb,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender '65 Super Reverb,Fender Collection,4x10 CAB,Fender '65 Super Reverb (CAB) ALT (Tone),,,,,,,,,,,,,
 4x10 NY410,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,Gallien-Krueger NEO 410,Amplitube Collection,4x10 CAB,,,,,,,,,,,,,,
 4x10 OBC 410,IK Multimedia,Amp & Cab,Amp & Cab,Bass,Bass,Amplitube,Orange OBC410,Orange Collection,4x10 CAB,,,,,,,,,,,,,,
 4x10 Open Vintage,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender '65 Super Reverb,Amplitube Collection,(1967) 4x10 CAB,Fender '65 Super Reverb (CAB) ALT (Tone),,,,,,,,,,,,,
 4x10+tw Bass,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,SWR Goliath III,Amplitube Collection,4x10 CAB,,,,,,,,,,,,,,
-4x10+tw TE Bass,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,Trace Elliott 1048H,Amplitube Collection,4x10 CAB,,,,,,,,,,,,,,
+4x10+tw TE Bass,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,Trace Elliot 1048H,Amplitube Collection,4x10 CAB,,,,,,,,,,,,,,
 4x12  Vintage M 1,IK Multimedia,Amp & Cab,Amp & Cab,Guitar,Guitar,Amplitube,,Amplitube Metal,,,,,,,,,,,,,,,
 4x12 1960AV SL,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall 1960AV,L.A. Rocker Collection,4x12 CAB,Marshall 1960AV ALT (Tone),,,,,,,,,,,,,
 4x12 1960BV SL,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall 1960BV,L.A. Rocker Collection,4x12 CAB,,,,,,,,,,,,,,
@@ -325,8 +325,8 @@ American J40,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modele
 American Lead MKIII,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Mesa/Boogie Mark III,Amplitube Collection,(high-gain),Mesa/Boogie Mark III ALT (Tone),,,,,,,,,,,,,
 American Tube Clean 1,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender '65 Twin Reverb,Amplitube Collection,(clean),Fender '65 Twin Reverb ALT (Tone),,,,,,,,,,,,,
 American Tube Clean 2,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender '65 Deluxe Reverb,Amplitube Collection,(clean),Fender '65 Deluxe Reverb ALT (Tone),,,,,,,,,,,,,
-American Tube Vintage,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender ’59 Bassman,Amplitube Collection,(crunch),Fender ’59 Bassman ALT (Tone),,,,,,,,,,,,,
-American Vintage B,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender ’59 Bassman,Electric Gypsy Collection,(clean),Fender ’59 Bassman ALT (Tone),,,,,,,,,,,,,
+American Tube Vintage,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender 59 Bassman,Amplitube Collection,(crunch),Fender ’59 Bassman ALT (Tone),,,,,,,,,,,,,
+American Vintage B,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender 59 Bassman,Electric Gypsy Collection,(clean),Fender ’59 Bassman ALT (Tone),,,,,,,,,,,,,
 American Vintage D,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Fender Dual Showman,Electric Gypsy Collection,(clean),,,,,,,,,,,,,,
 Amp Closet,IK Multimedia,Reverb & Room,Reverb & Room,,,Amplitube,,Amplitube Room,,,,,,,,,,,,,,,
 AmpLess,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",Amplitube,,Amplitube Collection,,,,,,,,,,,,,,,
@@ -342,13 +342,13 @@ Bi-Valve,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",A
 BigPig,IK Multimedia,"Harmonic Coloration, Dynamics","Dynamics, Harmonic Coloration","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Amplitube,Electro-Harmonix Big Muff Pi,Amplitube Metal,,Electro-Harmonix Big Muff Pi ALT (Tone),,,,,,,,,,,,,
 Blender,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Amplitube,Fender Blender,Fender Collection,,Fender Blender ALT (Tone),,,,,,,,,,,,,
 BM DK,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,John Deacon Deacy,Brian May Collection,(crunch),,,,,,,,,,,,,,
-Booster,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Amplitube,Custom Audio Electronics MC-402,L.A. Rocker Collection,,,,,,,,,,,,,,,
+Booster,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Amplitube,CAE MC-402 Boost/Overdrive,L.A. Rocker Collection,,,,,,,,,,,,,,,
 Boston 100,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Scholz R&D Rockman X100,Joe Satriani Collection,(crunch),,,,,,,,,,,,,,
 Boston Cab Sim,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Scholz R&D Rockman X100,Joe Satriani Collection,4x12 CAB,,,,,,,,,,,,,,
 Brit 100,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Celestion G12K-100,,1x12 CAB (Speaker),,,,,,,,,,,,,,
 Brit 100 Mod 34/36,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall AFD100,L.A. Rocker Collection,,Marshall AFD100 ALT (Tone),,,,,,,,,,,,,
 Brit 75,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Celestion G12T-75,,1x12 CAB (Speaker),,,,,,,,,,,,,,
-Brit 80,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Celestion G12-80,,1x12 CAB (Speaker),,,,,,,,,,,,,,
+Brit 80,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Celestion Classic Lead 80,,1x12 CAB (Speaker),,,,,,,,,,,,,,
 Brit 8000,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall JCM800 2203,Amplitube Collection,(high-gain),Marshall JCM800 ALT (Tone),,,,,,,,,,,,,
 Brit 9000,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Marshall JCM900 4100,Amplitube Collection,(high-gain),Marshall JCM900 ALT  (Tone),,,,,,,,,,,,,
 Brit Alnico B,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Celestion Blue Bulldog,,1x12 CAB (Speaker),,,,,,,,,,,,,,
@@ -384,7 +384,7 @@ Custom Modern Hi-Gain,IK Multimedia,Amp & Cab,Amp & Cab,Guitar,Guitar,Amplitube,
 Custom Solid State Clean,IK Multimedia,Amp & Cab,Amp & Cab,Guitar,Guitar,Amplitube,,Amplitube Collection,(clean),,,,,,,,,,,,,,
 Custom Solid State Fuzz,IK Multimedia,Amp & Cab,Amp & Cab,Guitar,Guitar,Amplitube,,Amplitube Collection,(crunch),,,,,,,,,,,,,,
 Custom Solid State Lead,IK Multimedia,Amp & Cab,Amp & Cab,Guitar,Guitar,Amplitube,,Amplitube Collection,(high-gain),,,,,,,,,,,,,,
-CV G12-16,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Carvin G12-16,,1x12 CAB (Speaker),,,,,,,,,,,,,,
+CV G12-16,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Carvin G12-60,,1x12 CAB (Speaker),,,,,,,,,,,,,,
 Darrell 100,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Randall RG100ES,Dimebag Darrell - CFH,(high-gain),,,,,,,,,,,,,,
 Darrell Panther,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Randall Jaguar 12-inch 50W,,1x12 CAB (Speaker) ,,,,,,,,,,,,,,
 Dcomp,IK Multimedia,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Amplitube,MXR Dyna Comp,Amplitube Collection,,MXR Dyna Comp ALT (Tone),,,,,,,,,,,,,
@@ -419,7 +419,7 @@ Garage,IK Multimedia,Reverb & Room,Reverb & Room,,,Amplitube,,Amplitube Room,,,,
 Gate,IK Multimedia,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Amplitube,MXR Smart Gate,L.A. Rocker Collection,,MXR Smart Gate TOP,,,,,,,,,,,,,
 German 34,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Engl E645 Powerball,Amplitube Collection,(high-gain),Engl E645 Powerball ALT (Tone),,,,,,,,,,,,,
 Graphic EQ,IK Multimedia,EQ,EQ,,,Amplitube,,Amplitube Collection,,,,,,,,,,,,,,,
-Green BA250,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,Trace Elliott AH250,Amplitube Collection,,,,,,,,,,,,,,,
+Green BA250,IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Amplitube,Trace Elliot AH250,Amplitube Collection,,,,,,,,,,,,,,,
 Hall,IK Multimedia,Reverb & Room,Reverb & Room,,,Amplitube,,Amplitube Room,,,,,,,,,,,,,,,
 Harmonator,IK Multimedia,"Delay, Modulation, Pitch, Spatial Imaging","Delay, Modulation, Pitch, Spatial Imaging","Guitar, Stomp, Modeled","Guitar, Modeled, Stomp",Amplitube,Eventide PitchFactor,Amplitube Collection,,,,,,,,,,,,,,,
 HiAmp,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Amplitube,Hiwatt DR103 Custom 100,Amplitube Collection,(crunch) Fane Purple Back,Hiwatt DR103 Custom 100 ALT (Tone),,,,,,,,,,,,,
@@ -616,7 +616,7 @@ Envelope Filter,IK Multimedia,Modulation,Modulation,"Guitar, Modeled, Stomp","Gu
 EQ-81,IK Multimedia,EQ,EQ,Modeled,Modeled,"Amplitube, MixBox",Neve 1081,"Amplitube Collection
 T-Racks",,"Neve 1081 ALT (Tone)
 Standalone; Embedded in Amplitube and MixBox",,Plugin,"AU, VST3",6.3.0,,,,,,,,,
-EQ-PG,IK Multimedia,EQ,EQ,Modeled,Modeled,"Amplitube, MixBox",API 560 10-Band GEQ,"Amplitube Collection
+EQ-PG,IK Multimedia,EQ,EQ,Modeled,Modeled,"Amplitube, MixBox",API 560 10-Band Graphic EQ,"Amplitube Collection
 T-Racks",,Standalone; Embedded in Amplitube and MixBox.,,Plugin,"AU, VST3",6.3.0,,,,,,,,,
 Filter Phaser,IK Multimedia,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp","Amplitube, MixBox",Electro-Harmonix Small Stone,Amplitube Collection,,Electro-Harmonix Small Stone ALT (Tone),,,,,,,,,,,,,
 Filter-C,IK Multimedia,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp","Amplitube, MixBox",Curtis CEM3320,Amplitube Collection,,,,,,,,,,,,,,,
@@ -639,7 +639,7 @@ Phaser,IK Multimedia,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Mod
 Plate Reverb,IK Multimedia,Reverb & Room,Reverb & Room,,,"Amplitube, MixBox",,Amplitube Collection,,,,,,,,,,,,,,,
 Room Reverb,IK Multimedia,Reverb & Room,Reverb & Room,,,"Amplitube, MixBox",,Amplitube Collection,,,,,,,,,,,,,,,
 Rotary Speaker,IK Multimedia,"Amp & Cab, Modulation","Amp & Cab, Modulation",Modeled,Modeled,"Amplitube, MixBox","Leslie 122
-Leslie147",Amplitube Collection,,"Leslie 122 ALT (Tone)
+Leslie 147",Amplitube Collection,,"Leslie 122 ALT (Tone)
 Leslie 147 ALT (Tone)",,,,,,,,,,,,,
 Saturator X,IK Multimedia,Harmonic Coloration,Harmonic Coloration,,,"Amplitube, MixBox",,"Amplitube Collection
 T-Racks","10 categories of distortion / saturation [2 analog tape emulators, 2 RMS peak (soft) distortions, tube + solid state push pull (odd harmonics); tube + solid state Class A (asymmetrical ""halo"" distortion; iron / steel core transformer distortion (balanced harmonics) ] w/ brickwall limiter at end of chain ",Standalone; Embedded in Amplitube and MixBox.,,Plugin,"AU, VST3",6.3.0,,,,,,,,,
@@ -674,7 +674,7 @@ Channel Strip X,IK Multimedia,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Ch
 Limiter",IK Multimedia,"Dynamics, EQ","Dynamics, EQ",Mastering,Mastering,MixBox,,T-Racks,Multiband (3) Peak Limiter,Standalone; Embedded in MixBox,,Plugin,"AU, VST3",6.3.0,,,,,,,,,
 Convo Room,IK Multimedia,Reverb & Room,Reverb & Room,,,MixBox,,,This is a convolution reverb that processes the incoming signal with real sampled spaces providing the ultra- realistic sound of the actual rooms recorded. ,,,,,,,,,,,,,,
 DeEsser,IK Multimedia,Dynamics,Dynamics,Voice,Voice,MixBox,,T-Racks,4-Band de-esser,Standalone; Embedded in MixBox,,Plugin,"AU, VST3",6.3.0,,,,,,,,,
-Ensemble,IK Multimedia,Modulation,Modulation,Modeled,Modeled,MixBox,Eminent ARP/Solina String Ensemble,,Chorus effect only,,,,,,,,,,,,,,
+Ensemble,IK Multimedia,Modulation,Modulation,Modeled,Modeled,MixBox,Eminent Solina/ARP String Ensemble,,Chorus effect only,,,,,,,,,,,,,,
 Env Flanger,IK Multimedia,Modulation,Modulation,,,MixBox,,,"This particular kind of flanger has its feedback parameter, which is internally controlled by the envelope of the audio signal. ",,,,,,,,,,,,,,
 EQ Comp,IK Multimedia,"Dynamics, EQ","Dynamics, EQ",,,MixBox,,,"This effect features a semi-parametric EQ and an easy-to-use compressor. Both units are very high quality, giving a very musical sounding equalizer and an “analog-style” compression.",,,,,,,,,,,,,,
 EQ-PA,IK Multimedia,EQ,EQ,Modeled,Modeled,MixBox,Pultec MEQ-5 Mid-Range EQ,T-Racks,,"Pultec MEQ-5 Mid-Range EQ ALT (Tone)
@@ -725,7 +725,7 @@ Bearded","Fender EVH 5150 III 4x12
 Johnson J412V
 Marshall 1960AX 4x12 4x12",Mezzabarba M Zero Overdrive TOP,,,,,,,,,,,,,
 Bearded (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mezzabarba Trinity 100W,"Premium Tone Model
-Bearded",Marshall 1960AV 4x12,Mezzabarba Trinity 100W TOP,,,,,,,,,,,Helix Native,,(Legacy) 
+Bearded",Marshall 1960AV 4x12,Mezzabarba Trinity 100W TOP,,,,,(Legacy) ,(Legacy) ,(Legacy) ,(Legacy) ,(Legacy) ,(Legacy) ,(Legacy) ,(Legacy) ,(Legacy) 
 Big Tweed (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender Blues Deluxe,"Premium Tone Model
 Big Tweed",1x12,,,,,,,,,,,,,,
 Black and Blue (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",TONEX,Acoustic 360,"Premium Tone Model
@@ -816,7 +816,7 @@ Double Black,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Mode
 Double Black,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Wampler SLOstortion,Double Black,,,,,,,,,,,,,,,
 Double Black,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Wampler Triple Wreck,Double Black,,,,,,,,,,,,,,,
 Double Red,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Fulltone Full-Drive 2,Double Red,,,,,,,,,,,,,,,
-Double Red,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,GCI Brutalist Jr,Double Red,,,,,,,,,,,,,,,
+Double Red,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,GCI Brutalist Jr.,Double Red,,,,,,,,,,,,,,,
 Double Red,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Strymon Sunset,Double Red,,,,,,,,,,,,,,,
 Dynamic Drive,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Landgraff Dynamic Overdrive,Premium Tone Model,,Landgraff Dynamic Overdrive TOP,,,,,,,,,,,,,
 Fruity Fuzz,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Frantone Peachfuzz,Premium Tone Model,,Frantone Peachfuzz TOP,,,,,,,,,,,,,
@@ -849,7 +849,7 @@ Gold Guard",Fender EVH 5150 III 4x12,Marshall JCM800 TOP,,,,,,,,,,,,,
 Gold Guard (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall JCM900 4100,"Premium Tone Model
 Gold Guard","Fender EVH 5150 III 4x12
 Hiwatt 4x12",Marshall JCM900 TOP,,,,,,,,,,,,,
-Gold Guard (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",TONEX,Marshall JCM800 Bass Amp,"Premium Tone Model
+Gold Guard (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",TONEX,Marshall 1992 Super Bass Plexi,"Premium Tone Model
 Gold Guard",Marshall 1552 2x15,,,,,,,,,,,,,,
 Gold Guard (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall JCM 25/50 2555 Silver Jubilee,"Premium Tone Model
 Gold Guard",Marshall 2551A 4x12,Marshall 2555 Silver Jubilee TOP,,,,,,,,,,,,,
@@ -860,19 +860,19 @@ Blackstar Artisan 412
 Blackstar Series One 412
 CabRig Output (4x12) [DSP speaker simulation]",,,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Blackstar Blackfire 200,Premium Tone Model (Gus G.),Blackstar Series One 412,,,,,,,,,,,,,,
-Gus G. Tone Asylum,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,BBE G Screamer OG-1,Premium Tone Model (Gus G.),,,,,,,,,,,,,,,
+Gus G. Tone Asylum,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,BBE G-Screamer OG-1,Premium Tone Model (Gus G.),,,,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Boss SD-1 Super OverDrive,Premium Tone Model (Gus G.),,Boss SD-1 ALT (Tone),,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Crazy Tube Circuits Speed Demon,Premium Tone Model (Gus G.),,,,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,J. Rockett Archer,Premium Tone Model (Gus G.),,,,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Blackstar HT Metal 5,Premium Tone Model (Gus G.),"Blackbird 50 Custom 4x12 
 NOTE: This cab is the emulated 4x12 switch on the HT Metal 5",,,,,,,,,,,,,,
-Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall JCM 2000 TSL60,Premium Tone Model (Gus G.),Blackstar Artisan 412,,,,,,,,,,,,,,
+Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall JCM2000 TSL60,Premium Tone Model (Gus G.),Blackstar Artisan 412,,,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender EVH 5150 III 100W (6L6),Premium Tone Model (Gus G.),"Blackstar Artisan 412
 Blackstar Series One 412
 Blackstar St. James 4x12",Fender EVH 5150 III 100W (6L6) ALT (Tone/Metal),,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Engl E645 Powerball,Premium Tone Model (Gus G.),Blackstar Series One 412,Engl E645 Powerball TOP,,,,,,,,,,,,,
 Gus G. Tone Asylum,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mesa/Boogie Triple Rectifier,Premium Tone Model (Gus G.),Blackstar Series One 412,Mesa/Boogie Triple Rectifier TOP,,,,,,,,,,,,,
-Gus G. Tone Asylum,IK Multimedia,"Amp & Cab, Harmonic Coloration, Reverb & Room, Preamps","Amp & Cab, Harmonic Coloration, Preamps, Reverb & Room","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Blackstar Dept 10,Premium Tone Model (Gus G.),Built In IR 4x12,,,,,,,,,,,,,,
+Gus G. Tone Asylum,IK Multimedia,"Amp & Cab, Harmonic Coloration, Reverb & Room, Preamps","Amp & Cab, Harmonic Coloration, Preamps, Reverb & Room","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Blackstar Dept 10 Amped 3,Premium Tone Model (Gus G.),Built In IR 4x12,,,,,,,,,,,,,,
 Gus G. Tone Asylum (Fire & Fury),IK Multimedia,"Amp & Cab, Harmonic Coloration","Amp & Cab, Harmonic Coloration","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Crazy Tube Circuits Crossfire,Premium Tone Model (Gus G.),Hesu M412BK-B,,,,,,,,,,,,,,
 "Hard & Heavy
 Bearded (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mezzabarba Trinity 100W,"Premium Tone Model
@@ -891,7 +891,7 @@ Bogeyman (Amplitube) ",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guit
 Bogeyman
 Hard and Heavy",Marshall 1922 2x12,,,,,,,,,,,,,,
 "Hard & Heavy
-Gold Guard (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall 6100LM Anniversary,"Premium Tone Model
+Gold Guard (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall 6100LM 30th Anniversary,"Premium Tone Model
 Gold Guard",M-Tech Audio Cab 112,,,,,,,,,,,,,,
 "Hard & Heavy
 Gold Guard (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall JCM800 2203ZW,"Premium Tone Model
@@ -990,7 +990,7 @@ Bearded (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar
 Bearded
 High-Gain Heroes",M-Tech Audio Cab 212,Mezzabarba M Zero Overdrive TOP,,,,,,,,,,,,,
 "High-gain Heroes
-Gold Guard (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall 6100LM Anniversary,"Premium Tone Model
+Gold Guard (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall 6100LM 30th Anniversary,"Premium Tone Model
 Gold Guard
 High-Gain Heroes",M-Tech Audio Cab 112,,,,,,,,,,,,,,
 "High-gain Heroes
@@ -1032,7 +1032,7 @@ Marshall 1960A 4x12",Mesa/Boogie Dual Rectifier TOP,,,,,,,,,,,,,
 "Hyde Street Amp Locker
 Plexi Guard (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Marshall SV20H ,Premium Tone Model (Hyde Street),Marshall Studio Vintage 2x12 ,,,,,,,,,,,,,,
 "Hyde Street Amp Locker
-Silver (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender Champ,Premium Tone Model (Hyde Street),1x10,,,,,,,,,,,,,,
+Silver (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender 57 Champ,Premium Tone Model (Hyde Street),1x10,,,,,,,,,,,,,,
 "Hyde Street Amp Locker
 Silver (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender '68 Twin Reverb,Premium Tone Model (Hyde Street),2x12,Fender 68 Twin Reverb TOP,,,,,,,,,,,,,
 "Hyde Street Amp Locker
@@ -1121,10 +1121,10 @@ JS SLO","Marshall 1960A ""Stain"" 4x12 ",,,,,,,,,,,,,,
 JS Stealth (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender EVH 5150 III 100W (6L6),"Premium Tone Model (Joe Satriani)
 JS Stealth","Marshall 1960A ""Stain"" 4x12 ",Fender EVH 5150 III 100W (6L6) ALT (Tone),,,,,,,,,,,,,
 "Joe Satriani Amp Vault
-JS Tweedy LIttle (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender '53 Tweed Deluxe,"Premium Tone Model (Joe Satriani) 
+JS Tweedy LIttle (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender 53 Tweed Deluxe,"Premium Tone Model (Joe Satriani) 
 JS Tweedy Little",1x12,Fender 53 Tweed Deluxe ALT (Tone),,,,,,,,,,,,,
 "Joe Satriani Amp Vault
-JS Well (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Wells Amp,"Premium Tone Model (Joe Satriani) 
+JS Well (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Wells Amp NYC,"Premium Tone Model (Joe Satriani) 
 JS Well","Marshall 1960A ""Stain"" 4x12 ",,,,,,,,,,,,,,
 Little Tweed (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Fender Pro Junior,"Premium Tone Model
 Little Tweed",1x10,Fender Pro Junior TOP,,,,,,,,,,,,,
@@ -1160,7 +1160,7 @@ Metal Classic","ENGL E412VSB
 Fender EVH 5150 III 4x12",Peavey 5150 TOP,,,,,,,,,,,,,
 Metal Face (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mesa/Boogie Triple Rectifier,"Premium Tone Model
 Metal Face",Mesa/Boogie 2x12 Horizontal Rectifier Cabinet,Mesa/Boogie Triple Rectifier TOP,,,,,,,,,,,,,
-Metal Face (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mesa/Boogie Dual Rectifier 90s,"Premium Tone Model
+Metal Face (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mesa/Boogie Dual Rectifier,"Premium Tone Model
 Metal Face",Mesa/Boogie 4x12 Front-Loaded (4FB),,,,,,,,,,,,,,
 "Metal Gems
 Herbie (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Diezel Herbert,"Premium Tone Model (Metal Gems) 
@@ -1220,7 +1220,7 @@ Orange PPC412",Soldano SLO-100 ALT (Tone),,,,,,,,,,,,,
 Modern Digital (Amplitube) ,IK Multimedia,"Amp & Cab, Harmonic Coloration, Dynamics, Preamps","Amp & Cab, Dynamics, Harmonic Coloration, Preamps","Guitar, Modeled","Guitar, Modeled",TONEX,Scholz R&D Rockman Sustainor,"Premium Tone Model
 Modern Digitial",4x12 (Custom non-specific 4x12),,,,,,,,,,,,,,
 Muff,IK Multimedia,"Harmonic Coloration, Dynamics","Dynamics, Harmonic Coloration","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Electro-Harmonix Big Muff Pi,Muff,,Electro-Harmonix Big Muff Pi ALT (Tone),,,,,,,,,,,,,
-Muff,IK Multimedia,"Harmonic Coloration, Dynamics","Dynamics, Harmonic Coloration","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Electro-Harmonix Russian Big Muff PI ,Muff,,Electro-Harmonix Russian Big Muff Pi ALT (Tone),,,,,,,,,,,,,
+Muff,IK Multimedia,"Harmonic Coloration, Dynamics","Dynamics, Harmonic Coloration","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Electro-Harmonix Russian Big Muff Pi ,Muff,,Electro-Harmonix Russian Big Muff Pi ALT (Tone),,,,,,,,,,,,,
 ODS Legends,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Dumble ODS 50,Premium Tone Model (Overdrive Special) ,(1979) Dumble 2x12 Cabinet Celestion JB-85,,,,,,,,,,,,,,
 ODS Legends,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Dumble ODS 100,Premium Tone Model (Overdrive Special) ,(1983) 2x12 Dumble Cabinet w/  Electro-Voice EVM12L,,,,,,,,,,,,,,
 ODS Legends,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Dumble ODS 50,Premium Tone Model (Overdrive Special) ,(1984) Van Weelden Twinkeland 2x12 2017,,,,,,,,,,,,,,
@@ -1292,10 +1292,10 @@ Rectify",Mesa/Boogie 2x12 Horizontal Rectifier Cabinet,,,,,,,,,,,,,,
 Metal Face (Amplitube)",IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Mesa/Boogie Triple Rectifier,"Premium Tone Model
 Metal Face
 Rectify",Orange PPC412HP8,Mesa/Boogie Triple Rectifier TOP,,,,,,,,,,,,,
-RedSeven Hybrid100,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,RedSeven Hybrid100,Premium Tone Model (RedSeven Hybrid) ,RedSeven 4x12 Pro Cab,,,,,,,,,,,,,,
+RedSeven Hybrid100,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,RedSeven Hybrid 100,Premium Tone Model (RedSeven Hybrid) ,RedSeven 4x12 Pro Cab,,,,,,,,,,,,,,
 Signature Collections Vol 1,IK Multimedia,"Harmonic Coloration, EQ","EQ, Harmonic Coloration","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Catalinbread Tribute,"Premium Tone Model
 Signature Collections Vol. 1",,,,,,,,,,,,,,,
-Signature Collections Vol 1,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,EarthQuaker Devices / Sunn O))) LIfe Pedal,"Premium Tone Model
+Signature Collections Vol 1,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,EarthQuaker Devices Sunn O))) Life Pedal,"Premium Tone Model
 Signature Collections Vol. 1",,EarthQuaker Devices Life Pedal ALT (Tone),,,,,,,,,,,,,
 Signature Collections Vol 1.,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,JHS Morning Glory,"Premium Tone Model
 Signature Collections Vol. 1",,JHS Morning Glory TOP,,,,,,,,,,,,,
@@ -1314,7 +1314,7 @@ Tiny Box",Orange PPC112,Orange Dual Terror TOP,,,,,,,,,,,,,
 Tone Fuzz,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Maestro FZ-1B Fuzz Tone,,,Maestro FZ-1B Fuzz Tone TOP,,,,,,,,,,,,,
 TONEX Amp Black (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",TONEX,Aguilar DB750,"Premium Tone Model
 TONEX Amp Black","Aguilar DB410
-Trace Elliott 1084H 4x10",Aguilar DB750 TOP,,,,,,,,,,,,,
+Trace Elliot 1084H 4x10",Aguilar DB750 TOP,,,,,,,,,,,,,
 TONEX Amp Black (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Dr. Z Z Wreck,"Premium Tone Model
 TONEX Amp Black","Marshall 1960A 4x12
 Dr.Z Z Best 2x12",Dr. Z Z Wreck TOP,,,,,,,,,,,,,
@@ -1342,7 +1342,7 @@ TONEX Amp Red",Hiwatt 4x12,,,,,,,,,,,,,,
 TONEX Amp Red (Amplitube) ,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Dr. Z Maz 18 Jr.,"Premium Tone Model
 TONEX Amp Red",1x12 Combo,Dr. Z MAZ 18 Jr TOP,,,,,,,,,,,,,
 Tonex Pedal,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,Fryer Treble Booster,TONEX Pedal,,,,,,,,,,,,,,,
-Tonex Pedal,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,ProAnalog Manticore V2,TONEX Pedal,,,,,,,,,,,,,,,
+Tonex Pedal,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",TONEX,ProAnalog Devices Manticore V2,TONEX Pedal,,,,,,,,,,,,,,,
 Tonex Pedal,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Bass, Modeled, Stomp","Bass, Modeled, Stomp",TONEX,Tech 21 DP-3X,TONEX Pedal,,,,,,,,,,,,,,,
 Tonex Pedal,IK Multimedia,Preamps,Preamps,"Bass, Modeled, Stomp","Bass, Modeled, Stomp",TONEX,Tech 21 SansAmp Bass Driver DI,TONEX Pedal,,Tech 21 SansAmp Bass Driver DI ALT (Tone),,,,,,,,,,,,,
 Tonex Pedal,IK Multimedia,Harmonic Coloration,Harmonic Coloration,"Bass, Modeled, Stomp","Bass, Modeled, Stomp",TONEX,Tech 21 SH1,TONEX Pedal,,,,,,,,,,,,,,,
@@ -1402,7 +1402,7 @@ Untamed (Amplitube),IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar,
 Untamed",Mesa/Boogie 2x12 Horizontal Rectifier Cabinet,Engl E645 Powerball TOP,,,,,,,,,,,,,
 US Gold (Amplitube) ,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Friedman BE100,"Premium Tone Model
 US Gold",Johnson J412V,Friedman BE100 ALT (Tone),,,,,,,,,,,,,
-US Gold (Amplitube) ,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Friedman Pink Taco PT20,"Premium Tone Model
+US Gold (Amplitube) ,IK Multimedia,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",TONEX,Friedman PT20 (Pink Taco),"Premium Tone Model
 US Gold","Orange PPC212
 Silvertone Twin Twelve 1484 (Cab Only)",,,,,,,,,,,,,,
 "Vintage & Lo-Fi
@@ -1517,7 +1517,7 @@ TEAC A-3340S,IK Multimedia,Harmonic Coloration,Harmonic Coloration,Modeled,Model
 TEAC A-6100 MKII,IK Multimedia,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,TEAC A-6100 MKII,T-Racks,,,,Plugin,"AU, VST3",6.3.0,,,,,,,,,
 TONEX,IK Multimedia,"Container, Delay, Dynamics, EQ, Modulation, Reverb & Room","Container, Delay, Dynamics, EQ, Modulation, Reverb & Room","Bass, Guitar","Bass, Guitar",,,,"AI machine modeled tone creator, player, browser and editor for amp, cab and stomp. Has dynamic processing (noise gate, compressor), Modulation effects, Delay, Reverb, and EQ",,,"Plugin, Standalone","AU, VST3",1.10.5,,,,,,,,,
 Triad Chorus,IK Multimedia,Modulation,Modulation,Modeled,Modeled,,"DMP TSC-618
-Dyntronics CS-5 Tri-Stereo Chorus","Softube (Modeled by)
+Dytronics CS-5 Tri-Stereo Chorus","Softube (Modeled by)
 T-Racks",,"DMP TSC-6718 ALT (Tone)
 Dytronics CS-5 ALT (Tone)",,Plugin,"AU, VST3",6.3.0,,,,,,,,,
 White Channel,IK Multimedia,"Preamps, EQ, Dynamics","Dynamics, EQ, Preamps",Modeled,Modeled,,SSL 9000,T-Racks,,,,Plugin,"AU, VST3",6.3.0,,,,,,,,,
@@ -1574,7 +1574,7 @@ Ozone 12 Stem EQ,iZotope,EQ,EQ,Mastering,Mastering,,,Ozone,"Gives you the abilit
 Ozone 12 Unlimiter,iZotope,Dynamics,Dynamics,Mastering,Mastering,,,Ozone,"Restores dynamics to audio that has been heavily limited or compressed. Using advanced machine learning, it estimates the transients lost during limiting and reconstructs them to bring back punch and musicality",,,Plugin,"AU, VST3",12.1.0,,,,,,,,,
 Ozone 12 Vintage Compressor,iZotope,Dynamics,Dynamics,Mastering,Mastering,,,Ozone,"3 modes of vintage mastering compression (sharp, balanced, smooth) w/ a detection filter for triggering dynamics processing",,,Plugin,"AU, VST3",12.1.0,,,,,,,,,
 Ozone 12 Vintage EQ,iZotope,EQ,EQ,"Mastering, Modeled","Mastering, Modeled",,"Pultec EQP-1A
-Pultec MEQ 5 Mid-Range EQ",Ozone,"Vintage mastering EQ
+Pultec MEQ-5 Mid-Range EQ",Ozone,"Vintage mastering EQ
 EQP-1A (Low/high Boost/Cut and Shelving)
 MEQ-5 (3 Band peaking filters) ","Pultec EQP-1A TOP - Mastering
 Pultec MEQ-5 Mid-Range EQ TOP - Mastering",,Plugin,"AU, VST3",12.1.0,,,,,,,,,
@@ -1645,7 +1645,7 @@ Embedded in Helix Native",,,,,,,,,,,,,
 1x12 Lead 80,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Bogner Shiva,Legacy,1x12 CAB,,,,,,,,,,,,,,
 1x12 Open Cast,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Electro-Voice EVM12L ,,1x12 open back CAB,,,,,,,,,,,,,,
 1x12 Open Cream,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Celestion G12M-65,,1x12 open back CAB,,,,,,,,,,,,,,
-1x12 US Deluxe,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '65 Deluxe Deluxe Reverb,,1x12 CAB,Oxford 12K5-6 TOP,,,,,,,,,,,,,
+1x12 US Deluxe,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender 65 Deluxe Reverb,,1x12 CAB,Oxford 12K5-6 TOP,,,,,,,,,,,,,
 1x12 US Princess,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '65 Princeton Reverb,Legacy,Modded 1x12 CAB Celestion Blue,Fender '65 Princeton Reverb CAB ALT (Tone),,,,,,,,,,,,,
 1x15 Ampeg B-15,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Ampeg B-15,,1x15 CAB,Ampeg B-15 TOP,,,,,,,,,,,,,
 1x18 Del Sol,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Sunn Coliseum 300,Legacy,1x18 CAB,,,,,,,,,,,,,,
@@ -1659,7 +1659,7 @@ Embedded in Helix Native",,,,,,,,,,,,,
 2x12 Mandarin 30,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Orange PPC212,,2x12 CAB,Orange PPC212 TOP,,,,,,,,,,,,,
 2x12 Match G25,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Matchless ESD212 ,,Modded 2x12 CAB Celestion Ruby,Matchless ESD212 TOP,,,,,,,,,,,,,
 2x12 Match H30,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Matchless ESD212 ,,Modded 2x12 CAB Celestion G12H (75),Matchless ESD212 TOP,,,,,,,,,,,,,
-2x12 Silver Bell,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Voc AC30,,2x12 CAB Celestion Silver Bulldog (rare) ,,,,,,,,,,,,,,
+2x12 Silver Bell,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Vox AC30,,2x12 CAB Celestion Silver Bulldog (rare) ,,,,,,,,,,,,,,
 2x15 Brute,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Mesa/Boogie Road Ready 2x15,,2x15 CAB Electro-Voice EVM15B,,,,,,,,,,,,,,
 2x15 US Dripman,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender Dual Showman,,2x15 CAB,Fender Dual Showman (CAB) TOP,,,,,,,,,,,,,
 3 Note Generator,Line 6,Pitch,Pitch,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,Off By Default,,,,,,,,,,,,,,
@@ -1674,7 +1674,7 @@ Embedded in Helix Native",,,,,,,,,,,,,
 414 Cond,Line 6,Microphone,Microphone,"Guitar, Bass, Modeled","Bass, Guitar, Modeled",Helix Native,AKG C414 XLS,,,Embedded in Helix Native,,,,,,,,,,,,,
 421 Dynamic,Line 6,Microphone,Microphone,"Guitar, Modeled, Bass","Bass, Guitar, Modeled",Helix Native,Sennheiser MD421,,,Embedded in Helix Native,,,,,,,,,,,,,
 47 Cond FET,Line 6,Microphone,Microphone,"Guitar, Bass, Modeled","Bass, Guitar, Modeled",Helix Native,Neumann U47 FET,,,Embedded in Helix Native,,,,,,,,,,,,,
-4x10 Ampeg HLF,Line 6,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Helix Native,Ampeg SVT-410HLF,Legacy,4x10 CAB,,,,,,,,,,,,,,
+4x10 Ampeg HLF,Line 6,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Helix Native,Ampeg SVT410HLF,Legacy,4x10 CAB,,,,,,,,,,,,,,
 4x10 Ampeg Pro,Line 6,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Helix Native,Ampeg PR-410HLF,,4x10 CAB,,,,,,,,,,,,,,
 4x10 Garden,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Eden D410XLT,,4x10 CAB,Eden D410XLT TOP,,,,,,,,,,,,,
 4x10 Tweed P10R,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '59 Bassman,,4x10 CAB,Embedded in Helix Native,,,,,,,,,,,,,
@@ -1689,13 +1689,13 @@ Embedded in Helix Native",,,,,,,,,,,,,
 4x12 Greenback30,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Marshall 1960A Basketweave,,4x12 CAB/ Celestion G12H (75),Marshall 1960A Basketweave TOP,,,,,,,,,,,,,
 4x12 Mandarin EM,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Orange PPC412,,4x12 CAB Eminence Governor,Orange PPC412 TOP,,,,,,,,,,,,,
 4x12 MOO)))N T75,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Celestion G12T-75 ,,4x12 CAB for Sunn,,,,,,,,,,,,,,
-4x12 SoloLead EM,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,JCA48S,,4x12 CAB,,,,,,,,,,,,,,
+4x12 SoloLead EM,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Jet City JCA48S,,4x12 CAB,,,,,,,,,,,,,,
 4x12 Uber T75,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Bogner Uberkab,,4x12 CAB Celestion G12T-75,,,,,,,,,,,,,,
 4x12 Uber V30,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Bogner Uberkab,,4x12 CAB Celestion Vintage 30,,,,,,,,,,,,,,
 "4x12 WhoWatt
-4x12 WhoWatt 100",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Hiwatt 4123F,,4x12 CAB,Hiwatt 4123F TOP,,,,,,,,,,,,,
+4x12 WhoWatt 100",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Hiwatt SE4123F,,4x12 CAB,Hiwatt SE4123F TOP,,,,,,,,,,,,,
 4x12 XXL V30,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Engl E412XXL,,4x12 CAB,Engl E412XXL TOP,,,,,,,,,,,,,
-52 Dynamic,Line 6,Microphone,Microphone,"Modeled, Bass","Bass, Modeled",Helix Native,Shure Beta 52A,,,Embedded in Helix Native,,,,,,,,,,,,,
+52 Dynamic,Line 6,Microphone,Microphone,"Modeled, Bass","Bass, Modeled",Helix Native,Shure Beta 52,,(Shure Beta 52A),Embedded in Helix Native,,,,,,,,,,,,,
 57 Dynamic,Line 6,Microphone,Microphone,"Guitar, Modeled, Bass","Bass, Guitar, Modeled",Helix Native,Shure SM57,,,Embedded in Helix Native,,,,,,,,,,,,,
 60s Bias Trem,Line 6,"Amp & Cab, Modulation","Amp & Cab, Modulation","Guitar, Modeled","Guitar, Modeled",Helix Native,Vox AC15,,Vox Tremolo Circuit Only,Vox AC15 (Trem Circuit) TOP,,,,,,,,,,,,,
 63 Spring,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
@@ -1806,7 +1806,7 @@ Deez One Vintage,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled
 Del Sol 300,Line 6,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Helix Native,Sunn Coliseum 300,,,,,,,,,,,,,,,,
 Deluxe Comp,Line 6,Dynamics,Dynamics,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Deluxe Phaser,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
-Derailed Ingrid,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Trainwreck Circuits Express,,,,,,,,,,,,,,,,
+Derailed Ingrid,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Trainwreck Express,,,,,,,,,,,,,,,,
 Deranged Master,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Dallas Arbiter Rangemaster,,,,,,,,,,,,,,,,
 Dhyana Drive,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Hermida Zendrive,,,,,,,,,,,,,,,,
 Dig w/ Mod,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
@@ -1866,10 +1866,10 @@ Harmonic Tremolo,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",He
 Harmony Delay,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Heavy Dist,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Boss MT-2 Metal Zone,Legacy,,Boss MT-2 ALT (Tone),,,,,,,,,,,,,
 Hedgehog D9,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Maxon SD9,,,,,,,,,,,,,,,,
-Heir Apparent,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Analogman Prince of Tone,,,,,,,,,,,,,,,,
+Heir Apparent,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Analog.Man Prince of Tone,,,,,,,,,,,,,,,,
 Heliosphere,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
-Horizon Drive,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Horizon Precision Drive,,,,,,,,,,,,,,,,
-Horizon Gate,Line 6,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Horizon Precision Drive,,Gate Circuit,,,,,,,,,,,,,,
+Horizon Drive,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Horizon Devices Precision Drive,,,,,,,,,,,,,,,,
+Horizon Gate,Line 6,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Horizon Devices Precision Drive,,Gate Circuit,,,,,,,,,,,,,,
 Hot Springs,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Industrial Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Z Vex Fuzz Factory,,,Z Vex Fuzz Factory TOP,,,,,,,,,,,,,
 Interstate Zed,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Dr. Z Route 66,,,Dr. Z Route 66 TOP,,,,,,,,,,,,,
@@ -1879,7 +1879,7 @@ Jumbo Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stom
 Killer Z,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Boss MT-2 Metal Zone,Legacy,,Boss MT-2 ALT (Tone),,,,,,,,,,,,,
 Kinky Boosts,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Xotic EP Booster,,,,,,,,,,,,,,,,
 Kinky Comp,Line 6,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Xotic SP Compressor,,,,,,,,,,,,,,,,
-KWB,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Benadrian KWB ,,KWB = Kowloon Walled Bunny,,,,,,,,,,,,,,
+KWB,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Ben Adrian KWB,,KWB = Kowloon Walled Bunny,,,,,,,,,,,,,,
 L6 Distortion,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 L6 Drive,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Colorsound Overdriver,Legacy,modded - unspecified,,,,,,,,,,,,,,
 LA Studio Comp,Line 6,Dynamics,Dynamics,Modeled,Modeled,Helix Native,Teletronix LA-2A,,,Embedded in Helix Native,,,,,,,,,,,,,
@@ -1925,14 +1925,14 @@ Noise Gate,Line 6,Dynamics,Dynamics,"Guitar, Stomp","Guitar, Stomp",Helix Native
 Nonlinear,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Obi Wah,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Oberheim VCF-200,Legacy,,,,,,,,,,,,,,,
 Obsidian 7000,Line 6,"Harmonic Coloration, EQ, Preamps","EQ, Harmonic Coloration, Preamps","Bass, Modeled, Stomp","Bass, Modeled, Stomp",Helix Native,Darkglass Microtubes B7K Ultra,,,,,,,,,,,,,,,,
-Octave Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Tycbrahe Octavia,Legacy,,Tycbrahe Octavia ALT (Tone),,,,,,,,,,,,,
+Octave Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Tycobrahe Octavia,Legacy,,Tycbrahe Octavia ALT (Tone),,,,,,,,,,,,,
 Octi Synth,Line 6,Pitch,Pitch,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Octo,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Optical Trem,Line 6,Modulation,Modulation,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '64 Custom Deluxe Reverb,,Optical Tremolo Circuit only,Fender Opto Trem TOP,,,,,,,,,,,,,
 Opto Tremolo,Line 6,Modulation,Modulation,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '64 Custom Deluxe Reverb,Legacy,Optical Tremolo Circuit only,Fender Opto Trem ALT (Tone),,,,,,,,,,,,,
 Overdrive,Line 6,"Harmonic Coloration, Preamps","Harmonic Coloration, Preamps","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,DOD Overdrive/Preamp 250,Legacy,,DOD Overdrive/Preamp 250 ALT (Tone),,,,,,,,,,,,,
 Pan,Line 6,Spatial Imaging,Spatial Imaging," Guitar, Stomp"," Guitar, Stomp",Helix Native,,,,Only use when inside Helix Native,,,,,,,,,,,,,
-Panned Phaser,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Ibanez Flying Pan,Legacy,,,,,,,,,,,,,,,
+Panned Phaser,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Ibanez Flying Pan FP777,Legacy,,,,,,,,,,,,,,,
 Panner,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Parametric,Line 6,EQ,EQ,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Particle Verb,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
@@ -1996,7 +1996,7 @@ Smart Harmony,Line 6,"Delay, Modulation, Pitch, Spatial Imaging","Delay, Modulat
 Solo Lead Crunch
 Solo Lead OD",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Soldano SLO-100,,"3 Models/Channels (clean, crunch, overdrive)",Soldano SLO-100 TOP,,,,,,,,,,,,,
 Soup Pro,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Supro S6616,,,,,,,,,,,,,,,,
-Soup Pro Ellipse,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Supra S6616,,1x6x9,,,,,,,,,,,,,,
+Soup Pro Ellipse,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Supro S6616,,1x6x9,,,,,,,,,,,,,,
 Spin Cycle,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Craig Anderton Wah/Anti-Wah,Legacy,,,,,,,,,,,,,,,
 Spring,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Stereo,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
@@ -2015,19 +2015,19 @@ Synth FX,Line 6,Pitch,Pitch,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy
 Synth Harmony,Line 6,Pitch,Pitch,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Synth Lead,Line 6,Pitch,Pitch,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Synth O Matic,Line 6,Pitch,Pitch,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
-Synth String,Line 6,Pitch,Pitch,"Guitar, Modeled","Guitar, Modeled",Helix Native,Roland GR700 Synth,Legacy,,,,,,,,,,,,,,,
+Synth String,Line 6,Pitch,Pitch,"Guitar, Modeled","Guitar, Modeled",Helix Native,Roland GR700,Legacy,,,,,,,,,,,,,,,
 Tape Eater,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Tape Echo,Line 6,Delay,Delay,Modeled,Modeled,Helix Native,Maestro Echoplex EP-3,Legacy,,Maestro Echoplex EP-3 ALT (Tone),,,,,,,,,,,,,
-Teardrop 310,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Dunlop Cry Baby Fasel model 310,,,,,,,,,,,,,,,,
+Teardrop 310,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Dunlop Cry Baby Classic Wah,,,,,,,,,,,,,,,,
 Teardrop Bass Q,Line 6,Modulation,Modulation,"Bass, Modeled, Stomp","Bass, Modeled, Stomp",Helix Native,Dunlop 105Q Cry Baby Bass Wah,,modded,Dunlop 105Q Cry Baby Bass Wah  TOP,,,,,,,,,,,,,
-Teemah!,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Paul Cochrane Timmy,,,,,,,,,,,,,,,,
+Teemah!,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Dunlop Paul Cochrane Timmy,,,,,,,,,,,,,,,,
 Tesselator,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Thrifter Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Throaty,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,RMC RMC1,,,,,,,,,,,,,,,,
-Throbber,Line 6,Modulation,Modulation,"Guitar, Modeled","Guitar, Modeled",Helix Native,Electrix Filter Factory,Legacy,,,,,,,,,,,,,,,
+Throbber,Line 6,Modulation,Modulation,"Guitar, Modeled","Guitar, Modeled",Helix Native,Electrix Pro Filter Factory,Legacy,,,,,,,,,,,,,,,
 Tile,Line 6,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Tilt,Line 6,EQ,EQ,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
-Tone Sovereign,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Analogman King of Tone,,,,,,,,,,,,,,,,
+Tone Sovereign,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Analog.Man King of Tone,,,,,,,,,,,,,,,,
 Top Secret OD,Line 6,"Harmonic Coloration, Preamps","Harmonic Coloration, Preamps","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,DOD Overdrive/Preamp 250,,,DOD Overdrive/Preamp 250 TOP,,,,,,,,,,,,,
 Transistor Tape,Line 6,Delay,Delay,Modeled,Modeled,Helix Native,Maestro Echoplex EP-3,,,Maestro Echoplex EP-3 TOP,,,,,,,,,,,,,
 Tremolo/Autopan,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Boss PN-2 Tremolo/Pan,,,,,,,,,,,,,,,,
@@ -2041,9 +2041,9 @@ Tube Comp,Line 6,Dynamics,Dynamics,Modeled,Modeled,Helix Native,Teletronix LA-2A
 Tube Drive,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,B.K. Butler Tube Driver,Legacy,,B.K. Butler Tube Driver DNU,,,,,,,,,,,,,
 Tube Echo,Line 6,Delay,Delay,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Maestro Echoplex EP-1,Legacy,,,,,,,,,,,,,,,
 "Tweed Blues Brt
-Tweed Blues Nrm",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender ’59 Bassman,,"2 Models/Channels (normal, bright)",Fender ’59 Bassman TOP,,,,,,,,,,,,,
+Tweed Blues Nrm",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender 59 Bassman,,"2 Models/Channels (normal, bright)",Fender ’59 Bassman TOP,,,,,,,,,,,,,
 Twin Harmony,Line 6,"Delay, Modulation, Pitch, Spatial Imaging","Delay, Modulation, Pitch, Spatial Imaging","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Eventide H3000 Ultra-Harmonizer,,,Embedded in Helix Native,,,,,,,,,,,,,
-Tycoctavia Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Tycbrahe Octavia,,,Tycbrahe Octavia TOP,,,,,,,,,,,,,
+Tycoctavia Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Tycobrahe Octavia,,,Tycbrahe Octavia TOP,,,,,,,,,,,,,
 U-Vibe,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Shin-ei Uni-Vibe,Legacy,,Shin-ei Uni-Vibe ALT (Tone),,,,,,,,,,,,,
 Ubiquitous Vibe,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Shin-ei Uni-Vibe,,,Shin-ei Uni-Vibe TOP,,,,,,,,,,,,,
 UK Wah 846,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Vox 846 Wah,,,Vox 846 Wah TOP,,,,,,,,,,,,,
@@ -2051,7 +2051,7 @@ UK Wah 846,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modele
 US Deluxe Vib",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '65 Deluxe Reverb,,"2 Models/Channels (normal, vibrato)",Fender '65 Deluxe Reverb TOP,,,,,,,,,,,,,
 "US Double Nrm
 US Double Vib",Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '65 Twin Reverb,,"2 Models/Channels (normal, vibrato)",Fender '65 Twin Reverb TOP,,,,,,,,,,,,,
-US Dripman Nrm,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender Bassman 100 Silverface,,,Fender Bassman 100 Silverface TOP,,,,,,,,,,,,,
+US Dripman Nrm,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender Bassman 100,,,Fender Bassman 100 TOP,,,,,,,,,,,,,
 US Princess,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '65 Princeton Reverb,,,Fender '65 Princeton Reverb TOP,,,,,,,,,,,,,
 US Small Tweed,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Fender '57 Champ,,,Fender '57 Champ TOP,,,,,,,,,,,,,
 "US Super Nrm
@@ -2065,18 +2065,18 @@ Vetta Wah,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",Helix Nat
 Vibe Rotary,Line 6,"Amp & Cab, Modulation","Amp & Cab, Modulation","Guitar, Modeled","Guitar, Modeled",Helix Native,Fender Vibratone,,,Fender Vibratone TOP,,,,,,,,,,,,,
 Vintage Digital,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Vintage Swell,Line 6,Delay,Delay,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
-Vital Boost,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,EarthQuaker Devices / Sunn O))) LIfe Pedal,,Boost Circuit,EarthQuaker Devices Life Pedal TOP,,,,,,,,,,,,,
-Vital Dist,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,EarthQuaker Devices / Sunn O))) LIfe Pedal,,Octave/Distortion Circuit,EarthQuaker Devices Life Pedal TOP,,,,,,,,,,,,,
+Vital Boost,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,EarthQuaker Devices Sunn O))) Life Pedal,,Boost Circuit,EarthQuaker Devices Life Pedal TOP,,,,,,,,,,,,,
+Vital Dist,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,EarthQuaker Devices Sunn O))) Life Pedal,,Octave/Distortion Circuit,EarthQuaker Devices Life Pedal TOP,,,,,,,,,,,,,
 Voice Box,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
 Voltage Queen,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Victoria Electro King,,,,,,,,,,,,,,,,
 Volume Pedal,Line 6,Dynamics,Dynamics,"Guitar, Stomp","Guitar, Stomp",Helix Native,,,,,,,,,,,,,,,,,
 Warble-Matic,Line 6,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",Helix Native,,Legacy,,,,,,,,,,,,,,,
-Weeper,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Dallas Arbiter Cry Baby,,,,,,,,,,,,,,,,
+Weeper,Line 6,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Dallas Arbiter Cry Baby Wah,,,,,,,,,,,,,,,,
 WhoWatt 100,Line 6,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Helix Native,Hiwatt DR103 Custom 100,,(Brilliant Channel)  ,Hiwatt DR103 Custom 100 TOP,,,,,,,,,,,,,
 "Woody Blue
 1x18 Woody Blue",Line 6,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",Helix Native,Acoustic 360,,1x18 Combo,Acoustic 360 TOP,,,,,,,,,,,,,
 Wringer Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Boss FZ-2 Hyper Fuzz,,Garbage's modification,,,,,,,,,,,,,,
-Xenomorph Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Subdecay Harmonic Anagonizer,,,,,,,,,,,,,,,,
+Xenomorph Fuzz,Line 6,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Helix Native,Subdecay Harmonic Antagonizer,,,,,,,,,,,,,,,,
 ZeroAmp Bass DI,Line 6,Preamps,Preamps,"Bass, Modeled, Stomp","Bass, Modeled, Stomp",Helix Native,Tech 21 SansAmp Bass Driver DI,,,Tech 21 SansAmp Bass Driver DI TOP,,,,,,,,,,,,,
 Helix Native,Line 6,Container,Container,Guitar,Guitar,,,,,,,Plugin,"AU, VST3",3.82,,,,,,,,,
 Bite,Native Instruments,Harmonic Coloration,Harmonic Coloration,,,Guitar Rig 7,,,"Bitcrusher, Downsampling. Anti-aliased sample rate and bit reduction effect that creates distortion",Standalone; Embedded in Guitar Rig,"Gritty, Crunchy",Plugin,VST3,1.3.7,,,,,,,,,
@@ -2280,16 +2280,16 @@ Archetype Tim Henson X,Neural DSP,Amp & Cab,Amp & Cab,Guitar,Guitar,,,,"Pre-FX (
 Archetype Tom Morello,Neural DSP,Amp & Cab,Amp & Cab,Guitar,Guitar,,,,"Dive bomb pedal, whammy, wah, 2-ch amp, 2 x delay, EQ, Phaser, 9-Band EQ, Reverb, cab",,,"Plugin, Standalone","AU, VST3",1.0.0,,,,,,,,,
 Fortin Nameless Suite X,Neural DSP,Amp & Cab,Amp & Cab,Guitar,Guitar,,,,"Pre-FX (Noise Gate, Overdrive, Booster), Amp inspired by Mike Fortin, Cab (Mics, Room Reverb), 9-Band EQ, HPF / LPF, Delay, Reverb, Doubler, Input Gate",,,"Plugin, Standalone","AU, VST3",1.0.1,,,,,,,,,
 Mesa Boogie Mark IIC+ Suite,Neural DSP,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Mesa/Boogie Mark IIC+,,"Compressor, 2 x overdrive, chorus, delay, reverb, 9-band EQ, cabsim. MarkIIC++ custom modification",Mesa/Boogie Mark IIC+ TOP,,"Plugin, Standalone","AU, VST3",1.0.0,,,,,,,,,
-Morgan Amps Suite,Neural DSP,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,"Morgan AC20
+Morgan Amps Suite,Neural DSP,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,"Morgan AC20 Head
 Morgan PR12
 Morgan SW50R",,"Models of 3 Morgan Heads; Pre-FX (Compressor, 2 x Overdrive, Tremolo) Cab (Mics, Room Reverb) 9-Band EQ, HPF/LPF Cut, Post FX (Delay, Reverb), Input Gate, Doubler",,,"Plugin, Standalone","AU, VST3",1.1.0,,,,,,,,,
 Soldano SLO-100 X,Neural DSP,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Soldano SLO-100,,"Pre-FX (Compressor, 2 x Overdrive, Chorus) Cab (Mic, Room Reverb), 9-band EQ, HPF/LPF cut, PostFX (Delay, Reverb), Input Gate, Doubler",Soldano SLO-100 TOP,,"Plugin, Standalone","AU, VST3",1.0.0,,,,,,,,,
-Tone King Imperial MKII,Neural DSP,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Tone King Imperial MKII,,"Wah, Compressor, 2 x Overdrive, Cabsim, GEQ, Chorus, Delay, Reverb",,,"Plugin, Standalone","AU, VST3",1.0.3,,,,,,,,,
+Tone King Imperial MKII,Neural DSP,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Tone King Imperial MkII,,"Wah, Compressor, 2 x Overdrive, Cabsim, GEQ, Chorus, Delay, Reverb",,,"Plugin, Standalone","AU, VST3",1.0.3,,,,,,,,,
 "Overdrive Supreme
 Supreme Clean",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Fuchs Overdrive Supreme,Legacy Series - LOW GAIN,(Clean) 2x12 Jazz Clean ,Fuchs Overdrive Supreme ALT (Tone),Dumble clone,,,,,,,,,,,,
 British Carbon 4x12,Positive Grid,Amp & Cab,Amp & Cab,Guitar,Guitar,"BIAS Amp 2, BIAS FX 2",,Legacy Series - CAB,4x12 CAB,,"Marshall modern G12K-100 era (MH, Mode Four?) ",,,,,,,,,,,,
 JCM800 MT,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Marshall JCM800 2203,,(Metal) 4x12 Green 25s ,Marshall JCM800 ALT (Tone),Recorded w/ Ibanez TS808,,,,,,,,,,,,
-Bassman 1962 CH,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender '62 Bassman Blonde/Brownface,,(Crunch) 4x12 Celestion V30s ,,Recorded w/ Ibanez TS808,,,,,,,,,,,,
+Bassman 1962 CH,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender 62 Bassman,,(Crunch) 4x12 Celestion V30s ,,Recorded w/ Ibanez TS808,,,,,,,,,,,,
 "Deluxe Reverb CH
 Overdriven Deluxe
 Overdriven Lux Verb",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled, Deprecated","Deprecated, Guitar, Modeled",BIAS Amp 2,Fender '65 Deluxe Reverb,Legacy Series - CRUNCH,(Crunch) 4x12 Celestion V30s,Fender '65 Deluxe Reverb ALT (Tone),Recorded w/ Ibanez TS808,,,,,,,,,,,,
@@ -2341,9 +2341,9 @@ Deprecated by BIAS X",,,,,,,,,,,,,
 "American Bass
 American Bass v2",Positive Grid,Amp & Cab,Amp & Cab,"Bass, Deprecated, Modeled","Bass, Deprecated, Modeled",BIAS Amp 2,Ampeg SVT,,(Blues) 4x12 Tweed Bass,Deprecated by Bias X,,,,,,,,,,,,,
 B15,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",BIAS Amp 2,Ampeg B-15,,8x10 Bass Super,Ampeg B-15 ALT (Tone),,,,,,,,,,,,,
-Bassman 100,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender Bassman 100 Silverface,,6x10 Bass Blue,Fender Bassman 100 Silverface ALT (Tone),,,,,,,,,,,,,
-Bassman 1962,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender '62 Bassman Blonde/Brownface,,6x10 Bass Blue,,,,,,,,,,,,,,
-Bassman 1962 GY,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender '62 Bassman Blonde/Brownface,,(Glassy) 2x12 Black Duo ,,,,,,,,,,,,,,
+Bassman 100,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender Bassman 100,,6x10 Bass Blue,Fender Bassman 100 ALT (Tone),,,,,,,,,,,,,
+Bassman 1962,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender 62 Bassman,,6x10 Bass Blue,,,,,,,,,,,,,,
+Bassman 1962 GY,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Fender 62 Bassman,,(Glassy) 2x12 Black Duo ,,,,,,,,,,,,,,
 BE100 HG,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Friedman BE100,,(Channel 2) (Hi Gain) 4x12 OR V-30s ,Friedman BE100 ALT (Tone),,,,,,,,,,,,,
 BE100 MT,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Friedman BE100,,(Channel 2) (Metal) 4x12 Green 25s ,Friedman BE100 ALT (Tone),,,,,,,,,,,,,
 Bluesbreaker CH,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Marshall Bluesbreaker 1962,,(Crunch) 4x12 Celestion V30s ,Marshall Bluesbreaker 1962 ALT (Tone),,,,,,,,,,,,,
@@ -2421,9 +2421,9 @@ SLO100 HG,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",
 (ch2) Orange PPC412",Deprecated by BIAS X,,,,,,,,,,,,,
 SLO100 MT,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Soldano SLO-100,,(Channel 2) (Metal) 4x12 Green 25s ,Deprecated by BIAS X,,,,,,,,,,,,,
 Standard 18,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Marshall 1974X,,(Crunch) 2x12 Chrome,,,,,,,,,,,,,,
-Studio PRO 50 BS,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Two Rock Studio Pro 50,,(Blues) 1x12 Tweed Lux ,"Two Rock Studio Pro 50 ALT (Tone)
+Studio PRO 50 BS,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Two-Rock Studio Pro 50,,(Blues) 1x12 Tweed Lux ,"Two Rock Studio Pro 50 ALT (Tone)
 Deprecated by BIAS X",,,,,,,,,,,,,
-Studio Pro 50 CN,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Two Rock Studio Pro 50,,(Clean) 2x12 Jazz Clean ,"Two Rock Studio Pro 50 ALT (Tone)
+Studio Pro 50 CN,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Two-Rock Studio Pro 50,,(Clean) 2x12 Jazz Clean ,"Two Rock Studio Pro 50 ALT (Tone)
 Deprecated by BIAS X",,,,,,,,,,,,,
 Super 100JH,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Marshall 100JH,,(Blues) 1x12 Tweed Lux ,,,,,,,,,,,,,,
 Super Bass,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS Amp 2,Marshall 1992 Super Bass Plexi,,8x10 Bass Super,Marshall 1992 SBP ALT (Tone),,,,,,,,,,,,,
@@ -2444,12 +2444,12 @@ Vocal Amp,Positive Grid,Amp & Cab,Amp & Cab,,,BIAS Amp 2,,,(Acoustic) 2x10 Bass 
 Plexi 1979 HG",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Marshall JMP 2203,Legacy Series - HIGH GAIN,(Hi Gain) 4x12 OR V-30s,Marshall JMP 2203  ALT (Tone),,,,,,,,,,,,,
 "400T
 SVT 400T",Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT-400T,Legacy Series - BASS,6x10 Bass Blue (preamp out) ,,,,,,,,,,,,,,
-4x12 Green 25s ,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G25M Greenback,Legacy Series - CAB,4x12 CAB,,,,,,,,,,,,,,
+4x12 Green 25s ,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12M Greenback,Legacy Series - CAB,4x12 CAB,,,,,,,,,,,,,,
 4x12 OR V-30s,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Orange PPC412,Legacy Series - CAB,4x12 CAB,Orange PPC412 ALT(Tone),,,,,,,,,,,,,
 "59 Tweed Lux V2
 Tweed Lux
 Tweed Lux v2
-Tweed Lux 1x12 (Cab)",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Fender '55 Tweed Deluxe,Legacy Series - LOW GAIN,(Blues) 1x12 Tweed Lux,Fender '55 Tweed Deluxe ALT (Tone),,,,,,,,,,,,,
+Tweed Lux 1x12 (Cab)",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Fender 55 Tweed Deluxe,Legacy Series - LOW GAIN,(Blues) 1x12 Tweed Lux,Fender 55 Tweed Deluxe ALT (Tone),,,,,,,,,,,,,
 "66 AC Boost
 66 AC Boost V2",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Vox AC30,Legacy Series - LOW GAIN,(1966) (Glassy) 2x12 British 30 ,"Vox AC30 ALT (Tone)
 Deprecated by BIAS X",,,,,,,,,,,,,
@@ -2498,17 +2498,17 @@ Bass NEO 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",
 Bass Pro 2x10,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT210E,Legacy Series - CAB,2x10 CAB,,,,,,,,,,,,,,
 Bass Super 8x10,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT810E,Legacy Series - CAB,8x10 CAB,Ampeg SVT810E ALT (Tone),,,,,,,,,,,,,
 Bass Super Duo 2x10,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT210AV,Legacy Series - CAB,2x10 CAB,,,,,,,,,,,,,,
-Bass Superb Eight 8x10,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT810HLF,Legacy Series - CAB,8x10 CAB,,,,,,,,,,,,,,
+Bass Superb Eight 8x10,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT810AV,Legacy Series - CAB,8x10 CAB,,,,,,,,,,,,,,
 BE 4x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Friedman 412,Remaster Series - CAB,4x12 CAB,Friedman 412 ALT (Tone),,,,,,,,,,,,,
 "Bi-Onyx
-Two Stone Lead",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Two Rock Bi-Oynx,Legacy Series - HIGH GAIN,(Lead Channel) (Hi Gain) 4x12 OR V-30s,,,,,,,,,,,,,,
+Two Stone Lead",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Two-Rock Bi-Onyx,Legacy Series - HIGH GAIN,(Lead Channel) (Hi Gain) 4x12 OR V-30s,,,,,,,,,,,,,,
 Big Bass 1x18,Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Acoustic 301,Legacy Series - CAB,1x18 CAB,Acoustic 301 ALT (Tone),,,,,,,,,,,,,
 "Black 100
 RB100",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Engl E650 (Ritchie Blackmore Signature),Legacy Series - HIGH GAIN,(Channel 2) (Insane) 4x12 Green 25s ,Engl E650 ALT (Tone),,,,,,,,,,,,,
 "Black 1x12
 Black Lux 1x12",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled, Deprecated","Deprecated, Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Fender '65 Deluxe Reverb,Legacy Series - CAB,1x12 CAB,Fender '65 Deluxe Reverb ALT (Tone),,,,,,,,,,,,,
 "Black Bull
-Pittbull",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",VHT Pittbull,Legacy Series - HIGH GAIN,(Lead Channel) (Insane) 4x12 Green 25s,,,,,,,,,,,,,,
+Pittbull",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",VHT Pittbull 5012,Legacy Series - HIGH GAIN,(Lead Channel) (Insane) 4x12 Green 25s,,,,,,,,,,,,,,
 Black Duo 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Fender '65 Twin Reverb,Legacy Series - CAB,2x12 CAB,Fender '65 Twin Reverb (CAB) ALT (Tone),,,,,,,,,,,,,
 "Blue Line
 69 Blue Line V2",Positive Grid,Amp & Cab,Amp & Cab,"Bass, Deprecated, Modeled","Bass, Deprecated, Modeled","BIAS Amp 2, BIAS FX 2",Ampeg SVT,Legacy Series - BASS,6x10 Bass Blue,Deprecated by Bias X,,,,,,,,,,,,,
@@ -2529,7 +2529,7 @@ Celestion Blue,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Mode
 "Checkmate
 Checkmate 20",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Teisco Checkmate 20,Legacy Series - CRUNCH,(Blues) 1x12 Tweed Lux ,,,,,,,,,,,,,,
 Chime 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Vox AC30,Remaster Series - CAB,,Vox AC30 (Cab) ALT (Tone),,,,,,,,,,,,,
-Chrome 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Dumble 2x12 Cab,Legacy Series - CAB,2x12 CAB Electro-Voice EVM2L,,,,,,,,,,,,,,
+Chrome 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Dumble 2x12 Cabinet,Legacy Series - CAB,2x12 CAB Electro-Voice EVM2L,,,,,,,,,,,,,,
 Cobra,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Framus Cobra,Legacy Series - HIGH GAIN,(Lead Channel) (Insane) 4x12 Green 25s,,,,,,,,,,,,,,
 "D13 FTR
 FTR37",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Divided By 13 FTR 37,Legacy Series - CRUNCH,(Blues) 1x12 Tweed Lux ,,,,,,,,,,,,,,
@@ -2547,11 +2547,11 @@ G12-65,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BI
 G12H Anniversary,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12H Anniversary,Celestion - Classic,"1x12, 2x12, 4x12 CABs",,,,,,,,,,,,,,
 G12H-150 Redback,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12H-150 Redback,Celestion - Modern Vintage,"1x12, 2x12, 4x12 CABs",,,,,,,,,,,,,,
 G12H-75 Creamback,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12H-75 Creamback,Celestion - Modern Vintage,"1x12, 2x12, 4x12 CABs",,,,,,,,,,,,,,
-G12M Greenback,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G25M Greenback,Celestion - Classic,"1x12, 2x12, 4x12 CABs",,,,,,,,,,,,,,
+G12M Greenback,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12M Greenback,Celestion - Classic,"1x12, 2x12, 4x12 CABs",,,,,,,,,,,,,,
 G12M-65 Creamback,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12M-65,Celestion - Modern Vintage,"1x12, 2x12, 4x12 CABs",,,,,,,,,,,,,,
 "GA 930
 Vintage Crunch",Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Guyatone GA-930,Legacy Series - CRUNCH,(Blues) 1x12 Tweed Lux ,,,,,,,,,,,,,,
-Green25 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G25M Greenback,Legacy Series - CAB,2x12 CAB,,,,,,,,,,,,,,
+Green25 2x12,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Celestion G12M Greenback,Legacy Series - CAB,2x12 CAB,,,,,,,,,,,,,,
 Gret 6156,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","BIAS Amp 2, BIAS FX 2",Gretsch 6156 Playboy,Legacy Series - LOW GAIN,(Glassy) 1x12,,,,,,,,,,,,,,
 "H5000 Bass
 H5001",Positive Grid,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled","BIAS Amp 2, BIAS FX 2",Hartke HA5000,Legacy Series - BASS,2x10 Bass CX-10,,,,,,,,,,,,,,
@@ -2756,11 +2756,11 @@ Mutron,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Mod
 Deprecated by BIAS X",,,,,,,,,,,,,
 Noise Filter,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,MXR Smart Gate,,(Pedal),MXR Smart Gate ALT (Tone),,,,,,,,,,,,,
 Noise Gate,Positive Grid,Dynamics,Dynamics,"Guitar, Stomp","Guitar, Stomp",BIAS FX 2,,,(Pedal) PG Original,,,,,,,,,,,,,,
-Noise Reduction,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,ISP Technologies Decimator G,,(Pedal),,,,,,,,,,,,,,
+Noise Reduction,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,ISP Technologies Decimator,,(Pedal),,,,,,,,,,,,,,
 Octaver,Positive Grid,Pitch,Pitch,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Electro-Harmonix Micro POG,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
 Opto Comp,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,BBE Opto Stomp,,(Pedal),,,,,,,,,,,,,,
 Orange Phaser,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,MXR Phase 90 (Script),,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
-Overdrive Pro,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,Ibanez TS808 DX,,(Pedal),,,,,,,,,,,,,,
+Overdrive Pro,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,Ibanez TS808DX,,(Pedal),,,,,,,,,,,,,,
 OverDriven Resonance,Positive Grid,Reverb & Room,Reverb & Room,"Guitar, Modeled, Stomp,  Deprecated"," Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Caroline Meteore Lo-Fi Reverb,,(Pedal),Deprecated in favor of Bias X,,,,,,,,,,,,,
 PainKiller,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",BIAS FX 2,,,(Pedal) PG Original,,,,,,,,,,,,,,
 Paul Arch,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS FX 2,PRS Archon 100,Remaster Series - HIGH GAIN,4x12,"PRS Archon 100 ALT (Tone)
@@ -2770,7 +2770,7 @@ Phaser Pro,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar,
 PhaseTrem,Positive Grid,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",BIAS FX 2,,,(Pedal) PG Original,,,,,,,,,,,,,,
 Ping Pong,Positive Grid,Delay,Delay,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Manea Digital Echo & Ping Pong Delay,,(Pedal),Depracted by BIAS X,,,,,,,,,,,,,
 Pitch Shifter,Positive Grid,Pitch,Pitch,"Guitar, Modeled, Stomp,  Deprecated"," Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,DigiTech Whammy,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
-PitchHaze Delay,Positive Grid,"Delay, Modulation, Pitch","Delay, Modulation, Pitch","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,Chase Bliss Audio Thermae,,(Pedal),Chase Bliss Audio Thermae ALT (Tone),,,,,,,,,,,,,
+PitchHaze Delay,Positive Grid,"Delay, Modulation, Pitch","Delay, Modulation, Pitch","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,Chase Bliss Thermae,,(Pedal),Chase Bliss Thermae ALT (Tone),,,,,,,,,,,,,
 Plexi Lead,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS FX 2,Marshall JTM45 2245,Remaster Series - CRUNCH,4x12,Marshall JTM45 2245 ALT (Tone),,,,,,,,,,,,,
 Poly Octaver,Positive Grid,Pitch,Pitch,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Electro-Harmonix POG 2,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
 Power Booster,Positive Grid,"Dynamics, EQ","Dynamics, EQ","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,MXR Micro Amp+,,(Pedal),,,,,,,,,,,,,,
@@ -2816,7 +2816,7 @@ Tube Boost,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Modele
 Tube Compressor,Positive Grid,Dynamics,Dynamics,Modeled,Modeled,BIAS FX 2,UREI 1176LN Rev E,,(Rack),Embedded in Positive Grid,,,,,,,,,,,,,
 Tube Driver,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,B.K. Butler Tube Driver,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
 Tube Master,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",BIAS FX 2,,,(Pedal) PG Original,,,,,,,,,,,,,,
-Two Stone SP50,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS FX 2,Two Rock Studio Pro 50,Legacy Series - CRUNCH,1x12,"Two Rock Studio Pro 50 ALT (Tone)
+Two Stone SP50,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS FX 2,Two-Rock Studio Pro 50,Legacy Series - CRUNCH,1x12,"Two Rock Studio Pro 50 ALT (Tone)
 Deprecated by BIAS X",,,,,,,,,,,,,
 Uni-Vibe,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS FX 2,Shin-ei Uni-Vibe,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
 VHS Modulator,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Cooper FX Generation Loss V2,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
@@ -2826,7 +2826,7 @@ Vintage Rotary,Positive Grid,Modulation,Modulation,"Guitar, Stomp","Guitar, Stom
 Vintage Spring HD,Positive Grid,Reverb & Room,Reverb & Room,,,BIAS FX 2,,,(Rack) PG Original,,,,,,,,,,,,,,
 Vintage Trem,Positive Grid,Modulation,Modulation,"Guitar, Stomp","Guitar, Stomp",BIAS FX 2,,,(Pedal) PG Original,,,,,,,,,,,,,,
 VintageFuzz,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Dunlop Germanium Fuzz Face,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
-Volume,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Ernie Ball 250K mono Volume Pedal,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
+Volume,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp, Deprecated","Deprecated, Guitar, Modeled, Stomp",BIAS FX 2,Ernie Ball 250K Mono Volume Pedal,,(Pedal),Deprecated by BIAS X,,,,,,,,,,,,,
 Wah HD,Positive Grid,Modulation,Modulation,Guitar,Guitar,BIAS FX 2,,,(Rack) PG Original,,,,,,,,,,,,,,
 AC Chime,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS X,Vox AC30,AC Series - Low-Gain/Clean ,2x12 AC Chime Cab,Vox AC30 ALT (Tone),,,,,,,,,,,,,
 Acoustic Sim,Positive Grid,Amp & Cab,Amp & Cab,Guitar,Guitar,BIAS X,,Original Series - Acoustic,1x12 Acoustic Sim Cab,,,,,,,,,,,,,,
@@ -2918,10 +2918,10 @@ Tone Star Lead,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Mode
 ToneCry,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS X,Dunlop Cry Baby Standard Wah,,(Pedal - Classic Wah) ,,,,,,,,,,,,,,
 Treadplate,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS X,Mesa/Boogie Triple Rectifier,American Series - High-Gain/Distortion,,Mesa/Boogie Triple Rectifier ALT (Tone),,,,,,,,,,,,,
 TubeKing,Positive Grid,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS X,B.K. Butler Tube Driver,,(Pedal - 80' Tube Driver),B.K. Butler Tube Driver ALT (Tone),,,,,,,,,,,,,
-Two Stone Studio,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS X,Two Rock Studio Pro 50,Boutique Series - Low-Gain/Clean,,Two Rock Studio Pro 50 TOP,,,,,,,,,,,,,
+Two Stone Studio,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS X,Two-Rock Studio Pro 50,Boutique Series - Low-Gain/Clean,,Two Rock Studio Pro 50 TOP,,,,,,,,,,,,,
 VH-4,Positive Grid,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",BIAS X,Diezel VH4,Europe Series - High-Gain/Distortion,2x12 Cab,Diezel VH4 ALT (Tone),,,,,,,,,,,,,
 VHS,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS X,Cooper FX Generation Loss V2,,(Pedal - Lofi Modulator) ,,,,,,,,,,,,,,
-Volairis,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS X,Ernie Ball 250K mono Volume Pedal,,(Pedal - Volume) ,,,,,,,,,,,,,,
+Volairis,Positive Grid,Dynamics,Dynamics,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS X,Ernie Ball 250K Mono Volume Pedal,,(Pedal - Volume) ,,,,,,,,,,,,,,
 WaveFlux,Positive Grid,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",BIAS X,Moog MF-103 Moogerfooger,,(Pedal - 12 Stage Phaser),,,,,,,,,,,,,,
 Wow,Positive Grid,Modulation,Modulation,,,BIAS X,,,(Rack - Advanced Wah),,,,,,,,,,,,,,
 BIAS Amp 2,Positive Grid,Container,Container,"Deprecated, Guitar","Deprecated, Guitar",,,,"Guitar effects chain w/ 6 stages (Control Panel, Preamp, Tone Stack, Power Amp, Transformer, Cab/Mic & EQ)",,,"Plugin, Standalone",AU,2.0.0,,,,,,,,,
@@ -2938,8 +2938,8 @@ Echoboy Jr.,Soundtoys,"Delay, Reverb & Room, Harmonic Coloration","Delay, Harmon
 ",,[ Ampex ATR-102; Maestro Echoplex EP-3; Electro-Harmonix Memory Man; Roland RE-201 ],Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Little Micro Shift,Soundtoys,"Delay, Spatial Imaging","Delay, Spatial Imaging",,,,,,"spatial processing (widening vocals, leads) w/ 3 styles of operation ",,[Eventide H3000 presets 213 and 519; AMS Neve DMX 15-80S ],Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Micro Shift,Soundtoys,"Delay, Pitch, Spatial Imaging","Delay, Pitch, Spatial Imaging",,,,,,"spatial processing (widening vocals, leads) w/ 3 styles of operation and delay/ detune adjustments.",,[Eventide H3000 presets 213 and 519; AMS Neve DMX 15-80S ],Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
-Little Primal Tap,Soundtoys,Delay,Delay,"Modeled, LOW DSP","LOW DSP, Modeled",,Lexicon Model 93 Prime Time Digital Delay,,Vintage digital retro delay,Lexicon Model 93 Prime Time Digital Delay ALT (Low DSP),LOW DSP,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
-Crystallizer,Soundtoys,"Delay, Modulation, Pitch","Delay, Modulation, Pitch",Modeled,Modeled,,Eventide H3000 Harmonizer,,"Granular Echo Synthesizer. 
+Little Primal Tap,Soundtoys,Delay,Delay,"Modeled, LOW DSP","LOW DSP, Modeled",,Lexicon Prime Time 93 Digital Delay,,Vintage digital retro delay,Lexicon Prime Time 93 Digital Delay ALT (Low DSP),LOW DSP,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
+Crystallizer,Soundtoys,"Delay, Modulation, Pitch","Delay, Modulation, Pitch",Modeled,Modeled,,Eventide H3000 Ultra-Harmonizer,,"Granular Echo Synthesizer. 
 [ pitch shifting; delay and feedback w/ gating/ducking ]",Eventide H3000 Ultra-Harmonizer ALT (Tone),,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Devil-Loc,Soundtoys,Dynamics,Dynamics,Modeled,Modeled,,Shure Level-Loc,,,Shure Level-Loc ALT (Tone),,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Devil-Loc Deluxe,Soundtoys,Dynamics,Dynamics,Modeled,Modeled,,Shure Level-Loc,,,Shure Level-Loc TOP,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
@@ -2951,14 +2951,14 @@ Little Plate,Soundtoys,Reverb & Room,Reverb & Room,Modeled,Modeled,,EMT 140 ST,,
 Little Radiator,Soundtoys,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Altec Lansing 1566a,,,,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Pan Man,Soundtoys,"Modulation, Spatial Imaging, Harmonic Coloration","Harmonic Coloration, Modulation, Spatial Imaging",,,,,,"Rhythmic auto-panner w/ 6 modulation modes, 7 analog saturation styles, and 5 smoothing modes",,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Phase Mistress,Soundtoys,"Modulation, Spatial Imaging, Harmonic Coloration","Harmonic Coloration, Modulation, Spatial Imaging",,,,,,"60 + styles of analog phase shifter (frequency / resolution / modulation) w/ 6 modulation modes, 7 analog saturation styles, and 5 smoothing modes",,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
-Primal Tap,Soundtoys,Delay,Delay,Modeled,Modeled,,Lexicon Model 93 Prime Time Digital Delay,,Vintage digital retro delay. 2 independent delay lines w/ 6 delay algorithms. 4 LFO shapes for automated pitch shifting and modulating delay.,Lexicon Model 93 Prime Time Digital Delay TOP,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
+Primal Tap,Soundtoys,Delay,Delay,Modeled,Modeled,,Lexicon Prime Time 93 Digital Delay,,Vintage digital retro delay. 2 independent delay lines w/ 6 delay algorithms. 4 LFO shapes for automated pitch shifting and modulating delay.,Lexicon Prime Time 93 Digital Delay TOP,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Radiator,Soundtoys,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Altec Lansing 1567a,,,,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Sie-Q,Soundtoys,EQ,EQ,Modeled,Modeled,,Siemens W295b,,,,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Space Blender,Soundtoys,Reverb & Room,Reverb & Room,,,,,,Inspired by swarm synthesis. Imaginary space machine - sound design tool that allows you to create imaginary spaces and effects that don't exist in the natural world,,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Space Plate,Soundtoys,Reverb & Room,Reverb & Room,Modeled,Modeled,,"EMT 140 ST
 EMT 240 Reverb Foil
 Lawson The Plate II
-Studio Technologies Echoplate III
+Studio Technologies Ecoplate III
 Stocktronics RX4000",,"mixed/modeled plate reverb. 5 plate styles (models), 3 analog preamp templates (EMT V54 Tube, EMT 162 solid state, clean),",,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 Tremolator,Soundtoys,Modulation,Modulation,,,,,,"analog guitar tremolo w/ beat-synced rhythmic chopping w/ 7 analog saturation styles, and 5 smoothing modes",,,Plugin,"AU, VST3",5.5.4.18982,,,,,,,,,
 FX-Omnisphere,Spectrasonics,"Delay, Dynamics, EQ, Harmonic Coloration, Modulation, Reverb & Room, Time / Phase, Pitch","Delay, Dynamics, EQ, Harmonic Coloration, Modulation, Pitch, Reverb & Room, Time / Phase",,,,,,,,,Plugin,"AU, VST3",,,,,,,,,,
@@ -3111,16 +3111,16 @@ M50,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Neum
 Plate 140 Reverb,Universal Audio,Reverb & Room,Reverb & Room,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,EMT 140 ST,,,Embedded in Paradise Guitar Studio,"Big, dense, and lush metallic reflections, with a smooth decay. Dark, warm, and colored mid-range wash. Add modulation for subtle swirling modulation on the reverb tails. 
 Set Decay to 4.0 seconds for a classic album-ready plate reverb.",,,,,,,,,,,,
 Moog Multimode Filter,Universal Audio,"EQ, Modulation, Harmonic Coloration","EQ, Harmonic Coloration, Modulation",Modeled,Modeled,,"Moog MF-101 Moogerfooger
-Moog Minimoog",,,Moog MF-101 TOP,"blow out"" drums/percussion, add subtle edge + depth to synth/guitar. Legacy",Plugin,UAD-2,11.8.1,,,,,,,,,
+Moog Minimoog Model D",,,Moog MF-101 TOP,"blow out"" drums/percussion, add subtle edge + depth to synth/guitar. Legacy",Plugin,UAD-2,11.8.1,,,,,,,,,
 Moog Multimode Filter SE,Universal Audio,"EQ, Modulation, Harmonic Coloration","EQ, Harmonic Coloration, Modulation","Modeled, LOW DSP","LOW DSP, Modeled",,Moog MF-101 Moogerfooger,,,Moog MF-101 ALT (Low DSP),"blow out"" drums/percussion, add subtle edge + depth to synth/guitar. Low DSP",Plugin,UAD-2,11.8.1,,,,,,,,,
-1x12 Tweed JBF120,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender '53 Tweed Deluxe
-Fender '55 Tweed Deluxe",,1x12 CAB JBL D120F,"Fender '53 Tweed Deluxe TOP
-Fender '55 Tweed Deluxe TOP","Bright, hi-fi and midrange-y; mic'd w/ AKG C414",,,,,,,,,,,,
+1x12 Tweed JBF120,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender 53 Tweed Deluxe
+Fender 55 Tweed Deluxe",,1x12 CAB JBL D120F,"Fender 53 Tweed Deluxe TOP
+Fender 55 Tweed Deluxe TOP","Bright, hi-fi and midrange-y; mic'd w/ AKG C414",,,,,,,,,,,,
 2x12 Blue Mod,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Vox AC30,,Modded 2x12 CAB w/ Modern Celestion Blue,Vox AC30 (CAB) TOP,"Brighter and w/ more chime, clarity and jangle than blue vintage cab; mic'd w/ Shure SM57",,,,,,,,,,,,
 GB25,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Dream '65 Reverb Amp,Celestion G12M Greenback,,1x12 CAB (Speaker),,"Celestion ""bark"" w/ smooth, open midrange of ribbon mic. mic'd by Beyerdynamic M160",,,,,,,,,,,,
 Neumann KM86,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hitsville Studios,Neumann KM86,,Sole Motown Mic for a period of time. ,Embedded in Hitsville Studios,"Chamber 1 (cardioid); 
 Chamber 2 (figure 8 Blumlein setup when used w/ Altec 605; omni w/ Bose 901)",,,,,,,,,,,,
-Capitol Chambers,Universal Audio,Reverb & Room,Reverb & Room,Modeled,Modeled,,"Capitol Chambers, Capitol Tower (Los Angeles)",,"Dynamic Room Modeling
+Capitol Chambers,Universal Audio,Reverb & Room,Reverb & Room,Modeled,Modeled,,Capitol Studios Capitol Chambers,,"Dynamic Room Modeling
 ",,"Chamber 2 (SPEAKER --> Altec 604 Duplex w/ JBL LE-175 horn + JBL Crossover) - rich, low-mid soundfield usig era-spanning custom Capitol Studios component pairing; 
 Chamber 4 (SPEAKER --> Altec A7 Voice of the Theatre w/ Altec 802 horn) ""Al's Chamber"" - most in-demand chamber. Original installation movie theatre playback system. Balanced sound and shortest natural decay
 Chamber 6 (SPEAKER --> Altec 604 Duplex) original 50s installation w/ vintage hi-fi audio playback speaker system giving warm, long decay
@@ -3136,14 +3136,14 @@ Universal Audio Golden Reverberator",,"Based on [ EMT 140, Fender 6G15 Reverb; L
 Brown JB,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Lion '68 Super Lead Amp,Marshall 1960A Basketweave,,(1968) 4x12 CAB; 2x12 Celestion G12M Greenback; 2x12 JBL D120F,Marshall 1960A Basketweave ALT (Tone),Combines the girth and midrange of the greenbacks with the high end sizzle of the JBF speakers. Cones are mic'd  and pre-mixed separately w/ Shure SM57s,,,,,,,,,,,,
 4x12 UK Brown JB,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Marshall 1960A Basketweave,,(1968) 4x12 CAB; 2x12 Celestion G12M Greenback; 2x12 JBL D120F,Marshall 1960A Basketweave ALT (Tone),Combines the girth and midrange of the greenbacks with the high end sizzle of the JBF speakers. Cones are mic'd  and pre-mixed separately w/ Shure SM57s,,,,,,,,,,,,
 OW-50,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Neumann M50a,,"SN 294, aluminum diaphragm. ",,Common for movie scores and orchestra,,,,,,,,,,,,
-1x12 Tweed Blu15,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender '53 Tweed Deluxe
-Fender '55 Tweed Deluxe",,1x12 CAB Celestion Blue,"Fender '53 Tweed Deluxe TOP
-Fender '55 Tweed Deluxe TOP",Darker than the stock Jensen P12R; mic'd w/ Neumann U67,,,,,,,,,,,,
+1x12 Tweed Blu15,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender 53 Tweed Deluxe
+Fender 55 Tweed Deluxe",,1x12 CAB Celestion Blue,"Fender 53 Tweed Deluxe TOP
+Fender 55 Tweed Deluxe TOP",Darker than the stock Jensen P12R; mic'd w/ Neumann U67,,,,,,,,,,,,
 "1176 Compressor (Paradise) 
 1176 FET Compressor",Universal Audio,Dynamics,Dynamics,"Modeled, Stomp","Modeled, Stomp",Paradise Guitar Studio,UREI 1176LN Rev E,,Stompified version of outboard gear,"UREI 1176 LN Rev E ALT (Simplified)
 Embedded in Paradise","Deselect Ratio and turn Input up to max for huge, sputtery, vocal distortion that rivals classic overdrive and fuzz sounds; Set Attack and Release to max for fastest response, and some pleasant distortion.",,UADx,1.0.3,,,,,,,,,
 LD-87 Vintage,Universal Audio,Microphone,Microphone,Modeled,Modeled,"Hemisphere, Sphere",Neumann U87,,(1970s) vintage w/ split backplate capsule,Neumann U87 TOP,"Different sound from modern U87s [ Vocals, acoustic guitar, guitar amp ]",,,,,,,,,,,,
-Drip Spring 65 Reverb,Universal Audio,Reverb & Room,Reverb & Room,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Fender 6G15,,,,"Drippy, syrupy spring reverb, warmed by tubes and with your choice of three different tanks, plus bass and treble controls. 
+Drip Spring 65 Reverb,Universal Audio,Reverb & Room,Reverb & Room,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Fender 6G15 Reverb Unit,,,,"Drippy, syrupy spring reverb, warmed by tubes and with your choice of three different tanks, plus bass and treble controls. 
 
 Tank A: Bright drip and pingy aggressiveness
 Tank B: Midrange warmth and longer sustain 
@@ -3168,21 +3168,21 @@ LA-2 Compressor (UADx)",Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Telet
 LA-2A Tube Compressor",Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Teletronix LA-2A,,,Teletronix LA-2A ALT (Low DSP),gentle - slowest response for good legato tempos (LOW-DSP version of silver),Plugin,"UAD-2, UADx","11.8.1 (UAD-2), 1.0.8 (UADx) ",,,,,,,,,
 Sweeten,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,Verve Analog Machines,,,Tape Machine w/ Warble,,Gloss and warmth of a studio tape machine. Can be gently overdriven.,,,,,,,,,,,,
 4x10 Tweed B-Man,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender '59 Bassman,,4x10 CAB,Embedded in Paradise,"Great scooped, high fidelity sound when used clean. Use w/ low gain sounds for clean, somewhat pristine sounds. mic'd w/ Shure SM57",,,,,,,,,,,,
-1x12 GB25,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Celestion G25M Greenback,,1x12 CAB,,"Greenback warmth with clarity, and a nicely balanced high end. Good for thick cleans and punchy overdrive tones. mic'd w/ Beyerdynamic M160",,,,,,,,,,,,
-2x12 Silver Ace,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Voc AC30,,2x12 CAB Celestion Silver Bulldog (rare) ,,"High end warmth and sheen, with open midrange. mic/d w/ Shure SM57",,,,,,,,,,,,
+1x12 GB25,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Celestion G12M Greenback,,1x12 CAB,,"Greenback warmth with clarity, and a nicely balanced high end. Good for thick cleans and punchy overdrive tones. mic'd w/ Beyerdynamic M160",,,,,,,,,,,,
+2x12 Silver Ace,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Vox AC30,,2x12 CAB Celestion Silver Bulldog (rare) ,,"High end warmth and sheen, with open midrange. mic/d w/ Shure SM57",,,,,,,,,,,,
 Blue Flanger,Universal Audio,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,MXR Model 126 Flanger/Doubler,,Stompified version of outboard gear,MXR Model 126 Flanger/Doubler TOP,"Jet-style flanging, broad phasey sweeps, or more subtle doubler effects, all in one pedal. For ""frozen"" phasey flanger sounds, set Width to 0. 
 For unique manual flanging, automate the Manual control, with Width set to 0.",,,,,,,,,,,,
 Precision K-Stereo,Universal Audio,"Spatial Imaging, Time / Phase","Spatial Imaging, Time / Phase",Mastering,Mastering,,,Bob Katz,Psychoacoustic processor for stereo enhancement and phase-accurate ambiance recovery. ,,"Katz presets 
 Mastering --> rock tight bass, rock tight drums, orchestra A and B, clear presence, Raise Mid instruments, warm ambience; 
 MIX --> Big, Too Big, Big Steinway]",Plugin,UAD-2,11.8.1,,,,,,,,,
 Ampeg SVTVR Classic,Universal Audio,Amp & Cab,Amp & Cab,"Bass, Modeled, LOW DSP","Bass, LOW DSP, Modeled",,Ampeg SVT-VR,Brainworx (Modeled by) ,8x10 cab; 2 channels (bright / normal),Ampeg SVT-VR ALT (Low DSP),LOW DSP,Plugin,UAD-2,1.0.1,,,,,,,,,
-API Vision Channel Strip Legacy,Universal Audio,Preamps,Preamps,"Modeled, LOW DSP","LOW DSP, Modeled",,API Vision Console Channel Strip,,,API Vision Console Channel Strip ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
+API Vision Channel Strip Legacy,Universal Audio,Preamps,Preamps,"Modeled, LOW DSP","LOW DSP, Modeled",,API Vision Console,,,API Vision Console ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Fairchild 670 Legacy,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled, LOW DSP","LOW DSP, Mastering, Modeled",,Fairchild 670 Limiting Amplifier,,,Fairchild 670 ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Harrison 32C SE,Universal Audio,EQ,EQ,"Modeled, LOW DSP","LOW DSP, Modeled",,Harrison 32C EQ,,,Harrison 32C EQ ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Helios Type 69 Legacy,Universal Audio,"EQ, Preamps","EQ, Preamps","Modeled, LOW DSP","LOW DSP, Modeled",,Helios Type 69,,,Helios Type 69 TOP,LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 1073 Legacy,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 1073,,EQ only,Neve 1073 ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 1081SE,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 1081,,,Neve 1081 ALT (Low DSP) ,LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
-Neve 31102SE,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 31102 Mic Pre / 3 Band EQ,,EQ Only,Neve 31102 ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
+Neve 31102SE,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 31102,,EQ Only,Neve 31102 ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 33609SE,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Neve 33609/C,,,Neve 33609/C ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 88RS Legacy,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps","Modeled, LOW DSP","LOW DSP, Modeled",,Neve 88RS,,,Neve 88RS ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
 Pultec EQP-1A Legacy,Universal Audio,EQ,EQ,Modeled,Modeled,,Pultec EQP-1A,,,Pultec EQP-1A ALT (Low DSP),LOW DSP,Plugin,UAD-2,11.8.1,,,,,,,,,
@@ -3221,20 +3221,20 @@ Match,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Ru
 blended w/ Royer R121 (fills out the sound with rich, smooth, low end and reduced top end)
 Classic Mic Combination",,,,,,,,,,,,
 2x12 JBF120 Thick,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender '68 Twin Reverb,,2x12 CAB JBL D120F (Factory Upgrade Option),Fender '68 Twin Reverb (CAB) TOP,"Mic'd w/ Shure SM57 + AKG C414; Shines with loud and clean tube amps. Used by the biggest players in country, surf, and psychedelic rock, who relied on the incredible punch and articulation of these speakers",,,,,,,,,,,,
-Boutique D65,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Dream '65 Reverb Amp,Two-Rock 2x12 Vertical Cab,,,,mic'd w/ Shure SM57 + Royer R121,,,,,,,,,,,,
+Boutique D65,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Dream '65 Reverb Amp,Two-Rock 2x12 Vertical,,,,mic'd w/ Shure SM57 + Royer R121,,,,,,,,,,,,
 JBF120,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Dream '65 Reverb Amp,Fender '68 Twin Reverb,,2x12 CAB JBL D120F ,Fender '68 Twin Reverb (CAB) TOP,"mic'd w/ Shure SM57 + Royer R121; clean, low gain. Great for fingerstyle. Forward + sizzly w/ more gain. ",,,,,,,,,,,,
 2x12 JBF120,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender '68 Twin Reverb,,2x12 CAB JBL D120F (Factory Upgrade Option),Fender '68 Twin Reverb (CAB) TOP,"Mic'd w/ Shure SM57 + Royer R121; Very detailed cabinet, great for clean and low gain, excellent for finger style playing. Very forward and sizzly when used w/ more gain. ",,,,,,,,,,,,
 2x12 Twin Vintage,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender '65 Twin Reverb,,2x12 CAB,Fender '65 Twin Reverb (CAB) TOP,"Mic'd w/ unique cardioid double-ribbon Beyerdynamic M160; provides a very focused sound with detail and warmth. Its natural sound with a smooth top-end tames the higher frequencies often present in tube amplifiers. This choice is especially smooth when adding distortion or overdrive to a clean amp.
 ",,,,,,,,,,,,
-1x12 Tweed GB25,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender '53 Tweed Deluxe
-Fender '55 Tweed Deluxe",,1x12 CAB Celestion G25M Greenback ,"Fender '53 Tweed Deluxe TOP
-Fender '55 Tweed Deluxe TOP","Modern and thick w/ a clear high end, fuller w/ distortion pedals or higher gain; mic'd w/ Shure SM57",,,,,,,,,,,,
+1x12 Tweed GB25,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender 53 Tweed Deluxe
+Fender 55 Tweed Deluxe",,1x12 CAB Celestion G12M Greenback ,"Fender 53 Tweed Deluxe TOP
+Fender 55 Tweed Deluxe TOP","Modern and thick w/ a clear high end, fuller w/ distortion pedals or higher gain; mic'd w/ Shure SM57",,,,,,,,,,,,
 2x12 Green Ace,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Celestion G12H (75),,"2x12 CAB modern British boutique 
-[ Matchless DC30; Marshall 2061, Friedman, Orange ]",,"More midrange honk and tamer highs, thicker when used w/ distortion; mic'd w/ Beyerdynamic M160",,,,,,,,,,,,
+[ Matchless DC-30; Marshall 2061, Friedman, Orange ]",,"More midrange honk and tamer highs, thicker when used w/ distortion; mic'd w/ Beyerdynamic M160",,,,,,,,,,,,
 Shure Unidyne 545,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hitsville Studios,Shure 545SD,,,Embedded in Hitsville Studios,most frequently used mic in 2648 West Grand Blvd,,,,,,,,,,,,
 Multi-Chorus,Universal Audio,Modulation,Modulation,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Roland SDD-320 Dimension D,,,Embedded in Paradise,"Multi-tap 6 voice chorus w/ deep flexibility for broad textures and soundscapes. Reduce Level and increase Regen for wild sci-fi ""sound in a tunnel"" effects.
 Try high Regen settings combined with six taps, high Depth, and the square wave shape to create bell-like, FM synth-style soundscapes.",,,,,,,,,,,,
-2x12 Match,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Matchless DC30,,2x12 CAB G12H-75 Creambacks,Matchless DC-30 (CAB) TOP,Muscular and modern take on classic chime. Great with an overdrive or distortion pedal in front of the am; mic'd w/ Shure SM57,,,,,,,,,,,,
+2x12 Match,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Matchless DC-30,,2x12 CAB G12H-75 Creambacks,Matchless DC-30 (CAB) TOP,Muscular and modern take on classic chime. Great with an overdrive or distortion pedal in front of the am; mic'd w/ Shure SM57,,,,,,,,,,,,
 1x12 Gold TR,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Celestion Gold,,1x12 Boutique CAB [TR might be a Two-Rock style cab],,"Narrower sound, midrange forward, thicker with less high end; mic'd w/ Sennheiser MD421",,,,,,,,,,,,
 Vintage Fuzz,Universal Audio,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Dunlop Germanium Fuzz Face,,,Dunlop Germanium Fuzz Face TOP,"Pair with the Lion Bass model for soaring psychedelic blues tones. For more brightness and clarity, use Lion's Low inputs. ",,,,,,,,,,,,
 4x10 S-Verb,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender '65 Super Reverb,,(1966) 4x10 CAB Fender CTS,Fender '65 Super Reverb (CAB) ALT (Tone),"Plenty of midrange, great for surf sounds, almost lo-fi. mic'd w/ an AKG C414 ",,,,,,,,,,,,
@@ -3295,18 +3295,18 @@ Vintagize,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,Verve Analog
 Thicken,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,Verve Analog Machines,,,Tape Machine w/ Warble,,The sound of something recorded a half century ago.,,,,,,,,,,,,
 Warm,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,Verve Analog Machines,,,Tape Machine w/ Warble,,The warmer sound of a more vintage studio tape machine.,,,,,,,,,,,,
 EV12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","Dream '65 Reverb Amp, Lion '68 Super Lead Amp",Electro-Voice EVM12L ,,1x12 CAB,,Thick + tight bottom end w/ airy top; mic'd w/ AKG C414,,,,,,,,,,,,
-1x12 Tweed JP12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender '53 Tweed Deluxe
-Fender '55 Tweed Deluxe",,1x12 CAB,"Fender '53 Tweed Deluxe TOP
-Fender '55 Tweed Deluxe TOP",thinner and less aggressive side; mic'd w/ Shure SM57,,,,,,,,,,,,
+1x12 Tweed JP12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,"Fender 53 Tweed Deluxe
+Fender 55 Tweed Deluxe",,1x12 CAB,"Fender 53 Tweed Deluxe TOP
+Fender 55 Tweed Deluxe TOP",thinner and less aggressive side; mic'd w/ Shure SM57,,,,,,,,,,,,
 Rib-160,Universal Audio,Microphone,Microphone,Modeled,Modeled,Fender Tweed Deluxe,Beyerdynamic M160,,(1960s) vintage model,Embedded in Fender Tweed,TIP --> for classic buttery '60s' tone --> set TONE knob to MAX and fatten it up w/ this MIC in the OFF AXIS position.,,,,,,,,,,,,
 Sputter,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,Verve Analog Machines,,Verve Analog Machines (Full),Solid State w/ Machine,,Transistor Pre on the verge of blowing up,,,,,,,,,,,,
-Micropitch Shifter,Universal Audio,"Modulation, Pitch","Modulation, Pitch","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Universal Audio UAFX MIcroPitch Shifter,,,,"Tweakable chorus and detune effect for lush and wide modulation, especially in stereo. To shift chorusing to the left or right in stereo, use the blend knob. 
+Micropitch Shifter,Universal Audio,"Modulation, Pitch","Modulation, Pitch","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Universal Audio MicroPitch Shifter,,,,"Tweakable chorus and detune effect for lush and wide modulation, especially in stereo. To shift chorusing to the left or right in stereo, use the blend knob. 
 At high levels, the Depth knob can create ""seasick"" or almost robotic sounds. ",,,,,,,,,,,,
-Pitch Shift Delay,Universal Audio,"Delay, Modulation","Delay, Modulation","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Chase Bliss Audio Thermae,,modded,Chase Bliss Audio Thermae TOP,Use at very low mix settings for wildly distorted background sound design-style beds.  ,,,,,,,,,,,,
+Pitch Shift Delay,Universal Audio,"Delay, Modulation","Delay, Modulation","Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Chase Bliss Thermae,,modded,Chase Bliss Thermae TOP,Use at very low mix settings for wildly distorted background sound design-style beds.  ,,,,,,,,,,,,
 LD-67 NOS,Universal Audio,Microphone,Microphone,Modeled,Modeled,"Hemisphere, Sphere",Neumann U67,,(1960s) NOS EF86 Tube,Neumann U67 TOP,"warm w/o sounding dull. Shines on distorted guitar amps. More modern sounding [ Vocals, acoustic guitar, piano ]",,,,,,,,,,,,
 Gold Overdrive,Universal Audio,Harmonic Coloration,Harmonic Coloration,"Guitar, Modeled, Stomp","Guitar, Modeled, Stomp",Paradise Guitar Studio,Klon Centaur,,,Klon Centaur TOP,"works as a clean boost at low gain settings, with thick midrange-forward drive when gain is set higher. Many players prefer to use the Gold Overdrive as a clean boost. Set Gain at the minimum and push the Output for a mid-forward boost sound. 
 For a classic Gold Overdrive lead sound with a clean amp, set Gain to 3 o'clock, Treble to noon, and Output to 9 o'clock.",,,,,,,,,,,,
-Altec 21D,Universal Audio,Microphone,Microphone,Modeled,Modeled,Capitol Chambers,Altec M11 (21B Capsule),,Capital Chambers 4 and 5 provide historically accurate configs w/ a band limited frequency response,Embedded in Capitol Chambers,,,,,,,,,,,,,
+Altec 21D,Universal Audio,Microphone,Microphone,Modeled,Modeled,Capitol Chambers,Altec Lansing M11 (21B Capsule),,Capital Chambers 4 and 5 provide historically accurate configs w/ a band limited frequency response,Embedded in Capitol Chambers,,,,,,,,,,,,,
 RCA 44,Universal Audio,Microphone,Microphone,Modeled,Modeled,Capitol Chambers,RCA 44,,,Embedded in Capitol Chambers,,,,,,,,,,,,,
 Shure SM80,Universal Audio,Microphone,Microphone,Modeled,Modeled,Capitol Chambers,Shure SM80,,(current installation at Capitol Chambers since 80s),Embedded in Capitol Chambers,,,,,,,,,,,,,
 Sony C37A,Universal Audio,Microphone,Microphone,Modeled,Modeled,Capitol Chambers,Sony C37A,,,Embedded in Capitol Chambers,,,,,,,,,,,,,
@@ -3335,7 +3335,7 @@ Friedman Vintage 4x12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Gui
 DN-112,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,AKG D112,,,AKG D112 TOP,,,,,,,,,,,,,
 DN-4,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Electro-Voice ND46,,,,,,,,,,,,,,,,
 DN-441,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Sennheiser MD441,,,Sennheiser MD441 TOP,,,,,,,,,,,,,
-DN-52,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Shure Beta 52A,,,Shure Beta 52A TOP,,,,,,,,,,,,,
+DN-52,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Shure Beta 52,,(Shure Beta 52A),Shure Beta 52A TOP,,,,,,,,,,,,,
 DN-6,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Audix D6,,,Audix D6 TOP,,,,,,,,,,,,,
 DN-604,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Sennheiser e604,,,,,,,,,,,,,,,,
 DN-88,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hemisphere,Beyerdynamic M88,,,Beyerdynamic M88 TOP,,,,,,,,,,,,,
@@ -3362,12 +3362,12 @@ RB-77DX Satin,Universal Audio,Microphone,Microphone,Modeled,Modeled,"Hemisphere,
 SD-451,Universal Audio,Microphone,Microphone,Modeled,Modeled,"Hemisphere, Sphere",AKG C451B,,,,,,,,,,,,,,,,
 Electro-Voice 631,Universal Audio,Microphone,Microphone,Modeled,Modeled,Hitsville Studios,Electro-Voice 631,,,,,,,,,,,,,,,,
 OW-12 #1,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,AKG C12,,,AKG C12 ALT,,,,,,,,,,,,,
-OW-269,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Neumann M269,,,,,,,,,,,,,,,,
+OW-269,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Neumann M269C,,,,,,,,,,,,,,,,
 OW-47,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Neumann U47,Allen Sides,SN 2679. One of Allen Sides favorites,Neumann U47 TOP,,,,,,,,,,,,,
 OW-49,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Neumann M49b,,,Neumann M49b ALT (Tone),,,,,,,,,,,,,
 OW-55,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Sony C55P,,,,,,,,,,,,,,,,
 OW-57U3,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Shure SM57,,Unidyne III capsule. (Based on late 60s release),Shure SM57 ALT (None),,,,,,,,,,,,,
-OW-800,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Sony C800G Prototype,,,Sony C800G TOP ALT (Tone - Prototype),,,,,,,,,,,,,
+OW-800,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Sony C800G (Prototype),,,Sony C800G TOP ALT (Tone - Prototype),,,,,,,,,,,,,
 OW-K3A,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,RCA KU-3A,,,,,,,,,,,,,,,,
 OW-K54,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way,Neumann KM54,,,Neumann KM54 ALT (Tone),,,,,,,,,,,,,
 4006,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,DPA 4006,,,,,,,,,,,,,,,,
@@ -3376,7 +3376,7 @@ C12,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,AKG 
 C12A,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,AKG C12A,,,Embedded in the Ocean Way Studios  ,,,,,,,,,,,,,
 KM54,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Neumann KM54,,,Embedded in Ocean Way Studios,,,,,,,,,,,,,
 KU3A,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,RCA KU-3A,,,Embedded in Ocean Way Studios,,,,,,,,,,,,,
-MKH20,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Sennheiser MKH 20,,,,,,,,,,,,,,,,
+MKH20,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Sennheiser MKH20,,,,,,,,,,,,,,,,
 SM57,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Shure SM57,,,Embedded in Ocean Way Studios,,,,,,,,,,,,,
 U47,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Neumann U47,,,Embedded in Ocean Way Studios,,,,,,,,,,,,,
 U67,Universal Audio,Microphone,Microphone,Modeled,Modeled,Ocean Way Studios,Neumann U67,,,Embedded in Ocean Way Studios,,,,,,,,,,,,,
@@ -3388,7 +3388,7 @@ Dumble ODS 50
 Dumble ODS 50 HRM",,,,,,,1.0.4,,,,,,,,,
 EP-III Tape Echo,Universal Audio,Delay,Delay,Modeled,Modeled,Paradise Guitar Studio,Maestro Echoplex EP-3,,,Maestro Echoplex EP-3 ALT (Tone),,,,,,,,,,,,,
 "Fender 55 Tweed Deluxe
-Woodrow 55 Instrument Amp",Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender '55 Tweed Deluxe,,,"Fender '55 Tweed Deluxe TOP
+Woodrow 55 Instrument Amp",Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Paradise Guitar Studio,Fender 55 Tweed Deluxe,,,"Fender 55 Tweed Deluxe TOP
 Standalone; Embedded in Paradise Guitar Studio",,Plugin,"UAD-2, UADx",11.8.1(UAD-2); 1.0.4 (UADx),,,,,,,,,
 "Raw
 RAW Distortion (Paradise)",Universal Audio,Harmonic Coloration,Harmonic Coloration,"Modeled, Stomp","Modeled, Stomp",Paradise Guitar Studio,ProCo Rat,,,"ProCo Rat TOP
@@ -3414,7 +3414,7 @@ UAD Softube Vintage Amp Room (Brown),Universal Audio,Amp & Cab,Amp & Cab,"Guitar
 UAD Softube Vintage Amp Room (Green),Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Softube Vintage Amp Room,Vox AC30/6,,,Vox AC30/6 ALT (Tone),,,,,,,,,,,,,
 KM 84,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sound City Studios,Neumann KM84,,,Embedded in Sound City Studios,,,,,,,,,,,,,
 R-121,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sound City Studios,Royer R121,,,Embedded in Sound City Studios,,,,,,,,,,,,,
-RE50,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sound City Studios,Electro-Voice RE50,,,,,,,,,,,,,,,,
+RE50,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sound City Studios,Electro-Voice RE50/B,,,,,,,,,,,,,,,,
 DN-12E,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sphere,AKG D12E,,,,,,,,,,,,,,,,
 DN-421N,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sphere,Sennheiser MD421,,,Sennheiser MD421 TOP,,,,,,,,,,,,,
 LD-017T,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sphere,Soyuz 017 Tube,,,,,,,,,,,,,,,,
@@ -3434,7 +3434,7 @@ RB-4038,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sphere,Coles 4038,
 RB-77DX Umber,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sphere,RCA 77-DX (Umber),,Umber finish,,,,,,,,,,,,,,
 SD-416,Universal Audio,Microphone,Microphone,Modeled,Modeled,Sphere,Sennheiser MKH416,,,,,,,,,,,,,,,,
 Sphere Direct,Universal Audio,Microphone,Microphone,,,Sphere,,,no modeleing,,,,,,,,,,,,,,
-Pete Thorn 2x12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Suhr PT100,Bogner Cube Cab,,2x12 CAB M75 Scumback,,,,,,,,,,,,,,
+Pete Thorn 2x12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Suhr PT100,Bogner Cube Cab (2x12) M75 Scumback,,2x12 CAB M75 Scumback,,,,,,,,,,,,,,
 Pete Thorn 2x12 (open cab) ,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Suhr PT100,Divided By 13 2x12F,,2x12 CAB Celestion Blue,,,,,,,,,,,,,,
 Pete Thorn 4x12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",Suhr PT100,Marshall 1960B,,(1978) 4x12 CAB Celestion G12M Greenback,Marshall 1960B TOP,,,,,,,,,,,,,
 Suhr PT 2x12,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","Suhr PT100, Suhr SE100",Celestion G12H-75 Creamback,,2x12 CAB Closed back; 150W,,,,,,,,,,,,,,
@@ -3450,16 +3450,16 @@ Ampeg SVTVR,Universal Audio,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",
 Ampex ATR-102,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Ampex ATR-102,,,,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.0.6 (UADx) 1.2.2 (UADx - Luna)",,,,,,,,,
 AMS DMX 15-80 S,Universal Audio,Delay,Delay,Modeled,Modeled,,AMS DMX 15-80S,AMS (Modeled by),,,,Plugin,UAD-2,1.0.0,,,,,,,,,
-AMS Neve DFC Channel Strip,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,AMS Neve DFC Console,,,,,Plugin,UAD-2,1.0.0,,,,,,,,,
+AMS Neve DFC Channel Strip,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,AMS Neve DFC,,,,,Plugin,UAD-2,1.0.0,,,,,,,,,
 AMX RMX16,Universal Audio,Reverb & Room,Reverb & Room,"Modeled, LOW DSP","LOW DSP, Modeled",,AMS RMX16,AMS (Modeled by),9 standard programs,AMS RMX16 ALT (Limited Features),,Plugin,UAD-2,1.0,,,,,,,,,
 AMX RMX16 Expanded,Universal Audio,Reverb & Room,Reverb & Room,Modeled,Modeled,,AMS RMX16,AMS (Modeled by),9 standard programs + 9 add'l programs,AMS RMX16 TOP,,Plugin,UAD-2,1.0,,,,,,,,,
 API 2500 Compressor,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,API 2500 Stereo Bus Compressor,,,API 2500 Stereo Bus Compressor TOP,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.5.11 (UADx)
 1.1.2 (UADx) - Luna",,,,,,,,,
 API 550A,Universal Audio,EQ,EQ,Modeled,Modeled,,API 550A Discrete 3 Band EQ,,,API 550A Discrete 3 Band EQ TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
-API 560,Universal Audio,EQ,EQ,Modeled,Modeled,,API 560 10-Band GEQ,,,API 560 10-Band GEQ TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
+API 560,Universal Audio,EQ,EQ,Modeled,Modeled,,API 560 10-Band Graphic EQ,,,API 560 10-Band Graphic EQ TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 API Preamp,Universal Audio,Preamps,Preamps,Modeled,Modeled,,API 212L Mic Pre,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
-API Vision Channel Strip,Universal Audio,Preamps,Preamps,Modeled,Modeled,,API Vision Console Channel Strip,,,API Vision Console Channel Strip TOP,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
+API Vision Channel Strip,Universal Audio,Preamps,Preamps,Modeled,Modeled,,API Vision Console,,,API Vision Console TOP,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.4.11 (UADx) 1.1.2 (UADx - Luna)",,,,,,,,,
 Auto-Tune Realtime Access,Universal Audio,Pitch,Pitch,Voice,Voice,,,Antares (Modeled by),"vocal pitch correction / processing
 SIMPLEST (Freeware Version)",,,Plugin,UAD-2,9.0.2,,,,,,,,,
@@ -3490,9 +3490,9 @@ Cambridge,Universal Audio,EQ,EQ,Mastering,Mastering,,,,Mastering quality 5-band 
 Capitol Mastering Compressor,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",,Capitol Studios CM5511,,,,,Plugin,UADx,1.1.12,,,,,,,,,
 Century Tube Channel Strip,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",,,,,,"vintage inspired channel strip [ organic tube mic preamp, optical leveler, 3-band EQ ]",,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.0.16 (UADx)",,,,,,,,,
-Chandler GAV19T,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Chandler GAV19T,Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.0.3,,,,,,,,,
-Chandler Limited Curve Bender,Universal Audio,EQ,EQ,"Mastering, Modeled","Mastering, Modeled",,Chandler/EMI TG12345 Curve Bender,Softube / Chandler Limited  (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
-Chandler LImited Zener Limiter,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",,Chandler/EMI TG12345 Zener Limiter,Softube / Chandler Limited  (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
+Chandler Limited GAV19T,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Chandler Limited GAV19T,Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.0.3,,,,,,,,,
+Chandler Limited Curve Bender,Universal Audio,EQ,EQ,"Mastering, Modeled","Mastering, Modeled",,Chandler Limited TG12345 Curve Bender,Softube / Chandler Limited  (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
+Chandler LImited Zener Limiter,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",,Chandler Limited TG12413 Zener Limiter,Softube / Chandler Limited  (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
 Cooper Time Cube,Universal Audio,Delay,Delay,Modeled,Modeled,,Universal Audio Cooper Time Cube,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
 CS-1,Universal Audio,"Delay, Dynamics, EQ, Preamps","Delay, Dynamics, EQ, Preamps",Channel Strip,Channel Strip,,,,Legacy Channel Strip [ EX-1 EQ and Compressor; DM-1 Delay Modulator; RS-1 Reflection Engine ] (SUPERCEDED BY Precision Channel Strip) - DON'T USE. THIS IS JUST FOR BACKWARDS COMPAT.,,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Dangerous BAX EQ Master,Universal Audio,EQ,EQ,"Mastering, Modeled","Mastering, Modeled",,Dangerous Music BAX EQ,Brainworx (Modeled by) ,Stereo Unit (2 Channel),,,Plugin,UAD-2,1.0.1,,,,,,,,,
@@ -3501,15 +3501,15 @@ dbx 160 Compressor,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,dbx 160 VC
 Diezel Herbert,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Diezel Herbert,Brainworx (Modeled by) ,,Diezel Herbert ALT (Tone),,Plugin,UAD-2,1.0.1,,,,,,,,,
 Diezel VH4,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Diezel VH4,Brainworx (Modeled by) ,,Diezel VH4 ALT (Tone),,Plugin,UAD-2,1.0.1,,,,,,,,,
 DreamVerb,Universal Audio,Reverb & Room,Reverb & Room,,,,,,stereo reverb w/ 5-band active EQ for reflections. 100+ presets,,,Plugin,UAD-2,11.8.1,,,,,,,,,
-Dytronics Cyclosonic Panner,Universal Audio,"Modulation, Spatial Imaging","Modulation, Spatial Imaging",Modeled,Modeled,,Dyntronics FS-1 Cyclosonic Panner,Softube (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
+Dytronics Cyclosonic Panner,Universal Audio,"Modulation, Spatial Imaging","Modulation, Spatial Imaging",Modeled,Modeled,,Dytronics FS-1 Cyclosonic Panner,Softube (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
 Dytronics Tri-Stereo Chorus,Universal Audio,Modulation,Modulation,Modeled,Modeled,,"DMP TSC-618
-Dyntronics CS-5 Tri-Stereo Chorus",Softube (Modeled by),,"DMP TSC-6718 TOP
+Dytronics CS-5 Tri-Stereo Chorus",Softube (Modeled by),,"DMP TSC-6718 TOP
 Dytronics CS-5 TOP",,Plugin,UAD-2,2.5.16,,,,,,,,,
 Eden WT800,Universal Audio,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",,Eden WT800,Softube (Modeled by),,Eden WT800 TOP,,Plugin,UAD-2,2.5.16,,,,,,,,,
 elysia alpha compressor V2,Universal Audio,"Dynamics, EQ","Dynamics, EQ","Mastering, Modeled","Mastering, Modeled",,Elysia Alpha Compressor,Elysia (Modeled by),,Elysia Alpha Compressor TOP,,Plugin,UAD-2,1.14.1,,,,,,,,,
 elysia alpha master,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled, Deprecated","Deprecated, Mastering, Modeled",,Elysia Alpha Compressor,Elysia (Modeled by),mastering (stereo) version; ,superceded by compressor V2,,Plugin,UAD-2,1.9.1,,,,,,,,,
 elysia alpha mix,Universal Audio,Dynamics,Dynamics,"Modeled, Deprecated","Deprecated, Modeled",,Elysia Alpha Compressor,Elysia (Modeled by),single channel,superceded by compressor V2,,Plugin,UAD-2,1.9.1,,,,,,,,,
-elysia mpressor,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Elysia mpressor Creative Compressor,Elysia (Modeled by),,,,Plugin,UAD-2,1.4.1,,,,,,,,,
+elysia mpressor,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Elysia mpressor,Elysia (Modeled by),,,,Plugin,UAD-2,1.4.1,,,,,,,,,
 Empiral Labs FATSO Jr,Universal Audio,Harmonic Coloration,Harmonic Coloration,"Modeled, LOW DSP","LOW DSP, Modeled",,Empirical Labs EL7 FATSO,,no sidechain filtering,Empirical Labs EL7 FATSO ALT (no sidechain),,Plugin,UAD-2,11.8.1,,,,,,,,,
 Empiral Labs FATSO Sr,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Empirical Labs EL7 FATSO,,,Empirical Labs EL7 FATSO TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Empirical Labs Distressor,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Empirical Labs EL8 Distressor,,,Empirical Labs EL8 Distressor TOP,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.9 (UADx),,,,,,,,,
@@ -3520,14 +3520,14 @@ Engl E765 RT,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Mode
 Engl Savage,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Engl E610 Savage 120,Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.0.1,,,,,,,,,
 EP-34 Tape Echo,Universal Audio,"Delay, Harmonic Coloration","Delay, Harmonic Coloration",Modeled,Modeled,,"Maestro Echoplex EP-3
 Maestro Echoplex EP-4",,,Maestro Echoplex EP-3 TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
-Eventide H910 Harmonizer,Universal Audio,Pitch,Pitch,Modeled,Modeled,,Eventide H910 Harmonizer,Eventide (Modeled by),,Eventide H910 ALT (Tone),,Plugin,UAD-2,1.0.12,,,,,,,,,
+Eventide H910 Harmonizer,Universal Audio,Pitch,Pitch,Modeled,Modeled,,Eventide H910,Eventide (Modeled by),,Eventide H910 ALT (Tone),,Plugin,UAD-2,1.0.12,,,,,,,,,
 Fairchild 660 Compressor,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Fairchild 660 Compressor,,,Fairchild 660 TOP,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.0.15 (UADx)",,,,,,,,,
 Fairchild 670 Compressor,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",,Fairchild 670 Limiting Amplifier,,,Fairchild 670 TOP,,Plugin,UAD-2,"11.8.1 (UAD-2)
 1.0.16 (UADx)",,,,,,,,,
 Friedman BE100,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Friedman BE100,Brainworx (Modeled by) ,,Friedman BE100 ALT (Tone),,Plugin,UAD-2,1.0.2,,,,,,,,,
 Friedman Buxom Betty,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Friedman Buxom Betty,Brainworx (Modeled by) ,Friedman Dirty Shirley 112 Cab,,,Plugin,UAD-2,1.0.1,,,,,,,,,
-Friedman DS40,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Friedman Dirty Shirley,Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.0.2,,,,,,,,,
+Friedman DS40,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Friedman DS40 (Dirty Shirley),Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.0.2,,,,,,,,,
 Fuchs Train II,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Fuchs Train II,Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.0.1,,,,,,,,,
 Galaxy Tape Echo,Universal Audio,"Delay, Harmonic Coloration","Delay, Harmonic Coloration",Modeled,Modeled,,Roland RE-201 Space Echo,,,Roland RE-201 Space Echo TOP,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
 Gallien Krueger 800 RB,Universal Audio,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",,Gallien-Krueger 800RB,Brainworx (Modeled by) ,,Gallien-Krueger 800RB ALT (Tone),,Plugin,UAD-2,1.0.1,,,,,,,,,
@@ -3536,7 +3536,7 @@ Helios Type 69,Universal Audio,"EQ, Preamps","EQ, Preamps",Modeled,Modeled,,Heli
 1.0.6 (UADx)",,,,,,,,,
 Hemisphere Mic Collection,Universal Audio,"Microphone, Container","Container, Microphone",,,,,,,,,Plugin,UAD-2,2.0.0,,,,,,,,,
 Hitsville EQ,Universal Audio,EQ,EQ,Modeled,Modeled,,Hitsville USA EQ,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
-Hitsville EQ Mastering,Universal Audio,EQ,EQ,Modeled,Modeled,,Hitsville USA EQ (Mastering),,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
+Hitsville EQ Mastering,Universal Audio,EQ,EQ,Modeled,Modeled,,Hitsville USA EQ,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
 KORG SDD-3000,Universal Audio,Delay,Delay,"Guitar, Modeled","Guitar, Modeled",,KORG SDD-3000 Digital Delay,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
 LA-6176 Channel Strip,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,Universal Audio 6176 Channel Strip,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.5 (UADx),,,,,,,,,
 Lexicon 224,Universal Audio,Reverb & Room,Reverb & Room,Modeled,Modeled,,Lexicon 224 Digital Reverb,,,Lexicon 224 TOP,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.4.16 (UADx),,,,,,,,,
@@ -3550,7 +3550,7 @@ Manley Massive Passive MST,Universal Audio,EQ,EQ,"Mastering, Modeled","Mastering
 1.0.7 (UADx)",,,,,,,,,
 Manley Reference Mic Preamp,Universal Audio,Preamps,Preamps,Modeled,Modeled,,Manley VOXBOX,,preamp only ,,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.0.10 (UADx)",,,,,,,,,
-Manley Variable Mu,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Manley Variable-Mu,,,Manley Variable-Mu TOP,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
+Manley Variable Mu,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Manley Variable Mu,,,Manley Variable-Mu TOP,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.0.6 (UADx)",,,,,,,,,
 Manley VOXBOX,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps","Mastering, Modeled","Mastering, Modeled",,Manley VOXBOX,,,,,Plugin,"UAD-2, UADx","11.8.1 (UAD-2)
 1.0.10 (UADx)",,,,,,,,,
@@ -3563,19 +3563,19 @@ Millenia NSEQ-2,Universal Audio,EQ,EQ,Modeled,Modeled,,Millenia NSEQ-2,Brainworx
 MXR Flanger-Doubler,Universal Audio,Modulation,Modulation,Modeled,Modeled,,MXR Model 126 Flanger/Doubler,,,MXR Model 126 Flanger/Doubler TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 1081,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 1081,,,Neve 1081 TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 1084,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 1084,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
-Neve 31102,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 31102 Mic Pre / 3 Band EQ,,EQ Only,Neve 31102 TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
+Neve 31102,Universal Audio,EQ,EQ,Modeled,Modeled,,Neve 31102,,EQ Only,Neve 31102 TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 33609 C,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Neve 33609/C,,,Neve 33609/C TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve 88RS,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,Neve 88RS,,,Neve 88RS TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Neve Preamp,Universal Audio,Preamps,Preamps,Modeled,Modeled,,Neve 1290,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Ocean Way Mic Collection,Universal Audio,"Microphone, Container","Container, Microphone",,,,,,,,,Plugin,UAD-2,,,,,,,,,,
 Ocean Way Mic Collection 180,Universal Audio,"Microphone, Container","Container, Microphone",Hardware,Hardware,,,,,,,Plugin,UAD-2,,,,,,,,,,
 OTO Biscuit 8-bit Effects,Universal Audio,"Delay, EQ, Harmonic Coloration, Modulation, Pitch","Delay, EQ, Harmonic Coloration, Modulation, Pitch",Modeled,Modeled,,OTO Biscuit,Softube (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
-Oxford Dynamic EQ,Universal Audio,"Dynamics, EQ","Dynamics, EQ",Modeled,Modeled,,Sony Oxford OXF-R3 Console,Sonnex (Modeled by) ,Compression/Expansion,,,Plugin,UAD-2,2.02.0[1907],,,,,,,,,
-Oxford Envolution,Universal Audio,"Dynamics, EQ","Dynamics, EQ",Modeled,Modeled,,Sony Oxford OXF-R3 Console,Sonnex (Modeled by) ,transient and sustain control; envelope shaping,,,Plugin,UAD-2,2.02.0[1907],,,,,,,,,
-Oxford EQ,Universal Audio,EQ,EQ,Modeled,Modeled,,Sony Oxford OXF-R3 Console,Sonnex (Modeled by) ,5-band PEQ,,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
-Oxford Inflator,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Sony Oxford OXF-R3 Console,Sonnex (Modeled by) ,sonic enhancement,,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
-Oxford Limiter,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Sony Oxford OXF-R3 Console,Sonnex (Modeled by) ,"limiting w/ maximum loudness, density and presence",,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
-Oxford SuprEsser DS,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Sony Oxford OXF-R3 Console,Sonnex (Modeled by) ,RT de-essing (tailored for LIVE sound),,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
+Oxford Dynamic EQ,Universal Audio,"Dynamics, EQ","Dynamics, EQ",Modeled,Modeled,,Sony Oxford OXF-R3,Sonnex (Modeled by) ,Compression/Expansion,,,Plugin,UAD-2,2.02.0[1907],,,,,,,,,
+Oxford Envolution,Universal Audio,"Dynamics, EQ","Dynamics, EQ",Modeled,Modeled,,Sony Oxford OXF-R3,Sonnex (Modeled by) ,transient and sustain control; envelope shaping,,,Plugin,UAD-2,2.02.0[1907],,,,,,,,,
+Oxford EQ,Universal Audio,EQ,EQ,Modeled,Modeled,,Sony Oxford OXF-R3,Sonnex (Modeled by) ,5-band PEQ,,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
+Oxford Inflator,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Sony Oxford OXF-R3,Sonnex (Modeled by) ,sonic enhancement,,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
+Oxford Limiter,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Sony Oxford OXF-R3,Sonnex (Modeled by) ,"limiting w/ maximum loudness, density and presence",,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
+Oxford SuprEsser DS,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Sony Oxford OXF-R3,Sonnex (Modeled by) ,RT de-essing (tailored for LIVE sound),,,Plugin,UAD-2,4.02.0[1907],,,,,,,,,
 Oxide Tape,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,,,,Analog tape saturation,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.17 (UADx) 1.2.2 (UADx - Luna),,,,,,,,,
 Paradise Guitar Studio,Universal Audio,Container,Container,Guitar,Guitar,,,,,,,Plugin,UADx,1.0.1,,,,,,,,,
 Precision Buss Compressor,Universal Audio,Dynamics,Dynamics,Mastering,Mastering,,,,Original UA Duall-VCA Dynamic Processor for transparent gain reduction,,,Plugin,UAD-2,11.8.1,,,,,,,,,
@@ -3604,12 +3604,12 @@ Softube Bass Amp Room,Universal Audio,"Amp & Cab, Container","Amp & Cab, Contain
 Softube Metal Amp Room,Universal Audio,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",,Engl E645 Powerball,Softube (Modeled by),,Engl E645 Powerball ALT (Tone),,Plugin,UAD-2,2.5.16,,,,,,,,,
 Softube Vintage Amp Room,Universal Audio,"Amp & Cab, Container","Amp & Cab, Container",Guitar,Guitar,,,Softube (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
 Softube Vocoder,Universal Audio,"Modulation, Pitch","Modulation, Pitch",Voice,Voice,,,Softube (Modeled by),Synth / Voice modulation,,,Plugin,UAD-2,2.5.16,,,,,,,,,
-Sound City Studios,Universal Audio,Reverb & Room,Reverb & Room,Modeled,Modeled,,Sound City Studios,,,,,Plugin,UADx,1.0.8,,,,,,,,,
+Sound City Studios,Universal Audio,Reverb & Room,Reverb & Room,Modeled,Modeled,,Sound City Studios Studio A,,,,,Plugin,UADx,1.0.8,,,,,,,,,
 Sound Machine Wood Works,Universal Audio,Harmonic Coloration,Harmonic Coloration,Guitar,Guitar,,,,acoustic guitar processing,,,Plugin,UAD-2,1.0.0,,,,,,,,,
 Sphere Mic Collection,Universal Audio,"Microphone, Container","Container, Microphone",,,,,,,,,Plugin,UAD-2,2.0.0,,,,,,,,,
 Sphere Mic Collection 180,Universal Audio,"Container, Microphone","Container, Microphone",Hardware,Hardware,,,,,,,Plugin,UAD-2,2.0.0,,,,,,,,,
 SPL Transient Designer,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,SPL Transient Designer,,,SPL Transient Designer TOP,,Plugin,UAD-2,11.8.1,,,,,,,,,
-SPL TwinTube,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,SPL TwinTube Processor,,,,,Plugin,UAD-2,1.6.1,,,,,,,,,
+SPL TwinTube,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,SPL TwinTube,,,,,Plugin,UAD-2,1.6.1,,,,,,,,,
 SPL Vitalizer MK3-T,Universal Audio,"Dynamics, EQ, Spatial Imaging, Harmonic Coloration","Dynamics, EQ, Harmonic Coloration, Spatial Imaging",Modeled,Modeled,,SPL Vitalizer Mk3-T,,,,,Plugin,UAD-2,1.0,,,,,,,,,
 SSL E Channel Strip,Universal Audio,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,SSL 4000E Channel Strip,,Modeled off of 82E10 Rev12 Console,SSL 4000E TOP,,Plugin,UAD-2,"11.8.1 (UAD-2)
 1.0.5 (UADx)",,,,,,,,,
@@ -3625,20 +3625,20 @@ Summit Audio TLA-100A,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Summit 
 "Teletronix LA-3A
 LA-3A Compressor",Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Teletronix LA-3A,,,Teletronix LA-3A TOP,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2); 1.0.15 (UADx) ,,,,,,,,,
 Thermionic Culture Vulture,Universal Audio,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Thermionic Culture Vulture,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
-Tonelux Tilt,Universal Audio,EQ,EQ,Modeled,Modeled,,Tonelux MP1a (Tilt Control),Softube (Modeled by),EQ Only,,,Plugin,UAD-2,2.5.16,,,,,,,,,
-Tonelux Tilt Live,Universal Audio,EQ,EQ,"Modeled, Live Sound, REMOVE","Live Sound, Modeled, REMOVE",,Tonelux MP1a (Tilt Control),Softube (Modeled by),EQ Only,,,Plugin,UAD-2,2.5.16,,,,,,,,,
+Tonelux Tilt,Universal Audio,EQ,EQ,Modeled,Modeled,,Tonelux MP1a Tilt Control,Softube (Modeled by),EQ Only,,,Plugin,UAD-2,2.5.16,,,,,,,,,
+Tonelux Tilt Live,Universal Audio,EQ,EQ,"Modeled, Live Sound, REMOVE","Live Sound, Modeled, REMOVE",,Tonelux MP1a Tilt Control,Softube (Modeled by),EQ Only,,,Plugin,UAD-2,2.5.16,,,,,,,,,
 Topline Vocal Suite,Universal Audio,"Pitch, Preamps, Harmonic Coloration, Dynamics, EQ, Delay, Modulation, Reverb & Room","Delay, Dynamics, EQ, Harmonic Coloration, Modulation, Pitch, Preamps, Reverb & Room",,,,,,"all-in-one vocal chain (pitch shift, solid state / tube preamps, tape saturation, dynamics, EQ, delay, reverb, modulation)",,,Plugin,UADx,1.0.6,,,,,,,,,
-Trident A-Range,Universal Audio,EQ,EQ,Modeled,Modeled,,Trident A-Range EQ,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
+Trident A-Range,Universal Audio,EQ,EQ,Modeled,Modeled,,Trident A-Range,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Tube-Tech CL 1B mk II,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Tube-Tech CL 1B Opto Compressor,Softube (Modeled by),,Tube-Tech CL 1B Opto Compressor TOP,,Plugin,UAD-2,2.5.47 (u78 5c8a3f4f),,,,,,,,,
 Tube-Tech ME 1B,Universal Audio,EQ,EQ,Modeled,Modeled,,Tube-Tech ME 1B Midrange EQ,Softube (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
 Tube-Tech PE 1C,Universal Audio,EQ,EQ,Modeled,Modeled,,Tube-Tech PE 1C Program EQ,Softube (Modeled by),,,,Plugin,UAD-2,2.5.16,,,,,,,,,
-UA 1176 AE,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,UA 1176 AE,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
+UA 1176 AE,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Universal Audio 1176AE,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
 UA 1176 LN Rev E,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,UREI 1176LN Rev E,,,UREI 1176 LN Rev E TOP,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
-UA 1176 Rev A,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,"UA 1176 Rev A ""Bluestripe""",,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
-UA 175-B,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,UA 175-B Tube Compressor,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.11 (UADx),,,,,,,,,
-UA 176,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,UA 176 Tube Compressor,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.11 (UADx),,,,,,,,,
-UA 610-A,Universal Audio,"EQ, Preamps","EQ, Preamps","Channel Strip, Modeled","Channel Strip, Modeled",,UA 610-A,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.15 (UADx),,,,,,,,,
-UA 610-B,Universal Audio,"EQ, Preamps","EQ, Preamps","Channel Strip, Modeled","Channel Strip, Modeled",,UA 610-B,,,,,Plugin,UAD-2,11.8.1 (UAD-2) 1.0.15 (UADx),,,,,,,,,
+UA 1176 Rev A,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,"Universal Audio 1176 Rev A ""Bluestripe""",,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.3.16 (UADx),,,,,,,,,
+UA 175-B,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Universal Audio 175B,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.11 (UADx),,,,,,,,,
+UA 176,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Universal Audio 176,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.11 (UADx),,,,,,,,,
+UA 610-A,Universal Audio,"EQ, Preamps","EQ, Preamps","Channel Strip, Modeled","Channel Strip, Modeled",,Universal Audio 610-A,,,,,Plugin,"UAD-2, UADx",11.8.1 (UAD-2) 1.0.15 (UADx),,,,,,,,,
+UA 610-B,Universal Audio,"EQ, Preamps","EQ, Preamps","Channel Strip, Modeled","Channel Strip, Modeled",,Universal Audio 610-B,,,,,Plugin,UAD-2,11.8.1 (UAD-2) 1.0.15 (UADx),,,,,,,,,
 V76 Preamp,Universal Audio,Preamps,Preamps,Modeled,Modeled,,Telefunken V76,,,,,Plugin,UAD-2,11.8.1,,,,,,,,,
 Valley People Dyna-mite,Universal Audio,Dynamics,Dynamics,Modeled,Modeled,,Valley People Dyna-Mite,Softube (Modeled by),,,,Plugin,UAD-2,2.5.47 (u78 5c8a3f4f),,,,,,,,,
 Vertigo VSC-2,Universal Audio,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",,Vertigo VSC-2,Brainworx (Modeled by) ,,,,Plugin,UAD-2,1.4.1,,,,,,,,,
@@ -3647,7 +3647,7 @@ Verve Analog Machines,Universal Audio,Harmonic Coloration,Harmonic Coloration,,,
 Verve Analog Machines Essentials,Universal Audio,Container,Container,,,,,,4 Analog Tone Machines,,,Plugin,UADx,1.0.6,,,,,,,,,
 Waterfall Rotary Speaker,Universal Audio,Modulation,Modulation,Modeled,Modeled,,Leslie 147,,,Leslie 147 ALT (Tone),,Plugin,UADx,1.2.16,,,,,,,,,
 CurveEQ,Voxengo,EQ,EQ,Mastering,Mastering,,,Cubase,"Spline EQ. Shows filter response being designed using a spline (smooth curvy line), creating a visual representation of how the EQ alters the sound. Uses spectrum matching that allows the transfer of a spectral shape from one recording to another. ",,,Plugin,VST3,,,,,,,,,,
-MDMX OverDrive,Waves,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",,,,Gain based overdrive / distortion; fixed ratio compression w/ gain riding; 4-band EQ,,[ Analogman King of Tone; Boss SD-1; Fulltone OCD; Klon Centaur; Marshall Bluesbreaker; MXR+ Distortion ],Plugin,AU,16.7.33,,,,,,,,,
+MDMX OverDrive,Waves,Harmonic Coloration,Harmonic Coloration,"Guitar, Stomp","Guitar, Stomp",,,,Gain based overdrive / distortion; fixed ratio compression w/ gain riding; 4-band EQ,,[ Analog.Man King of Tone; Boss SD-1; Fulltone OCD; Klon Centaur; Marshall Bluesbreaker; MXR+ Distortion ],Plugin,AU,16.7.33,,,,,,,,,
 Sync Vx,Waves,"Dynamics, EQ, Pitch, Time / Phase","Dynamics, EQ, Pitch, Time / Phase",REMOVE,REMOVE,,,,time / pitch correction w/ noise reduction,,[Redundant w/ Melodyne ],Plugin,AU,16.7.33,,,,,,,,,
 Saphira,Waves,Harmonic Coloration,Harmonic Coloration,Mastering,Mastering,,,,,,"edge (even harmonics), warmth (odd harmonics); tape saturation.",Plugin,AU,16.7.33,,,,,,,,,
 OneKnob Pressure,Waves,Dynamics,Dynamics,,,,,OneKnob,compressor,,Effective on percussion,Plugin,AU,16.7.33,,,,,,,,,
@@ -3680,7 +3680,7 @@ PuigChild 670,Waves,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",
 4x12 Britt,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",GTR Amp,Orange PPC412,,4x12 CAB,Orange PPC412 ALT(Tone),,,,,,,,,,,,,
 4x12 Inferno,Waves,Amp & Cab,Amp & Cab,Guitar,Guitar,GTR Amp,,,4x12 CAB,,,,,,,,,,,,,,
 Acme 2x10 OpenBack,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",GTR Amp,Fender '65 Vibrolux Reverb,,2x10 Openback Eminence Copperhead,Fender '65 Vibrolux Reverb ALT (Tone),,,,,,,,,,,,,
-Acme 4x12 Cab,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",GTR Amp,Hiwatt 4123F,,4x12 CAB,Hiwatt 4123F ALT (Tone),,,,,,,,,,,,,
+Acme 4x12 Cab,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",GTR Amp,Hiwatt SE4123F,,4x12 CAB,Hiwatt SE4123F ALT (Tone),,,,,,,,,,,,,
 Acme Case Speaker,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled",GTR Amp,Silvertone 1457,,1x8 CAB Jensen C8R,,,,,,,,,,,,,,
 "Bass 15""",Waves,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",GTR Amp,Fender Bassman 115,,,,,,,,,,,,,,,,
 Bass 6x10 ,Waves,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",GTR Amp,Ampeg SVT610HLF,,6x10,Ampeg SVT610HLF DNU,,,,,,,,,,,,,
@@ -3697,7 +3697,7 @@ Dyn 421,Waves,Microphone,Microphone,Modeled,Modeled,GTR Amp,Sennheiser MD421 II,
 Dyn 57,Waves,Microphone,Microphone,Modeled,Modeled,GTR Amp,Shure SM57,,,Embedded in GTR ,,,,,,,,,,,,,
 GTR Amp Bass - Activator,Waves,"Amp & Cab, Preamps","Amp & Cab, Preamps","Bass, Modeled","Bass, Modeled",GTR Amp,Sadowsky Onboard Bass Preamp,,,,,,,,,,,,,,,,
 GTR Amp Bass - Directube,Waves,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",GTR Amp,"Countryman Type 85 Direct Box
-Telefunken V72 Mic Pre",,,,,,,,,,,,,,,,
+Telefunken V72",,,,,,,,,,,,,,,,
 "GTR Amp Bass - Mo' Town
 Bass 15"" Fliptop (Cab)",Waves,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",GTR Amp,Ampeg B-15N,,,B-15N DNU,,,,,,,,,,,,,
 GTR Amp Bass - OverBass,Waves,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Modeled",GTR Amp,Mesa/Boogie Bass 400+,,,Mesa/Boogie Bass 400+ ALT (Tone),,,,,,,,,,,,,
@@ -3734,7 +3734,7 @@ GTR Amp Bass - SolidState,Waves,Amp & Cab,Amp & Cab,"Bass, Modeled","Bass, Model
 GTR Amp Clean - Clean,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",Fender '59 Bassman,,,Fender ’59 Bassman DNU,,,,,,,,,,,,,
 GTR Amp Clean - Sweet,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",Gibson GA-5 Skylark,,(1968),,,,,,,,,,,,,,
 GTR Amp Drive - Drive,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",Fender '65 Super Reverb,,,Fender '65 Super Reverb DNU,,,,,,,,,,,,,
-GTR Amp Drive - Edgy,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",VOX AC-30 TB-2 (1980),,,,,,,,,,,,,,,,
+GTR Amp Drive - Edgy,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",Vox AC30,,TB-2 (1980),,,,,,,,,,,,,,
 GTR Amp Drive - Overdrive,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",Marshall JMP 2203,,,Marshall JMP 2203  DNU,,,,,,,,,,,,,
 GTR Amp High Gain - Crunch,Waves,Amp & Cab,Amp & Cab,Guitar,Guitar,"GTR Amp, GTR Solo / Solo Rack",,Paul Reed Smith,inspired by a custom Garcia from Paul Reed Smith's private collection,,,,,,,,,,,,,,
 GTR Amp High Gain - Crush / PRS Crush,Waves,Amp & Cab,Amp & Cab,"Guitar, Modeled","Guitar, Modeled","GTR Amp, GTR Solo / Solo Rack",Marshall JMP 2204 MK2,,modded,,,,,,,,,,,,,,
@@ -3767,19 +3767,19 @@ GTR Panner,Waves,Dynamics,Dynamics,"Guitar, Stomp","Guitar, Stomp",GTR Stomp,,,,
 GTR Reverb,Waves,Reverb & Room,Reverb & Room,"Guitar, Stomp","Guitar, Stomp",GTR Stomp,,,,,,,,,,,,,,,,,
 GTR Tone,Waves,EQ,EQ,"Guitar, Stomp","Guitar, Stomp",GTR Stomp,,,,,,,,,,,,,,,,,
 Dark Mass,Waves,Amp & Cab,Amp & Cab,Bass,Bass,Voltage Amps,,,runs the gamut from ’80s to present day.,,,,,,,,,,,,,,
-Abbey Road Chambers,Waves,"Reverb & Room, Delay","Delay, Reverb & Room",Modeled,Modeled,,EMI/Abbey Road STEED,,,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road EMI TG12345,Waves,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,EMI TG12345,,,EMI TG12345 TOP,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road Chambers,Waves,"Reverb & Room, Delay","Delay, Reverb & Room",Modeled,Modeled,,EMI STEED,,,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road EMI TG12345,Waves,"Dynamics, EQ, Preamps","Dynamics, EQ, Preamps",Modeled,Modeled,,EMI TG12345 Console,,,EMI TG12345 TOP,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road J37 Tape,Waves,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,Studer J37,,,,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road Plates,Waves,Reverb & Room,Reverb & Room,Modeled,Modeled,,EMT 140 ST,,Specific unit from Abbey Road,EMT 140 ST TOP,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road REDD.17,Waves,Preamps,Preamps,Modeled,Modeled,,EMI REDD.17,,,,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road REDD.37.51,Waves,Preamps,Preamps,Modeled,Modeled,,"EMI REDD.37
 EMI REDD.51",,,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road Reel ADT,Waves,Modulation,Modulation,Modeled,Modeled,,EMI/Abbey Road ADT,,single modulation,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road Reel ADT Live,Waves,Modulation,Modulation,"Live Sound, Modeled, REMOVE","Live Sound, Modeled, REMOVE",,EMI/Abbey Road ADT,,single modulation,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road Reel ADT2V,Waves,Modulation,Modulation,Modeled,Modeled,,EMI/Abbey Road ADT,,Adds a second ADT Modulation,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road Reel ADT2V Live,Waves,Modulation,Modulation,"Live Sound, Modeled, REMOVE","Live Sound, Modeled, REMOVE",,EMI/Abbey Road ADT,,Adds a second ADT Modulation,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road RS124,Waves,Dynamics,Dynamics,Modeled,Modeled,,EMI/Abbey Road RS124 Compressor,,,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road RS56 Passive EQ,Waves,EQ,EQ,Modeled,Modeled,,EMI/Abbey Road RS56,,,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road Reel ADT,Waves,Modulation,Modulation,Modeled,Modeled,,EMI ADT,,single modulation,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road Reel ADT Live,Waves,Modulation,Modulation,"Live Sound, Modeled, REMOVE","Live Sound, Modeled, REMOVE",,EMI ADT,,single modulation,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road Reel ADT2V,Waves,Modulation,Modulation,Modeled,Modeled,,EMI ADT,,Adds a second ADT Modulation,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road Reel ADT2V Live,Waves,Modulation,Modulation,"Live Sound, Modeled, REMOVE","Live Sound, Modeled, REMOVE",,EMI ADT,,Adds a second ADT Modulation,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road RS124,Waves,Dynamics,Dynamics,Modeled,Modeled,,EMI RS124 Compressor,,,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road RS56 Passive EQ,Waves,EQ,EQ,Modeled,Modeled,,EMI RS56 Curve Bender,,,,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road Saturator,Waves,"Dynamics, Harmonic Coloration","Dynamics, Harmonic Coloration",Modeled,Modeled,,EMI TG12321 Compander,,,,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road TG Mastering,Waves,"Dynamics, EQ, Preamps, Spatial Imaging","Dynamics, EQ, Preamps, Spatial Imaging","Mastering, Modeled","Mastering, Modeled",,"EMI TG12410 Transfer Console
 EMI TG12411 Input Module
@@ -3793,15 +3793,15 @@ EMI TG12412 Tone Module
 EMI TG12413 Limiter Module
 EMI TG12414 Filter Module
 EMI TG12416 Output Module",,,,,Plugin,AU,16.7.33,,,,,,,,,
-Abbey Road The King's Microphones,Waves,"Microphone, Container","Container, Microphone",Modeled,Modeled,,"King George V
-King George VI
-Queen Elizabeth",,,,,Plugin,AU,16.7.33,,,,,,,,,
+Abbey Road The King's Microphones,Waves,"Microphone, Container","Container, Microphone",Modeled,Modeled,,"EMI King George V
+EMI King George VI
+EMI Queen Elizabeth",,,,,Plugin,AU,16.7.33,,,,,,,,,
 Abbey Road Vinyl,Waves,Harmonic Coloration,Harmonic Coloration,,,,,,vinyl saturation,,,Plugin,AU,16.7.33,,,,,,,,,
-Aphex Vintge Exciter,Waves,Harmonic Coloration,Harmonic Coloration,"Mastering, Modeled, Voice","Mastering, Modeled, Voice",,Aphex 402 Exciter,,,,,Plugin,AU,16.7.33,,,,,,,,,
+Aphex Vintge Exciter,Waves,Harmonic Coloration,Harmonic Coloration,"Mastering, Modeled, Voice","Mastering, Modeled, Voice",,Aphex 402 Aural Exciter,,,,,Plugin,AU,16.7.33,,,,,,,,,
 API-2500,Waves,Dynamics,Dynamics,Modeled,Modeled,,API 2500 Stereo Bus Compressor,,,API 2500 Stereo Bus Compressor ALT (Tone),,Plugin,AU,16.7.33,,,,,,,,,
 API-550A,Waves,EQ,EQ,Modeled,Modeled,,API 550A Discrete 3 Band EQ,,,API 550A Discrete 3 Band EQ ALT (Tone) ,,Plugin,AU,16.7.33,,,,,,,,,
 API-550B,Waves,EQ,EQ,Modeled,Modeled,,API 550B 4 Band EQ,,,API 550B 4 Band EQ TOP,,Plugin,AU,16.7.33,,,,,,,,,
-API-560,Waves,EQ,EQ,Modeled,Modeled,,API 560 10-Band GEQ,,,API 560 10-Band GEQ ALT (Tone),,Plugin,AU,16.7.33,,,,,,,,,
+API-560,Waves,EQ,EQ,Modeled,Modeled,,API 560 10-Band Graphic EQ,,,API 560 10-Band Graphic EQ ALT (Tone),,Plugin,AU,16.7.33,,,,,,,,,
 AudioTrack,Waves,"Dynamics, EQ","Dynamics, EQ",Channel Strip,Channel Strip,,,,"4-Band parameteric/paragraphic EQ, peak-reference compressor/gate/expander",,,Plugin,AU,16.7.33,,,,,,,,,
 Bass Rider,Waves,Dynamics,Dynamics,Bass,Bass,,,,Automatic Leveler (not a compressor) designed for bass instruments,,,Plugin,AU,16.7.33,,,,,,,,,
 Bass Rider Live,Waves,Dynamics,Dynamics,"Bass, Live Sound, REMOVE","Bass, Live Sound, REMOVE",,,,Automatic Leveler (not a compressor) designed for bass instruments; designed for Live performance,,,Plugin,AU,16.7.33,,,,,,,,,
@@ -3941,15 +3941,15 @@ Morphoder,Waves,"Pitch, EQ","EQ, Pitch",,,,,,Vocoder designed to be used w/ any 
 MultiMod Rack,Waves,Container,Container,,,,,,"Intended to create an effects chain of existing distortion/modulation plugins. [ MDMX Fuxx, Overdrive, Screamer, Bezerk, et al. ]",,,Plugin,AU,16.7.33,,,,,,,,,
 MV2,Waves,Dynamics,Dynamics,,,,,,Low level and high level compression w/ automatic dither.,,,Plugin,AU,16.7.33,,,,,,,,,
 MV360,Waves,Dynamics,Dynamics,"Surround, REMOVE","REMOVE, Surround",,,,,,,Plugin,AU,16.7.33,,,,,,,,,
-NLS Buss,Waves,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,"EMI TG12345
+NLS Buss,Waves,Harmonic Coloration,Harmonic Coloration,Modeled,Modeled,,"EMI TG12345 Console
 Neve 5116
-SSL 4000G Channel",,"Mix Bus
+SSL 4000G Channel Strip",,"Mix Bus
 Spike Stent SSL 4000G; Mike Hedge EMI TG12345 Mk IV; Yoad Nevo's customized Neve 5116","EMI TG12345 TOP
 Neve 5116 TOP 
 SSL 4000G Channel TOP",,Plugin,AU,16.7.33,,,,,,,,,
-NLS Channel,Waves,Harmonic Coloration,Harmonic Coloration,"Channel Strip, Modeled","Channel Strip, Modeled",,"EMI TG12345
+NLS Channel,Waves,Harmonic Coloration,Harmonic Coloration,"Channel Strip, Modeled","Channel Strip, Modeled",,"EMI TG12345 Console
 Neve 5116
-SSL 4000G Channel",,"Channel Strip
+SSL 4000G Channel Strip",,"Channel Strip
 Spike Stent SSL 4000G; Mike Hedge EMI TG12345 Mk IV; Yoad Nevo's customized Neve 5116","EMI TG12345 TOP
 Neve 5116 TOP 
 SSL 4000G Channel TOP",,Plugin,AU,16.7.33,,,,,,,,,
@@ -4009,7 +4009,7 @@ Space Rider,Waves,"Modulation, Delay, Reverb & Room","Delay, Modulation, Reverb 
 Spherix Compressor,Waves,Dynamics,Dynamics,"Surround, REMOVE","REMOVE, Surround",,,,,,,Plugin,AU,16.7.33,,,,,,,,,
 Spherix Limiter,Waves,Dynamics,Dynamics,"Surround, REMOVE","REMOVE, Surround",,,,,,,Plugin,AU,16.7.33,,,,,,,,,
 SSL Comp,Waves,Dynamics,Dynamics,"Mastering, Modeled","Mastering, Modeled",,SSL 4000G Bus Compressor,,,SSL 4000G Bus Compressor TOP,,Plugin,AU,16.7.33,,,,,,,,,
-SSL EQ,Waves,EQ,EQ,Modeled,Modeled,,SSL 4000G 292EQ,,,,,Plugin,AU,16.7.33,,,,,,,,,
+SSL EQ,Waves,EQ,EQ,Modeled,Modeled,,SSL EQ292,,,,,Plugin,AU,16.7.33,,,,,,,,,
 SSL EV2 Channel,Waves,"Preamps, Dynamics, EQ","Dynamics, EQ, Preamps","Channel Strip, Modeled","Channel Strip, Modeled",,SSL 4000E Channel Strip,,Brown and Black Knob EQ,SSL 4000E TOP,,Plugin,AU,16.7.33,,,,,,,,,
 SSL G Channel,Waves,"Preamps, Dynamics, EQ","Dynamics, EQ, Preamps","Channel Strip, Modeled","Channel Strip, Modeled",,SSL 4000G Channel Strip,,,SSL 4000G Channel TOP,,Plugin,AU,16.7.33,,,,,,,,,
 StudioVerse Audio Effects,Waves,Container,Container,,,,,,"a cloud-connected preset and processing chain platform that loads curated, multi-plugin signal chains for instruments, vocals, and mix buses inside Waves plugins.",,,Plugin,AU,16.0.30,,,,,,,,,

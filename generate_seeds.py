@@ -290,6 +290,93 @@ def generate_models():
 
 
 # ---------------------------------------------------------------------------
+# Effects
+# ---------------------------------------------------------------------------
+def generate_effects():
+    src  = CSV_DIR / "effects.csv"
+    dest = SEED_DIR / "09_effects.sql"
+
+    if not src.exists():
+        log("effects.csv not found — run convert_effects.py first, then re-run")
+        return
+
+    rows = []
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            effect_name = clean(row.get("effect_name"))
+            if not effect_name:
+                continue
+            rows.append((
+                clean(row.get("effect_id")),
+                clean(row.get("brand_id")),
+                clean(row.get("model_ids")),
+                effect_name,
+                clean(row.get("version")),
+                clean(row.get("collection")),
+                clean(row.get("effect_types")),
+                clean(row.get("tool_types")),
+                clean(row.get("plugin_formats")),
+                clean(row.get("plugin_notes")),
+                clean(row.get("workflow_notes")),
+                clean(row.get("description")),
+                clean(row.get("recording_notes")),
+                clean(row.get("artist_reference")),
+                clean(row.get("attributes")),
+                clean(row.get("tags")),
+            ))
+
+    lines = seed_header("effects", "effects.csv")
+    for (effect_id, brand_id, model_ids, effect_name, version,
+         collection, effect_types, tool_types, plugin_formats, plugin_notes,
+         workflow_notes, description, recording_notes, artist_reference,
+         attributes, tags) in rows:
+        attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
+        lines.append(
+            f"INSERT INTO effects"
+            f" (effect_id, brand_id, model_ids, effect_name, version, collection, effect_types,"
+            f" tool_types, plugin_formats, plugin_notes, workflow_notes, description,"
+            f" recording_notes, artist_reference, attributes, tags)"
+            f" VALUES ("
+            f"{escape(effect_id)}, "
+            f"{escape(brand_id) if brand_id else 'NULL'}, "
+            f"{escape_array(model_ids, 'uuid')}, "
+            f"{escape(effect_name)}, "
+            f"{escape(version)}, "
+            f"{escape(collection)}, "
+            f"{escape_array(effect_types, 'effect_type')}, "
+            f"{escape_array(tool_types, 'tool_type')}, "
+            f"{escape_array(plugin_formats, 'plugin_format')}, "
+            f"{escape(plugin_notes)}, "
+            f"{escape(workflow_notes)}, "
+            f"{escape(description)}, "
+            f"{escape(recording_notes)}, "
+            f"{escape(artist_reference)}, "
+            f"{attrs_sql}, "
+            f"{escape_array(tags, 'tag_type')}"
+            f") ON CONFLICT (effect_id) DO UPDATE SET"
+            f" brand_id = EXCLUDED.brand_id,"
+            f" model_ids = EXCLUDED.model_ids,"
+            f" effect_name = EXCLUDED.effect_name,"
+            f" version = EXCLUDED.version,"
+            f" collection = EXCLUDED.collection,"
+            f" effect_types = EXCLUDED.effect_types,"
+            f" tool_types = EXCLUDED.tool_types,"
+            f" plugin_formats = EXCLUDED.plugin_formats,"
+            f" plugin_notes = EXCLUDED.plugin_notes,"
+            f" workflow_notes = EXCLUDED.workflow_notes,"
+            f" description = EXCLUDED.description,"
+            f" recording_notes = EXCLUDED.recording_notes,"
+            f" artist_reference = EXCLUDED.artist_reference,"
+            f" attributes = EXCLUDED.attributes,"
+            f" tags = EXCLUDED.tags,"
+            f" updated_at = NOW();"
+        )
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} effects → {dest.name}")
+
+
+# ---------------------------------------------------------------------------
 # Admin Tools
 # ---------------------------------------------------------------------------
 def generate_admin_tools():
@@ -324,6 +411,7 @@ def main():
     generate_composition_tools()
     generate_admin_tools()
     generate_models()
+    generate_effects()
 
     print("\n" + "=" * 60)
     print("  Seed files written to sql/seeds/")

@@ -9,7 +9,11 @@
 CREATE TYPE entity_type AS ENUM ('Manufacturer', 'Studio', 'Individual');
 CREATE TYPE tool_type AS ENUM ('Standalone', 'Plugin');
 CREATE TYPE plugin_format AS ENUM ('AU', 'VST3', 'VST', 'UAD-2', 'UADx');
-CREATE TYPE tag_type AS ENUM ('Deprecated', 'Hardware', 'Mastering', 'Restoration');
+CREATE TYPE tag_type AS ENUM (
+    'Deprecated', 'Hardware', 'Mastering', 'Restoration',
+    'Bass', 'Channel Strip', 'Drums', 'Filter Out', 'Guitar', 'Live Sound', 'Low DSP',
+    'Modeled', 'Remove', 'Stomp', 'Surround', 'Voice'
+);
 
 -- =============================================================================
 -- BRANDS
@@ -53,6 +57,7 @@ CREATE TABLE workstations (
 CREATE TABLE measurement_tools (
     measurement_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id             UUID REFERENCES brands(brand_id),
+    model_ids            UUID[],
     tool_name            TEXT NOT NULL,
     version              TEXT,
     tool_types           tool_type[],
@@ -71,6 +76,7 @@ CREATE TABLE measurement_tools (
 CREATE TABLE reference_tools (
     reference_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id           UUID REFERENCES brands(brand_id),
+    model_ids          UUID[],
     tool_name          TEXT NOT NULL,
     version            TEXT,
     tool_types         tool_type[],
@@ -162,7 +168,7 @@ LEFT JOIN brands ON brands.brand_id = models.brand_id;
 -- Software and hardware effects, optionally linked to a hardware model
 -- =============================================================================
 CREATE TYPE effect_type AS ENUM (
-    'Cabinet', 'Channel Strip', 'Combo', 'Console', 'Container','Delay',
+    'Cabinet', 'Combo', 'Container', 'Delay',
     'Dynamics', 'EQ', 'Harmonic Coloration', 'Head',
     'Microphone', 'Modulation', 'Pitch Tools', 'Preamp', 'DI', 'Reverb&Room',
     'Spatial Processing', 'Time/Phase'
@@ -171,13 +177,16 @@ CREATE TYPE effect_type AS ENUM (
 CREATE TABLE effects (
     effect_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id         UUID REFERENCES brands(brand_id),
-    model_id         UUID REFERENCES models(model_id),
+    model_ids        UUID[],
     effect_name      TEXT NOT NULL,
     version          TEXT,
+    collection       TEXT,
     effect_types     effect_type[],
     tool_types       tool_type[],
     plugin_formats   plugin_format[],
     description      TEXT,
+    plugin_notes     TEXT,
+    workflow_notes   TEXT,
     recording_notes  TEXT,
     artist_reference TEXT,
     attributes       JSONB,
