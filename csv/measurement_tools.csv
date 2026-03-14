@@ -1,6 +1,53 @@
-measurement_tool_id,brand_id,tool_name,version,tool_types,plugin_formats,description,workflow_notes,tags
-ef16a8da-7b6e-4dce-a793-cfa047234dce,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ARC 4 Analysis,4.0.1,Standalone,,Room analysis tool,<null>,Mastering
-fc08d7f2-3d35-4dd4-9bc8-d81a204bb5a1,2f5610b9-b864-4c87-9ece-73c73aad85f5,Audiolens,v1.5.0.511,Standalone,,,,
-63797637-df0d-484b-9a0e-e8ca5afc2be3,2f5610b9-b864-4c87-9ece-73c73aad85f5,RX 11 Audio Editor,11.3.0.4679,Standalone,,Standalone audio repair and restoration editor.,,"Mastering,Restoration"
-ee25541c-9085-4be0-b4a3-c653bc1cabdd,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,SpectraLayers Pro,12.0.40,"Standalone,Plugin",VST3,"AI-driven audio spectral editor that visualizes sound as a 3D spectrogram, allowing users to manipulate, repair, and isolate audio elements like image files. Excels at unmixing songs into stems, removing noise, restoring audio, and creative sound design.",,"Mastering,Restoration"
-a6e6f776-4df0-4168-8db9-f47fea5342d4,3db42cd7-d301-48f9-a79f-70e3adb4ee0c,UAD Meter & Control Panel,11.8.2.180,Standalone,,UAD hardware monitoring and control.,,
+measurement_tool_id,brand_id,model_ids,tool_name,version,tool_types,plugin_formats,description,workflow_notes,tags
+ef16a8da-7b6e-4dce-a793-cfa047234dce,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,ARC 4 Analysis,4.0.1,Standalone,,Room analysis tool,<null>,Mastering
+fc08d7f2-3d35-4dd4-9bc8-d81a204bb5a1,2f5610b9-b864-4c87-9ece-73c73aad85f5,,Audiolens,v1.5.0.511,Standalone,,,,
+63797637-df0d-484b-9a0e-e8ca5afc2be3,2f5610b9-b864-4c87-9ece-73c73aad85f5,,RX 11 Audio Editor,11.3.0.4679,Standalone,,Standalone audio repair and restoration editor.,,"Mastering,Restoration"
+ee25541c-9085-4be0-b4a3-c653bc1cabdd,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,SpectraLayers Pro,12.0.40,"Standalone,Plugin",VST3,"AI-driven audio spectral editor that visualizes sound as a 3D spectrogram, allowing users to manipulate, repair, and isolate audio elements like image files. Excels at unmixing songs into stems, removing noise, restoring audio, and creative sound design.",,"Mastering,Restoration"
+a6e6f776-4df0-4168-8db9-f47fea5342d4,3db42cd7-d301-48f9-a79f-70e3adb4ee0c,,UAD Meter & Control Panel,11.8.2.180,Standalone,,UAD hardware monitoring and control.,,
+6999b065-7102-44b7-b5c6-859cb06c0021,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,Metering,6.3.0,Plugin,"AU,VST3","Mastering tool for providing standards for loudness, dynamics, frequency balance. [ peak meter, LUFS loudness meter, VU, PPM, Phase Scope, RTA, Spectrogram ]",,Mastering
+ccbb62a2-83ad-4103-8bce-8879629fb966,2f5610b9-b864-4c87-9ece-73c73aad85f5,,Insight 2,2.6.0,Plugin,"AU,VST3","Real-time comprehensive metering and analysis tool for mixing, mastering and post-production of dialog intelligibility [ Peak / RMS, LUFS, Specotram, Spectrum Analyzer, Stereo / Surround Vector Scopes ] Integrates w/ Relay",,Mastering
+dadeca46-bbb2-425f-ab91-acdbcd5e27e0,2f5610b9-b864-4c87-9ece-73c73aad85f5,,Relay,1.7.0,Plugin,"AU,VST3","links metering, analysis between izotope plugins",,
+a0f2ec24-88ca-4733-9da8-b676cfd3caae,2f5610b9-b864-4c87-9ece-73c73aad85f5,,RX 11 Connect,11.3.0,Plugin,"AU,VST3",Allows sending clips from DAW to standalone RX 11 editor for offline processing,,Restoration
+0e048e11-f2a2-4003-931e-067ad0b629de,2f5610b9-b864-4c87-9ece-73c73aad85f5,,RX 11 Monitor,11.3.0,Plugin,"AU,VST3",Monitors audio in RX specifically,,Restoration
+acedad08-7f2d-4e69-8fc0-224eaeed8e61,725a2764-55b5-4e7c-a469-a4970c0aa267,,Container,,Embedded,,(NI Effect),,
+47b72051-6778-447c-800c-2e90e0f96cc8,725a2764-55b5-4e7c-a469-a4970c0aa267,,Crossover,,Embedded,,(NI Effect),,
+7ca05e1e-b1ba-4fd7-bf8e-36cca759e911,725a2764-55b5-4e7c-a469-a4970c0aa267,,Split M/S,,Embedded,,(NI Effect),,
+fe9e7e7f-c915-4010-901f-0849a8becce8,725a2764-55b5-4e7c-a469-a4970c0aa267,,Split Mix,,Embedded,,(NI Effect),,
+ee2cf9c5-361b-44d8-9d4a-a56271da50ca,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Lin One Dither,,Plugin,VST3,(Cubase) Advanced dither algo tha toffers add'l noise shaping to increase the apparent signnal-to-noise ratio by altering the spectrum of the low-level audio signal.,,Mastering
+7c286209-4665-4997-8a85-9c451617a8a5,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Mix6To2,,Plugin,VST3,(Cubase) Quick surround to stereo mixdown,,Surround
+c90e20f2-0371-44e4-bc4a-92639f8d2d4c,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Mix8To2,,Plugin,VST3,(Cubase) Quick surround to stereo mixdown,,Surround
+4d2fd43a-e90b-4006-ad7c-c93a03c52aeb,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,MixConvert V6,,Plugin,VST3,"(Cubase) quickly convert a multi-channel mix to a format with a different channel configuration, for example, to mix down a 7.1 cinema surround format into a 5.1 home theater format.",,Surround
+19d064af-b700-4204-9c0a-973ca3e26313,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,MonoToStereo,,Plugin,VST3,(Cubase) Turns Mono signal into a psuedo-stereo signal. (Can be used on mono audio or stereo audio w/ equal channels),,
+6b6aabb9-1f4d-4f6d-8d9e-e5c9dd3d4403,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Renderer for Dolby Atmos,,Plugin,VST3,(Cubase),,Surround
+2fba4e13-9ce9-474b-808f-596c05f572eb,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,SMPTEGenerator,,Plugin,VST3,(Cubase) sends SMPTE time code to an audio output,,
+f4956f33-4f6f-407e-9e7a-fda86beaf933,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,SuperVision,,Plugin,VST3,"(Cubase) Professional tool suite for monitoring and analyzing your audio. (Includes several different modules for level, spectral, phase, or waveform analysis)",,
+8a9ce7fc-01eb-48d0-960e-f792e5db9f87,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,TestGenerator,,Plugin,VST3,(Cubase) generates audio test tones.,,
+9439f857-5aba-4d72-acf1-aac69a87faf4,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Volume,,Plugin,VST3,(Cubase),,
+fcd7c793-d03f-49c9-808a-883cee9afdb7,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,API Summing,1.1.2,Plugin,UADx,,,
+c5621fa9-10ec-4156-a820-f070a8bae5a0,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,LUNA Hardware Insert,1.0.0,Plugin,UADx,,,
+5e0b7d37-a52d-426e-beb4-f5c265d578d2,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Neve Summing,1.1.2,Plugin,UADx,,,
+a5fbc954-d7ca-4efb-a3a9-394dc4bbfcf4,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Precision K-Stereo,11.8.1,Plugin,UAD-2,,,
+3b873848-9b7f-4ef9-8dda-91e21b1a7389,52ca057c-1c70-4093-81ad-720a2ba3ac60,58fadb92-e638-4999-b804-a9045bb94144,Abbey Road TG Meter Bridge,16.7.33,Plugin,AU,"PPM, VU and phase correlation meters",,Mastering
+3b841fc9-a464-4ba9-9118-34f30919a510,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Center,16.7.33,Plugin,AU,separates phantom center content from side (L/R) content,,Mastering
+84cc126a-e8a8-443f-9ac8-86fabf4ea93d,52ca057c-1c70-4093-81ad-720a2ba3ac60,"a5e98956-8d5c-4272-8131-02757e9c3ee2,c6b240c6-c108-4ada-8639-122ffff316df,ce3c3f3d-9cf2-4d4a-b070-024ff3db570f",Dorrough,16.7.33,Plugin,AU,,,Modeled
+2101d378-5906-4dce-8cdc-0e09ade1b4ad,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Dorrough360,16.7.33,Plugin,AU,(Surround),,"Modeled,Surround"
+15481637-dfd0-4d66-b7a2-9da583a90ce4,52ca057c-1c70-4093-81ad-720a2ba3ac60,,EMO-Generator,16.7.33,Plugin,AU,,,
+6e59f148-30d1-417e-9e73-73f775deab12,52ca057c-1c70-4093-81ad-720a2ba3ac60,,F6-RTA,16.7.33,Plugin,AU,F6 Real-Time Analyzer (creates a RT visual map of the audio),,
+55bc5a61-7775-42a0-bdf3-5c7c55152b7f,52ca057c-1c70-4093-81ad-720a2ba3ac60,,IDR360,16.7.33,Plugin,AU,Surround,,Surround
+77135eb2-50f4-40c4-9ba2-05e5177be906,52ca057c-1c70-4093-81ad-720a2ba3ac60,,InTrigger,16.7.38,Plugin,AU,,,
+8cc0c9a6-5817-4d81-b697-3ffcfefcc31b,52ca057c-1c70-4093-81ad-720a2ba3ac60,,InTrigger Live,16.7.38,Plugin,AU,,,Live Sound
+2dde7fc2-a4cd-4139-9b51-51c836081e05,52ca057c-1c70-4093-81ad-720a2ba3ac60,,LFE360,16.7.33,Plugin,AU,,,Surround
+39403277-8b34-4468-9907-bbfcefdabab5,52ca057c-1c70-4093-81ad-720a2ba3ac60,,PAZ Analyzer,16.7.33,Plugin,AU,"stereo positioning, frequency spread, peak/RMS  (Full Plugin)",,
+321e436a-402f-40cd-a79a-c6589ab685ca,52ca057c-1c70-4093-81ad-720a2ba3ac60,,PAZ Frequency,16.7.33,Plugin,AU,real-time frequency analysis only,,
+c45d8e06-3d9f-491a-8b3a-1f5aa3387281,52ca057c-1c70-4093-81ad-720a2ba3ac60,,PAZ Meters,16.7.33,Plugin,AU,"meters for L, R, Sum (Peak/RMS)",,
+fdea314c-53e8-4559-82ed-396a9f1ec6c0,52ca057c-1c70-4093-81ad-720a2ba3ac60,,PAZ Position,16.7.33,Plugin,AU,stereo positioning only,,
+df23123e-ccbe-4d89-bb8e-8b613f89719d,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Playlist Rider,16.7.33,Plugin,AU,,,
+6f18abb0-70df-4072-b3a5-99592345023f,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Q-Capture,16.7.33,Plugin,AU,captures EQ curve of a single mono analog EQ and uses it to process 1or more tracks -- CAPTURE PLUGIN (See Q-Clone),,
+6bd2d095-477d-4a1a-a1f3-a4901bad9d2e,52ca057c-1c70-4093-81ad-720a2ba3ac60,,R360,16.7.33,Plugin,AU,Surround,,Surround
+5e55c023-2715-47e5-9b0a-0a43d1ecb953,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Sub Align,16.7.33,Plugin,AU,,,
+947e4b37-43db-4683-beb0-2e9fa1c64d30,52ca057c-1c70-4093-81ad-720a2ba3ac60,,TRACT LinPhase,16.7.33,Plugin,AU,(Time and Response Auto Correction Tool) linear phase version used for mastering. (Higher latency / non real time),,Mastering
+efe55022-c3a9-4068-97b6-ea68182dbd77,52ca057c-1c70-4093-81ad-720a2ba3ac60,,VU Meter,16.7.33,Plugin,AU,VU Meter,,
+2be990b5-e907-4faa-9e6e-02e53e9d90f1,52ca057c-1c70-4093-81ad-720a2ba3ac60,,W43,16.7.33,Plugin,AU,,,
+e7a47f9d-43d4-40fd-b7d8-a383be993bf8,52ca057c-1c70-4093-81ad-720a2ba3ac60,,WLM Meter,16.7.33,Plugin,AU,"precision loudness measurement, metering, correction, adjustment for post, broadcast, games, media, etc.",,
+87dcbe07-9d0a-442b-81f8-824055cd778e,52ca057c-1c70-4093-81ad-720a2ba3ac60,,WLM Plus,16.7.33,Plugin,AU,"precision loudness measurement, metering, correction, adjustment for post, broadcast, games, media, etc. - With Automatic Loudness Correction and Peak Limiting",,
+498b5c65-bbfe-4ed6-a21f-3c0205a8abeb,52ca057c-1c70-4093-81ad-720a2ba3ac60,,M360 MixDown,16.7.33,Plugin,AU,,,Surround
