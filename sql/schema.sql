@@ -7,7 +7,7 @@
 -- ENUMS
 -- =============================================================================
 CREATE TYPE entity_type AS ENUM ('Manufacturer', 'Studio', 'Individual');
-CREATE TYPE tool_type AS ENUM ('Standalone', 'Plugin');
+CREATE TYPE tool_type AS ENUM ('Standalone', 'Plugin', 'Embedded');
 CREATE TYPE plugin_format AS ENUM ('AU', 'VST3', 'VST', 'UAD-2', 'UADx');
 CREATE TYPE tag_type AS ENUM (
     'Deprecated', 'Hardware', 'Mastering', 'Restoration',

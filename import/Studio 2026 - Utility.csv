@@ -18,7 +18,7 @@ RX 11 Monitor,iZotope,Metering & Signal,Metering & Signal,Plugin,Restoration,,11
 Neutron 5 Visual Mixer,iZotope,Spatial Tools,Spatial Tools,Plugin,,,5.1.0,"AU, VST3",visual mixing interface. Connects to izotope plugins to place music in a virtual space,,
 MIDI Bass,Jam Origin,Composition Tools,Composition Tools,"Plugin, Standalone",,,1.2.1,AU,Bass to MIDI controller,,
 MIDI Guitar 2,Jam Origin,Composition Tools,Composition Tools,"Plugin, Standalone",,,2.2.1,AU,Guitar to MIDI controller,,
-RapidComposer,Music Developments,Composition Tools,Composition Tools,"Plugin, Standalone",,,6.0.6,"AU, VST3",,,
+RapidComposer,MusicDevelopments,Composition Tools,Composition Tools,"Plugin, Standalone",,,6.0.6,"AU, VST3",,,
 Arpeggiator,Native Instruments,Composition Tools,Composition Tools,,,Kontakt,,,,,
 Chord Builder,Native Instruments,Composition Tools,Composition Tools,,,Kontakt,,,,,
 Chords,Native Instruments,Composition Tools,Composition Tools,,,Kontakt,,,,,
