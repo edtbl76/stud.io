@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-STUD.io — Effects CSV Converter
+STUD.io — Instruments CSV Converter
 
-Reads import/Studio 2026 - Effects.csv and generates csv/effects.csv,
-mapping Manufacturer → brand_id, Category → effect_types, Model → model_id.
+Reads import/Studio 2026 - Instruments.csv and generates csv/instruments.csv,
+mapping Manufacturer → brand_id, Category → instrument_types, Model → model_ids.
 
 Multi-name rows (Name contains newline) are split into separate rows, each
-with a distinct effect_id.
+with a distinct instrument_id.
 
 Usage:
-    python convert_effects.py
+    python convert_instruments.py
 """
 
 import csv
@@ -18,29 +18,19 @@ import uuid
 from pathlib import Path
 
 BASE        = Path(__file__).parent.parent
-IMPORT_CSV  = BASE / "import" / "Studio 2026 - Effects.csv"
+IMPORT_CSV  = BASE / "import" / "Studio 2026 - Instruments.csv"
 BRANDS_CSV  = BASE / "csv" / "brands.csv"
 MODELS_CSV  = BASE / "csv" / "models.csv"
-OUT_CSV     = BASE / "csv" / "effects.csv"
+OUT_CSV     = BASE / "csv" / "instruments.csv"
 
-# Map import Category segments → effect_type ENUM values
-TYPE_REMAP = {
-    "Reverb & Room":   ["Reverb&Room"],
-    "Pitch":           ["Pitch Tools"],
-    "Spatial Imaging": ["Spatial Processing"],
-    "Preamps":         ["Preamp"],
-    "Time / Phase":    ["Time/Phase"],
+VALID_INSTRUMENT_TYPES = {
+    'Bass', 'Brass', 'Container', 'Drums & Percussion', 'Guitars',
+    'Keyboards', 'Pads & Textures', 'Pipes', 'Rhythm', 'Sampling',
+    'Sound Design', 'Strings', 'Synth', 'Vocal', 'Woodwinds', 'World Instruments',
 }
 
-VALID_EFFECT_TYPES = {
-    'Cabinet', 'Combo', 'Container', 'Delay',
-    'Dynamics', 'EQ', 'Harmonic Coloration', 'Head', 'Microphone',
-    'Modulation', 'Pitch Tools', 'Preamp', 'DI', 'Reverb&Room',
-    'Spatial Processing', 'Time/Phase',
-}
-
-# model_type values that map to effect_types for Amp & Cab rows
-AMP_CAB_TYPES = {'Head', 'Combo', 'Cabinet'}
+VALID_TOOL_TYPES    = {"Plugin", "Standalone"}
+VALID_PLUGIN_FMTS   = {"AU", "VST3", "VST", "UAD-2", "UADx"}
 
 TAG_MAP = {
     "Deprecated":    "Deprecated",
@@ -65,7 +55,7 @@ TAG_MAP = {
 def clean(val):
     if val is None:
         return ""
-    v = str(val).strip()
+    v = str(val).strip().replace("\r\n", "\n").replace("\r", "\n")
     return v if v else ""
 
 
@@ -81,11 +71,10 @@ def build_brand_map():
             brand_id = clean(row.get("brand_id"))
             if not brand_id:
                 continue
-            for field in ("brand_name",):
-                val = clean(row.get(field))
-                if val:
-                    brand_map[val.lower()] = brand_id
-                    brand_map[normalize_vendor(val)] = brand_id
+            val = clean(row.get("brand_name"))
+            if val:
+                brand_map[val.lower()] = brand_id
+                brand_map[normalize_vendor(val)] = brand_id
     return brand_map
 
 
@@ -99,12 +88,12 @@ def lookup_brand(vendor, brand_map):
 
 
 def build_model_map():
-    """Build full_model_name.lower() → {model_id, model_types} by joining models + brands."""
+    """full_model_name.lower() → {model_id, model_types}."""
     brand_names = {}
     with open(BRANDS_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             bid   = clean(row.get("brand_id"))
-            cname = clean(row.get("brand_name")) or clean(row.get("legal_name"))
+            cname = clean(row.get("brand_name"))
             if bid and cname:
                 brand_names[bid] = cname
 
@@ -120,16 +109,11 @@ def build_model_map():
             cname = brand_names.get(brand_id, "")
             if cname:
                 full_name = normalize_model_key(cname + " " + model_name)
-                model_map[full_name] = {
-                    "model_id":    model_id,
-                    "model_types": model_types,
-                }
+                model_map[full_name] = {"model_id": model_id, "model_types": model_types}
     return model_map
 
 
 def normalize_model_key(name):
-    """Normalize a model lookup name for matching against the model_map."""
-    # Strip apostrophes before digits (e.g. Fender '65 → Fender 65, Fulltone '70 → Fulltone 70)
     return re.sub(r"'(\d)", r"\1", name).strip().lower()
 
 
@@ -137,9 +121,9 @@ def lookup_models(model_str, model_map):
     """Return (model_ids_list, combined_model_types_str) for newline-separated model names."""
     if not model_str:
         return [], ""
-    model_ids   = []
-    types_seen  = set()
-    types_list  = []
+    model_ids  = []
+    types_seen = set()
+    types_list = []
     for name in model_str.split("\n"):
         name  = name.strip()
         if not name:
@@ -155,42 +139,20 @@ def lookup_models(model_str, model_map):
     return model_ids, ",".join(types_list)
 
 
-def map_effect_types(category_str, model_types_str):
-    """Map category string to list of effect_type ENUM values.
-
-    'Amp & Cab' segments are resolved to Head/Combo/Cabinet via model_types.
-    All other segments use TYPE_REMAP or direct VALID_EFFECT_TYPES match.
-    """
+def map_instrument_types(category_str):
     if not category_str:
         return []
-
-    parts  = [p.strip() for p in category_str.split(",") if p.strip()]
     result = []
     seen   = set()
-
-    for part in parts:
-        if part == "Amp & Cab":
-            if model_types_str:
-                for mt in model_types_str.split(","):
-                    mt = mt.strip()
-                    if mt in AMP_CAB_TYPES and mt not in seen:
-                        seen.add(mt)
-                        result.append(mt)
-        elif part in TYPE_REMAP:
-            for t in TYPE_REMAP[part]:
-                if t not in seen:
-                    seen.add(t)
-                    result.append(t)
-        elif part in VALID_EFFECT_TYPES:
-            if part not in seen:
-                seen.add(part)
-                result.append(part)
-
+    for part in category_str.split(","):
+        part = part.strip()
+        if part in VALID_INSTRUMENT_TYPES and part not in seen:
+            seen.add(part)
+            result.append(part)
     return result
 
 
 def map_tags(tags_str):
-    """Map comma-separated import tags to tag_type ENUM values."""
     if not tags_str:
         return []
     result = []
@@ -205,38 +167,38 @@ def map_tags(tags_str):
 
 
 def load_existing(path):
-    """Load existing effects.csv keyed by (effect_name, brand_id, sorted_model_ids) → {effect_id, attributes}."""
+    """Load existing instruments.csv keyed by (instrument_name, brand_id, sorted_model_ids) → {instrument_id, attributes}."""
     existing = {}
     if not path.exists():
         return existing
     with open(path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            name      = clean(row.get("effect_name"))
+            name      = clean(row.get("instrument_name"))
             brand_id  = clean(row.get("brand_id"))
             model_ids = ",".join(sorted(clean(row.get("model_ids", "")).split(",")))
             if name:
                 existing[(name, brand_id, model_ids)] = {
-                    "effect_id":  clean(row.get("effect_id")),
-                    "attributes": clean(row.get("attributes")),
+                    "instrument_id": clean(row.get("instrument_id")),
+                    "attributes":    clean(row.get("attributes")),
                 }
     return existing
 
 
 def main():
     print("=" * 60)
-    print("  STUD.io — Effects CSV Converter")
+    print("  STUD.io — Instruments CSV Converter")
     print("=" * 60)
 
     brand_map = build_brand_map()
     model_map = build_model_map()
     existing  = load_existing(OUT_CSV)
     if existing:
-        print(f"  Preserving {len(existing)} existing rows (UUIDs + attributes + manual brand_ids)")
+        print(f"  Preserving {len(existing)} existing rows (UUIDs + attributes)")
 
-    rows                     = []
-    unmatched_manufacturers  = set()
-    unknown_types            = set()
-    unmatched_models         = set()
+    rows                    = []
+    unmatched_manufacturers = set()
+    unmatched_models        = set()
+    unknown_types           = set()
 
     with open(IMPORT_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
@@ -244,99 +206,83 @@ def main():
             if not name_raw:
                 continue
 
-            # Split multi-name rows on newline
             names = [n.strip() for n in name_raw.split("\n") if n.strip()]
 
-            manufacturer    = clean(row.get("Manufacturer"))
-            category        = clean(row.get("Category"))
-            model_str       = clean(row.get("Model"))
-            tags_str        = clean(row.get("Tags"))
-            plugin_notes    = clean(row.get("Plugin Notes"))
-            workflow_notes  = clean(row.get("Workflow Notes"))
-            recording_notes = clean(row.get("Recording Notes"))
-            collection      = clean(row.get("Series / Collection"))
-            form_factor     = clean(row.get("Form Factor"))
-            fmt             = clean(row.get("Format"))
-            version         = clean(row.get("Version"))
+            manufacturer     = clean(row.get("Manufacturer"))
+            category         = clean(row.get("Category"))
+            model_str        = clean(row.get("Model"))
+            tags_str         = clean(row.get("Tags"))
+            version          = clean(row.get("Version"))
+            form_factor      = clean(row.get("Form Factor"))
+            fmt              = clean(row.get("Format"))
+            plugin_notes     = clean(row.get("Plugin Notes"))
+            instrument_notes = clean(row.get("Instrument Notes"))
+            recording_notes  = clean(row.get("Recording Notes"))
 
-            # Brand lookup
             brand_id = lookup_brand(manufacturer, brand_map)
             if manufacturer and not brand_id:
                 unmatched_manufacturers.add(manufacturer)
 
-            # Model lookup (may be multiple newline-separated names)
-            model_ids_list, model_types_str = lookup_models(model_str, model_map)
+            model_ids_list, _ = lookup_models(model_str, model_map)
             if model_str and not model_ids_list:
                 for name in model_str.split("\n"):
                     name = name.strip()
                     if name:
                         unmatched_models.add(name)
 
-            # Effect types from category
-            effect_types_list = map_effect_types(category, model_types_str)
+            instrument_types_list = map_instrument_types(category)
 
             # Flag unknown category segments
             if category:
                 for part in category.split(","):
                     part = part.strip()
-                    if (part and part != "Amp & Cab"
-                            and part not in TYPE_REMAP
-                            and part not in VALID_EFFECT_TYPES):
+                    if part and part not in VALID_INSTRUMENT_TYPES:
                         unknown_types.add(part)
 
-            # Tool types
             tool_types_list = []
             for ff in form_factor.split(","):
                 ff = ff.strip()
-                if ff in ("Plugin", "Standalone"):
+                if ff in VALID_TOOL_TYPES:
                     tool_types_list.append(ff)
 
-            # Plugin formats
-            valid_formats      = {"AU", "VST3", "VST", "UAD-2", "UADx"}
             plugin_formats_list = []
             for fmtv in fmt.split(","):
                 fmtv = fmtv.strip()
-                if fmtv in valid_formats:
+                if fmtv in VALID_PLUGIN_FMTS:
                     plugin_formats_list.append(fmtv)
 
-            # Tags
             tags_list = map_tags(tags_str)
 
-            # One output row per name
             model_ids_sorted = ",".join(sorted(model_ids_list))
-            for effect_name in names:
-                prior = existing.get((effect_name, brand_id, model_ids_sorted), {})
+            for instrument_name in names:
+                prior = existing.get((instrument_name, brand_id, model_ids_sorted), {})
                 rows.append({
-                    "effect_id":        prior.get("effect_id") or str(uuid.uuid4()),
+                    "instrument_id":    prior.get("instrument_id") or str(uuid.uuid4()),
                     "brand_id":         brand_id,
                     "model_ids":        ",".join(model_ids_list),
-                    "effect_name":      effect_name,
+                    "instrument_name":  instrument_name,
                     "version":          version,
-                    "collection":       collection,
-                    "effect_types":     ",".join(effect_types_list),
+                    "instrument_types": ",".join(instrument_types_list),
                     "tool_types":       ",".join(tool_types_list),
                     "plugin_formats":   ",".join(plugin_formats_list),
                     "plugin_notes":     plugin_notes,
-                    "workflow_notes":   workflow_notes,
-                    "description":      "",
+                    "instrument_notes": instrument_notes,
                     "recording_notes":  recording_notes,
-                    "artist_reference": "",
-                    "attributes":       prior.get("attributes") or "",
                     "tags":             ",".join(tags_list),
+                    "attributes":       prior.get("attributes") or "",
                 })
 
     fieldnames = [
-        "effect_id", "brand_id", "model_ids", "effect_name", "version",
-        "collection", "effect_types", "tool_types", "plugin_formats", "plugin_notes",
-        "workflow_notes", "description", "recording_notes", "artist_reference",
-        "attributes", "tags",
+        "instrument_id", "brand_id", "model_ids", "instrument_name", "version",
+        "instrument_types", "tool_types", "plugin_formats", "plugin_notes",
+        "instrument_notes", "recording_notes", "tags", "attributes",
     ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"\n  {len(rows)} effects → {OUT_CSV.name}")
+    print(f"\n  {len(rows)} instruments → {OUT_CSV.name}")
 
     if unknown_types:
         print(f"\n  Unknown category types ({len(unknown_types)}) — review manually:")

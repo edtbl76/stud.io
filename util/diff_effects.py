@@ -164,13 +164,13 @@ def build_model_maps():
                 continue
             cname = brand_names.get(brand_id, "")
             if cname:
-                full_name = (cname + " " + model_name).lower().strip()
+                full_name = normalize_model_key(cname + " " + model_name)
                 model_map[full_name] = {"model_id": model_id, "model_types": model_types}
     return model_map
 
 
 def normalize_model_key(name):
-    return re.sub(r"'(\d)", r"\1", name).lower()
+    return re.sub(r"'(\d)", r"\1", name).strip().lower()
 
 
 def lookup_models(model_str, model_map):

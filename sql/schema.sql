@@ -199,6 +199,37 @@ CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
 
 
 -- =============================================================================
+-- INSTRUMENTS
+-- Software instruments: synths, samplers, keyboards, drums, etc.
+-- =============================================================================
+CREATE TYPE instrument_type AS ENUM (
+    'Bass', 'Brass', 'Container', 'Drums & Percussion', 'Guitars',
+    'Keyboards', 'Pads & Textures', 'Pipes', 'Rhythm', 'Sampling',
+    'Sound Design', 'Strings', 'Synth', 'Vocal', 'Woodwinds', 'World Instruments'
+);
+
+CREATE TABLE instruments (
+    instrument_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id         UUID REFERENCES brands(brand_id),
+    model_ids        UUID[],
+    instrument_name  TEXT NOT NULL,
+    version          TEXT,
+    instrument_types instrument_type[],
+    tool_types       tool_type[],
+    plugin_formats   plugin_format[],
+    plugin_notes     TEXT,
+    instrument_notes TEXT,
+    recording_notes  TEXT,
+    tags             tag_type[],
+    attributes       JSONB,
+    created_at       TIMESTAMP DEFAULT NOW(),
+    updated_at       TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
+
+
+-- =============================================================================
 -- ADMIN TOOLS
 -- License managers, downloaders, product portals — never recommended
 -- =============================================================================

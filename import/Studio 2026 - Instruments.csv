@@ -12,7 +12,7 @@ ARP Odyssey,Korg,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.5.3,"AU, VS
 MiniBrute V,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.0.6..6366,"AU, VST3",Arturia MiniBrute,,,,,,,
 MiniFreak V,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,4.0.2.6369,"AU, VST3",Arturia MiniFreak,,,,,,,
 Electric Harpsichord,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Baldwin Solid Body Harpsichord,,,,,,,
-Black Pearl B200,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Boesendorfer 214VC Vienna Concert,,,,,,,
+Black Pearl B200,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Boesendorfer 214C Vienna Concert,,,,,,,
 Black Diamond B280,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Boesendorfer 280 Vienna Concert,,,,,,,
 BFD Stanton Moore Cymbals,BFD,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",BFD3,,,Bosphorous Stanton Moore Signature Cymbals,BFD3 Expansion,"Bosphorous Stanton Moore (Signature Cymbals); 4 crashes (with additional mallet versions), 2 rides and a hihat
 
@@ -47,7 +47,7 @@ Bass Man 5,IK Multimedia,Bass,Bass,,"Bass, Modeled","Bass, Modeled",MODO Bass 2,
 Ample Metal R,Ample Sound,Bass,Bass,Plugin,"Bass, Modeled","Bass, Modeled",,4.0.1,"AU, VST3",Ernie Ball Music Man StingRay 5 Retro '70s ,,5 Strings,,,,,
 Fretless Bass. Man,IK Multimedia,Bass,Bass,,"Bass, Modeled","Bass, Modeled",MODO Bass 2,,,Ernie Ball Music Man StingRay Pino Palladino Fretless,,"4 Strings; Active, F-Bass Man HB pickup","(soul, funk, pop, new wave) (soloing) ",,,,
 CMI V,Arturia,"Sampling, Synth","Sampling, Synth","Plugin, Standalone",Modeled,Modeled,,1.13.4.6366,"AU, VST3",Fairlight CMI IIx,,,,,,,
-Farfisa V,Arturia,Keyboards,Keyboards,"Plugin, Standalone",Modeled,Modeled,,1.13.4.6366,"AU, VST3",Farfiso Combo Deluxe Compact,,,,,,,
+Farfisa V,Arturia,Keyboards,Keyboards,"Plugin, Standalone",Modeled,Modeled,,1.13.4.6366,"AU, VST3",Farfisa Combo Deluxe Compact,,,,,,,
 Grand Rhapsody Piano,Waves,Keyboards,Keyboards,"Plugin, Standalone",Modeled,Modeled,,16.7.33,AU,Fazioli F228,London's Metropolis Studios,,,,,,
 Gran Concerto 278,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Fazioli F278,,,,,,,
 "Rhodes - LA Custom ""E""",Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Fender E Model Rhodes,"inspired by the original 1971 version, this model was a 1974 modded by Eddy Reynolds (SN # 54247-044074)",,,,,,
@@ -161,7 +161,7 @@ impOSCar3,GForce,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.0.0,"AU, VS
 Syntronik OSC-V,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,OSC OSCar,,,,,,,
 Elegance Cymbals,IK Multimedia,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",MODO Drums,,,Paiste Signature Series,,"9-piece set of cymbals: 
 Hi-Hat, Crash 16"", Crash 18"", Crash 19"", China 20"", Splash 10"", Bell 10"", Ride 22"" , China 18""",,,,,
-Reference,IK Multimedia,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",MODO Drums,,,Pearl Reference Series,,8-piece set,,,,,
+Reference,IK Multimedia,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",MODO Drums,,,Pearl Reference,,8-piece set,,,,,
 Syntronik 2 Blau,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,"PPG Wave 2.2
 PPG Wave 2.3",Syntronik 2,,,,,,
 Rick n'Bass,IK Multimedia,Bass,Bass,,"Bass, Modeled","Bass, Modeled",MODO Bass 2,,,Rickenbacker 4003,,"4 Strings; Passive, Rick n' B BSC + NSC ",(rock and roll) (high frequency)   ,,,,
@@ -171,7 +171,7 @@ Jun-6 V,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.6.6.6366,"AU
 Junatik,Native Instruments,Synth,Synth,,Modeled,Modeled,Reaktor,,,Roland Juno-60,,polyphonic analog synth,,,,,
 Syntronik 2 J-60,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Roland Juno-60,Syntronik 2,,,,,,
 Syntronik J-60,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Roland Juno-60,,,superceded by Syntronik 2 (different patches) ,,,,
-Syntronik 2 J-8,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Roland Jupiter 8,Syntronik 2,,,,,,
+Syntronik 2 J-8,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Roland Jupiter-8,Syntronik 2,,,,,,
 Jup-8 V4,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,4.6.4.6366,"AU, VST3",Roland Jupiter-8,,,,,,,
 Syntronik 2 DCO-X,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,"Roland JX-10
 Roland JX-3P
@@ -183,22 +183,22 @@ Roland SH-5
 Roland SH-7",Syntronik 2,,,,,,
 Syntronik 2 T-03,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Roland TB-303,Syntronik 2,,,,,,
 Acid V,Arturia,"Bass, Synth","Bass, Synth","Plugin, Standalone","Bass, Modeled","Bass, Modeled",,1.1.5.63.67,"AU, VST3",Roland TB-303,,,,,,,
-BFD Sabian Digital Vault,BFD,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",BFD3,,,"Sabian AAX Series Cymbals
-Sabian HHX Series Cymbals",BFD3 Expansion,"Diverse collection of cymbals and hihats from Sabian (AAX; HHX) unique stacked cymbal setups, esoteric percussion cymbals and 4 hyper-detailed hihats. Mallet and brush versions
+BFD Sabian Digital Vault,BFD,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",BFD3,,,"Sabian AAX
+Sabian HHX",BFD3 Expansion,"Diverse collection of cymbals and hihats from Sabian (AAX; HHX) unique stacked cymbal setups, esoteric percussion cymbals and 4 hyper-detailed hihats. Mallet and brush versions
 ",All genres; Recordings performed by sampling guru John Emrich,,,,
 Toy Piano - Glock,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Schoenhut Glockenspiel Toy Piano,,,,,,,
 Chimeatron,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Schulmerich Bells Chimeatron,SN# 208. (recorded through its original tube amp and speaker),,,,,,
 Syntronik 2 Pro-V,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Sequential Circuits Prophet-5,Syntronik 2,,,,,,
 Prophet-5 V,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.3.5.6366,"AU, VST3",Sequential Circuits Prophet-5,,,,,,,
-Syntronik Pro-VS,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Sequential Circuits Prophet-VS,,,,,,,
-Prophet-VS V,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.3.4.6366,"AU, VST3",Sequential Circuits Prophet-VS,,,,,,,
+Syntronik Pro-VS,IK Multimedia,Synth,Synth,,Modeled,Modeled,Syntronik,,,Sequential Circuits Prophet VS,,,,,,,
+Prophet-VS V,Arturia,Synth,Synth,"Plugin, Standalone",Modeled,Modeled,,1.3.4.6366,"AU, VST3",Sequential Circuits Prophet VS,,,,,,,
 Celeste,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Simone Brothers Celeste,,,,,,,
 BFD Modern Retro,BFD,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",BFD3,,,"Sonor Designer 
 Tama Starclassic",BFD3 Expansion; produced and recorded by Chocolate Audio,"70 instruments; 1997 Sonor Designer and Tama Starclassic Kit; Ludwig, Sonor and Tama Snares; Zildjian, Ufip, Paiste, Turkish, Sabian hats/cymbals; hotrod, brush, kick beater (felt and plastic)","2 kits that defined the sound of the 1990s and early 2000s. Kick recorded with 4 direct mics!The lush ambience of the recording space is captured with 2 sets of overhead and room mics. Designed to offer a variety of pop/rock-oriented sounds although the pack is perfect for all modern genres that demand detailed, focused and powerful-sounding drums.
 ",,,,
 Hamburg Grand S274,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Steinway Hamburg D-274,Steinway & Sons,,,,,,
-NY Grand S274,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Steinway New York D-274,Steinway & Sons,,,,,,
 Ravel Grand Piano,Universal Audio,Keyboards,Keyboards,Plugin,Modeled,Modeled,,1.4.16,UADx,Steinway Model B,,,,,,,
+NY Grand S274,IK Multimedia,Keyboards,Keyboards,,Modeled,Modeled,Pianoverse,,,Steinway New York D-274,Steinway & Sons,,,,,,
 Bubinga,IK Multimedia,Drums & Percussion,Drums & Percussion,,"Drums, Modeled","Drums, Modeled",MODO Drums,,,Tama Starclassic Bubinga,,7-piece set,,,,,
 Vintage Vibe Electric Piano,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Vintage Vibe Marquis 73,,,,,,,
 Vintage Vibe Tine Bass,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Vintage Vibe Tine Bass,,,,,,,
@@ -211,7 +211,7 @@ Weltmeister Basset,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape,
 Weltmeister Basset II",,,,,,,
 Weltmeister Claviset,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Weltmeister Claviset,,,,,,,
 Wing Upgright Piano,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Wing & Son Tack Piano,,,,,,,
-Wing Tack Piano,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Wing & Son Upright,,,,,,,
+Wing Tack Piano,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Wing & Son Upright Piano,,,,,,,
 Wurlitzer 140B,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Wurlitzer 140B,restored by Vintage Vibe,,,,,,
 Wurli V3,Arturia,Keyboards,Keyboards,"Plugin, Standalone",Modeled,Modeled,,3.0.4.6366,"AU, VST3",Wurlitzer 200A,,,,,,,
 Wurlitzer 200A,Spectrasonics,Keyboards,Keyboards,,Modeled,Modeled,"Keyscape, Omnisphere",,,Wurlitzer 200A,,,,,,,

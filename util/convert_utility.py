@@ -150,7 +150,7 @@ def build_model_map():
                 continue
             cname = brand_names.get(brand_id, "")
             if cname:
-                full_name = (cname + " " + model_name).lower().strip()
+                full_name = normalize_model_key(cname + " " + model_name)
                 model_map[full_name] = model_id
     return model_map
 

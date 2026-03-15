@@ -112,10 +112,10 @@ baa4605e-aee0-4b13-b372-87675adb9839,d7fc8458-8d70-47c6-b4d0-90defac39616,a8d745
 393da937-7d80-476c-9f4b-bff566238755,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,9af42de0-ec23-4eab-827e-23edd31235bc,SVX-410B,,Amplitube SVX,,,,,,,,,,"Bass,Modeled"
 58bf264c-0934-4c6a-879b-327b151570df,52ca057c-1c70-4093-81ad-720a2ba3ac60,1663a1a7-fbcf-4b36-9cd9-6032d5cae862,GTR Amp Drive - Cream,,,,,,,,,,,,"Guitar,Modeled"
 647a9745-269f-4086-a78e-f850819f647b,52ca057c-1c70-4093-81ad-720a2ba3ac60,1663a1a7-fbcf-4b36-9cd9-6032d5cae862,"Acme 12"" OpenBack (Cab)",,,,,,,,,,,,"Guitar,Modeled"
-e0b88599-0f72-4f19-bdd9-1a06a84f2216,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f0eae4db-e15f-4f06-9b6a-5f0075cf6233,Vintage & Lo-Fi,,"Premium Tone Model
+4c4418bb-1108-40ce-b7a1-3415aeb3f701,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f0eae4db-e15f-4f06-9b6a-5f0075cf6233,Vintage & Lo-Fi,,"Premium Tone Model
 Low End Chrome
 Vintage & Lo-FI",,,,,Ampeg G-15 Gemini II TOP,,,,,"Guitar,Modeled"
-b7193b61-1803-418b-87e0-a524f1a27019,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f0eae4db-e15f-4f06-9b6a-5f0075cf6233,Low End Chrome (Amplitube),,"Premium Tone Model
+aa9c5996-0eee-421b-95f2-8f0787f041b7,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f0eae4db-e15f-4f06-9b6a-5f0075cf6233,Low End Chrome (Amplitube),,"Premium Tone Model
 Low End Chrome
 Vintage & Lo-FI",,,,,Ampeg G-15 Gemini II TOP,,,,,"Guitar,Modeled"
 4c4418bb-1108-40ce-b7a1-3415aeb3f701,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f0eae4db-e15f-4f06-9b6a-5f0075cf6233,Vintage & Lo-Fi,,"Premium Tone Model
@@ -277,7 +277,7 @@ a326a583-e84b-4dcf-8cd4-9e63d04f68c8,07c4b938-7505-4597-9461-cebfb162ae82,eccbce
 33b925f0-a27a-4dd5-869c-8350044111dc,07c4b938-7505-4597-9461-cebfb162ae82,73fd50b6-6b00-433e-b825-d925ce73362b,Mouse,,,Microphone,,,,,,,,,Modeled
 b2960c37-e543-4adc-92d7-e380f4efa04b,07c4b938-7505-4597-9461-cebfb162ae82,b5bef097-1445-4382-a109-8bb2957b0158,The Bottle w/ B6 Capsule,,,Microphone,,,,,,,,,Modeled
 ea96d9b0-79a8-474d-8fcd-e0e8581f29ac,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,a1246756-2b58-437c-9566-88d30f440896,Pete Thorn 2x12,,,,,,2x12 CAB M75 Scumback,,,,,,"Guitar,Modeled"
-358fa0dc-5d0f-4409-b792-0dc6a083ebe3,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Bogeyman (Amplitube),,"Premium Tone Model
+e1ac5d90-db34-4225-841c-6d5318a6b39e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Bogeyman (Amplitube),,"Premium Tone Model
 Bogeyman",,,,Marshall 1960A 4x12,Bogner Ecstasy 101B ALT (Tone),,,,,"Guitar,Modeled"
 29b50b14-d42e-4ca6-9fdf-bad86c246ac4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Hard & Heavy,,"Premium Tone Model
 Bogeyman
@@ -295,7 +295,7 @@ High-Gain Heroes",,,,Bogner Uberkab 4x12,Bogner Ecstasy 101B ALT (Tone),,,,,"Gui
 7a7648b0-0545-4269-a5db-85b8d27a11f0,f4ad6589-72fe-48ac-84c0-7b750cbd1231,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,German Xtra Red,,,,,,,Bogner Ecstasy 101B TOP,,,,,"Guitar,Modeled"
 e76843ca-275b-46ae-b5cc-8fed24a8b09b,d7fc8458-8d70-47c6-b4d0-90defac39616,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Power Place,,,,,,(Insane) 4x12 Treadplate,Deprecated by BIAS X,,,,,"Deprecated,Guitar,Modeled"
 4b94d392-6f6b-4f60-973d-f60c3717f776,d7fc8458-8d70-47c6-b4d0-90defac39616,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Power Place v2,,,,,,(Insane) 4x12 Treadplate,Deprecated by BIAS X,,,,,"Deprecated,Guitar,Modeled"
-c916bf6c-1e86-407c-b330-43cd7c2c2fe4,d7fc8458-8d70-47c6-b4d0-90defac39616,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Ecstasy 100,,Legacy Series - HIGH GAIN,,,,(Red Channel) (Metal) 4x12 Green 25s,Deprecated by BIAS X,,,,,"Deprecated,Guitar,Modeled"
+0d2f2f8a-d35f-4909-adb9-8edcf6578074,d7fc8458-8d70-47c6-b4d0-90defac39616,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Ecstasy 100,,Legacy Series - HIGH GAIN,,,,(Red Channel) (Metal) 4x12 Green 25s,Deprecated by BIAS X,,,,,"Deprecated,Guitar,Modeled"
 d57a6d3e-b0d9-420d-8efa-420f8fd22aa0,d7fc8458-8d70-47c6-b4d0-90defac39616,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Ecstasy 101 V2,,Legacy Series - HIGH GAIN,,,,(Red Channel) (Metal) 4x12 Green 25s,Deprecated by BIAS X,,,,,"Deprecated,Guitar,Modeled"
 0d2f2f8a-d35f-4909-adb9-8edcf6578074,d7fc8458-8d70-47c6-b4d0-90defac39616,9f0b65c2-8cf2-46aa-89d4-af6ac7a3f09b,Ecstasy 100,,American-Series - Mid-Gain/Crunch,,,,4x12 Ecstasy 100,Bogner Ecstasy 101B ALT (Tone),,,,,"Guitar,Modeled"
 bc184486-575c-4ff8-9b7a-769ea3ea0b23,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,c3797723-34ec-4684-90e6-3fe7c88a4305,Hard & Heavy,,"Premium Tone Model
@@ -389,7 +389,7 @@ e937dff1-bdbe-49a7-80bb-33f91807ec97,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,283988
 a2eac8fd-2636-443b-8110-3600a22409c8,f4ad6589-72fe-48ac-84c0-7b750cbd1231,28398815-1483-4338-9cae-1e5b5fe27d91,Deez One Mod,,,Harmonic Coloration,,,"The Keeley DS-1 Mod (specifically the ""Ultra Mod"" or ""Seeing Eye Mod"") is a popular, early-2000s modification for the Boss DS-1 distortion pedal, replacing stock components with high-quality, low-noise parts (metal film/poly capacitors).  It typically includes a toggle switch for two modes: a ""Seeing Eye"" mode (LED flashes with playing intensity) and an ""Ultra"" mode for a thicker, more Marshall-like, compressed gain.",Boss DS-1 TOP (Keeley Mod),,"eliminates harsh, fizzy top-end frequencies while adding significant bass and midrange.",,,"Guitar,Modeled,Stomp"
 f8a95ddb-f428-4894-a9d8-c8e1c4ecc37b,f4ad6589-72fe-48ac-84c0-7b750cbd1231,28398815-1483-4338-9cae-1e5b5fe27d91,Deez One Vintage,,,Harmonic Coloration,,,,Boss DS-1 TOP,,,,,"Guitar,Modeled,Stomp"
 f41dc4ff-00e0-4ee3-9e11-23d8e350b551,d7fc8458-8d70-47c6-b4d0-90defac39616,28398815-1483-4338-9cae-1e5b5fe27d91,DSONE,,,Harmonic Coloration,,,(Pedal),Boss DS-1 DNU,,,,,"Guitar,Modeled,Stomp"
-2438db39-28e4-4ac7-8270-8cc5f3e3eeca,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0c15c90c-78cd-4342-9243-a5320a567fc2,Orange Buff,,Orange Buff,Harmonic Coloration,,,Turbo I;  [ See Model ],,,,,,"Guitar,Modeled,Stomp"
+3619a609-f8a9-42f2-9a1e-2995ad02e8e5,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0c15c90c-78cd-4342-9243-a5320a567fc2,Orange Buff,,Orange Buff,Harmonic Coloration,,,Turbo I;  [ See Model ],,,,,,"Guitar,Modeled,Stomp"
 3619a609-f8a9-42f2-9a1e-2995ad02e8e5,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0c15c90c-78cd-4342-9243-a5320a567fc2,Orange Buff,,Orange Buff,Harmonic Coloration,,,Turbo II; [ See Model ],,,,,,"Guitar,Modeled,Stomp"
 58c4a063-f505-42d7-b0e6-0754b9a1b119,d7fc8458-8d70-47c6-b4d0-90defac39616,e4a26058-0273-4428-a198-ad5e49b4daac,63 Spring,,,Reverb&Room,,,(Pedal),Deprecated by Bias X,,,,,"Guitar,Modeled,Stomp,Deprecated"
 7486d4c8-3274-4df5-bcd2-f7621d12c22c,d7fc8458-8d70-47c6-b4d0-90defac39616,e4a26058-0273-4428-a198-ad5e49b4daac,Ripple,,,Reverb&Room,,,(Pedal - Spring Reverb),Boss FRV-1 TOP,,,,,"Guitar,Modeled,Stomp"
@@ -653,8 +653,8 @@ Bigger and warmer than its 1x12 cousin. Front port delivers a uniquely vocal mid
 custom made for Robben Ford",,,"Round, warm lows, thick and midrange forward, with soft top end. Never strident, even with heaps of gain; mic'd w/ Neumann U67",,,"Guitar,Modeled"
 99f50a32-3a53-4b93-ba6b-ae8a9f6d0730,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,aea08fde-e93c-41eb-bb95-1661cc7ec055,ODS Legends,,Premium Tone Model (Overdrive Special),,,,(1983) 2x12 Dumble Cabinet w/  Electro-Voice EVM12L,,,,,,"Guitar,Modeled"
 76308395-8e5b-4161-861a-1d7e2c6cf06a,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,"aea08fde-e93c-41eb-bb95-1661cc7ec055,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,ab01b84e-c280-4f4e-a605-121012a911e7",Enigmatic 82,1.0.4,,,,,,,,,,,"Guitar,Modeled"
-75baaf95-8b0b-4022-a8ec-ee422b76759f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,ODS Legends,,Premium Tone Model (Overdrive Special),,,,(1979) Dumble 2x12 Cabinet Celestion JB-85,,,,,,"Guitar,Modeled"
-e7fa01d9-32cc-49fc-a5b3-b2c81758339b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,ODS Legends,,Premium Tone Model (Overdrive Special),,,,(1984) Van Weelden Twinkeland 2x12 2017,,,,,,"Guitar,Modeled"
+f9d71f56-6d7d-46d9-ab3d-4978d06aaa0f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,ODS Legends,,Premium Tone Model (Overdrive Special),,,,(1979) Dumble 2x12 Cabinet Celestion JB-85,,,,,,"Guitar,Modeled"
+f9d71f56-6d7d-46d9-ab3d-4978d06aaa0f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,ODS Legends,,Premium Tone Model (Overdrive Special),,,,(1984) Van Weelden Twinkeland 2x12 2017,,,,,,"Guitar,Modeled"
 f9d71f56-6d7d-46d9-ab3d-4978d06aaa0f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,ODS Legends,,Premium Tone Model (Overdrive Special),,,,"(2004) (Premium Tone Model / Overdrive Special) 
 Van Weelden Twinkeland 2x12 2017",,,,,,"Guitar,Modeled"
 78496321-1edb-4ff0-b9c5-eca186b876a1,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4f4be953-917e-41d4-a0e6-28a9f6a2cbfb,Overdrive Special,,"Premium Tone Model
@@ -846,7 +846,7 @@ e85fb7ae-b699-4627-b53f-999cf5eacbc3,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5dba05
 77a15978-5026-4ac5-90f8-0b41c1481bd5,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5dba056e-3007-4294-9c5d-fa76d1c248a2,Gus G. Tone Asylum,,Premium Tone Model (Gus G.),,,,Blackstar Series One 412,Engl E645 Powerball TOP,,,,,"Guitar,Modeled"
 b2881e3e-6d4f-4e85-b9fa-c60fd207e0af,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5dba056e-3007-4294-9c5d-fa76d1c248a2,Hard & Heavy,,"Premium Tone Model
 Untamed",,,,Engl E412VSB,Engl E645 Powerball TOP,,,,,"Guitar,Modeled"
-fa36313e-5e0e-463a-99e8-2101fe9dfbf8,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5dba056e-3007-4294-9c5d-fa76d1c248a2,Untamed (Amplitube),,"Premium Tone Model
+cf3b7879-1e49-46fe-aec7-94b9ebfbeee0,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5dba056e-3007-4294-9c5d-fa76d1c248a2,Untamed (Amplitube),,"Premium Tone Model
 Untamed",,,,Engl E412VSB,Engl E645 Powerball TOP,,,,,"Guitar,Modeled"
 cf3b7879-1e49-46fe-aec7-94b9ebfbeee0,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5dba056e-3007-4294-9c5d-fa76d1c248a2,Untamed (Amplitube),,"Premium Tone Model
 Untamed",,,,Mesa/Boogie 2x12 Horizontal Rectifier Cabinet,Engl E645 Powerball TOP,,,,,"Guitar,Modeled"
@@ -1181,7 +1181,7 @@ Deprecated by BIAS X",,,,,"Guitar,Modeled"
 23a5247e-8e29-4d66-9426-4034d9e281ba,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0d38ec04-a5fa-4b0f-8962-2180dca97cfd,High-Gain Chug,,"Premium Tone Model
 High-Gain Chug
 Striped",,,,Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet,,,,,,"Guitar,Modeled"
-8887de2b-ebd5-4ee6-9e1e-9152391a2c51,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0d38ec04-a5fa-4b0f-8962-2180dca97cfd,Striped (Amplitube),,"Premium Tone Model
+bc59d06e-d9a6-417f-b83a-3336294632c2,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0d38ec04-a5fa-4b0f-8962-2180dca97cfd,Striped (Amplitube),,"Premium Tone Model
 High-Gain Chug
 Striped",,,,Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet,,,,,,"Guitar,Modeled"
 20d77772-b630-41aa-99d2-3511d6fef876,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0d38ec04-a5fa-4b0f-8962-2180dca97cfd,High-gain Heroes,,"Premium Tone Model
@@ -1275,8 +1275,8 @@ US Gold",,,,Johnson J412V,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
 9c5c75e9-e636-4e73-8a82-3a925a63902b,f4ad6589-72fe-48ac-84c0-7b750cbd1231,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,Placater Dirty,,,,,,"2 Models/Channels (clean, BE/HBE)",Friedman BE100 TOP,,,,,"Guitar,Modeled"
 cbee2fdb-5dfd-4771-82ef-7091420e7ccc,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE100 HG,,,,,,(Channel 2) (Hi Gain) 4x12 OR V-30s,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
 b51c5e83-7205-46c5-8f63-9be4d3b93787,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE100 MT,,,,,,(Channel 2) (Metal) 4x12 Green 25s,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
-58cb1e27-6666-4e2b-87bc-4cef12135bf8,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE101,,Legacy Series - CRUNCH,,,,4x12,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
-aba3da07-961c-490f-a0cf-2edf72dacaf7,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE101,,Remaster Series - CRUNCH,,,,4x12,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
+279e7a0a-e6b3-43a8-ac9a-41b725553e0a,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE101,,Legacy Series - CRUNCH,,,,4x12,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
+279e7a0a-e6b3-43a8-ac9a-41b725553e0a,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE101,,Remaster Series - CRUNCH,,,,4x12,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
 279e7a0a-e6b3-43a8-ac9a-41b725553e0a,d7fc8458-8d70-47c6-b4d0-90defac39616,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,BE101,,Plexi Series - Mid-Gain/Crunch,,,,,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
 2cc72ea9-240c-4a98-9960-06f90b68f0ba,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,dc5e14e4-4ce4-497e-a08a-b28cb1079e4c,Friedman BE100,1.0.2,Brainworx (Modeled by),,Plugin,UAD-2,,Friedman BE100 ALT (Tone),,,,,"Guitar,Modeled"
 016fd998-5eb9-413a-ab10-50f4b37de543,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,8669d37a-638c-46d4-956f-aec91257512c,Friedman Buxom Betty,1.0.1,Brainworx (Modeled by),,Plugin,UAD-2,Friedman Dirty Shirley 112 Cab,,,,,,"Guitar,Modeled"
@@ -1321,7 +1321,7 @@ afa703df-0652-468e-9a56-84d172a6cd2e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,38d702
 280d76ad-2d8c-4711-847e-1e1205db7dd4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,38d7028b-e3d7-4c95-9155-480e93d2d454,GK Bass,,"Premium Tone Model
 GK Bass
 TONEX Amp Black",,,,Aguilar DB410,Gallien-Krueger 800RB ALT (Tone),,,,,"Bass,Modeled"
-bc4aa46e-9781-4cd8-b9aa-73d459713a8d,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,38d7028b-e3d7-4c95-9155-480e93d2d454,TONEX Amp Black (Amplitube),,"Premium Tone Model
+24f9e29f-57f4-4ddf-82a7-32e9e0f102db,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,38d7028b-e3d7-4c95-9155-480e93d2d454,TONEX Amp Black (Amplitube),,"Premium Tone Model
 GK Bass
 TONEX Amp Black",,,,Aguilar DB410,Gallien-Krueger 800RB ALT (Tone),,,,,"Bass,Modeled"
 24f9e29f-57f4-4ddf-82a7-32e9e0f102db,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,38d7028b-e3d7-4c95-9155-480e93d2d454,TONEX Amp Black (Amplitube),,"Premium Tone Model
@@ -1560,7 +1560,7 @@ a76ed25a-e7b0-407f-851b-3f97113e9da1,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,e8d0dd
 94a84f9e-ae09-4ee4-a7b5-3ce2b1b867a0,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,e8d0dd10-fc1b-48d7-8f2b-bff889d41339,Vintage & Lo-Fi Collection,,"Premium Tone Model
 Vintage & Lo-FI",Harmonic Coloration,,,,Maestro FZ-1B Fuzz Tone TOP,,,,,"Guitar,Modeled,Stomp"
 462caa44-e005-4f42-b9f6-f66b72e92ee3,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,9c1658d0-203b-42c1-8ba6-cd0e9234a9aa,Vintage Vibrato,,,Modulation,,,Vibrator Circuit only,,,,,,"Guitar,Modeled,Stomp"
-4602e82c-30aa-4140-a04d-9adbb39d2636,d7fc8458-8d70-47c6-b4d0-90defac39616,7ceebe99-b432-4057-8f51-fc0ef4f14cf6,Ping Pong,,,Delay,,,(Pedal),Depracted by BIAS X,,,,,"Guitar,Modeled,Stomp,Deprecated"
+840ecf90-6970-4c30-9dc0-1561fef3d8a5,d7fc8458-8d70-47c6-b4d0-90defac39616,7ceebe99-b432-4057-8f51-fc0ef4f14cf6,Ping Pong,,,Delay,,,(Pedal),Depracted by BIAS X,,,,,"Guitar,Modeled,Stomp,Deprecated"
 840ecf90-6970-4c30-9dc0-1561fef3d8a5,d7fc8458-8d70-47c6-b4d0-90defac39616,7ceebe99-b432-4057-8f51-fc0ef4f14cf6,Ping Pong,,,Delay,,,(Pedal - Digital Delay),,,,,,"Guitar,Modeled,Stomp"
 d0c81bc8-5095-406f-a384-eca69e841db2,07c4b938-7505-4597-9461-cebfb162ae82,50f0972c-a9d7-4e01-bbc9-57dc6592f38b,CR-3A,,,Microphone,,,,,,,,,Modeled
 724a4716-be2f-4d39-81a4-395c6510eea5,d7fc8458-8d70-47c6-b4d0-90defac39616,efbc27ef-1cc6-4d83-9041-26a1c7551ee9,Studio EQ,,,EQ,,,(Rack),Embedded in BIAS FX 2,,,,,Modeled
@@ -1588,15 +1588,15 @@ b4d245cf-273d-4669-a877-5c73da828970,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,9fe278
 e20b5f02-cde8-45e3-a4eb-404289c2797b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,df305574-b52f-4149-b352-94b55575523a,2x12 Closed Vintage,,Amplitube Collection,,,,2x12 CAB Celestion G12M Greenbacks,,,,,,"Guitar,Modeled"
 46335582-b460-4452-8f08-279542827ab5,d7fc8458-8d70-47c6-b4d0-90defac39616,cec2a98b-438e-4cf8-9b6a-e61e74a53b21,British 900 2x12,,Legacy Series - CAB,,,,2x12 CAB,Marshall 1936 TOP,,,,,"Guitar,Modeled"
 c626d2b0-dbf5-4365-97aa-d2b872a45280,52ca057c-1c70-4093-81ad-720a2ba3ac60,cec2a98b-438e-4cf8-9b6a-e61e74a53b21,2x12 Closedback,,,,,,2x12 CAB closed back Celestion G12M Greenbacks,Marshall 1936 ALT (Tone),,,,,"Guitar,Modeled"
-a3461873-7711-4a2f-be71-104a6c35b31f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
+11f39aab-cf1c-49e8-8dd6-5789ed944802,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
 JS JTM",,,,"(1969) Marshall 1960A ""Stain"" 4x12",Marshall 1959 SLP TOP,,,,,"Guitar,Modeled"
-e929b549-e8cb-43e5-b265-66c05af1c1f0,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,JS JTM (Amplitube),,"Premium Tone Model (Joe Satriani)
+96f956e1-e0e9-41be-8aaf-5d54f90c7f56,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,JS JTM (Amplitube),,"Premium Tone Model (Joe Satriani)
 JS JTM",,,,"(1969) Marshall 1960A ""Stain"" 4x12",Marshall 1959 SLP TOP,,,,,"Guitar,Modeled"
 11f39aab-cf1c-49e8-8dd6-5789ed944802,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
 JS JTM",,,,"(1971) Marshall 1960A ""Stain"" 4x12",Marshall 1959 SLP TOP,,,,,"Guitar,Modeled"
 96f956e1-e0e9-41be-8aaf-5d54f90c7f56,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,JS JTM (Amplitube),,"Premium Tone Model (Joe Satriani)
 JS JTM",,,,"(1971) Marshall 1960A ""Stain"" 4x12",Marshall 1959 SLP TOP,,,,,"Guitar,Modeled"
-82664213-57aa-4593-b096-da4e53cedadb,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,Plexi Guard (Amplitube),,"Premium Tone Model
+b4ab210d-405e-405f-8945-845b0692c80e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,Plexi Guard (Amplitube),,"Premium Tone Model
 Plexi Guard",,,,Marshall 1960AV 4x12,Marshall 1959 SLP ALT (Tone),,,,,"Guitar,Modeled"
 661774a5-e5a2-48f9-821a-cc22106d4020,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,4e6d9491-ede6-4b91-a696-c8975907b9b2,Plexi Tone,,"Premium Tone Model
 Plexi Guard
@@ -1707,7 +1707,7 @@ JS JCM",,,,Marshall 1960B 4x12,Marshall 6100 30th Anniversary TOP,,,,,"Guitar,Mo
 JS JCM",,,,Marshall 1960B 4x12,Marshall 6100 30th Anniversary TOP,,,,,"Guitar,Modeled"
 0a4f91a8-bd48-47a0-8514-1fe9a4d85c13,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,386cd6af-699f-4520-9b41-25e29b4149d5,Hard & Heavy,,"Premium Tone Model
 Gold Guard",,,,M-Tech Audio Cab 112,,,,,,"Guitar,Modeled"
-cbfd9b51-65ce-4b78-b5a5-a558822aba1d,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,386cd6af-699f-4520-9b41-25e29b4149d5,Gold Guard (Amplitube),,"Premium Tone Model
+0f8cb45b-6558-48e0-8cae-0cee98d18cc6,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,386cd6af-699f-4520-9b41-25e29b4149d5,Gold Guard (Amplitube),,"Premium Tone Model
 Gold Guard",,,,M-Tech Audio Cab 112,,,,,,"Guitar,Modeled"
 ec3e4a99-a7b2-448d-8eec-e4ee69b23d4a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,386cd6af-699f-4520-9b41-25e29b4149d5,High-gain Heroes,,"Premium Tone Model
 Gold Guard
@@ -1754,7 +1754,7 @@ e22173a5-faf7-495c-8bf8-d351e7e5473a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,c2f2d7
 800 & 900
 Gold Guard",,,,"Marshall 1960AX 4x12
 Marshall 1960BV 4x12",Marshall JCM800 TOP,,,,,"Guitar,Modeled"
-cff98d78-7d3a-406e-b1c7-a25d90b1aedc,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,Gold Guard (Amplitube),,"Premium Tone Model
+4a095bc9-f029-4e1e-8eb9-ec31208e4967,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,Gold Guard (Amplitube),,"Premium Tone Model
 800 & 900
 Gold Guard",,,,"Marshall 1960AX 4x12
 Marshall 1960BV 4x12",Marshall JCM800 TOP,,,,,"Guitar,Modeled"
@@ -1762,7 +1762,7 @@ Marshall 1960BV 4x12",Marshall JCM800 TOP,,,,,"Guitar,Modeled"
 Gold Guard",,,,Fender EVH 5150 III 4x12,Marshall JCM800 TOP,,,,,"Guitar,Modeled"
 0d83a2dc-6018-4e4d-bee7-552fa0851091,f4ad6589-72fe-48ac-84c0-7b750cbd1231,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,Brit 2203,,,,,,,Marshall JCM800 TOP,,,,,"Guitar,Modeled"
 0caf971b-520d-404c-ba41-0ef2175030af,d7fc8458-8d70-47c6-b4d0-90defac39616,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,JCM800 MT,,,,,,(Metal) 4x12 Green 25s,Marshall JCM800 ALT (Tone),,Recorded w/ Ibanez TS808,,,"Guitar,Modeled"
-0d954a15-c6e8-4ca8-b844-7f8b4a5f35aa,d7fc8458-8d70-47c6-b4d0-90defac39616,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,British Lead 800,,Legacy Series - CRUNCH,,,,(Crunch) 4x12 Celestion V30s,Marshall JCM800 ALT (Tone),,,,,"Guitar,Modeled"
+c42d1a5b-79f2-452c-a1c2-679a11d6deb5,d7fc8458-8d70-47c6-b4d0-90defac39616,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,British Lead 800,,Legacy Series - CRUNCH,,,,(Crunch) 4x12 Celestion V30s,Marshall JCM800 ALT (Tone),,,,,"Guitar,Modeled"
 ac36d6da-f757-44e9-91dd-2ae25e303d34,d7fc8458-8d70-47c6-b4d0-90defac39616,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,British Lead 800 v2,,Legacy Series - CRUNCH,,,,(Crunch) 4x12 Celestion V30s,Marshall JCM800 ALT (Tone),,,,,"Guitar,Modeled"
 575c63cb-ba51-40ab-94bf-6233c3420da7,d7fc8458-8d70-47c6-b4d0-90defac39616,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,JCM800 CH,,,,,,(Crunch) 4x12 Celestion V30s,Marshall JCM800 ALT (Tone),,,,,"Guitar,Modeled"
 c42d1a5b-79f2-452c-a1c2-679a11d6deb5,d7fc8458-8d70-47c6-b4d0-90defac39616,c2f2d7d4-2d47-4fad-b822-60dc7ffd7a4e,British Lead 800,,Remaster Series - CRUNCH,,,,4x12,Marshall JCM800 ALT (Tone),,,,,"Guitar,Modeled"
@@ -1783,10 +1783,10 @@ d82c0513-57af-435c-939b-6005fc2b6c40,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a22
 3a1dd3d4-3227-44b5-b03e-7690aca69a81,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a229a-cfb3-4c7f-b131-b1ad647f6fc4,800 & 900,,"Premium Tone Model
 800 & 900
 Gold Guard",,,,Marshall 1960A 4x12,Marshall JCM900 TOP,,,,,"Guitar,Modeled"
-edacfe2a-a204-4b55-91e3-c2b48b47af21,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a229a-cfb3-4c7f-b131-b1ad647f6fc4,Gold Guard (Amplitube),,"Premium Tone Model
+d36b3705-7e4e-4d8f-b718-81d3e7068661,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a229a-cfb3-4c7f-b131-b1ad647f6fc4,Gold Guard (Amplitube),,"Premium Tone Model
 800 & 900
 Gold Guard",,,,Marshall 1960A 4x12,Marshall JCM900 TOP,,,,,"Guitar,Modeled"
-9f7a1171-bc32-403a-929a-8a8d73f9886b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a229a-cfb3-4c7f-b131-b1ad647f6fc4,Gold Guard (Amplitube),,"Premium Tone Model
+d36b3705-7e4e-4d8f-b718-81d3e7068661,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a229a-cfb3-4c7f-b131-b1ad647f6fc4,Gold Guard (Amplitube),,"Premium Tone Model
 Gold Guard",,,,"Fender EVH 5150 III 4x12
 Hiwatt 4x12",Marshall JCM900 TOP,,,,,"Guitar,Modeled"
 fb777e8e-22b1-43f5-ade7-8abda5e4b7ea,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b15a229a-cfb3-4c7f-b131-b1ad647f6fc4,High-gain Heroes,,"Premium Tone Model
@@ -1827,7 +1827,7 @@ f4d51429-3ed2-44a1-b1e3-4a0aec4b08b3,d7fc8458-8d70-47c6-b4d0-90defac39616,4d4cc3
 abc85478-df8a-4d7c-8283-358d74a49d6b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Satch VM,,Joe Satriani Collection,,,,(high-gain),Marshall JVM 410H JS ALT (Tone),,,,,"Guitar,Modeled"
 0f023226-955e-444a-b522-8490ae07c67f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Hard & Heavy,,"Premium Tone Model
 Gold Guard",,,,Marshall 2551A 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-d328e012-02c9-4da3-9db7-1c208e562050,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Gold Guard (Amplitube),,"Premium Tone Model
+10738bbc-68ee-4bfd-8ccb-86432af18f41,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Gold Guard (Amplitube),,"Premium Tone Model
 Gold Guard",,,,Marshall 2551A 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
 abafcc4d-6335-4791-8022-7bb30c8a7827,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,High-Gain Chug,,"Premium Tone Model
 Gold Guard
@@ -1835,19 +1835,19 @@ High-Gain Chug",,,,Marshall 2551A 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Mode
 10738bbc-68ee-4bfd-8ccb-86432af18f41,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Gold Guard (Amplitube),,"Premium Tone Model
 Gold Guard
 High-Gain Chug",,,,Marshall 2551A 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-6718678a-8210-4827-b534-31ea5ae7b676,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
+885b22c0-1913-410a-871f-d26c8e3cad8c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,"(6L6 Mod)
 Marshall 1960B 4x12",Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-6ce2b14e-5341-44fa-baa5-755e509da234,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,JS JVM (Amplitube),,"Premium Tone Model (Joe Satriani)
+e1d14cef-c0b6-4ec1-b64f-448ac8eb83d4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,JS JVM (Amplitube),,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,"(6L6 Mod)
 Marshall 1960B 4x12",Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-4bada1ba-4275-42e8-953b-497e4d6eba5f,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
+885b22c0-1913-410a-871f-d26c8e3cad8c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,(C83 Mod) Marshall 1960B 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-9a2a8437-1574-40e9-b19b-03c212d8f697,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,JS JVM (Amplitube),,"Premium Tone Model (Joe Satriani)
+e1d14cef-c0b6-4ec1-b64f-448ac8eb83d4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,JS JVM (Amplitube),,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,(C83 Mod) Marshall 1960B 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-20d73c1c-51dd-41c9-aad3-4bf9ba0974c4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
+885b22c0-1913-410a-871f-d26c8e3cad8c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,(KT88 Mod) Marshall 1960B 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
-a53836d2-7263-4928-9bcb-a44ed733a586,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,JS JVM (Amplitube),,"Premium Tone Model (Joe Satriani)
+e1d14cef-c0b6-4ec1-b64f-448ac8eb83d4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,JS JVM (Amplitube),,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,(KT88 Mod) Marshall 1960B 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
 885b22c0-1913-410a-871f-d26c8e3cad8c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fc4ddd05-a715-45c6-bfcd-ee6649f03fc2,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani)
 JS JVM",,,,Marshall 1960B 4x12,Marshall JVM 410H JS TOP,,,,,"Guitar,Modeled"
@@ -1915,13 +1915,13 @@ Metal Face",,,,Diezel 412 4x12,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modele
 Hard and Heavy
 High-Gain Heroes
 Metal Face",,,,Diezel 412 4x12,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
-291f25e1-598a-4536-98ed-829c9368982a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,"Premium Tone Model
+2852a335-ca52-4458-9fc8-19f134b10a20,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,"Premium Tone Model
 Hard and Heavy
 High-Gain Heroes
 Metal Face",,,,Diezel 412 4x12,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
 d99b0861-7f83-4fd6-add5-337d05f5ad4d,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Hyde Street Amp Locker,,Premium Tone Model (Hyde Street),,,,"Marshall 4x12
 Marshall 1960A 4x12",Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
-e1ee63fd-5220-4125-8e1f-4ff2b3cbf7dc,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,Premium Tone Model (Hyde Street),,,,"Marshall 4x12
+2852a335-ca52-4458-9fc8-19f134b10a20,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,Premium Tone Model (Hyde Street),,,,"Marshall 4x12
 Marshall 1960A 4x12",Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
 dde1daf1-e20c-45cc-b120-2d1dad189fac,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Mesa/Boogie Reference,,"Premium Tone Model (Mesa/Boogie)
 M/B Dual Rectifier",,,,Mesa/Boogie 4x12 Rectifier Standard Slant Cabinet,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
@@ -1932,7 +1932,7 @@ Metal Face
 Rectify",,,,"Marshall 2551A 4x12
 Mesa/Boogie 2x12 Horizontal Rectifier Cabinet
 Mesa/Boogie 4x12 Rectifier Traditional Straight Cabinet",Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
-ad5f5bb9-74d1-43fa-b5be-3017978e85fd,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,"Premium Tone Model
+2852a335-ca52-4458-9fc8-19f134b10a20,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,"Premium Tone Model
 Metal Face
 Rectify",,,,"Marshall 2551A 4x12
 Mesa/Boogie 2x12 Horizontal Rectifier Cabinet
@@ -1942,7 +1942,7 @@ TONEX Amp Red",,,,Custom open back 2x12 Eminence Governor,Mesa/Boogie Dual Recti
 2bcd1af3-0e77-4f66-b1b7-5ea60bb5f4b9,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Vintage & Lo-Fi,,"Premium Tone Model
 Metal Face
 Vintage & Lo-FI",,,,4x12 Orange 1974,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
-c1a6a29c-3d95-4338-aab8-c77ae32ecfb8,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,"Premium Tone Model
+2852a335-ca52-4458-9fc8-19f134b10a20,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Metal Face (Amplitube),,"Premium Tone Model
 Metal Face
 Vintage & Lo-FI",,,,4x12 Orange 1974,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
 ea699ae7-4632-4fb7-95c6-b8c262cae8c0,f4ad6589-72fe-48ac-84c0-7b750cbd1231,b9a1d9c3-3cfc-4d49-8712-dd5711c9b1db,Cali Rectifire,,,,,,,Mesa/Boogie Dual Rectifier TOP,,,,,"Guitar,Modeled"
@@ -2032,7 +2032,7 @@ d79a75d6-f3d2-4310-adf0-743d7b0974f1,d7fc8458-8d70-47c6-b4d0-90defac39616,e91940
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 7d01c86f-b32a-4b67-8910-26bc5d21a8cf,d7fc8458-8d70-47c6-b4d0-90defac39616,e9194049-5efa-4dc5-b253-26769d05e9d7,California Mk IV,,American Series - High-Gain/Distortion,,,,4x12 California-30,Mesa/Boogie Mark IV A ALT (Tone),,,,,"Guitar,Modeled"
 3e588fe0-6ec2-4253-9080-6b39c8c0c6e5,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6a1aa1a2-cece-4ed6-9e2b-628d0ad2367e,Mark V,,Mesa/Boogie Collection,,,,(high-gain),Mesa/Boogie Mark V ALT (Tone),,,,,"Guitar,Modeled"
-8995383d-d680-49be-a030-b9a6d2d57377,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6a1aa1a2-cece-4ed6-9e2b-628d0ad2367e,Black Mark (Amplitube),,"Premium Tone Model
+0b22b183-22a4-4666-a3db-3378204b7d67,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6a1aa1a2-cece-4ed6-9e2b-628d0ad2367e,Black Mark (Amplitube),,"Premium Tone Model
 Black Mark",,,,Mesa/Boogie 4x12 Front-Loaded (4FB),Mesa/Boogie Mark V TOP,,,,,"Guitar,Modeled"
 330b65e6-115f-4afc-be8f-3b7fddbfd68c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6a1aa1a2-cece-4ed6-9e2b-628d0ad2367e,High-Gain Chug,,"Premium Tone Model
 Black Mark
@@ -2073,7 +2073,7 @@ c40d444a-515d-4b2d-b42f-bf280f3655b2,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ca3c33
 M/B Triple Rectifier",,,,Mesa/Boogie 4x12 Rectifier Standard Slant Cabinet,Mesa/Boogie Triple Rectifier TOP,,,,,"Guitar,Modeled"
 1d2bb1c2-cfcc-4573-9988-d0201ed39779,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ca3c3312-104d-432d-825e-eed5b761a2be,M/B Triple Rectifier (Amplitube),,"Premium Tone Model (Mesa/Boogie)
 M/B Triple Rectifier",,,,Mesa/Boogie 4x12 Rectifier Standard Slant Cabinet,Mesa/Boogie Triple Rectifier TOP,,,,,"Guitar,Modeled"
-4d5d2c08-412a-4d89-ac8b-7a2abc1c8fae,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ca3c3312-104d-432d-825e-eed5b761a2be,Metal Face (Amplitube),,"Premium Tone Model
+6d6b7fc0-fabc-4ee6-8486-da8c9495505c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ca3c3312-104d-432d-825e-eed5b761a2be,Metal Face (Amplitube),,"Premium Tone Model
 Metal Face",,,,Mesa/Boogie 2x12 Horizontal Rectifier Cabinet,Mesa/Boogie Triple Rectifier TOP,,,,,"Guitar,Modeled"
 28ae7b03-a6a2-4aea-bae0-627f96af4c47,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ca3c3312-104d-432d-825e-eed5b761a2be,Rectify,,"Premium Tone Model
 Metal Face
@@ -2091,17 +2091,17 @@ Deprecated by BIAS X",,,,,"Guitar,Modeled"
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 9f34b4f7-7bd2-473c-8123-85e9e041cb7c,d7fc8458-8d70-47c6-b4d0-90defac39616,ca3c3312-104d-432d-825e-eed5b761a2be,Classic Insane,,Legacy Series - HIGH GAIN,,,,4x12,"Mesa/Boogie Triple Rectifier ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
-5a220586-73d8-43fc-a944-75cc4783b944,d7fc8458-8d70-47c6-b4d0-90defac39616,ca3c3312-104d-432d-825e-eed5b761a2be,Treadplate,,Remaster Series - HIGH GAIN,,,,4x12,"Mesa/Boogie Triple Rectifier ALT (Tone)
+a8108cf1-f857-4c68-9d3f-862f2df56ae7,d7fc8458-8d70-47c6-b4d0-90defac39616,ca3c3312-104d-432d-825e-eed5b761a2be,Treadplate,,Remaster Series - HIGH GAIN,,,,4x12,"Mesa/Boogie Triple Rectifier ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 a8108cf1-f857-4c68-9d3f-862f2df56ae7,d7fc8458-8d70-47c6-b4d0-90defac39616,ca3c3312-104d-432d-825e-eed5b761a2be,Treadplate,,American Series - High-Gain/Distortion,,,,,Mesa/Boogie Triple Rectifier ALT (Tone),,,,,"Guitar,Modeled"
-488cdb43-d068-47bc-8332-e447c1240d09,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,Bearded (Amplitube),,"Premium Tone Model
+9e403993-8bf5-4d2d-a551-c98eda85f348,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,Bearded (Amplitube),,"Premium Tone Model
 Bearded",,,,"Fender EVH 5150 III 4x12
 Johnson J412V
 Marshall 1960AX 4x12 4x12",Mezzabarba M Zero Overdrive TOP,,,,,"Guitar,Modeled"
 5c8ba759-a582-4c02-83f1-50e452ed6cd8,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,Hard & Heavy,,"Premium Tone Model
 Bearded
 Hard and Heavy",,,,M-Tech Audio Cab 212,Mezzabarba M Zero Overdrive TOP,,,,,"Guitar,Modeled"
-431c01cf-6077-4693-9fb4-ed2f99dd8796,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,Bearded (Amplitube),,"Premium Tone Model
+9e403993-8bf5-4d2d-a551-c98eda85f348,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,Bearded (Amplitube),,"Premium Tone Model
 Bearded
 Hard and Heavy",,,,M-Tech Audio Cab 212,Mezzabarba M Zero Overdrive TOP,,,,,"Guitar,Modeled"
 7fbe98b9-88b8-40cc-8105-a6fff6b4337b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,High-gain Heroes,,"Premium Tone Model
@@ -2110,12 +2110,12 @@ High-Gain Heroes",,,,M-Tech Audio Cab 212,Mezzabarba M Zero Overdrive TOP,,,,,"G
 9e403993-8bf5-4d2d-a551-c98eda85f348,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,f4ab5083-f914-4bab-9397-b5e3c850ad5c,Bearded (Amplitube),,"Premium Tone Model
 Bearded
 High-Gain Heroes",,,,M-Tech Audio Cab 212,Mezzabarba M Zero Overdrive TOP,,,,,"Guitar,Modeled"
-92422a0c-f1a3-4810-b1f3-23bc355e01b4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6843a894-342f-40e4-870b-697b00103f3b,Bearded (Amplitube),,"Premium Tone Model
+a0fea21e-457d-45dc-b5b1-a8dc96e0d48e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6843a894-342f-40e4-870b-697b00103f3b,Bearded (Amplitube),,"Premium Tone Model
 Bearded",,,,Marshall 1960AV 4x12,Mezzabarba Trinity 100W TOP,,,,,"Guitar,Modeled"
 083a909f-2dda-4825-90ba-1e2157de1e01,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6843a894-342f-40e4-870b-697b00103f3b,Hard & Heavy,,"Premium Tone Model
 Bearded
 Hard and Heavy",,,,Bogner Uberkab 4x12,Mezzabarba Trinity 100W TOP,,,,,"Guitar,Modeled"
-eae92057-f1e7-4881-9bd1-a9100ce41291,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6843a894-342f-40e4-870b-697b00103f3b,Bearded (Amplitube),,"Premium Tone Model
+a0fea21e-457d-45dc-b5b1-a8dc96e0d48e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6843a894-342f-40e4-870b-697b00103f3b,Bearded (Amplitube),,"Premium Tone Model
 Bearded
 Hard and Heavy",,,,Bogner Uberkab 4x12,Mezzabarba Trinity 100W TOP,,,,,"Guitar,Modeled"
 cb610733-bd58-4cee-aafd-d6a1f94f2b70,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6843a894-342f-40e4-870b-697b00103f3b,High-gain Heroes,,"Premium Tone Model
@@ -2341,7 +2341,7 @@ c0bd40cc-3088-46db-957d-6daafac70fbd,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,afdbc4
 8c1dd958-bd45-45a0-851f-3fbda2f6ad5c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,37c5616c-5114-43e6-b138-4a99c82126ae,4x10 OBC 410,,Orange Collection,,,,4x10 CAB,,,,,,Bass
 5ea4a1eb-6e19-40aa-9889-1b2248dba438,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,658bdf77-6232-42f8-84a4-7acc680c064f,8x10 OBC810,,Orange Collection,,,,8x10 CAB,,,,,,"Bass,Modeled"
 9d0c2925-e90c-4fa1-a519-8462d70cbfc7,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8bd81a60-8adf-4e82-8d6e-2c8e21b511c7,OR-120,,Orange Collection,,,,(crunch),Orange OR120 ALT (Tone),,,,,"Guitar,Modeled"
-ef246879-8ca6-415b-b628-455a66288413,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8bd81a60-8adf-4e82-8d6e-2c8e21b511c7,70s Vitamin (Amplitube),,"Premium Tone Model
+a71f64ff-5987-4ba3-949f-743f19e829e3,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8bd81a60-8adf-4e82-8d6e-2c8e21b511c7,70s Vitamin (Amplitube),,"Premium Tone Model
 70s Vitamin",,,,Engl E412VSB,Orange OR120 TOP,,,,,"Guitar,Modeled"
 aa6e2d63-9a15-48c8-8c43-719c05c1c585,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8bd81a60-8adf-4e82-8d6e-2c8e21b511c7,British Juice 1,,"Premium Tone Model
 British Juice 1
@@ -2371,7 +2371,7 @@ c1e8e46f-f168-4c38-8b5b-5eeb3b272719,52ca057c-1c70-4093-81ad-720a2ba3ac60,b287b3
 254ad8ef-dd69-4853-b53e-48fe9c05e6c2,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ce8c314e-5578-4bb5-94c9-c4221ab12260,British Juice 1,,"Premium Tone Model
 British Juice 1
 70s Vitamin",,,,Orange PPC212,Orange Rockerverb 100 TOP,,,,,"Guitar,Modeled"
-0fa9ce5d-5ce3-4f6d-a743-5a3911e3c674,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ce8c314e-5578-4bb5-94c9-c4221ab12260,70s Vitamin (Amplitube),,"Premium Tone Model
+106ba831-832a-424c-a04e-cde1697ddaea,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ce8c314e-5578-4bb5-94c9-c4221ab12260,70s Vitamin (Amplitube),,"Premium Tone Model
 British Juice 1
 70s Vitamin",,,,Orange PPC212,Orange Rockerverb 100 TOP,,,,,"Guitar,Modeled"
 90b8bfdb-7759-4d93-bb28-1a8cf8ab342e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ce8c314e-5578-4bb5-94c9-c4221ab12260,High-gain Heroes,,"Premium Tone Model
@@ -2395,7 +2395,7 @@ a94f5816-83ba-4d6d-967e-42cb6377ee88,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,801950
 British Juice 1
 70s Vitamin",,,,Orange PPC412,,,,,,"Guitar,Modeled"
 621bbb35-d868-41f4-9afa-09ad03194e5e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,3972be04-fdd2-4801-a035-104a76f802ed,Thunderverb 200,,Orange Collection,,,,(high-gain),Orange Thunderverb 200 ALT (Tone),,,,,"Guitar,Modeled"
-2a2f9068-06a5-4376-923e-dfcac88b379e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,3972be04-fdd2-4801-a035-104a76f802ed,70s Vitamin (Amplitube),,"Premium Tone Model
+21318460-5fe2-4562-8c60-a5431fa5be15,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,3972be04-fdd2-4801-a035-104a76f802ed,70s Vitamin (Amplitube),,"Premium Tone Model
 70s Vitamin",,,,"Bogner 212C
 Marshall 1960B 4x12",Orange Thunderverb 200 TOP,,,,,"Guitar,Modeled"
 e4d61050-5690-48b5-874d-14962f3810ea,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,3972be04-fdd2-4801-a035-104a76f802ed,British Juice 1,,"Premium Tone Model
@@ -2436,7 +2436,7 @@ f8ab18c5-d698-4cc4-9d66-82eba8e99883,f4ad6589-72fe-48ac-84c0-7b750cbd1231,6f81ea
 High-Gain Heroes
 Metal Classic",,,,"Bogner 212C
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet",Peavey 5150 TOP,,,,,"Guitar,Modeled"
-e409b42e-0d90-4432-8f1a-74aed5383051,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Classic (Amplitube),,"Premium Tone Model
+d933ef91-b6c3-4f51-b967-a1c89e20993e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Classic (Amplitube),,"Premium Tone Model
 High-Gain Heroes
 Metal Classic",,,,"Bogner 212C
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet",Peavey 5150 TOP,,,,,"Guitar,Modeled"
@@ -2444,7 +2444,7 @@ f4189806-5b0c-4486-85ab-ccdb32f03130,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14
 JS Metal",,,,"Marshall 1960A ""Stain"" 4x12",Peavey 5150 TOP,,,,,"Guitar,Modeled"
 ae2199fd-b313-4c63-a7fd-1b71f8c24884,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,JS Metal (Amplitube),,"Premium Tone Model (Joe Satriani) 
 JS Metal",,,,"Marshall 1960A ""Stain"" 4x12",Peavey 5150 TOP,,,,,"Guitar,Modeled"
-11da5f59-9ba5-4cef-b751-74b77710301c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Classic (Amplitube),,"Premium Tone Model
+d933ef91-b6c3-4f51-b967-a1c89e20993e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Classic (Amplitube),,"Premium Tone Model
 Metal Classic",,,,"ENGL E412VSB
 Fender EVH 5150 III 4x12",Peavey 5150 TOP,,,,,"Guitar,Modeled"
 e91b541e-2f07-4064-8749-bcaedb126784,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Gems,,"Premium Tone Model (Metal Gems) 
@@ -2457,7 +2457,7 @@ Marshall 1960B 4x12 (Celestion Vintage 30)
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet
 Mesa/Boogie 4x12 Rectifier Traditional Straight Cabinet
 Orange PPC412",Peavey 5150 TOP,,,,,"Guitar,Modeled"
-c8248fcb-82cf-4993-841e-bf2901ea8fdf,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Classic (Amplitube),,"Premium Tone Model (Metal Gems) 
+d933ef91-b6c3-4f51-b967-a1c89e20993e,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,be3e14fd-a028-4948-9b3d-c3634d99e443,Metal Classic (Amplitube),,"Premium Tone Model (Metal Gems) 
 Metal Classic",,,,"Marshall 1960A 4x12
 Marshall 1960A 4x12 (G12M (Greenback))
 Marshall 1960A 4x12 (Classic Lead 80)
@@ -2510,14 +2510,14 @@ Standalone; Embedded in Paradise Guitar Studio",,,,,"Modeled,Stomp"
 High-Gain Chug
 TONEX Amp Black",,,,"Bogner Uberkab 4x12
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet",PRS Archon 100 ALT (Tone),,,,,"Guitar,Modeled"
-9361e8ff-4e42-4cfa-869f-94ea88fcb25b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,TONEX Amp Black (Amplitube),,"Premium Tone Model
+80229893-c5cc-4b41-8125-ba723aa79b1a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,TONEX Amp Black (Amplitube),,"Premium Tone Model
 High-Gain Chug
 TONEX Amp Black",,,,"Bogner Uberkab 4x12
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet",PRS Archon 100 ALT (Tone),,,,,"Guitar,Modeled"
 5741e19c-9e11-488c-ae5e-025e05dbb23b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,High-gain Heroes,,"Premium Tone Model
 High-Gain Heroes
 TONEX Amp Black",,,,Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet,PRS Archon 100 ALT (Tone),,,,,"Guitar,Modeled"
-2ca3c137-41f1-4f54-bcd0-54146e432130,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,TONEX Amp Black (Amplitube),,"Premium Tone Model
+80229893-c5cc-4b41-8125-ba723aa79b1a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,TONEX Amp Black (Amplitube),,"Premium Tone Model
 High-Gain Heroes
 TONEX Amp Black",,,,Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet,PRS Archon 100 ALT (Tone),,,,,"Guitar,Modeled"
 80229893-c5cc-4b41-8125-ba723aa79b1a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,TONEX Amp Black (Amplitube),,"Premium Tone Model
@@ -2528,7 +2528,7 @@ fe7589b6-195b-4ec7-9d24-e0103d566092,f4ad6589-72fe-48ac-84c0-7b750cbd1231,cfddc6
 877b929a-ce78-4f43-ae05-bf72f11d94b0,f4ad6589-72fe-48ac-84c0-7b750cbd1231,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,Archetype Lead,,,,,,"2 Models/Channels (clean, lead)",PRS Archon 100 TOP,,,,,"Guitar,Modeled"
 3e068ac1-b066-42a6-a529-e7b737d3db70,d7fc8458-8d70-47c6-b4d0-90defac39616,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,Archon 100,,Legacy Series - HIGH GAIN,,,,(Channel 2) (Metal) 4x12 Green 25s,"PRS Archon 100 ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
-eda6b5d8-5fd7-4de7-beee-f4688f0276ee,d7fc8458-8d70-47c6-b4d0-90defac39616,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,Paul Arch,,Legacy Series - HIGH GAIN,,,,(Channel 2) (Metal) 4x12 Green 25s,"PRS Archon 100 ALT (Tone)
+c7f4ff0c-75df-4112-aee8-2bb4f7fb616d,d7fc8458-8d70-47c6-b4d0-90defac39616,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,Paul Arch,,Legacy Series - HIGH GAIN,,,,(Channel 2) (Metal) 4x12 Green 25s,"PRS Archon 100 ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 c7f4ff0c-75df-4112-aee8-2bb4f7fb616d,d7fc8458-8d70-47c6-b4d0-90defac39616,cfddc671-9286-46a8-ae2f-b4301a8c0aaf,Paul Arch,,Remaster Series - HIGH GAIN,,,,4x12,"PRS Archon 100 ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
@@ -2580,7 +2580,7 @@ a5ca5bdd-793f-453c-afe4-f018609b01a4,d7fc8458-8d70-47c6-b4d0-90defac39616,288b21
 99325561-4998-4206-85b7-fd1626dca7aa,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8fa13536-db2f-428d-95b3-5a80c15f7061,High-Gain Chug,,"Premium Tone Model
 Bearded
 High-Gain Chug",,,,Randall RX412,Randall Warhead WH300 TOP,,,,,"Guitar,Modeled"
-ecaf841a-3dd7-4321-9e9b-a55a3c0786c7,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8fa13536-db2f-428d-95b3-5a80c15f7061,Bearded (Amplitube),,"Premium Tone Model
+d57a85cb-a44b-4339-ba0f-2f3968772370,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8fa13536-db2f-428d-95b3-5a80c15f7061,Bearded (Amplitube),,"Premium Tone Model
 Bearded
 High-Gain Chug",,,,Randall RX412,Randall Warhead WH300 TOP,,,,,"Guitar,Modeled"
 cf146d02-53ec-4729-bd44-8ca49612f7a8,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8fa13536-db2f-428d-95b3-5a80c15f7061,High-gain Heroes,,"Premium Tone Model
@@ -2644,7 +2644,7 @@ Deprecated by BIAS X",,,,,"Guitar,Modeled"
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 b698d5bb-e6f6-42b4-a94a-3a17d0e939df,d7fc8458-8d70-47c6-b4d0-90defac39616,b6496468-8d49-4bdd-af12-0e5ee03662d0,Jazz 2x12,,Remaster Series - CAB,,,,2x12 CAB,Roland JC-120 (CAB) ALT (Tone),,,,,"Guitar,Modeled"
 6b824dc4-42bf-4f4b-81c0-7d23d4d27cb2,d7fc8458-8d70-47c6-b4d0-90defac39616,b6496468-8d49-4bdd-af12-0e5ee03662d0,Jazz Clean 2x12,,Legacy Series - CAB,,,,2x12 CAB,Roland JC-120 (CAB) ALT (Tone),,,,,"Guitar,Modeled"
-0380a2b7-b93b-44e1-9b80-d0f29212d6e2,d7fc8458-8d70-47c6-b4d0-90defac39616,b6496468-8d49-4bdd-af12-0e5ee03662d0,Jazz Clean,,Remaster Series - LOW GAIN,,,,2x12,"Roland JC-120 ALT (Tone)
+cf45b438-7cf5-4d7d-acb5-f2f26d91f8ce,d7fc8458-8d70-47c6-b4d0-90defac39616,b6496468-8d49-4bdd-af12-0e5ee03662d0,Jazz Clean,,Remaster Series - LOW GAIN,,,,2x12,"Roland JC-120 ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 cf45b438-7cf5-4d7d-acb5-f2f26d91f8ce,d7fc8458-8d70-47c6-b4d0-90defac39616,b6496468-8d49-4bdd-af12-0e5ee03662d0,Jazz Clean,,Classic Clean - Low-Gain / Clean,,,,2x12 Jazz Cab,Roland JC-120 ALT (Tone),,,,,"Guitar,Modeled"
 df7dc346-527f-4ec8-aee8-1eb428ef5997,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,8fc6fbd7-3a5e-4828-9a28-ba6b56fa568d,Space Delay,6.3.0,T-Racks,"Delay,Reverb&Room",Plugin,"AU,VST3",,Roland RE-201 Space Echo ALT (Tone),,,,,Modeled
@@ -2667,7 +2667,7 @@ Embedded in Amplitube",,,,,Modeled
 67f6710b-5a2e-4d99-8324-8244f9040862,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,0ad2770c-712f-444f-9736-16c6440c2f73,R-121,,,Microphone,,,,Embedded in TONEX,,,,,Modeled
 577011e2-81c0-46de-928d-64f60274fab0,f4ad6589-72fe-48ac-84c0-7b750cbd1231,0ad2770c-712f-444f-9736-16c6440c2f73,121 Ribbon,,,Microphone,,,,Embedded in Helix Native,,,,,"Guitar,Modeled"
 c5217f71-0630-49eb-a0a6-736caee80850,d7fc8458-8d70-47c6-b4d0-90defac39616,0ad2770c-712f-444f-9736-16c6440c2f73,R121,,,Microphone,,,,Embedded in BIAS FX,,,,,Modeled
-c7bfc261-6e01-4017-bd89-23c4752e443a,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,0ad2770c-712f-444f-9736-16c6440c2f73,R-121,,,Microphone,,,,Embedded in Eden WT800,,,,,Modeled
+ff39face-97d1-4f0b-955f-d1a3c90b2f92,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,0ad2770c-712f-444f-9736-16c6440c2f73,R-121,,,Microphone,,,,Embedded in Eden WT800,,,,,Modeled
 13bb5538-afdd-427e-875c-0570a0db1eaa,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,0ad2770c-712f-444f-9736-16c6440c2f73,Rib-121,,,Microphone,,,,Embedded in Fender Tweed Deluxe,,,,,Modeled
 ff39face-97d1-4f0b-955f-d1a3c90b2f92,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,0ad2770c-712f-444f-9736-16c6440c2f73,R-121,,,Microphone,,,,Embedded in Sound City Studios,,,,,Modeled
 06b6a1fe-5aaf-4b3d-90a2-c5d3c3735cac,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,0ad2770c-712f-444f-9736-16c6440c2f73,RB-121,,,Microphone,,,,Royer R121 TOP,,,,,Modeled
@@ -2772,7 +2772,7 @@ Marshall 1960A 4x12  (2 x G12H-75 Creambacks; 2 x EVM12L)
 Marshall 1960B 4x12 (2 x GM Greenback; 2 x JBL D120F)
 Marshall 1960B 4x12 (2 x GM Greenback T4437; 2 x GM Greenback T1220)
 Mesa/Boogie 2x12 Horizontal Rectifier Cabinet",Soldano SLO-100 ALT (Tone),,,,,"Guitar,Modeled"
-e8a3e91f-1467-4990-adcf-f55084b17b2d,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO (Amplitube),,"Premium Tone Model (Metal Gems) 
+0cf25992-5146-496c-b287-c96efdd9f2e2,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO (Amplitube),,"Premium Tone Model (Metal Gems) 
 SLO",,,,"Johnson J412V (2 x G12-50GL; 2 x Vintage 30)
 Johnson J412V (4 x G12-50GL)
 Marshall 1960A 4x12 (2 x Classic Lead 80; 2 x G12H100) 
@@ -2785,7 +2785,7 @@ Mesa/Boogie 2x12 Horizontal Rectifier Cabinet",Soldano SLO-100 ALT (Tone),,,,,"G
 SLO",,,,"Marshall 1960BV 4x12
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet
 Orange PPC412",Soldano SLO-100 ALT (Tone),,,,,"Guitar,Modeled"
-0c7b97b4-ba2a-4a2e-9dda-cbbe6708c049,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO (Amplitube),,"Premium Tone Model
+0cf25992-5146-496c-b287-c96efdd9f2e2,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO (Amplitube),,"Premium Tone Model
 SLO",,,,"Marshall 1960BV 4x12
 Mesa/Boogie 4x12 Rectifier Standard Straight Cabinet
 Orange PPC412",Soldano SLO-100 ALT (Tone),,,,,"Guitar,Modeled"
@@ -2803,7 +2803,7 @@ a0d27d10-18c7-407f-b9f1-2e7d42ec3d3b,d7fc8458-8d70-47c6-b4d0-90defac39616,fa5ebb
 (ch1) 4x12 OR V-30s
 (ch2) Orange PPC412",Deprecated by BIAS X,,,,,"Guitar,Modeled"
 58515c4e-d6aa-48f6-b157-3208abb884fa,d7fc8458-8d70-47c6-b4d0-90defac39616,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO100 MT,,,,,,(Channel 2) (Metal) 4x12 Green 25s,Deprecated by BIAS X,,,,,"Guitar,Modeled"
-282c4e98-3ae7-4e84-aca6-9d20a46c6b4c,d7fc8458-8d70-47c6-b4d0-90defac39616,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO,,Remaster Series - HIGH GAIN,,,,4x12,Deprecated by BIAS X,,,,,"Guitar,Modeled"
+10b4a224-1ff5-4af1-9a55-f5a6d6c063d3,d7fc8458-8d70-47c6-b4d0-90defac39616,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO,,Remaster Series - HIGH GAIN,,,,4x12,Deprecated by BIAS X,,,,,"Guitar,Modeled"
 10b4a224-1ff5-4af1-9a55-f5a6d6c063d3,d7fc8458-8d70-47c6-b4d0-90defac39616,fa5ebb67-737a-481d-9416-3ba3992e41f4,SLO,,American Series - High-Gain/Distortion,,,,4x12 SLO,Soldano SLO-100 ALT (Tone),,,,,"Guitar,Modeled"
 5a440a89-e550-4f65-af08-730036e96d00,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,6ed28eee-277d-4f7b-b8a6-dbe708f5d818,Joe Satriani Amp Vault,,"Premium Tone Model (Joe Satriani) 
 JS SLO",,,,"Marshall 1960A ""Stain"" 4x12",,,,,,"Guitar,Modeled"
@@ -3050,7 +3050,7 @@ d060cce3-56f4-4c96-b3a4-07e946231fab,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d881
 37c8f899-9371-4160-b5e4-fe08d3180ea0,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d88147-f141-4cac-be05-055cccb0ed32,British Blue Tube 30TB,,Amplitube Collection,,,,(crunch),Vox AC30 ALT (Tone),,,,,"Guitar,Modeled"
 1d394380-cf8d-4f56-8c7b-1db934fbffe6,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d88147-f141-4cac-be05-055cccb0ed32,British Copper 30TB,,Amplitube Collection,,,,(crunch),Vox AC30 ALT (Tone),,,,,"Guitar,Modeled"
 3d63dc53-7588-4468-b706-e01e522f6cd5,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d88147-f141-4cac-be05-055cccb0ed32,Brit 30 Classic,,Premium Tone Model,,,,2x12,Vox AC30 ALT (Tone),,,,,"Guitar,Modeled"
-0aad9b0b-7200-4824-9078-9ed844ca256a,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d88147-f141-4cac-be05-055cccb0ed32,Chimer (Amplitube),,Premium Tone Model,,,,2x12,Vox AC30 ALT (Tone),,,,,"Guitar,Modeled"
+43557694-9e74-4a6a-aecd-7551ed5a50c1,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d88147-f141-4cac-be05-055cccb0ed32,Chimer (Amplitube),,Premium Tone Model,,,,2x12,Vox AC30 ALT (Tone),,,,,"Guitar,Modeled"
 aa4b38d6-90d4-4cec-a91f-e07f3a9e2420,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,50d88147-f141-4cac-be05-055cccb0ed32,Vintage & Lo-Fi,,"Premium Tone Model
 Chimer
 Vintage & Lo-FI",,,,(1965) 2x12,Vox AC30 ALT (Tone),,,,,"Guitar,Modeled"
@@ -3074,7 +3074,7 @@ Deprecated by BIAS X",,,,,"Guitar,Modeled"
 2758fb46-bb1e-4a92-9419-51c892738e58,d7fc8458-8d70-47c6-b4d0-90defac39616,50d88147-f141-4cac-be05-055cccb0ed32,Alnico Blue 2x12,,Legacy Series - CAB,,,,2x12 CAB,Vox AC30 (Cab) ALT (Tone),,,,,"Guitar,Modeled"
 9062bd92-432f-4b58-b8e4-469a3d185c2a,d7fc8458-8d70-47c6-b4d0-90defac39616,50d88147-f141-4cac-be05-055cccb0ed32,British 30 2x12,,Legacy Series - CAB,,,,2x12 CAB,Vox AC30 (Cab) ALT (Tone),,,,,"Guitar,Modeled"
 2257c44a-fe41-4bd8-88a4-f0b5edd5c1c9,d7fc8458-8d70-47c6-b4d0-90defac39616,50d88147-f141-4cac-be05-055cccb0ed32,Chime 2x12,,Remaster Series - CAB,,,,,Vox AC30 (Cab) ALT (Tone),,,,,"Guitar,Modeled"
-17e2acbd-1481-4819-a994-be08970f6048,d7fc8458-8d70-47c6-b4d0-90defac39616,50d88147-f141-4cac-be05-055cccb0ed32,AC Chime,,Remaster Series - LOW GAIN,,,,2x12,"Vox AC30 ALT (Tone)
+74afa98f-22b7-46a9-9a50-5dd964ed7262,d7fc8458-8d70-47c6-b4d0-90defac39616,50d88147-f141-4cac-be05-055cccb0ed32,AC Chime,,Remaster Series - LOW GAIN,,,,2x12,"Vox AC30 ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
 a4fc5e5a-0864-4574-90fc-379dcdf09240,d7fc8458-8d70-47c6-b4d0-90defac39616,50d88147-f141-4cac-be05-055cccb0ed32,AC Crunch HW,,Legacy Series - CRUNCH,,,,4x12,"Vox AC30 ALT (Tone)
 Deprecated by BIAS X",,,,,"Guitar,Modeled"
@@ -3398,7 +3398,7 @@ a7fbe6ae-dcaf-49b8-8916-63726348b359,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Ratch
 1e1c9619-2962-47af-8419-933970ed5b75,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Reverse Delay,,,Delay,,,,,,,,,"Guitar,Stomp"
 0d134367-aac7-4751-abfd-672c59c67fb6,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Simple Delay,,,Delay,,,,,,,,,"Guitar,Stomp"
 bd55006e-cd44-4b61-a666-bc82629d95f0,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Stereo,,Legacy,Delay,,,,,,,,,"Guitar,Stomp"
-83b56b2e-e1b6-4a58-bff1-5ad1e5abf046,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Sweep Echo,,Legacy,Delay,,,,,,,,,"Guitar,Stomp"
+7fa52b8d-cdf0-4a8b-b422-27cca5da3dfe,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Sweep Echo,,Legacy,Delay,,,,,,,,,"Guitar,Stomp"
 7fa52b8d-cdf0-4a8b-b422-27cca5da3dfe,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Sweep Echo,,,Delay,,,,,,,,,"Guitar,Stomp"
 0b62d4f0-aa2d-43be-9c0c-014d28860e82,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Tesselator,,,Delay,,,,,,,,,"Guitar,Stomp"
 85bc81a9-9ad0-4b19-a4e8-283535e9fee0,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Vintage Digital,,,Delay,,,,,,,,,"Guitar,Stomp"
@@ -3691,14 +3691,14 @@ Legacy Series - CAB",,,,,,,,,,Guitar
 Legacy Series - CAB",,,,,,,,,,Guitar
 355cc928-a57b-434a-8677-51a6bf252aea,d7fc8458-8d70-47c6-b4d0-90defac39616,,Acoustic Amp V2,,"Legacy Series - Acoustic
 Legacy Series - CAB",,,,,,,,,,Guitar
-79db4ecc-afe0-40c2-a190-ce300a422c27,d7fc8458-8d70-47c6-b4d0-90defac39616,,Acoustic Sim,,"Legacy Series - Acoustic
+eab65178-1131-46b1-9e61-202ca79a6ae3,d7fc8458-8d70-47c6-b4d0-90defac39616,,Acoustic Sim,,"Legacy Series - Acoustic
 Legacy Series - CAB",,,,,,,,,,Guitar
 72135707-d06f-41c2-b42e-92a7e7b7c12b,d7fc8458-8d70-47c6-b4d0-90defac39616,,Acoustic Sim V2,,"Legacy Series - Acoustic
 Legacy Series - CAB",,,,,,,,,,Guitar
 9e20426b-caaa-45af-adc2-869757ff7a4e,d7fc8458-8d70-47c6-b4d0-90defac39616,,Keyboard Amp,,Legacy Series - Acoustic,,,,2x10 Bass Pro (Acoustic),,,,,,
 f878326b-6f05-4e86-97bf-d660a9455d23,d7fc8458-8d70-47c6-b4d0-90defac39616,,Legend 4x12,,Legacy Series - CAB,,,,4x12 CAB,,,,,,Guitar
 b0428a80-8a46-4da5-9bcd-531f2fee9a72,d7fc8458-8d70-47c6-b4d0-90defac39616,,Fat Acoustic V2,,Legacy Series - Acoustic,,,,,,,,,,Guitar
-41a522fa-3d13-405b-9b97-c9053f2d9a67,d7fc8458-8d70-47c6-b4d0-90defac39616,,Flat Acoustic,,Legacy Series - Acoustic,,,,,,,,,,Guitar
+fa882de7-6bef-40df-b3b7-1ef807b92898,d7fc8458-8d70-47c6-b4d0-90defac39616,,Flat Acoustic,,Legacy Series - Acoustic,,,,,,,,,,Guitar
 bb04cd15-7c53-4487-b964-fdb40a0a29e6,d7fc8458-8d70-47c6-b4d0-90defac39616,,Grid Crunch V2,,Legacy Series - CRUNCH,,,,1x12,,,,,,Guitar
 8470d8de-96bc-460e-ab0e-64987b24cc09,d7fc8458-8d70-47c6-b4d0-90defac39616,,Modded Plexi V2,,Legacy Series - CRUNCH,,,,4x12,,,,,,Guitar
 b878417f-ef24-4e77-90bb-4d032f2a5007,d7fc8458-8d70-47c6-b4d0-90defac39616,,Pushed Tweed V2,,Legacy Series - CRUNCH,,,,4x12,,,,,,Guitar
@@ -3732,7 +3732,7 @@ f8530300-cdf7-4342-99b0-8eb67bd6ac19,d7fc8458-8d70-47c6-b4d0-90defac39616,,Edge 
 d4dca71a-aa0e-4f68-9e4b-f859e7cc4b97,d7fc8458-8d70-47c6-b4d0-90defac39616,,Little Phased Analog Delay,,,Delay,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 eec85981-d3a5-4f94-8442-f7a7746c0f5f,d7fc8458-8d70-47c6-b4d0-90defac39616,,Slapback Delay,,,Delay,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 bf670a04-1fc4-444a-bf01-f6ba15593351,d7fc8458-8d70-47c6-b4d0-90defac39616,,Smooth Analog,,,Delay,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
-ff93ff69-86e6-4957-8f42-f73e72ee480c,d7fc8458-8d70-47c6-b4d0-90defac39616,,Time Modeler,,,Delay,,,(Rack) PG Original,,,,,,Guitar
+d48dd2c7-6f56-4013-a4c8-9ddfd5dc7aee,d7fc8458-8d70-47c6-b4d0-90defac39616,,Time Modeler,,,Delay,,,(Rack) PG Original,,,,,,Guitar
 b14d1539-a120-466d-a85c-8c4ca1fdfa70,d7fc8458-8d70-47c6-b4d0-90defac39616,,Tremolod Delay,,,Delay,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 d48dd2c7-6f56-4013-a4c8-9ddfd5dc7aee,d7fc8458-8d70-47c6-b4d0-90defac39616,,Time Modeler,,,Delay,,,(Rack - Omni Delay) PG Original,,,,,,Guitar
 a95b775a-6742-4253-addd-b4796224fba7,d7fc8458-8d70-47c6-b4d0-90defac39616,,Fat Phaser Tape,,,"Delay,Modulation",,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
@@ -3740,9 +3740,9 @@ a95b775a-6742-4253-addd-b4796224fba7,d7fc8458-8d70-47c6-b4d0-90defac39616,,Fat P
 48db8172-056d-4c2a-ae67-8c0bcf5e528f,d7fc8458-8d70-47c6-b4d0-90defac39616,,Shhh!,,,Dynamics,,,(Pedal - Noise Gate),,,,,,"Guitar,Stomp"
 ed6ee418-fcdb-4400-b271-57d0388630ba,d7fc8458-8d70-47c6-b4d0-90defac39616,,Bloodline,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 76707101-f018-4507-a89d-c9f20e3a4329,d7fc8458-8d70-47c6-b4d0-90defac39616,,British Crunch,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
-4488141f-0465-4dcb-8535-537003812ef3,d7fc8458-8d70-47c6-b4d0-90defac39616,,DistortionX,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
+8a6de321-f741-4195-8e86-880988113b8d,d7fc8458-8d70-47c6-b4d0-90defac39616,,DistortionX,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 88f5fb53-b174-444c-a0a4-0a2664d4b980,d7fc8458-8d70-47c6-b4d0-90defac39616,,Dumble Clean,,,Harmonic Coloration,,,(Pedal) PG Original (Dumble Overdrive),,,,,,"Guitar,Stomp"
-9e8f0532-ff57-4004-847f-c3d16504ba45,d7fc8458-8d70-47c6-b4d0-90defac39616,,Fuzz Modeler,,,Harmonic Coloration,,,(Rack) PG Original,,,,,,Guitar
+a934d22e-08f8-4874-aa3c-85550d379da5,d7fc8458-8d70-47c6-b4d0-90defac39616,,Fuzz Modeler,,,Harmonic Coloration,,,(Rack) PG Original,,,,,,Guitar
 3ddcf9fa-c6e3-49ce-9b4f-e20d6cb6e293,d7fc8458-8d70-47c6-b4d0-90defac39616,,Heavy Fuzz,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 c3273429-82e4-45ae-94e6-fc9cef5f7ba3,d7fc8458-8d70-47c6-b4d0-90defac39616,,Hell Metal,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
 6f684c9b-8e70-40d1-936b-9ca173edffe3,d7fc8458-8d70-47c6-b4d0-90defac39616,,JB Fuzz,,,Harmonic Coloration,,,(Pedal) PG Original,,,,,,"Guitar,Stomp"
@@ -3824,10 +3824,10 @@ ccccf680-e821-4387-9e87-5de30f00e3fc,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Squas
 52043f42-f1f4-4dd5-a9c8-b7590a8763fd,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Tube Compressor,,Cubase,Dynamics,Plugin,VST3,Emulates tube compressor,,,"smooth, warm tube compression.",,,
 c91cfcff-3dc7-4ad1-bbaf-ba16b38e872f,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Expander,,Cubase,Dynamics,Plugin,VST3,Reduces output level in relation to input level for signals below set level.,,,Useful for enahancing dynamic range or reducing noise in quiet passages.,,,
 94406f01-4e8c-4e8d-bb11-f795ae51984a,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Raiser,,Cubase,Dynamics,Plugin,VST3,Increases loudness of audio. Can go from smooth limiting of solo tracks / full mixes to aggressive limiting,,,Well suited for percussive material.,,,"Drums,Mastering"
-047c35c4-a08c-4543-8b62-da504af833c8,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Compressor,,,Dynamics,,,,,,,,,"Bass,Guitar"
-c1b805f4-af25-473e-86c5-0d7635106601,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Gate,,,Dynamics,,,,,,,,,"Bass,Guitar"
-54f44399-f1ef-4c71-9b6e-c56581f4e0e8,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Limiter,,,Dynamics,,,,,,,,,"Bass,Guitar"
-1881e0ec-63b0-4155-a18a-0b8577da3710,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Maximizer,,,Dynamics,,,,,,,,,"Bass,Guitar"
+67d56e2c-bba7-4436-bf33-3e193e43aaf2,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Compressor,,,Dynamics,,,,,,,,,"Bass,Guitar"
+d6f3c71b-c3a7-41d7-b935-5fd17aa857fd,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Gate,,,Dynamics,,,,,,,,,"Bass,Guitar"
+2b7e271f-0bd1-4f39-bafe-4b27b168afd2,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Limiter,,,Dynamics,,,,,,,,,"Bass,Guitar"
+35d841b0-82e6-45e5-9ce3-d74a44de5be9,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Maximizer,,,Dynamics,,,,,,,,,"Bass,Guitar"
 adb064ef-c2d8-4f9f-9b0c-5492db9dc52b,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Volume,,,Dynamics,,,,,,,,,"Bass,Guitar"
 7a1bb10e-edc5-4b7b-a8a3-d6388c9d764a,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Brickwall Limiter,,Cubase,Dynamics,Plugin,VST3,Ensures output level never exceeds a set limit,,,,,,Mastering
 67d56e2c-bba7-4436-bf33-3e193e43aaf2,e0794cc7-d1f3-4432-8e83-cdc6052c1cc3,,Compressor,,Cubase,Dynamics,Plugin,VST3,"reduces the dynamic range of the audio, making softer sounds louder or louder sounds softer, or both.",,,,,,
