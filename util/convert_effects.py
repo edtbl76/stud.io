@@ -17,7 +17,7 @@ import re
 import uuid
 from pathlib import Path
 
-BASE        = Path(__file__).parent
+BASE        = Path(__file__).parent.parent
 IMPORT_CSV  = BASE / "import" / "Studio 2026 - Effects.csv"
 BRANDS_CSV  = BASE / "csv" / "brands.csv"
 MODELS_CSV  = BASE / "csv" / "models.csv"
@@ -233,6 +233,7 @@ def main():
         print(f"  Preserving {len(existing)} existing rows (UUIDs + attributes + manual brand_ids)")
 
     rows                     = []
+    used_ids                 = set()
     unmatched_manufacturers  = set()
     unknown_types            = set()
     unmatched_models         = set()
@@ -305,8 +306,12 @@ def main():
             for effect_name in names:
                 prior          = existing.get(effect_name, {})
                 final_brand_id = prior.get("brand_id") or brand_id
+                candidate_id   = prior.get("effect_id")
+                if not candidate_id or candidate_id in used_ids:
+                    candidate_id = str(uuid.uuid4())
+                used_ids.add(candidate_id)
                 rows.append({
-                    "effect_id":        prior.get("effect_id") or str(uuid.uuid4()),
+                    "effect_id":        candidate_id,
                     "brand_id":         final_brand_id,
                     "model_ids":        ",".join(model_ids_list),
                     "effect_name":      effect_name,

@@ -14,7 +14,7 @@ import re
 import uuid
 from pathlib import Path
 
-BASE        = Path(__file__).parent
+BASE        = Path(__file__).parent.parent
 IMPORT_CSV  = BASE / "import" / "Studio 2026 - Models.csv"
 BRANDS_CSV  = BASE / "csv" / "brands.csv"
 OUT_CSV     = BASE / "csv" / "models.csv"

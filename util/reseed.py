@@ -25,7 +25,7 @@ DB_PASS = "studio"
 DB_HOST = "localhost"
 DB_PORT = 5432
 
-BASE_DIR  = Path(__file__).parent
+BASE_DIR  = Path(__file__).parent.parent
 SQL_DIR   = BASE_DIR / "sql"
 SEED_DIR  = SQL_DIR / "seeds"
 SCHEMA    = SQL_DIR / "schema.sql"

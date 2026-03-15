@@ -12,8 +12,8 @@ Usage:
 import csv
 from pathlib import Path
 
-CSV_DIR  = Path(__file__).parent / "csv"
-SEED_DIR = Path(__file__).parent / "sql" / "seeds"
+CSV_DIR  = Path(__file__).parent.parent / "csv"
+SEED_DIR = Path(__file__).parent.parent / "sql" / "seeds"
 
 
 def clean(val):
