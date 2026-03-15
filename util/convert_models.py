@@ -76,7 +76,7 @@ def build_brand_map():
             brand_id = clean(row.get("brand_id"))
             if not brand_id:
                 continue
-            for field in ("brand_name", "legal_name"):
+            for field in ("brand_name",):
                 val = clean(row.get(field))
                 if val:
                     brand_map[val.lower()] = brand_id
@@ -94,17 +94,18 @@ def lookup_brand(vendor, brand_map):
 
 
 def load_existing(path):
-    """Load existing models.csv keyed by model_name → {model_id, attributes, brand_id}."""
+    """Load existing models.csv keyed by (model_name, brand_id) → {model_id, attributes, brand_id}."""
     existing = {}
     if not path.exists():
         return existing
     with open(path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            name = clean(row.get("model_name"))
+            name     = clean(row.get("model_name"))
+            brand_id = clean(row.get("brand_id"))
             if name:
-                existing[name] = {
+                existing[(name, brand_id)] = {
                     "model_id":   clean(row.get("model_id")),
-                    "brand_id":   clean(row.get("brand_id")),
+                    "brand_id":   brand_id,
                     "attributes": clean(row.get("attributes")),
                 }
     return existing
@@ -130,11 +131,11 @@ def main():
             if not model_name:
                 continue
 
-            prior = existing.get(model_name, {})
-
             vendor   = clean(row.get("Vendor"))
-            # Prefer manually-set brand_id from existing CSV; fall back to lookup
-            brand_id = prior.get("brand_id") or lookup_brand(vendor, brand_map)
+            brand_id = lookup_brand(vendor, brand_map)
+
+            # Look up existing row by (model_name, brand_id) for UUID + attributes preservation
+            prior = existing.get((model_name, brand_id), {})
             if vendor and not brand_id:
                 unmatched.add(vendor)
 

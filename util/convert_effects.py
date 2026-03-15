@@ -81,7 +81,7 @@ def build_brand_map():
             brand_id = clean(row.get("brand_id"))
             if not brand_id:
                 continue
-            for field in ("brand_name", "legal_name"):
+            for field in ("brand_name",):
                 val = clean(row.get(field))
                 if val:
                     brand_map[val.lower()] = brand_id
@@ -233,7 +233,6 @@ def main():
         print(f"  Preserving {len(existing)} existing rows (UUIDs + attributes + manual brand_ids)")
 
     rows                     = []
-    used_ids                 = set()
     unmatched_manufacturers  = set()
     unknown_types            = set()
     unmatched_models         = set()
@@ -306,12 +305,8 @@ def main():
             for effect_name in names:
                 prior          = existing.get(effect_name, {})
                 final_brand_id = prior.get("brand_id") or brand_id
-                candidate_id   = prior.get("effect_id")
-                if not candidate_id or candidate_id in used_ids:
-                    candidate_id = str(uuid.uuid4())
-                used_ids.add(candidate_id)
                 rows.append({
-                    "effect_id":        candidate_id,
+                    "effect_id":        prior.get("effect_id") or str(uuid.uuid4()),
                     "brand_id":         final_brand_id,
                     "model_ids":        ",".join(model_ids_list),
                     "effect_name":      effect_name,

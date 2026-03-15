@@ -136,7 +136,7 @@ def build_brand_name_map():
     with open(BRANDS_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             bid   = clean(row.get("brand_id"))
-            bname = clean(row.get("brand_name")) or clean(row.get("legal_name"))
+            bname = clean(row.get("brand_name"))
             if bid and bname:
                 m[bid] = normalize_vendor(bname)
     return m
@@ -148,7 +148,7 @@ def build_model_maps():
     with open(BRANDS_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             bid   = clean(row.get("brand_id"))
-            cname = clean(row.get("brand_name")) or clean(row.get("legal_name"))
+            cname = clean(row.get("brand_name"))
             if bid and cname:
                 brand_names[bid] = cname
 
@@ -202,7 +202,7 @@ def build_brand_lookup():
             bid = clean(row.get("brand_id"))
             if not bid:
                 continue
-            for field in ("brand_name", "legal_name"):
+            for field in ("brand_name",):
                 val = clean(row.get(field))
                 if val:
                     m[val.lower()] = bid

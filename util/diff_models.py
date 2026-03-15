@@ -44,7 +44,7 @@ def build_brand_name_map():
     with open(BRANDS_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             bid   = clean(row.get("brand_id"))
-            bname = clean(row.get("brand_name")) or clean(row.get("legal_name"))
+            bname = clean(row.get("brand_name"))
             if bid and bname:
                 m[bid] = normalize_vendor(bname)
     return m
