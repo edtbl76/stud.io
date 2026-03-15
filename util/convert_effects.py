@@ -205,17 +205,18 @@ def map_tags(tags_str):
 
 
 def load_existing(path):
-    """Load existing effects.csv keyed by effect_name → {effect_id, brand_id, attributes}."""
+    """Load existing effects.csv keyed by (effect_name, brand_id, sorted_model_ids) → {effect_id, attributes}."""
     existing = {}
     if not path.exists():
         return existing
     with open(path, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            name = clean(row.get("effect_name"))
+            name      = clean(row.get("effect_name"))
+            brand_id  = clean(row.get("brand_id"))
+            model_ids = ",".join(sorted(clean(row.get("model_ids", "")).split(",")))
             if name:
-                existing[name] = {
+                existing[(name, brand_id, model_ids)] = {
                     "effect_id":  clean(row.get("effect_id")),
-                    "brand_id":   clean(row.get("brand_id")),
                     "attributes": clean(row.get("attributes")),
                 }
     return existing
@@ -302,12 +303,12 @@ def main():
             tags_list = map_tags(tags_str)
 
             # One output row per name
+            model_ids_sorted = ",".join(sorted(model_ids_list))
             for effect_name in names:
-                prior          = existing.get(effect_name, {})
-                final_brand_id = prior.get("brand_id") or brand_id
+                prior = existing.get((effect_name, brand_id, model_ids_sorted), {})
                 rows.append({
                     "effect_id":        prior.get("effect_id") or str(uuid.uuid4()),
-                    "brand_id":         final_brand_id,
+                    "brand_id":         brand_id,
                     "model_ids":        ",".join(model_ids_list),
                     "effect_name":      effect_name,
                     "version":          version,
