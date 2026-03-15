@@ -6,6 +6,7 @@ Matches on (manufacturer_normalized, effect_name) to handle duplicate names.
 
 import csv
 import re
+from collections import Counter, defaultdict
 from pathlib import Path
 
 BASE        = Path(__file__).parent.parent
@@ -210,25 +211,39 @@ def build_brand_lookup():
     return m
 
 
+def row_fingerprint(version, collection, plugin_notes, workflow_notes, recording_notes, tags):
+    """Tuple of all compared fields — used for set-cancellation matching."""
+    return (version, collection, plugin_notes, workflow_notes, recording_notes, tags)
+
+
 def main():
     brand_name_map = build_brand_name_map()
     brand_lookup   = build_brand_lookup()
     model_map      = build_model_maps()
 
-    # Load output keyed by (vendor, effect_name, sorted_model_ids)
-    out_rows = {}
+    # Group output rows by (vendor, effect_name) → Counter of fingerprints
+    out_groups = defaultdict(Counter)
     with open(OUT_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
-            name      = clean(row.get("effect_name"))
-            brand_id  = clean(row.get("brand_id"))
-            vendor    = brand_name_map.get(brand_id, "")
-            model_ids = ",".join(sorted(clean(row.get("model_ids", "")).split(",")))
-            if name:
-                out_rows[(vendor, name, model_ids)] = row
+            name     = clean(row.get("effect_name"))
+            brand_id = clean(row.get("brand_id"))
+            vendor   = brand_name_map.get(brand_id, "")
+            if not name:
+                continue
+            fp = row_fingerprint(
+                clean(row.get("version")),
+                clean(row.get("collection")),
+                clean(row.get("plugin_notes")),
+                clean(row.get("workflow_notes")),
+                clean(row.get("recording_notes")),
+                sorted_csv(row.get("tags", "")),
+            )
+            out_groups[(vendor, name)][fp] += 1
 
-    diffs          = []
+    # Group import rows by (vendor, effect_name) → Counter of fingerprints
+    imp_groups  = defaultdict(Counter)
+    imp_counts  = Counter()   # total import rows per (vendor, name)
     only_in_import = []
-    only_in_output = set(out_rows.keys())
 
     with open(IMPORT_CSV, newline="", encoding="utf-8") as f:
         for imp_row in csv.DictReader(f):
@@ -238,8 +253,6 @@ def main():
 
             manufacturer = clean(imp_row.get("Manufacturer", ""))
             vendor_norm  = normalize_vendor(manufacturer)
-
-            # Resolve brand_id for this import row
             imp_brand_id = ""
             for key in (manufacturer.lower(), vendor_norm):
                 if key in brand_lookup:
@@ -247,62 +260,70 @@ def main():
                     break
             imp_vendor = brand_name_map.get(imp_brand_id, vendor_norm)
 
-            # Resolve model_ids from import Model field
-            model_str             = clean(imp_row.get("Model", ""))
-            imp_model_ids_sorted, _ = lookup_models(model_str, model_map)
-
-            # Multi-name rows are split on newline
             names = [n.strip() for n in name_raw.split("\n") if n.strip()]
-
             for effect_name in names:
-                key = (imp_vendor, effect_name, imp_model_ids_sorted)
+                group_key = (imp_vendor, effect_name)
+                if group_key not in out_groups:
+                    only_in_import.append(f"{imp_vendor} / {effect_name}")
+                    continue
+                fp = row_fingerprint(
+                    clean(imp_row.get("Version")),
+                    clean(imp_row.get("Series / Collection")),
+                    clean(imp_row.get("Plugin Notes")),
+                    clean(imp_row.get("Workflow Notes")),
+                    clean(imp_row.get("Recording Notes")),
+                    map_tags(clean(imp_row.get("Tags", ""))),
+                )
+                imp_groups[group_key][fp] += 1
+                imp_counts[group_key] += 1
 
-                if key in out_rows:
-                    out = out_rows[key]
-                else:
-                    # Fall back to (vendor, name) ignoring model_ids
-                    name_matches = [(v, n, m) for (v, n, m) in out_rows if v == imp_vendor and n == effect_name]
-                    if not name_matches:
-                        # Last resort: name-only
-                        name_matches = [(v, n, m) for (v, n, m) in out_rows if n == effect_name]
-                    if not name_matches:
-                        only_in_import.append(f"{imp_vendor} / {effect_name}")
-                        continue
-                    out = out_rows[name_matches[0]]
-                    key = name_matches[0]
+    # Cancel identical rows; collect remaining drift
+    diffs = []
+    for group_key in sorted(imp_groups.keys()):
+        vendor, effect_name = group_key
+        imp_counter = Counter(imp_groups[group_key])
+        out_counter = Counter(out_groups[group_key])
 
-                only_in_output.discard(key)
+        # Cancel exact matches
+        for fp in list(imp_counter.keys()):
+            cancel = min(imp_counter[fp], out_counter[fp])
+            imp_counter[fp] -= cancel
+            out_counter[fp]  -= cancel
 
-                exp_tags = map_tags(clean(imp_row.get("Tags", "")))
+        remaining_imp = [(fp, n) for fp, n in imp_counter.items() if n > 0]
+        remaining_out = [(fp, n) for fp, n in out_counter.items() if n > 0]
 
-                field_diffs = []
-                checks = [
-                    ("version",        clean(imp_row.get("Version")),             clean(out.get("version"))),
-                    ("collection",     clean(imp_row.get("Series / Collection")), clean(out.get("collection"))),
-                    ("plugin_notes",   clean(imp_row.get("Plugin Notes")),        clean(out.get("plugin_notes"))),
-                    ("workflow_notes", clean(imp_row.get("Workflow Notes")),       clean(out.get("workflow_notes"))),
-                    ("recording_notes",clean(imp_row.get("Recording Notes")),      clean(out.get("recording_notes"))),
-                    ("tags",           exp_tags,                                   sorted_csv(out.get("tags", ""))),
-                ]
-                for col, imp_val, out_val in checks:
-                    if imp_val != out_val:
-                        field_diffs.append((col, imp_val, out_val))
+        if remaining_imp or remaining_out:
+            diffs.append((vendor, effect_name, remaining_imp, remaining_out))
 
-                if field_diffs:
-                    diffs.append((imp_vendor, effect_name, field_diffs))
-
+    # Output
     print(f"{'='*60}")
-    print(f"  Effects Diff: import vs csv")
+    print(f"  Effects Diff: import vs csv  (set-cancellation)")
     print(f"{'='*60}\n")
 
+    FIELDS = ["version", "collection", "plugin_notes", "workflow_notes", "recording_notes", "tags"]
+
     if diffs:
-        print(f"  {len(diffs)} rows with field differences:\n")
-        for vendor, effect_name, field_diffs in diffs:
+        total_imp = sum(sum(n for _, n in ri) for _, _, ri, _ in diffs)
+        total_out = sum(sum(n for _, n in ro) for _, _, _, ro in diffs)
+        print(f"  {len(diffs)} effect(s) with drift  "
+              f"({total_imp} unmatched import rows, {total_out} unmatched output rows):\n")
+        for vendor, effect_name, remaining_imp, remaining_out in diffs:
             print(f"  [{vendor} / {effect_name}]")
-            for col, imp_val, out_val in field_diffs:
-                print(f"    {col}:")
-                print(f"      import: {imp_val!r}")
-                print(f"      output: {out_val!r}")
+            if remaining_imp:
+                for fp, n in remaining_imp:
+                    label = f"  import{'  (×'+str(n)+')' if n > 1 else ''}"
+                    print(f"    {label}:")
+                    for field, val in zip(FIELDS, fp):
+                        if val:
+                            print(f"      {field}: {val!r}")
+            if remaining_out:
+                for fp, n in remaining_out:
+                    label = f"  output{'  (×'+str(n)+')' if n > 1 else ''}"
+                    print(f"    {label}:")
+                    for field, val in zip(FIELDS, fp):
+                        if val:
+                            print(f"      {field}: {val!r}")
             print()
     else:
         print("  No field differences — effects.csv is in sync.\n")
@@ -311,12 +332,6 @@ def main():
         print(f"  Only in import ({len(only_in_import)}):")
         for n in only_in_import:
             print(f"    - {n!r}")
-        print()
-
-    if only_in_output:
-        print(f"  Only in output ({len(only_in_output)}):")
-        for (v, n) in sorted(only_in_output):
-            print(f"    - {v} / {n!r}")
         print()
 
     print(f"{'='*60}")
