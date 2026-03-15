@@ -3191,7 +3191,7 @@ d3a1d7fd-92e5-4bd4-b6f9-6779746db589,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,Cabin
 993c632d-96ec-4add-b0f0-3469de9abb64,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,Preamp,,,,,,generic emulator for classic tube guitar amps,,,,,,Guitar
 5fbb3a86-0b92-49ef-af3f-58b62a10f356,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,TONEX Amp Red (Amplitube),,"Premium Tone Model
 TONEX Amp Red",,,,"Generic ""Solid State Bass Preamp""; Ampeg B15 1x15",,,,,,Bass
-82257eff-56fc-40a1-b9cc-567c68a11861,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,AmpliTube 5,5.10.9,,Container,"Plugin,Standalone","AU,VST3","Combines (up to 6) stomp box, amp, and cabinet emulation",,,,,,"Bass,Guitar"
+82257eff-56fc-40a1-b9cc-567c68a11861,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,Amplitube 5,5.10.9,,Container,"Plugin,Standalone","AU,VST3","Combines (up to 6) stomp box, amp, and cabinet emulation",,,,,,"Bass,Guitar"
 010d8f6b-1a96-43d6-852b-2722899cd2f6,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,MixBox,1.5.2,,Container,"Plugin,Standalone","AU,VST3","Virtual Rack. Has 71 modules ported from T-RackS, SampleTank and AmpliTube. Up to 8 racks of 8 modules each. [ Dynamics, EQ / Filter, Modulation, Channel Strips, Reverb / Delay, Distortion / Saturation, Amplifiers ]",,,,,,
 560887e9-8a5f-42c5-b8fd-ffd183041b33,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,TONEX,1.10.5,,"Container,Delay,Dynamics,EQ,Modulation,Reverb&Room","Plugin,Standalone","AU,VST3","AI machine modeled tone creator, player, browser and editor for amp, cab and stomp. Has dynamic processing (noise gate, compressor), Modulation effects, Delay, Reverb, and EQ",,,,,,"Bass,Guitar"
 a31bcbcd-436d-4e6d-ac8e-6b276b214365,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,X-TIME,,X-Gear (X-TIME),Delay,,,16 original settings,,,,,,Stomp
