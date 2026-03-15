@@ -84,7 +84,7 @@ bb9f1147-e2ef-44c2-b2b0-5931edc4ff7f,07c4b938-7505-4597-9461-cebfb162ae82,f49eb2
 71114c0e-9e41-4e61-b86a-e2505071987e,07c4b938-7505-4597-9461-cebfb162ae82,0fe480ff-8ded-4dc3-ab75-87767ba301e1,AM61,,,Microphone,,,,,,,,,Modeled
 dd4d4f90-7617-4f23-b27f-9a5513590dee,fbb3f0b2-efb1-40ee-8e89-685698697155,d2a494c5-bdf5-4c55-9e68-0d72073041fc,Little Radiator,5.5.4.18982,,Harmonic Coloration,Plugin,"AU,VST3",,,,,,,Modeled
 6a955942-b563-45d3-b3ba-be6890b1e9c9,fbb3f0b2-efb1-40ee-8e89-685698697155,c49e8632-3bfa-4062-bc99-a489cf0f365c,Radiator,5.5.4.18982,,Harmonic Coloration,Plugin,"AU,VST3",,,,,,,Modeled
-a8025268-6522-4d48-ab78-93db57261941,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,50ecbd12-b4ab-4351-ab1c-724c9e3fdeb5,Altec 21D,,,Microphone,,,Capital Chambers 4 and 5 provide historically accurate configs w/ a band limited frequency response,Embedded in Capitol Chambers,,,,,Modeled
+a8025268-6522-4d48-ab78-93db57261941,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,50ecbd12-b4ab-4351-ab1c-724c9e3fdeb5,Altec 21D,,,Microphone,,,Capitol Chambers 4 and 5 provide historically accurate configs w/ a band limited frequency response,Embedded in Capitol Chambers,,,,,Modeled
 ce77246c-6e1b-4c07-a8ab-635e700f4f65,725a2764-55b5-4e7c-a469-a4970c0aa267,231280e7-9bd3-4feb-b3c9-29fc25c3b517,1x15 Bass Vintage,,Amplitube Collection,Combo,,,1x15 CAB,,,,,,"Bass,Modeled"
 56a8b494-71a7-4ecb-bf21-dfcdb64b9872,f4ad6589-72fe-48ac-84c0-7b750cbd1231,231280e7-9bd3-4feb-b3c9-29fc25c3b517,1x15 Ampeg B-15,,,Combo,,,1x15 CAB,Ampeg B-15 TOP,,,,,"Guitar,Modeled"
 9522dcf1-a34c-4c7a-8e7e-77f1c2eb08b5,d7fc8458-8d70-47c6-b4d0-90defac39616,231280e7-9bd3-4feb-b3c9-29fc25c3b517,B15,,,Combo,,,8x10 Bass Super,Ampeg B-15 ALT (Tone),,,,,"Bass,Modeled"
@@ -443,8 +443,8 @@ fe91181c-279a-4624-9efb-89f837bfade6,07c4b938-7505-4597-9461-cebfb162ae82,b90646
 1019071c-f674-4421-9713-7908aedd3cec,07c4b938-7505-4597-9461-cebfb162ae82,7e141cdb-32a5-4c78-86a7-12f203cfb7fe,Equitek E200,,,Microphone,,,,,,,,,Modeled
 feacd2a1-2380-40a6-9214-bedbcdf86ec1,07c4b938-7505-4597-9461-cebfb162ae82,418174a1-a738-4d57-82b9-4d8c4fa50209,Equitek E350,,,Microphone,,,,,,,,,Modeled
 0cb2e13a-7e4f-4d32-8e44-8c99e17a8132,07c4b938-7505-4597-9461-cebfb162ae82,0254ede2-1d08-4c00-b77d-62bcc09fd75a,VSM1,,,Microphone,,,,,,,,,Modeled
-35e05bc4-2c6c-485a-b54a-ae38bb625fcb,d7fc8458-8d70-47c6-b4d0-90defac39616,,Booster,,L.A. Rocker Collection,Harmonic Coloration,,,,,,,,,"Guitar,Modeled,Stomp"
-4b126937-e479-488a-b0b7-3e5ac9226d0d,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Capitol Chambers,"11.8.1 (UAD-2)
+35e05bc4-2c6c-485a-b54a-ae38bb625fcb,d7fc8458-8d70-47c6-b4d0-90defac39616,399123fa-2bfe-4d5c-b4ba-1583498739d8,Booster,,L.A. Rocker Collection,Harmonic Coloration,,,,,,,,,"Guitar,Modeled,Stomp"
+4b126937-e479-488a-b0b7-3e5ac9226d0d,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,63936125-6b75-4368-b4a6-796b9d8d665a,Capitol Chambers,"11.8.1 (UAD-2)
 1.0.9 (UADx)",,Reverb&Room,Plugin,"UAD-2,UADx",Dynamic Room Modeling,,,"Chamber 2 (SPEAKER --> Altec 604 Duplex w/ JBL LE-175 horn + JBL Crossover) - rich, low-mid soundfield usig era-spanning custom Capitol Studios component pairing; 
 Chamber 4 (SPEAKER --> Altec A7 Voice of the Theatre w/ Altec 802 horn) ""Al's Chamber"" - most in-demand chamber. Original installation movie theatre playback system. Balanced sound and shortest natural decay
 Chamber 6 (SPEAKER --> Altec 604 Duplex) original 50s installation w/ vintage hi-fi audio playback speaker system giving warm, long decay
@@ -782,7 +782,7 @@ f6023961-6e11-4b09-8607-26cf6b269e04,f4ad6589-72fe-48ac-84c0-7b750cbd1231,ea997e
 23562ac9-b114-4bb0-b496-978df9128522,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,97dda1d9-20b6-4a01-8e85-695c3603c938,elysia alpha master,1.9.1,Elysia (Modeled by),Dynamics,Plugin,UAD-2,mastering (stereo) version;,superceded by compressor V2,,,,,"Mastering,Modeled,Deprecated"
 cd25f39b-9111-4b8b-b9d0-6e94f8b1c26b,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,97dda1d9-20b6-4a01-8e85-695c3603c938,elysia alpha mix,1.9.1,Elysia (Modeled by),Dynamics,Plugin,UAD-2,single channel,superceded by compressor V2,,,,,"Modeled,Deprecated"
 81403567-05ed-42e0-820f-56601b7a5f58,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,97dda1d9-20b6-4a01-8e85-695c3603c938,elysia alpha compressor V2,1.14.1,Elysia (Modeled by),"Dynamics,EQ",Plugin,UAD-2,,Elysia Alpha Compressor TOP,,,,,"Mastering,Modeled"
-ac6e4952-8864-495c-ac08-5022aec2ce14,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,elysia mpressor,1.4.1,Elysia (Modeled by),Dynamics,Plugin,UAD-2,,,,,,,Modeled
+ac6e4952-8864-495c-ac08-5022aec2ce14,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,3c5bd5a1-d1d8-4fbe-9ab1-31055ef23dfc,elysia mpressor,1.4.1,Elysia (Modeled by),Dynamics,Plugin,UAD-2,,,,,,,Modeled
 fddd7392-f743-42d5-ac4f-bf83ba7bef2a,52ca057c-1c70-4093-81ad-720a2ba3ac60,41d4e375-293e-4a22-9e55-6bf515df0b28,Abbey Road Reel ADT,16.7.33,,Modulation,Plugin,AU,single modulation,,,,,,Modeled
 549119b0-0640-40fa-9d40-603e549cab31,52ca057c-1c70-4093-81ad-720a2ba3ac60,41d4e375-293e-4a22-9e55-6bf515df0b28,Abbey Road Reel ADT Live,16.7.33,,Modulation,Plugin,AU,single modulation,,,,,,"Live Sound,Modeled,Remove"
 bda8bf4a-5b97-4eda-bdbd-d8a5ee4e9f49,52ca057c-1c70-4093-81ad-720a2ba3ac60,41d4e375-293e-4a22-9e55-6bf515df0b28,Abbey Road Reel ADT2V,16.7.33,,Modulation,Plugin,AU,Adds a second ADT Modulation,,,,,,Modeled
@@ -985,10 +985,10 @@ d2e6a93a-95bd-47b0-946c-93900440b243,d7fc8458-8d70-47c6-b4d0-90defac39616,ec50ba
 32e645c1-71f5-4c9b-8947-d7e0bfff06a6,d7fc8458-8d70-47c6-b4d0-90defac39616,ec50ba25-c961-4631-aff1-085b7457d4bf,Bassmaster,,American-Series - Mid-Gain/Crunch,Combo,,,4x10 Bassmaster Cab,Fender ’59 Bassman ALT (Tone),,,,,"Guitar,Modeled"
 6e89f935-0828-488c-a3cd-779c8ed7c84e,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,ec50ba25-c961-4631-aff1-085b7457d4bf,4x10 Tweed B-Man,,,Combo,,,4x10 CAB,Embedded in Paradise,,"Great scooped, high fidelity sound when used clean. Use w/ low gain sounds for clean, somewhat pristine sounds. mic'd w/ Shure SM57",,,"Guitar,Modeled"
 1aa5d452-15a6-483a-a36c-c8419b6123e3,52ca057c-1c70-4093-81ad-720a2ba3ac60,ec50ba25-c961-4631-aff1-085b7457d4bf,GTR Amp Clean - Clean,,,Combo,,,,Fender ’59 Bassman DNU,,,,,"Guitar,Modeled"
-b8df07cf-473a-4a6c-a9da-b56f1f61a0af,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,American Tube Vintage,,Amplitube Collection,,,,(crunch),Fender ’59 Bassman ALT (Tone),,,,,"Guitar,Modeled"
-630b80d5-50b8-4c3e-927c-215476bdc98b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,,American Vintage B,,Electric Gypsy Collection,,,,(clean),Fender ’59 Bassman ALT (Tone),,,,,"Guitar,Modeled"
-28287a23-9a9a-444d-8d3e-f0bc4361ffec,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Tweed Blues Brt,,,,,,"2 Models/Channels (normal, bright)",Fender ’59 Bassman TOP,,,,,"Guitar,Modeled"
-b9c18f24-7dbe-4fd1-853f-9f55891704ba,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Tweed Blues Nrm,,,,,,"2 Models/Channels (normal, bright)",Fender ’59 Bassman TOP,,,,,"Guitar,Modeled"
+b8df07cf-473a-4a6c-a9da-b56f1f61a0af,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ec50ba25-c961-4631-aff1-085b7457d4bf,American Tube Vintage,,Amplitube Collection,Combo,,,(crunch),Fender ’59 Bassman ALT (Tone),,,,,"Guitar,Modeled"
+630b80d5-50b8-4c3e-927c-215476bdc98b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,ec50ba25-c961-4631-aff1-085b7457d4bf,American Vintage B,,Electric Gypsy Collection,Combo,,,(clean),Fender ’59 Bassman ALT (Tone),,,,,"Guitar,Modeled"
+28287a23-9a9a-444d-8d3e-f0bc4361ffec,f4ad6589-72fe-48ac-84c0-7b750cbd1231,ec50ba25-c961-4631-aff1-085b7457d4bf,Tweed Blues Brt,,,Combo,,,"2 Models/Channels (normal, bright)",Fender ’59 Bassman TOP,,,,,"Guitar,Modeled"
+b9c18f24-7dbe-4fd1-853f-9f55891704ba,f4ad6589-72fe-48ac-84c0-7b750cbd1231,ec50ba25-c961-4631-aff1-085b7457d4bf,Tweed Blues Nrm,,,Combo,,,"2 Models/Channels (normal, bright)",Fender ’59 Bassman TOP,,,,,"Guitar,Modeled"
 5286b887-852a-41d4-8efe-1e810924c807,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,216d951b-384e-4031-b99c-b3c92ce5ff93,59 Bassman LTD,,Fender Collection,Combo,,,(crunch) 4x10,Fender '59 Bassman LTD ALT (Tone),,,,,"Guitar,Modeled"
 659c5b7e-626d-41d9-b7ba-cc3f25ee7192,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,216d951b-384e-4031-b99c-b3c92ce5ff93,Tweed 2,,"Premium Tone Model
 Big Tweed
@@ -1393,7 +1393,7 @@ e27cf76c-b5d5-4716-be91-72b4c74aa2b1,f4ad6589-72fe-48ac-84c0-7b750cbd1231,a7972c
 eb9bdfc4-2c97-44cc-9f1f-026dd8fc9376,52ca057c-1c70-4093-81ad-720a2ba3ac60,c467f261-bc1e-4718-9c04-b51b084c638f,Kramer HLS,16.7.33,,"EQ,Preamp",Plugin,AU,,Helios Type 69 DNU,,,,,"Channel Strip,Modeled"
 c47986f4-5015-4e6c-9cd0-7ec382e6af1f,f4ad6589-72fe-48ac-84c0-7b750cbd1231,c37e6c64-6593-43f5-9495-be1b2444fa24,Dhyana Drive,,,Harmonic Coloration,,,,,,,,,"Guitar,Modeled,Stomp"
 2d469b9b-0550-4170-ac5f-cf8dc643ac05,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,d1bf629c-1817-4291-8069-0fc75e01da7e,Hitsville EQ,11.8.1 (UAD-2) 1.3.16 (UADx),,EQ,Plugin,"UAD-2,UADx",,,,,,,Modeled
-2e0f2bbd-e545-433a-a583-f03fb35ca0ca,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Hitsville EQ Mastering,11.8.1 (UAD-2) 1.3.16 (UADx),,EQ,Plugin,"UAD-2,UADx",,,,,,,Modeled
+2e0f2bbd-e545-433a-a583-f03fb35ca0ca,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,d1bf629c-1817-4291-8069-0fc75e01da7e,Hitsville EQ Mastering,11.8.1 (UAD-2) 1.3.16 (UADx),,EQ,Plugin,"UAD-2,UADx",,,,,,,"Modeled,Mastering"
 e1f2ac4f-2827-49b0-ace6-532848891a6e,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,9ac1521e-c2c3-4530-b323-0a4e8fcd1487,Hitsville Reverb Chambers,11.8.1 (UAD-2) 1.0.16 (UADx),,Reverb&Room,Plugin,"UAD-2,UADx","2 custom built reverb ""converted attic"" chambers w/ Dynamic Room Modeling",,,"2648 West Grand Blvd (vocals, solos, percussion); 
 [ Speakers --> Bozak 800 + ElectroVoice T35V tweeters w/ Bozak x-over (Bozak 8"" alum cone midrange driver w/ series-parallel array of EV 35B tweeters per side. 3-way x-over's lowband is empty = HPF); JBL 2482 + ElectroVoice T35B tweeters w/ Bozak x-over (JBL compression driver w/ massive Altec 803B multicell dispersion horn - replaced 800s in 1968 - same tweeter / x-over)]
 
@@ -1424,8 +1424,8 @@ ffae8fe4-8f45-43e0-a508-4904063da241,f4ad6589-72fe-48ac-84c0-7b750cbd1231,aa588b
 825d6cf1-cf0c-4c53-991c-6eab8fbcd73f,52ca057c-1c70-4093-81ad-720a2ba3ac60,aa588b88-05f3-491c-9157-262b921c3011,Acme 4x12 Cab,,,Cabinet,,,4x12 CAB,Hiwatt 4123F ALT (Tone),,,,,"Guitar,Modeled"
 f4b64055-866d-4560-89c7-d99d687733e4,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,aa588b88-05f3-491c-9157-262b921c3011,4x12 HiAmp,,Amplitube Collection,Cabinet,,,4x12 CAB,Hiwatt SE4123F TOP,,,,,"Guitar,Modeled"
 94e59603-1ae6-4212-b3ee-993dc81276e4,d7fc8458-8d70-47c6-b4d0-90defac39616,aa588b88-05f3-491c-9157-262b921c3011,Hiway 4123 4x12,,Legacy Series - CAB,Cabinet,,,4x12 CAB,Hiwatt SE4123F ALT (Tone),,,,,"Guitar,Modeled"
-cb378d53-d340-42d0-a495-bed594966728,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Horizon Gate,,,Dynamics,,,Gate Circuit,,,,,,"Guitar,Modeled,Stomp"
-1fa28ca2-0670-4d7d-b4a4-169f7ca7fef9,f4ad6589-72fe-48ac-84c0-7b750cbd1231,,Horizon Drive,,,Harmonic Coloration,,,,,,,,,"Guitar,Modeled,Stomp"
+cb378d53-d340-42d0-a495-bed594966728,f4ad6589-72fe-48ac-84c0-7b750cbd1231,5d383335-6b08-4ef8-b43b-e7d73f19e194,Horizon Gate,,,Dynamics,,,Gate Circuit,,,,,,"Guitar,Modeled,Stomp"
+1fa28ca2-0670-4d7d-b4a4-169f7ca7fef9,f4ad6589-72fe-48ac-84c0-7b750cbd1231,5d383335-6b08-4ef8-b43b-e7d73f19e194,Horizon Drive,,,Harmonic Coloration,,,,,,,,,"Guitar,Modeled,Stomp"
 1dc8815e-7e4d-4366-a39e-78480d106f07,d7fc8458-8d70-47c6-b4d0-90defac39616,1e9e07c2-bc52-4a97-a7c2-18ab0cf3ebba,Switch Blade,,Legacy Series - HIGH GAIN,Head,,,(Lead Channel) (Insane) 4x12 Green 25s,,,,,,"Guitar,Modeled"
 6b489c3b-bbf5-464d-8bd3-8ad7e899287c,d7fc8458-8d70-47c6-b4d0-90defac39616,1e9e07c2-bc52-4a97-a7c2-18ab0cf3ebba,SwitchAxe Lead,,Legacy Series - HIGH GAIN,Head,,,(Lead Channel) (Insane) 4x12 Green 25s,,,,,,"Guitar,Modeled"
 88bea397-65de-4ce0-9e1f-9dd6197931fd,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,5c523212-541e-44c0-a07e-bfed92ed6860,Alex Lifeson Legacy,,Premium Tone Model (Alex Lifeson),Head,,,Hughes & Kettner TC 412 A60,,,,,,"Guitar,Modeled"
@@ -2994,14 +2994,14 @@ baa08d53-c97d-4051-9b15-3adac1468037,f4ad6589-72fe-48ac-84c0-7b750cbd1231,731800
 0f934eb7-7214-4041-8b1b-815b09c2cd05,f4ad6589-72fe-48ac-84c0-7b750cbd1231,7318005b-6e99-4b39-9f9e-ff2e1f6e3045,Tycoctavia Fuzz,,,Harmonic Coloration,,,,Tycbrahe Octavia TOP,,,,,"Guitar,Modeled,Stomp"
 c5e3080d-2ab4-47d7-85e6-2e62ec370e80,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,69a1ac5f-dadc-48f3-b78d-e946cd1aee6c,UA 1176 Rev A,11.8.1 (UAD-2) 1.3.16 (UADx),,Dynamics,Plugin,"UAD-2,UADx",,,,,,,Modeled
 a3341612-8b68-4405-ab8e-8749ee43991a,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,bea28d27-33a0-4282-b244-be1dd07a9916,UA 1176 AE,11.8.1 (UAD-2) 1.3.16 (UADx),,Dynamics,Plugin,"UAD-2,UADx",,,,,,,Modeled
-146577bb-80c9-47e7-ac00-e8c54238a2ac,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,UA 175-B,11.8.1 (UAD-2) 1.0.11 (UADx),,Dynamics,Plugin,"UAD-2,UADx",,,,,,,Modeled
-448c2342-0da9-4e1c-a30f-289dfce395be,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,UA 176,11.8.1 (UAD-2) 1.0.11 (UADx),,Dynamics,Plugin,"UAD-2,UADx",,,,,,,Modeled
+146577bb-80c9-47e7-ac00-e8c54238a2ac,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,38ca7528-b563-487d-891c-c84ea8470be0,UA 175-B,11.8.1 (UAD-2) 1.0.11 (UADx),,Dynamics,Plugin,"UAD-2,UADx",,,,,,,Modeled
+448c2342-0da9-4e1c-a30f-289dfce395be,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,9c77d0ba-a122-420c-9584-46e60fd3379e,UA 176,11.8.1 (UAD-2) 1.0.11 (UADx),,Dynamics,Plugin,"UAD-2,UADx",,,,,,,Modeled
 4fd833fd-6fee-44aa-8269-7f761236dd94,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,d613a936-61ce-4f75-98de-d4d2fa10193c,UA 610-A,11.8.1 (UAD-2) 1.0.15 (UADx),,"EQ,Preamp",Plugin,"UAD-2,UADx",,,,,,,"Channel Strip,Modeled"
 88cb86b0-e237-4a9f-804b-d1ad1346a212,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,1da0f82a-a86a-41c5-8311-f746ad51d1c7,UA 610-B,11.8.1 (UAD-2) 1.0.15 (UADx),,"EQ,Preamp",Plugin,UAD-2,,,,,,,"Channel Strip,Modeled"
 51c75073-effb-49e4-a239-29d03847c949,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,bc4dde6c-5925-4527-8cc0-79e97bdff287,LA-6176 Channel Strip,11.8.1 (UAD-2) 1.0.5 (UADx),,"Dynamics,EQ,Preamp",Plugin,"UAD-2,UADx",,,,,,,Modeled
 caf269e5-79dc-4665-90e8-89bbbad456f4,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,c60662c8-da53-4ea5-a578-c1e0a1f9da56,Cooper Time Cube,11.8.1,,Delay,Plugin,UAD-2,,,,,,,Modeled
 cb9f8875-0911-40d5-b66c-c79fc6687c78,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,e5fd1173-10f2-448d-aecb-7323fec6b86b,Digital Reverb,,,Reverb&Room,,,"Based on [ EMT 140, Fender 6G15 Reverb; Lexicon 224 ]",,,"Church algorithm (lush, large reverb tails with great warmth and a real sense of space. Place this reverb type after a delay with modulated echoes to create a beautiful shimmering tail for guitar chord work and solo guitar sounds); Studio algorithm (short decay for the tight room sound of a well-designed studio space)",,,"Guitar,Modeled,Stomp"
-29c21748-dd00-4a55-a979-837be5147cb0,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Micropitch Shifter,,,"Modulation,Pitch Tools",,,,,,"Tweakable chorus and detune effect for lush and wide modulation, especially in stereo. To shift chorusing to the left or right in stereo, use the blend knob. 
+29c21748-dd00-4a55-a979-837be5147cb0,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,785599d3-cf26-4cfc-bea2-f9e13bac432e,Micropitch Shifter,,,"Modulation,Pitch Tools",,,,,,"Tweakable chorus and detune effect for lush and wide modulation, especially in stereo. To shift chorusing to the left or right in stereo, use the blend knob. 
 At high levels, the Depth knob can create ""seasick"" or almost robotic sounds.",,,"Guitar,Modeled,Stomp"
 11de7489-dedb-414e-9052-8369f9cea00c,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,e834df33-7018-4575-8ace-400e9f6457f8,Black 76,6.3.0,T-Racks,Dynamics,Plugin,"AU,VST3",,"UREI 1176 LN Rev E ALT (Tone)
 Embedded in Amplitube and MixBox",,,,,Modeled
@@ -3985,7 +3985,7 @@ f4e531f6-18d8-469c-ace6-b9346e0a3d5c,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Preci
 f0698756-5514-47af-96bc-312abf23cc58,f772e5f8-1e3c-11f1-a0d3-0072ee78ad39,,Precision K-Stereo,11.8.1,Bob Katz,"Spatial Processing,Time/Phase",Plugin,UAD-2,Psychoacoustic processor for stereo enhancement and phase-accurate ambiance recovery.,,,"Katz presets 
 Mastering --> rock tight bass, rock tight drums, orchestra A and B, clear presence, Raise Mid instruments, warm ambience; 
 MIX --> Big, Too Big, Big Steinway]",,,Mastering
-e38587b9-9c60-4a2d-8556-229f8f22f77c,,,CurveEQ,,Cubase,EQ,Plugin,VST3,"Spline EQ. Shows filter response being designed using a spline (smooth curvy line), creating a visual representation of how the EQ alters the sound. Uses spectrum matching that allows the transfer of a spectral shape from one recording to another.",,,,,,Mastering
+e38587b9-9c60-4a2d-8556-229f8f22f77c,2f74fff8-2014-11f1-a0d3-0072ee78ad39,,CurveEQ,,Cubase,EQ,Plugin,VST3,"Spline EQ. Shows filter response being designed using a spline (smooth curvy line), creating a visual representation of how the EQ alters the sound. Uses spectrum matching that allows the transfer of a spectral shape from one recording to another.",,,,,,Mastering
 459e4eac-54e7-4cc8-9bdd-792b78c0b9cb,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Silverado,,,,,,,,,"Era: ’60s to current day. Fat, punchy, and clear. A versatile amp that’s between mild and aggressive amps. • Clean ranges from pristine clean to mild crunch. • Drive is touch sensitive, with mild overdrive when played harder. • Lead is big, fuzzy, lost of low end. Classic ’70s hero guitar sound.",,,Guitar
 ce3d8fab-1485-40f4-8646-7ea04b0f0bd2,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Blue Flame,,,,,,,,,"Era: ’80s to current day. Can range from pristine clean to mild crunch. • Clean channel ranges from fat/clean to pleasing overdrive. • Drive channel is tight, aggressive, but not so percussive. • Lead is horn-like, with a nice top end, lots of gain, with a singing lead tone.",,,Guitar
 01f5218c-fc07-4122-8078-3f925f951b18,52ca057c-1c70-4093-81ad-720a2ba3ac60,,Arena,,,,,,,,,"Era: Late ’70s to current day. Hot rodded British sound. • Clean channel has a mild crunch with a fair amount of gain. • Drive is articulate, thick with top-end bite. • Lead is open sounding with lots of gain.",,,Guitar
