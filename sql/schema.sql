@@ -230,6 +230,24 @@ CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
 
 
 -- =============================================================================
+-- LIBRARIES
+-- Sample libraries and content packs linked to a host instrument or platform
+-- =============================================================================
+CREATE TABLE libraries (
+    library_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id      UUID REFERENCES brands(brand_id),
+    model_ids     UUID[],
+    library_name  TEXT NOT NULL,
+    notes         TEXT,
+    attributes    JSONB,
+    created_at    TIMESTAMP DEFAULT NOW(),
+    updated_at    TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_libraries_attributes ON libraries USING GIN (attributes);
+
+
+-- =============================================================================
 -- ADMIN TOOLS
 -- License managers, downloaders, product portals — never recommended
 -- =============================================================================

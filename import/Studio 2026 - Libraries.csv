@@ -1,4 +1,18 @@
 name,manufacturerName,Tags,System,Sorted System,Models,Notes,Instruments / Tags? 
+Analog Monsters FREE,PinkNoise Studio,,Reason,Reason,"Andromeda A6
+Korg MonoPoly
+Korg MS-20
+Korg MS-20
+Korg Poly800 MKII
+Moog Prodigy
+Roland Juno 60
+Roland Jupiter 4
+Studio Electronics SE-1X
+Waldorf Microwave",Dr. Rex; NN-19; NNXT; WAV,
+Electronic Piano Bass,IK Multimedia,,SampleTank,SampleTank,Fender Rhodes Piano Bass,SampleTank - Load,
+Stage 73 Mark V,IK Multimedia,,SampleTank,SampleTank,Fender Rhodes Mark I Stage 73,SampleTank - Load,
+Wurly Model 120,IK Multimedia,,SampleTank,SampleTank,Wurlitzer 120,SampleTank - Load,
+Electric Grand C70P,IK Multimedia,,SampleTank,SampleTank,Yamaha C7,SampleTank - Load,
 Aetheria Choir,8Dio,,Kontakt,Kontakt,,,
 Anthology Strings,8Dio,,Kontakt,Kontakt,,,
 CAGE Bundle,8Dio,,Kontakt,Kontakt,,,
@@ -186,8 +200,6 @@ Bionic Drums,IK Multimedia,,SampleTank,SampleTank,,,
 Brandenburg Piano,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 Cinematic Percussion,IK Multimedia,,SampleTank,SampleTank,,,
 Clavitube,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
-Electric Grand C70P,IK Multimedia,,SampleTank,SampleTank,Yamaha C7?,SampleTank - Load,
-Electronic Piano Bass,IK Multimedia,,SampleTank,SampleTank,Fender Rhodes Piano Bass,SampleTank - Load,
 Elektronika - Chillout,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 Elektronika - Deep House,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 Elektronika - Drum'n'Bass,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
@@ -227,13 +239,11 @@ SampleTank 4 SE,IK Multimedia,,SampleTank,SampleTank,,,
 SampleTron 2,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 Shipwreck Piano,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 Spaceport 77,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
-Stage 73 Mark V,IK Multimedia,,SampleTank,SampleTank,Fender Rhodes Stage 73,SampleTank - Load,
 Terry Bozzio Drums,IK Multimedia,,SampleTank,SampleTank,,,
 The Code Volume 1,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 The Code Volume 2,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
 The Grid,IK Multimedia,,SampleTank,SampleTank,,,
 The Resonator,IK Multimedia,,SampleTank,SampleTank,,SampleTank - Load,
-Wurly Model 120,IK Multimedia,,SampleTank,SampleTank,Wurlitzer Model 120,SampleTank - Load,
 Syntronik,IK Multimedia,,"SampleTank, Syntronik","SampleTank, Syntronik",,,
 Syntronik 2,IK Multimedia,,"SampleTank, Syntronik","SampleTank, Syntronik",,SampleTank - Load,
 Classic Synths,Katsuhiro Chiba,,Ableton Live,Ableton Live,,,
@@ -537,27 +547,17 @@ Barely Vocals,Output,,Kontakt,,,(Exhale Expansion pack) ,
 EXHALE,Output,,Kontakt,Kontakt,,,
 Indie Vocals,Output,,Kontakt,,,(Exhale Expansion pack) ,
 MIDI Tools,Philip Meyer,,Ableton Live,Ableton Live,,,
-Analog Monsters FREE,Pink Noise Studio,,Reason,Reason,"Andromeda A6
-Korg MonoPoly
-Korg MS-20
-Korg MS-20
-Korg Poly800 MKII
-Moog Prodigy
-Roland Juno 60
-Roland Jupiter 4
-Studio Electronics SE-1X
-Waldorf Microwave",Dr. Rex; NN-19; NNXT; WAV,
-Indi-GO!,Pink Noise Studio,,Reason,Reason,,Dr. Rex;  NNXT,
-PNS Budapest Urban FX Collection,Pink Noise Studio,,Reason,Reason,,loose AIF,
-PNS Instru-U-Mental Pack,Pink Noise Studio,,Reason,Reason,,NN-19; Redrum,
-Quicksilver,Pink Noise Studio,,Reason,Reason,,NN-19; NNXT; Redrum; WAV,
-SC55 StandardKit,Pink Noise Studio,,Reason,Reason,,loose WAV,
-SoNIC-O-TooL,Pink Noise Studio,,Reason,Reason,,NN-19; Redrum; WAV,
-Waldorf Salad,Pink Noise Studio,,Reason,Reason,,Combinator; NN-19; NNXT; WAV,
+Indi-GO!,PinkNoise Studio,,Reason,Reason,,Dr. Rex;  NNXT,
+PNS Budapest Urban FX Collection,PinkNoise Studio,,Reason,Reason,,loose AIF,
+PNS Instru-U-Mental Pack,PinkNoise Studio,,Reason,Reason,,NN-19; Redrum,
+Quicksilver,PinkNoise Studio,,Reason,Reason,,NN-19; NNXT; Redrum; WAV,
+SC55 StandardKit,PinkNoise Studio,,Reason,Reason,,loose WAV,
+SoNIC-O-TooL,PinkNoise Studio,,Reason,Reason,,NN-19; Redrum; WAV,
+Waldorf Salad,PinkNoise Studio,,Reason,Reason,,Combinator; NN-19; NNXT; WAV,
 Retro Synths,Puremagnetik,,Ableton Live,Ableton Live,,,
-Kapture,Richie Hawtin (Plastikman) and Liine,,Ableton Live,Ableton Live,,,
-M4L Granulator II,Robert Henke (Monolake) ,,Ableton Live,Ableton Live,,,
-PitchLoop89,Robert Henke (Monolake) ,,Ableton Live,Ableton Live,,,
+Kapture,Richie Hawtin,,Ableton Live,Ableton Live,,,
+M4L Granulator II,Robert Henke,,Ableton Live,Ableton Live,,,
+PitchLoop89,Robert Henke,,Ableton Live,Ableton Live,,,
 Break Selection ,Sample Magic,,Ableton Live,Ableton Live,,,
 Scarbee Rickenbacker Bass,Scarbee,,Kontakt,Kontakt,,,
 Probability Pack,Sonic Faction,,Ableton Live,Ableton Live,,,
@@ -645,10 +645,10 @@ MPE Retrologue,Steinberg,,"Cubase, Retrologue","Cubase, Retrologue",,(MPE Sounds
 Retrologue,Steinberg,,"Cubase, Retrologue","Cubase, Retrologue",,Retrologue Factory Library,
 Retrologue 2,Steinberg,,"Cubase, Retrologue","Cubase, Retrologue",,,
 Flesh,Tim Exile,,Reaktor,Reaktor,,,
-Tom Pritchard Sound Design Synthesis Collection ReFill,Tom Pritchard,,Reason,Reason,,Combinator,
-Tom Pritchard Sound Design ThorKit II ReFill,Tom Pritchard,,Reason,Reason,,Thor,
-Tom Pritchard Sound Design ThorKit ReFill,Tom Pritchard,,Reason,Reason,,Thor,
-Tom Pritchard Sound Design Vast ReFill,Tom Pritchard,,Reason,Reason,,Combinator,
+Sound Design Synthesis Collection ReFill,Tom Pritchard,,Reason,Reason,,Combinator,
+Sound Design ThorKit II ReFill,Tom Pritchard,,Reason,Reason,,Thor,
+Sound Design ThorKit ReFill,Tom Pritchard,,Reason,Reason,,Thor,
+Sound Design Vast ReFill,Tom Pritchard,,Reason,Reason,,Combinator,
 Americana MIDI,Toontrack,,Superior Drummer 3,Superior Drummer 3,,Drum MIDI Packs,
 Ballads MIDI,Toontrack,,Superior Drummer 3,Superior Drummer 3,,Drum MIDI Packs,
 Basic Rock MIDI,Toontrack,,Superior Drummer 3,Superior Drummer 3,,Drum MIDI Packs,
@@ -689,4 +689,4 @@ Decades SDX,Toontrack,,Superior Drummer 3,Superior Drummer 3,,SDX Sound Expansio
 Fields of Rock SDX,Toontrack,,Superior Drummer 3,Superior Drummer 3,,SDX Sound Expansion,
 New York Studios Vol. 1 SDX,Toontrack,,Superior Drummer 3,Superior Drummer 3,,SDX Sound Expansion,
 State of the Art SDX,Toontrack,,Superior Drummer 3,Superior Drummer 3,,SDX Sound Expansion,
-Vinyl Classics,Zero G,,Ableton Live,Ableton Live,,,
+Vinyl Classics,Zero-G,,Ableton Live,Ableton Live,,,
