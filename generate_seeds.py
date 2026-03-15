@@ -110,23 +110,23 @@ def generate_brands():
     with open(src, newline='', encoding='utf-8') as f:
         for row in csv.DictReader(f):
             brand_id    = clean(row.get("brand_id"))
+            legal_name  = clean(row.get("legal_name"))
             brand_name  = clean(row.get("brand_name"))
-            common_name = clean(row.get("common_name"))
             entity_type = clean(row.get("entity_type")) or "Manufacturer"
             website     = clean(row.get("website"))
             description = clean(row.get("description"))
             founder     = clean(row.get("founder"))
             years       = clean(row.get("years"))
-            if not brand_name:
+            if not legal_name:
                 continue
-            rows.append((brand_id, brand_name, common_name, entity_type, website, description, founder, years))
+            rows.append((brand_id, legal_name, brand_name, entity_type, website, description, founder, years))
 
     lines = seed_header("brands", "brands.csv")
 
-    for brand_id, brand_name, common_name, entity_type, website, description, founder, years in rows:
+    for brand_id, legal_name, brand_name, entity_type, website, description, founder, years in rows:
         lines.append(
-            f"INSERT INTO brands (brand_id, brand_name, common_name, entity_type, website, description, founder, years)"
-            f" VALUES ({escape(brand_id)}, {escape(brand_name)}, {escape(common_name)}, {escape(entity_type)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
+            f"INSERT INTO brands (brand_id, legal_name, brand_name, entity_type, website, description, founder, years)"
+            f" VALUES ({escape(brand_id)}, {escape(legal_name)}, {escape(brand_name)}, {escape(entity_type)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
             f" ON CONFLICT (brand_id) DO UPDATE SET"
             f" website = EXCLUDED.website,"
             f" entity_type = EXCLUDED.entity_type,"
@@ -134,7 +134,7 @@ def generate_brands():
             f" founder = EXCLUDED.founder,"
             f" years = EXCLUDED.years,"
             f" updated_at = NOW();"
-            f"  -- common_name intentionally not updated (manually maintained)"
+            f"  -- brand_name intentionally not updated (manually maintained)"
         )
 
     lines.append("")

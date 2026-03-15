@@ -21,8 +21,8 @@ CREATE TYPE tag_type AS ENUM (
 -- =============================================================================
 CREATE TABLE brands (
     brand_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_name   TEXT NOT NULL,
-    common_name  TEXT,
+    legal_name   TEXT NOT NULL,
+    brand_name   TEXT,
     entity_type  entity_type NOT NULL DEFAULT 'Manufacturer',
     website      TEXT,
     description  TEXT,
@@ -158,7 +158,7 @@ CREATE INDEX idx_models_attributes ON models USING GIN (attributes);
 CREATE VIEW models_view AS
     SELECT
         models.*,
-        brands.common_name || ' ' || models.model_name AS full_model_name
+        brands.brand_name || ' ' || models.model_name AS full_model_name
     FROM models
 LEFT JOIN brands ON brands.brand_id = models.brand_id;
 

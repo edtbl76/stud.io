@@ -109,7 +109,7 @@ def build_brand_map():
             brand_id = clean(row.get("brand_id"))
             if not brand_id:
                 continue
-            for field in ("common_name", "brand_name"):
+            for field in ("brand_name", "legal_name"):
                 val = clean(row.get(field))
                 if val:
                     brand_map[val.lower()] = brand_id
@@ -136,7 +136,7 @@ def build_model_map():
     with open(BRANDS_CSV, newline="", encoding="utf-8") as f:
         for row in csv.DictReader(f):
             bid   = clean(row.get("brand_id"))
-            cname = clean(row.get("common_name")) or clean(row.get("brand_name"))
+            cname = clean(row.get("brand_name")) or clean(row.get("legal_name"))
             if bid and cname:
                 brand_names[bid] = cname
 
