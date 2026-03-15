@@ -116,14 +116,51 @@ def load_existing(path):
     return existing
 
 
+def build_parent_map(sources):
+    """Build name → 'table_name:id' from a list of (table_name, csv_path, name_field, id_field)."""
+    parent_map = {}
+    for table_name, csv_path, name_field, id_field in sources:
+        if not csv_path.exists():
+            continue
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                name = clean(row.get(name_field))
+                pid  = clean(row.get(id_field))
+                if name and pid:
+                    parent_map[name] = f"{table_name}:{pid}"
+    return parent_map
+
+
+def resolve_parents(parent_str, parent_map):
+    """Resolve comma-separated parent names to 'table:id' entries."""
+    if not parent_str:
+        return ""
+    result = []
+    seen   = set()
+    for part in parent_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        ref = parent_map.get(part)
+        if ref and ref not in seen:
+            seen.add(ref)
+            result.append(ref)
+    return ",".join(result)
+
+
 def main():
     print("=" * 60)
     print("  STUD.io — Libraries CSV Converter")
     print("=" * 60)
 
-    brand_map = build_brand_map()
-    model_map = build_model_map()
-    existing  = load_existing(OUT_CSV)
+    brand_map  = build_brand_map()
+    model_map  = build_model_map()
+    existing   = load_existing(OUT_CSV)
+    parent_map = build_parent_map([
+        ("instruments",  BASE / "csv" / "instruments.csv",  "instrument_name", "instrument_id"),
+        ("workstations", BASE / "csv" / "workstations.csv", "tool_name",       "workstation_id"),
+        ("libraries",    OUT_CSV,                           "library_name",    "library_id"),
+    ])
     if existing:
         print(f"  Preserving {len(existing)} existing rows (UUIDs + attributes)")
 
@@ -140,6 +177,7 @@ def main():
             manufacturer = clean(row.get("manufacturerName"))
             model_str    = clean(row.get("Models"))
             notes        = clean(row.get("Notes"))
+            parent_str   = clean(row.get("System"))
 
             brand_id = lookup_brand(manufacturer, brand_map)
             if manufacturer and not brand_id:
@@ -152,6 +190,7 @@ def main():
                     if name:
                         unmatched_models.add(name)
 
+            parent_ids = resolve_parents(parent_str, parent_map)
             prior = existing.get((library_name, brand_id), {})
             rows.append({
                 "library_id":   prior.get("library_id") or str(uuid.uuid4()),
@@ -160,10 +199,11 @@ def main():
                 "library_name": library_name,
                 "notes":        notes,
                 "attributes":   prior.get("attributes") or "",
+                "parent_ids":   parent_ids,
             })
 
     fieldnames = [
-        "library_id", "brand_id", "model_ids", "library_name", "notes", "attributes",
+        "library_id", "brand_id", "model_ids", "library_name", "notes", "attributes", "parent_ids",
     ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

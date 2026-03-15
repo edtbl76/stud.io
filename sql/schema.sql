@@ -7,6 +7,7 @@
 -- ENUMS
 -- =============================================================================
 CREATE TYPE entity_type AS ENUM ('Manufacturer', 'Studio', 'Individual');
+CREATE TYPE parent_ref AS (table_name TEXT, id UUID);
 CREATE TYPE tool_type AS ENUM ('Standalone', 'Plugin', 'Embedded');
 CREATE TYPE plugin_format AS ENUM ('AU', 'VST3', 'VST', 'UAD-2', 'UADx');
 CREATE TYPE tag_type AS ENUM (
@@ -191,6 +192,7 @@ CREATE TABLE effects (
     artist_reference TEXT,
     attributes       JSONB,
     tags             tag_type[],
+    parent_ids       parent_ref[],
     created_at       TIMESTAMP DEFAULT NOW(),
     updated_at       TIMESTAMP DEFAULT NOW()
 );
@@ -222,6 +224,7 @@ CREATE TABLE instruments (
     recording_notes  TEXT,
     tags             tag_type[],
     attributes       JSONB,
+    parent_ids       parent_ref[],
     created_at       TIMESTAMP DEFAULT NOW(),
     updated_at       TIMESTAMP DEFAULT NOW()
 );
@@ -240,6 +243,7 @@ CREATE TABLE libraries (
     library_name  TEXT NOT NULL,
     notes         TEXT,
     attributes    JSONB,
+    parent_ids    parent_ref[],
     created_at    TIMESTAMP DEFAULT NOW(),
     updated_at    TIMESTAMP DEFAULT NOW()
 );

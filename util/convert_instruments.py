@@ -184,14 +184,50 @@ def load_existing(path):
     return existing
 
 
+def build_parent_map(sources):
+    """Build name → 'table_name:id' from a list of (table_name, csv_path, name_field, id_field)."""
+    parent_map = {}
+    for table_name, csv_path, name_field, id_field in sources:
+        if not csv_path.exists():
+            continue
+        with open(csv_path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                name = clean(row.get(name_field))
+                pid  = clean(row.get(id_field))
+                if name and pid:
+                    parent_map[name] = f"{table_name}:{pid}"
+    return parent_map
+
+
+def resolve_parents(parent_str, parent_map):
+    """Resolve comma-separated parent names to 'table:id' entries."""
+    if not parent_str:
+        return ""
+    result = []
+    seen   = set()
+    for part in parent_str.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        ref = parent_map.get(part)
+        if ref and ref not in seen:
+            seen.add(ref)
+            result.append(ref)
+    return ",".join(result)
+
+
 def main():
     print("=" * 60)
     print("  STUD.io — Instruments CSV Converter")
     print("=" * 60)
 
-    brand_map = build_brand_map()
-    model_map = build_model_map()
-    existing  = load_existing(OUT_CSV)
+    brand_map  = build_brand_map()
+    model_map  = build_model_map()
+    existing   = load_existing(OUT_CSV)
+    parent_map = build_parent_map([
+        ("instruments", OUT_CSV,                            "instrument_name", "instrument_id"),
+        ("workstations", BASE / "csv" / "workstations.csv", "tool_name",       "workstation_id"),
+    ])
     if existing:
         print(f"  Preserving {len(existing)} existing rows (UUIDs + attributes)")
 
@@ -218,6 +254,7 @@ def main():
             plugin_notes     = clean(row.get("Plugin Notes"))
             instrument_notes = clean(row.get("Instrument Notes"))
             recording_notes  = clean(row.get("Recording Notes"))
+            parent_str       = clean(row.get("Parent"))
 
             brand_id = lookup_brand(manufacturer, brand_map)
             if manufacturer and not brand_id:
@@ -253,6 +290,7 @@ def main():
 
             tags_list = map_tags(tags_str)
 
+            parent_ids       = resolve_parents(parent_str, parent_map)
             model_ids_sorted = ",".join(sorted(model_ids_list))
             for instrument_name in names:
                 prior = existing.get((instrument_name, brand_id, model_ids_sorted), {})
@@ -270,12 +308,13 @@ def main():
                     "recording_notes":  recording_notes,
                     "tags":             ",".join(tags_list),
                     "attributes":       prior.get("attributes") or "",
+                    "parent_ids":       parent_ids,
                 })
 
     fieldnames = [
         "instrument_id", "brand_id", "model_ids", "instrument_name", "version",
         "instrument_types", "tool_types", "plugin_formats", "plugin_notes",
-        "instrument_notes", "recording_notes", "tags", "attributes",
+        "instrument_notes", "recording_notes", "tags", "attributes", "parent_ids",
     ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
