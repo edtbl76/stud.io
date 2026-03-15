@@ -303,7 +303,7 @@ def main():
                     "instrument_types": ",".join(instrument_types_list),
                     "tool_types":       ",".join(tool_types_list),
                     "plugin_formats":   ",".join(plugin_formats_list),
-                    "plugin_notes":     plugin_notes,
+                    "description":      plugin_notes,
                     "instrument_notes": instrument_notes,
                     "recording_notes":  recording_notes,
                     "tags":             ",".join(tags_list),
@@ -313,8 +313,8 @@ def main():
 
     fieldnames = [
         "instrument_id", "brand_id", "model_ids", "instrument_name", "version",
-        "instrument_types", "tool_types", "plugin_formats", "plugin_notes",
-        "instrument_notes", "recording_notes", "tags", "attributes", "parent_ids",
+        "instrument_types", "tool_types", "plugin_formats",
+        "description", "instrument_notes", "recording_notes", "tags", "attributes", "parent_ids",
     ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

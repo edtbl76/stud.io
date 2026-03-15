@@ -211,9 +211,9 @@ def build_brand_lookup():
     return m
 
 
-def row_fingerprint(version, collection, plugin_notes, workflow_notes, recording_notes, tags):
+def row_fingerprint(version, collection, description, workflow_notes, recording_notes, tags):
     """Tuple of all compared fields — used for set-cancellation matching."""
-    return (version, collection, plugin_notes, workflow_notes, recording_notes, tags)
+    return (version, collection, description, workflow_notes, recording_notes, tags)
 
 
 def main():
@@ -233,7 +233,7 @@ def main():
             fp = row_fingerprint(
                 clean(row.get("version")),
                 clean(row.get("collection")),
-                clean(row.get("plugin_notes")),
+                clean(row.get("description")),
                 clean(row.get("workflow_notes")),
                 clean(row.get("recording_notes")),
                 sorted_csv(row.get("tags", "")),
@@ -301,7 +301,7 @@ def main():
     print(f"  Effects Diff: import vs csv  (set-cancellation)")
     print(f"{'='*60}\n")
 
-    FIELDS = ["version", "collection", "plugin_notes", "workflow_notes", "recording_notes", "tags"]
+    FIELDS = ["version", "collection", "description", "workflow_notes", "recording_notes", "tags"]
 
     if diffs:
         total_imp = sum(sum(n for _, n in ri) for _, _, ri, _ in diffs)

@@ -316,9 +316,8 @@ def generate_effects():
                 clean(row.get("effect_types")),
                 clean(row.get("tool_types")),
                 clean(row.get("plugin_formats")),
-                clean(row.get("plugin_notes")),
-                clean(row.get("workflow_notes")),
                 clean(row.get("description")),
+                clean(row.get("workflow_notes")),
                 clean(row.get("recording_notes")),
                 clean(row.get("artist_reference")),
                 clean(row.get("attributes")),
@@ -327,14 +326,14 @@ def generate_effects():
 
     lines = seed_header("effects", "effects.csv")
     for (effect_id, brand_id, model_ids, effect_name, version,
-         collection, effect_types, tool_types, plugin_formats, plugin_notes,
-         workflow_notes, description, recording_notes, artist_reference,
+         collection, effect_types, tool_types, plugin_formats,
+         description, workflow_notes, recording_notes, artist_reference,
          attributes, tags) in rows:
         attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
         lines.append(
             f"INSERT INTO effects"
             f" (effect_id, brand_id, model_ids, effect_name, version, collection, effect_types,"
-            f" tool_types, plugin_formats, plugin_notes, workflow_notes, description,"
+            f" tool_types, plugin_formats, description, workflow_notes,"
             f" recording_notes, artist_reference, attributes, tags)"
             f" VALUES ("
             f"{escape(effect_id)}, "
@@ -346,9 +345,8 @@ def generate_effects():
             f"{escape_array(effect_types, 'effect_type')}, "
             f"{escape_array(tool_types, 'tool_type')}, "
             f"{escape_array(plugin_formats, 'plugin_format')}, "
-            f"{escape(plugin_notes)}, "
-            f"{escape(workflow_notes)}, "
             f"{escape(description)}, "
+            f"{escape(workflow_notes)}, "
             f"{escape(recording_notes)}, "
             f"{escape(artist_reference)}, "
             f"{attrs_sql}, "
@@ -362,9 +360,8 @@ def generate_effects():
             f" effect_types = EXCLUDED.effect_types,"
             f" tool_types = EXCLUDED.tool_types,"
             f" plugin_formats = EXCLUDED.plugin_formats,"
-            f" plugin_notes = EXCLUDED.plugin_notes,"
-            f" workflow_notes = EXCLUDED.workflow_notes,"
             f" description = EXCLUDED.description,"
+            f" workflow_notes = EXCLUDED.workflow_notes,"
             f" recording_notes = EXCLUDED.recording_notes,"
             f" artist_reference = EXCLUDED.artist_reference,"
             f" attributes = EXCLUDED.attributes,"

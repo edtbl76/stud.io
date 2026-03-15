@@ -354,9 +354,8 @@ def main():
                     "effect_types":     ",".join(effect_types_list),
                     "tool_types":       ",".join(tool_types_list),
                     "plugin_formats":   ",".join(plugin_formats_list),
-                    "plugin_notes":     plugin_notes,
+                    "description":      plugin_notes,
                     "workflow_notes":   workflow_notes,
-                    "description":      "",
                     "recording_notes":  recording_notes,
                     "artist_reference": "",
                     "attributes":       prior.get("attributes") or "",
@@ -366,8 +365,8 @@ def main():
 
     fieldnames = [
         "effect_id", "brand_id", "model_ids", "effect_name", "version",
-        "collection", "effect_types", "tool_types", "plugin_formats", "plugin_notes",
-        "workflow_notes", "description", "recording_notes", "artist_reference",
+        "collection", "effect_types", "tool_types", "plugin_formats",
+        "description", "workflow_notes", "recording_notes", "artist_reference",
         "attributes", "tags", "parent_ids",
     ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:

@@ -16,7 +16,7 @@ echo "============================================================"
 # 1. Start Docker containers if not running
 # ---------------------------------------------------------------------------
 echo ""
-echo "[1/3] Checking Docker containers..."
+echo "[1/4] Checking Docker containers..."
 cd "$SCRIPT_DIR"
 
 if ! docker compose ps | grep -q "running"; then
@@ -35,15 +35,21 @@ fi
 # 2. Generate seed files from CSVs
 # ---------------------------------------------------------------------------
 echo ""
-echo "[2/3] Generating seed files..."
-cd "$SCRIPT_DIR"
+echo "[2/4] Running converters..."
+cd "$SCRIPT_DIR/util"
+python3 convert_effects.py
+python3 convert_instruments.py
+python3 convert_libraries.py
+
+echo ""
+echo "[3/4] Generating seed files..."
 python3 generate_seeds.py
 
 # ---------------------------------------------------------------------------
 # 3. Reseed the database
 # ---------------------------------------------------------------------------
 echo ""
-echo "[3/3] Reseeding database..."
+echo "[4/4] Reseeding database..."
 python3 reseed.py
 
 echo ""

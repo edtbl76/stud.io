@@ -174,10 +174,10 @@ def main():
             if not library_name:
                 continue
 
-            manufacturer = clean(row.get("manufacturerName"))
-            model_str    = clean(row.get("Models"))
-            notes        = clean(row.get("Notes"))
-            parent_str   = clean(row.get("System"))
+            manufacturer     = clean(row.get("manufacturerName"))
+            model_str        = clean(row.get("Models"))
+            instrument_notes = clean(row.get("Notes"))
+            parent_str       = clean(row.get("System"))
 
             brand_id = lookup_brand(manufacturer, brand_map)
             if manufacturer and not brand_id:
@@ -193,17 +193,20 @@ def main():
             parent_ids = resolve_parents(parent_str, parent_map)
             prior = existing.get((library_name, brand_id), {})
             rows.append({
-                "library_id":   prior.get("library_id") or str(uuid.uuid4()),
-                "brand_id":     brand_id,
-                "model_ids":    ",".join(model_ids_list),
-                "library_name": library_name,
-                "notes":        notes,
-                "attributes":   prior.get("attributes") or "",
-                "parent_ids":   parent_ids,
+                "library_id":      prior.get("library_id") or str(uuid.uuid4()),
+                "brand_id":        brand_id,
+                "model_ids":       ",".join(model_ids_list),
+                "library_name":    library_name,
+                "description":     "",
+                "instrument_notes": instrument_notes,
+                "recording_notes": "",
+                "attributes":      prior.get("attributes") or "",
+                "parent_ids":      parent_ids,
             })
 
     fieldnames = [
-        "library_id", "brand_id", "model_ids", "library_name", "notes", "attributes", "parent_ids",
+        "library_id", "brand_id", "model_ids", "library_name",
+        "description", "instrument_notes", "recording_notes", "attributes", "parent_ids",
     ]
     with open(OUT_CSV, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

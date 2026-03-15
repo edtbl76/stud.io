@@ -1,4 +1,4 @@
-instrument_id,brand_id,model_ids,instrument_name,version,instrument_types,tool_types,plugin_formats,plugin_notes,instrument_notes,recording_notes,tags,attributes,parent_ids
+instrument_id,brand_id,model_ids,instrument_name,version,instrument_types,tool_types,plugin_formats,description,instrument_notes,recording_notes,tags,attributes,parent_ids
 a6dc4890-ca0e-4e2f-b458-fcb09bc65a80,725a2764-55b5-4e7c-a469-a4970c0aa267,,2-Osc,,Synth,,,,classic subtractive synth (oscillator - filter - effect),,,,instruments:b5ac6b24-5303-4280-ba5c-9dae1f88cbb7
 c382351f-3faf-482c-a5fd-e8df62a9d1c2,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,17227500-de9b-4112-843b-aacaf9bc4f55,60's P Bass,,Bass,,,(1960s),"4 Strings; Passive, 60s P NSC Pickups","(rock, jazz, funk)","Bass,Modeled",,instruments:08bb4d00-4918-4f1b-84ec-2a65bc94d1ba
 a734e939-2c5f-4f63-ad77-3c565344849b,acd9f372-74fb-4c7d-b2a3-ea540c5917f2,aee6f637-d136-47eb-855e-4e6123c81b45,70's J Bass,,Bass,,,(1970s),"4 Strings; Passive, 70s J NSC & BSC Pickups","(disco, funk)","Bass,Modeled",,instruments:08bb4d00-4918-4f1b-84ec-2a65bc94d1ba
