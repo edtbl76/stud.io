@@ -8,17 +8,42 @@ A STUD.io application for managing studio gear, plugins, instruments, and sample
 
 ### Prerequisites
 - Docker + Docker Compose
-- Python 3.12+
+- Python 3.12+ (conda/miniconda recommended — hooks auto-detect Anaconda and Miniconda installs)
+- Node.js 18+ (nvm recommended — hooks auto-detect nvm installs)
 - [mkcert](https://github.com/FiloSottile/mkcert) (for local HTTPS certificates)
 
 ### First-time git hooks setup
 
+Install the Python tools the hooks depend on:
+
 ```bash
-pip install pre-commit
+pip install pre-commit bandit pip-audit pytest pytest-cov
+```
+
+Then install the hooks:
+
+```bash
 ./scripts/install-hooks.sh
 ```
 
-This installs a pre-commit hook (via the [pre-commit framework](https://pre-commit.com)) that runs `ruff`, `pytest`, and `tsc --noEmit` before every commit. The commit is aborted if any check fails. Hook configuration lives in `.pre-commit-config.yaml`.
+This wires up the [pre-commit framework](https://pre-commit.com) to run seven checks before every commit:
+
+| Hook | Script | What it checks |
+|---|---|---|
+| `ruff` | (built-in) | Python lint (backend only) |
+| `pytest` | `scripts/run-pytest.sh` | Full backend test suite (209 tests) |
+| `tsc` | `scripts/run-tsc.sh` | TypeScript type-check (frontend) |
+| `jest` | `scripts/run-jest.sh` | Frontend unit tests |
+| `bandit` | `scripts/run-bandit.sh` | Python security scan (SAST) |
+| `pip-audit` | `scripts/run-pip-audit.sh` | Python dependency CVEs |
+| `npm-audit` | `scripts/run-npm-audit.sh` | Node dependency CVEs |
+
+The commit is aborted if any check fails. Hook configuration lives in `.pre-commit-config.yaml`.
+
+**Security suppressions:**
+- `bandit` skips B104 (intentional `0.0.0.0` Docker binding) and B608 (asyncpg queries use f-strings for hardcoded table names only; all values are parameterized). Config in `.bandit`.
+- `pip-audit` ignores CVE-2024-23342 (Minerva timing attack on ECDSA keys in the `ecdsa` package — irrelevant because we use HS256/HMAC JWTs, not EC keys).
+- `npm-audit` runs at `--audit-level=critical` only. Two high-severity Next.js 14.x CVEs (GHSA-9g9p-9gw9-jx7f, GHSA-h25m-26qc-wcjf) have no 14.x fix — they require a breaking upgrade to Next.js 16. Neither applies to this app (no `remotePatterns` configured, no insecure RSC).
 
 ---
 
@@ -101,7 +126,16 @@ To run a scan after the dev stack is up:
 ./scripts/sonar-scan.sh
 ```
 
+The scan script does three things before uploading to SonarQube:
+1. Runs `pytest --cov` → generates `app/controlroom_backend/coverage.xml` (Cobertura format)
+2. Runs `jest --coverage` → generates `app/controlroom_frontend/coverage/lcov.info`
+3. Rewrites lcov `SF:` paths to be relative to the project root (Jest emits paths relative to the frontend directory; SonarQube resolves from the project root)
+
 Results appear at `http://localhost:9000/dashboard?id=controlroom`.
+
+**Quality gate** (must pass for scan to succeed):
+- Zero new violations on new/changed code
+- ≥ 80% line coverage on new/changed code
 
 > The scanner prints `ANALYSIS SUCCESSFUL, you can find the results at: http://sonarqube:9000/...` — ignore that URL. It's the internal container hostname. Use the link above instead.
 
@@ -146,6 +180,8 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 - User management UI — add users, change passwords, toggle roles, link Google accounts
 - Default credentials: `admin` / `admin` (seeded automatically on first startup, role `admin`)
 - **HTTPS**: nginx reverse proxy with mkcert certificates — all traffic encrypted. Accessible on local network via `192.168.1.230.sslip.io` (public TLD resolving to the local IP, accepted by Google OAuth)
+- **Code quality**: SonarQube static analysis with quality gate enforcement. Pre-commit hooks run ruff, pytest, tsc, jest, bandit, pip-audit, and npm-audit before every commit.
+- **Code coverage**: pytest-cov (backend) and Jest/lcov (frontend) wired into the SonarQube scan. New code must have ≥ 80% coverage to pass the quality gate.
 - Full stack runs in Docker via `./app.sh`
 
 ### Future
