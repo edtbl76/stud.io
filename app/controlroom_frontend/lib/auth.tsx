@@ -17,7 +17,7 @@ interface AuthContextValue {
 
 const AuthContext = React.createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [token, setToken] = React.useState<string | null>(null)
   const [username, setUsername] = React.useState<string | null>(null)
   const [role, setRole] = React.useState<string | null>(null)
@@ -112,11 +112,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.replace('/login')
   }
 
+  const value = React.useMemo(
+    () => ({ token, username, role, login, loginGoogle, logout }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [token, username, role],
+  )
+
   // Don't render children until we've checked the stored token
   if (!checked) return null
 
   return (
-    <AuthContext.Provider value={{ token, username, role, login, loginGoogle, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
