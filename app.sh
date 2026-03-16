@@ -16,7 +16,7 @@ echo "============================================================"
 # 1. Start Docker containers if not running
 # ---------------------------------------------------------------------------
 echo ""
-echo "[1/2] Checking Docker containers..."
+echo "[1/3] Checking Docker containers..."
 cd "$SCRIPT_DIR"
 
 if ! docker compose ps | grep -q "running"; then
@@ -32,10 +32,19 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Run test suite
+# 2. Apply semantic views to both databases
 # ---------------------------------------------------------------------------
 echo ""
-echo "[2/2] Running tests..."
+echo "[2/3] Applying semantic views..."
+docker compose exec -T db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/views.sql" > /dev/null
+docker compose exec -T db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/views.sql" > /dev/null
+echo "  Views applied"
+
+# ---------------------------------------------------------------------------
+# 3. Run test suite
+# ---------------------------------------------------------------------------
+echo ""
+echo "[3/3] Running tests..."
 cd "$SCRIPT_DIR/app/controlroom_backend"
 python -m pytest tests/ -v
 

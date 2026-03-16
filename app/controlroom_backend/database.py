@@ -1,5 +1,4 @@
 import asyncpg
-from contextlib import asynccontextmanager
 from config import settings
 
 _pool: asyncpg.Pool | None = None
@@ -21,7 +20,7 @@ async def close_pool():
         _pool = None
 
 
-@asynccontextmanager
 async def get_conn():
+    """FastAPI dependency — yields a pooled connection."""
     async with _pool.acquire() as conn:
         yield conn

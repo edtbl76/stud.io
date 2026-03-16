@@ -18,7 +18,7 @@ A local web application for managing studio gear, plugins, instruments, and samp
 ```
 
 This will:
-1. Start the `studio_db` (PostgreSQL) and `backstage` (API server) containers
+1. Start the `controlroom_db` (PostgreSQL) and `controlroom_backend` (API server) containers
 2. Run the full backend test suite
 
 **API server** runs at `http://localhost:5150`
@@ -50,11 +50,13 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 
 ### Current State
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
-- FastAPI backend scaffolded (`controlroom_backend`), running on port `5150` in Docker
+- Semantic view layer in place (`sql/views.sql`) — all UUID arrays resolved to `[{id, name}]` objects, `parent_ids` resolved cross-table, `full_*_name` computed
+- FastAPI backend running on port `5150` in Docker
 - Test infrastructure in place (pytest + asyncio, real DB, transaction rollback isolation)
+- **Brands** router fully implemented and tested (15 tests)
 
 ### In Progress
-- **Backend API**: REST endpoints for all catalog tables (Brands, Models, Effects, Instruments, Libraries, Workstations, Tools)
+- **Backend API**: REST endpoints for Models, Effects, Instruments, Libraries, Workstations, Tools, Config (lookup tables), Search
 - **Auth**: Simple JWT username/password login
 
 ### Planned

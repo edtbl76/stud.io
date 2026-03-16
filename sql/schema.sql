@@ -251,6 +251,7 @@ CREATE TABLE libraries (
     description       TEXT,
     instrument_notes  TEXT,
     recording_notes   TEXT,
+    tag_ids           UUID[],
     attributes        JSONB,
     parent_ids        parent_ref[],
     created_at        TIMESTAMP DEFAULT NOW(),

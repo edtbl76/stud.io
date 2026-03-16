@@ -4,7 +4,6 @@ os.environ.setdefault("DB_NAME", "controlroomdb_test")
 import pytest_asyncio
 import asyncpg
 from httpx import AsyncClient, ASGITransport
-from contextlib import asynccontextmanager
 
 from main import app
 from database import get_conn
@@ -32,7 +31,6 @@ async def client(conn):
     AsyncClient wired to the FastAPI app, sharing the test transaction
     so every request sees the same rolled-back state.
     """
-    @asynccontextmanager
     async def override_get_conn():
         yield conn
 
