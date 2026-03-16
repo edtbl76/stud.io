@@ -2,7 +2,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5150'
 const TOKEN_KEY = 'controlroom_token'
 
 function authHeader(): HeadersInit {
-  if (typeof globalThis.window === 'undefined') return {}
+  if (globalThis.window === undefined) return {}
   const token = localStorage.getItem(TOKEN_KEY)
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
