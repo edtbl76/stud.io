@@ -1,0 +1,11 @@
+[run]
+source = .
+relative_files = True
+omit =
+    tests/*
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
