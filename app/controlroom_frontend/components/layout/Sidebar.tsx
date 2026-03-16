@@ -44,6 +44,12 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: 'ADMIN',
+    items: [
+      { label: 'Backup & Restore', href: '/admin/backup' },
+    ],
+  },
+  {
     title: 'CONFIG',
     items: [
       { label: 'Effect Types', href: '/config/effect-types' },

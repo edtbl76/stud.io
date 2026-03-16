@@ -17,7 +17,7 @@ A STUD.io application for managing studio gear, plugins, instruments, and sample
 ```
 
 This will:
-1. Build and start all three containers (`studio_db`, `backstage`, `controlroom_frontend`)
+1. Build and start all three containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`)
 2. Wait for PostgreSQL, API, and frontend to be healthy
 3. Apply semantic views to both databases
 4. Run the full backend test suite
@@ -55,24 +55,19 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 
 ## Section 2: Application Roadmap
 
-### Current State
+### Current State (v1.0)
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
 - Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
-- FastAPI backend complete — 146 tests passing, all endpoints live at `http://localhost:5150`
-- Full REST API covering: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search
-- Next.js frontend complete — dark studio UI, sortable data tables, read/edit/create/delete modals, global search, all tables wired to the API
+- FastAPI backend — 146 tests passing, all endpoints live at `http://localhost:5150`
+- Full REST API: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search, Admin (backup/restore)
+- Next.js frontend — dark studio UI, sortable/filterable/resizable/reorderable data tables, read/edit/create/delete modals, all tables wired to the API
+- Row virtualization on large tables (Effects, Instruments, Libraries, Models)
+- Navigation: CATALOG, SESSION, TOOLS, CONFIG, ADMIN sections
+- Database backup and restore via the Admin UI
 - Full stack runs in Docker via `./app.sh`
 
 ### In Progress
 - **Auth**: JWT username/password login (users table + bcrypt + python-jose) — backend stub exists, login page pending
-
-### Planned
-- **Frontend**: Next.js + React + Tailwind + shadcn/ui
-- **Navigation**: Four sections — CATALOG, SESSION, TOOLS, CONFIG
-- **List Views**: Sortable/filterable data tables with bulk actions
-- **Record Modals**: Read-only and edit mode in a single modal, with clickable brand/model/parent references
-- **Global Search**: Full-database search bar in the header with a toggle to scope to the current list view
-- **Config Section**: UI management of all lookup tables — no schema migrations required
 
 ### Future
 - Python recommendation engine (shared FastAPI codebase)

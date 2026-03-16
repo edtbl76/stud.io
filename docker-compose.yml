@@ -12,10 +12,10 @@ services:
       - studio_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  backstage:
+  controlroom_backend:
     build:
       context: ./app/controlroom_backend
-    container_name: backstage
+    container_name: controlroom_backend
     ports:
       - "5150:5150"
     environment:
@@ -40,7 +40,7 @@ services:
       - ./app/controlroom_frontend:/app
       - /app/node_modules
     depends_on:
-      - backstage
+      - controlroom_backend
     restart: unless-stopped
 
 volumes:
