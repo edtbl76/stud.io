@@ -16,15 +16,13 @@ services:
     build:
       context: ./app/controlroom_backend
     container_name: controlroom_backend
-    ports:
-      - "5150:5150"
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: controlroomdb
       DB_USER: studio
       DB_PASSWORD: studio
-      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_ID: "624395577295-k06o9nsf4agqkg0scn8tbavuhfmgba9r.apps.googleusercontent.com"
     depends_on:
       - db
     restart: unless-stopped
@@ -33,16 +31,28 @@ services:
     build:
       context: ./app/controlroom_frontend
     container_name: controlroom_frontend
-    ports:
-      - "2112:2112"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:5150
-      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+      - NEXT_PUBLIC_API_URL=https://192.168.1.230.sslip.io:5150
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=624395577295-k06o9nsf4agqkg0scn8tbavuhfmgba9r.apps.googleusercontent.com
     volumes:
       - ./app/controlroom_frontend:/app
       - /app/node_modules
     depends_on:
       - controlroom_backend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: controlroom_nginx
+    ports:
+      - "2112:2112"
+      - "5150:5150"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - controlroom_backend
+      - frontend
     restart: unless-stopped
 
 volumes:

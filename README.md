@@ -9,6 +9,23 @@ A STUD.io application for managing studio gear, plugins, instruments, and sample
 ### Prerequisites
 - Docker + Docker Compose
 - Python 3.12+
+- [mkcert](https://github.com/FiloSottile/mkcert) (for local HTTPS certificates)
+
+### First-time HTTPS setup
+
+The app runs over HTTPS via an nginx reverse proxy. On a new machine:
+
+```bash
+# Install mkcert CA so browsers trust the local cert
+mkcert -install
+
+# Generate the certificate (covers localhost + local network hostname)
+mkcert -cert-file nginx/certs/cert.pem \
+       -key-file  nginx/certs/key.pem \
+       localhost 127.0.0.1 192.168.1.230 rogueone rogueone.local 192.168.1.230.sslip.io
+```
+
+> The `nginx/certs/` directory is git-ignored — certs must be generated locally on each machine.
 
 ### Start everything
 
@@ -17,18 +34,28 @@ A STUD.io application for managing studio gear, plugins, instruments, and sample
 ```
 
 This will:
-1. Build and start all three containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`)
+1. Build and start all four containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`, `controlroom_nginx`)
 2. Wait for PostgreSQL, API, and frontend to be healthy
-3. Apply semantic views to both databases
-4. Run the full backend test suite
+3. Apply schema and semantic views to both databases
+4. Run the full backend test suite (209 tests)
 
-| Service | URL |
-|---|---|
-| **App** (Next.js) | `http://localhost:2112` |
-| **API** (FastAPI) | `http://localhost:5150` |
-| **API Docs** (Swagger) | `http://localhost:5150/docs` |
+| Service | Local URL | Network URL |
+|---|---|---|
+| **App** (Next.js) | `https://localhost:2112` | `https://192.168.1.230.sslip.io:2112` |
+| **API** (FastAPI) | `https://localhost:5150` | `https://192.168.1.230.sslip.io:5150` |
+| **API Docs** (Swagger) | `https://localhost:5150/docs` | `https://192.168.1.230.sslip.io:5150/docs` |
 
 > First run takes longer — Docker builds the frontend image and `npm install` runs inside the container.
+
+### Accessing from other devices on the network
+
+Use `https://192.168.1.230.sslip.io:2112`. The `sslip.io` domain automatically resolves to `192.168.1.230` — no DNS setup required.
+
+Other devices will see a certificate warning unless you install the mkcert root CA on them. Find it with:
+```bash
+mkcert -CAROOT
+```
+Transfer `rootCA.pem` to each device and install it as a trusted certificate authority.
 
 ---
 
@@ -55,7 +82,7 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 
 ## Section 2: Application Roadmap
 
-### Current State (v1.2)
+### Current State (v1.3)
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
 - Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
 - FastAPI backend — 209 tests passing, all endpoints live at `http://localhost:5150`
@@ -68,11 +95,13 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 - **Google Sign-In** (optional): set `GOOGLE_CLIENT_ID` in `docker-compose.yml` to enable a Google Sign-In button on the login page and a "Link Google" option in the Users admin panel. Leave empty to disable.
 - User management UI — add users, change passwords, toggle roles, link Google accounts
 - Default credentials: `admin` / `admin` (seeded automatically on first startup, role `admin`)
+- **HTTPS**: nginx reverse proxy with mkcert certificates — all traffic encrypted. Accessible on local network via `192.168.1.230.sslip.io` (public TLD resolving to the local IP, accepted by Google OAuth)
 - Full stack runs in Docker via `./app.sh`
 
 ### Future
 - Python recommendation engine (shared FastAPI codebase)
 - Google Sheets export
+- Migrate nginx reverse proxy to Caddy (simpler config, built-in HTTPS/local CA)
 
 ---
 

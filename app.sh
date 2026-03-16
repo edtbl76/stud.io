@@ -33,14 +33,14 @@ done
 echo " ready"
 
 echo -n "  API        "
-until curl -sf http://localhost:5150/health > /dev/null 2>&1; do
+until curl -sfk https://localhost:5150/health > /dev/null 2>&1; do
     echo -n "."
     sleep 1
 done
 echo " ready"
 
 echo -n "  Frontend   "
-until curl -sf http://localhost:2112 > /dev/null 2>&1; do
+until curl -sfk https://localhost:2112 > /dev/null 2>&1; do
     echo -n "."
     sleep 2
 done
@@ -69,7 +69,7 @@ echo ""
 echo "============================================================"
 echo "  All systems go."
 echo ""
-echo "  App:  http://localhost:2112"
-echo "  API:  http://localhost:5150"
-echo "  Docs: http://localhost:5150/docs"
+echo "  App:  https://localhost:2112  (or https://192.168.1.230.sslip.io:2112)"
+echo "  API:  https://localhost:5150  (or https://192.168.1.230.sslip.io:5150)"
+echo "  Docs: https://localhost:5150/docs"
 echo "============================================================"
