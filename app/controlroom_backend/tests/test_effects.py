@@ -56,8 +56,8 @@ async def test_get_effect_not_found(client):
 # CREATE
 # ---------------------------------------------------------------------------
 
-async def test_create_effect(client):
-    response = await client.post("/effects", json={"effect_name": "Test EQ"})
+async def test_create_effect(client, admin_headers):
+    response = await client.post("/effects", json={"effect_name": "Test EQ"}, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert data["effect_name"] == "Test EQ"
@@ -66,30 +66,30 @@ async def test_create_effect(client):
     assert data["parents"] == []
 
 
-async def test_create_effect_missing_name(client):
-    response = await client.post("/effects", json={"version": "1.0"})
+async def test_create_effect_missing_name(client, admin_headers):
+    response = await client.post("/effects", json={"version": "1.0"}, headers=admin_headers)
     assert response.status_code == 422
 
 
-async def test_create_effect_with_types(client, conn):
+async def test_create_effect_with_types(client, conn, admin_headers):
     row = await conn.fetchrow("SELECT type_id FROM effect_types LIMIT 1")
     type_id = str(row["type_id"])
     response = await client.post("/effects", json={
         "effect_name": "Typed Effect",
         "effect_type_ids": [type_id],
-    })
+    }, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert len(data["effect_types"]) == 1
     assert data["effect_types"][0]["id"] == type_id
 
 
-async def test_create_effect_with_parent(client, conn):
+async def test_create_effect_with_parent(client, conn, admin_headers):
     parent = await conn.fetchrow("SELECT effect_id FROM effects LIMIT 1")
     response = await client.post("/effects", json={
         "effect_name": "Child Effect",
         "parent_ids": [{"table_name": "effects", "id": str(parent["effect_id"])}],
-    })
+    }, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert len(data["parents"]) == 1
@@ -100,18 +100,18 @@ async def test_create_effect_with_parent(client, conn):
 # UPDATE
 # ---------------------------------------------------------------------------
 
-async def test_update_effect(client, conn):
+async def test_update_effect(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO effects (effect_name) VALUES ('Update Me') RETURNING effect_id"
     )
-    response = await client.patch(f"/effects/{row['effect_id']}", json={"collection": "Test Suite"})
+    response = await client.patch(f"/effects/{row['effect_id']}", json={"collection": "Test Suite"}, headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["collection"] == "Test Suite"
     assert response.json()["effect_name"] == "Update Me"
 
 
-async def test_update_effect_not_found(client):
-    response = await client.patch(f"/effects/{uuid4()}", json={"version": "2.0"})
+async def test_update_effect_not_found(client, admin_headers):
+    response = await client.patch(f"/effects/{uuid4()}", json={"version": "2.0"}, headers=admin_headers)
     assert response.status_code == 404
 
 
@@ -119,14 +119,14 @@ async def test_update_effect_not_found(client):
 # DELETE
 # ---------------------------------------------------------------------------
 
-async def test_delete_effect(client, conn):
+async def test_delete_effect(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO effects (effect_name) VALUES ('Delete Me') RETURNING effect_id"
     )
-    response = await client.delete(f"/effects/{row['effect_id']}")
+    response = await client.delete(f"/effects/{row['effect_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
-async def test_delete_effect_not_found(client):
-    response = await client.delete(f"/effects/{uuid4()}")
+async def test_delete_effect_not_found(client, admin_headers):
+    response = await client.delete(f"/effects/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404

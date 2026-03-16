@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.instruments import InstrumentCreate, InstrumentUpdate, InstrumentOut
 from routers._helpers import parent_ref_sql, encode_parent_refs
 
@@ -34,7 +35,7 @@ async def get_instrument(instrument_id: UUID, conn: Connection = Depends(get_con
 
 
 @router.post("", response_model=InstrumentOut, status_code=201)
-async def create_instrument(payload: InstrumentCreate, conn: Connection = Depends(get_conn)):
+async def create_instrument(payload: InstrumentCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     row = await conn.fetchrow(
         f"""
         INSERT INTO instruments
@@ -58,7 +59,7 @@ async def create_instrument(payload: InstrumentCreate, conn: Connection = Depend
 
 
 @router.patch("/{instrument_id}", response_model=InstrumentOut)
-async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn: Connection = Depends(get_conn)):
+async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
         raise HTTPException(status_code=404, detail="Instrument not found")
 
@@ -88,7 +89,7 @@ async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn
 
 
 @router.delete("/{instrument_id}", status_code=204)
-async def delete_instrument(instrument_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_instrument(instrument_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
         raise HTTPException(status_code=404, detail="Instrument not found")
 

@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
 
 router = APIRouter()
@@ -93,7 +94,7 @@ async def get_tool(category: str, tool_id: UUID, conn: Connection = Depends(get_
 
 
 @router.post("/{category}", response_model=ToolOut, status_code=201)
-async def create_tool(category: str, payload: ToolCreate, conn: Connection = Depends(get_conn)):
+async def create_tool(category: str, payload: ToolCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     cfg = _cfg(category)
     cols = ["tool_name", "brand_id", "version", "tool_type_ids",
             "plugin_format_ids", "description", "workflow_notes", "tag_ids"]
@@ -115,7 +116,7 @@ async def create_tool(category: str, payload: ToolCreate, conn: Connection = Dep
 
 
 @router.patch("/{category}/{tool_id}", response_model=ToolOut)
-async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Connection = Depends(get_conn)):
+async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     cfg = _cfg(category)
     if not await conn.fetchrow(
         f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
@@ -138,7 +139,7 @@ async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: C
 
 
 @router.delete("/{category}/{tool_id}", status_code=204)
-async def delete_tool(category: str, tool_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_tool(category: str, tool_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     cfg = _cfg(category)
     if not await conn.fetchrow(
         f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id

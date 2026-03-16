@@ -56,9 +56,9 @@ async def test_get_model_not_found(client):
 # CREATE
 # ---------------------------------------------------------------------------
 
-async def test_create_model(client):
+async def test_create_model(client, admin_headers):
     payload = {"model_name": "Test Model", "creator": "Test Creator"}
-    response = await client.post("/models", json=payload)
+    response = await client.post("/models", json=payload, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert data["model_name"] == "Test Model"
@@ -66,21 +66,21 @@ async def test_create_model(client):
     assert "model_id" in data
 
 
-async def test_create_model_minimal(client):
-    response = await client.post("/models", json={"model_name": "Minimal Model"})
+async def test_create_model_minimal(client, admin_headers):
+    response = await client.post("/models", json={"model_name": "Minimal Model"}, headers=admin_headers)
     assert response.status_code == 201
     assert response.json()["model_name"] == "Minimal Model"
 
 
-async def test_create_model_missing_name(client):
-    response = await client.post("/models", json={"creator": "No Name"})
+async def test_create_model_missing_name(client, admin_headers):
+    response = await client.post("/models", json={"creator": "No Name"}, headers=admin_headers)
     assert response.status_code == 422
 
 
-async def test_create_model_resolved_types(client, conn):
+async def test_create_model_resolved_types(client, conn, admin_headers):
     row = await conn.fetchrow("SELECT type_id FROM model_types LIMIT 1")
     type_id = str(row["type_id"])
-    response = await client.post("/models", json={"model_name": "Typed Model", "model_type_ids": [type_id]})
+    response = await client.post("/models", json={"model_name": "Typed Model", "model_type_ids": [type_id]}, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert len(data["model_types"]) == 1
@@ -91,18 +91,18 @@ async def test_create_model_resolved_types(client, conn):
 # UPDATE
 # ---------------------------------------------------------------------------
 
-async def test_update_model(client, conn):
+async def test_update_model(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO models (model_name) VALUES ('Update Me') RETURNING model_id"
     )
-    response = await client.patch(f"/models/{row['model_id']}", json={"years_active": "2020-2024"})
+    response = await client.patch(f"/models/{row['model_id']}", json={"years_active": "2020-2024"}, headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["years_active"] == "2020-2024"
     assert response.json()["model_name"] == "Update Me"
 
 
-async def test_update_model_not_found(client):
-    response = await client.patch(f"/models/{uuid4()}", json={"creator": "Ghost"})
+async def test_update_model_not_found(client, admin_headers):
+    response = await client.patch(f"/models/{uuid4()}", json={"creator": "Ghost"}, headers=admin_headers)
     assert response.status_code == 404
 
 
@@ -110,20 +110,20 @@ async def test_update_model_not_found(client):
 # DELETE
 # ---------------------------------------------------------------------------
 
-async def test_delete_model(client, conn):
+async def test_delete_model(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO models (model_name) VALUES ('Delete Me') RETURNING model_id"
     )
-    response = await client.delete(f"/models/{row['model_id']}")
+    response = await client.delete(f"/models/{row['model_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
-async def test_delete_model_not_found(client):
-    response = await client.delete(f"/models/{uuid4()}")
+async def test_delete_model_not_found(client, admin_headers):
+    response = await client.delete(f"/models/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
 
 
-async def test_delete_model_blocked_when_referenced(client, conn):
+async def test_delete_model_blocked_when_referenced(client, conn, admin_headers):
     # Find a model that is in an effect's model_ids array
     row = await conn.fetchrow(
         "SELECT model_id FROM models m "
@@ -131,5 +131,5 @@ async def test_delete_model_blocked_when_referenced(client, conn):
     )
     if row is None:
         return  # no such fixture data — skip
-    response = await client.delete(f"/models/{row['model_id']}")
+    response = await client.delete(f"/models/{row['model_id']}", headers=admin_headers)
     assert response.status_code == 409

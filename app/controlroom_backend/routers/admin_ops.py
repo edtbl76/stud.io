@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
 
 from config import settings
-from routers.auth import get_current_user, UserOut
+from routers.auth import require_admin, UserOut
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ def _pg_args(command: str) -> list[str]:
 
 
 @router.get("/backup")
-async def backup(_: UserOut = Depends(get_current_user)):
+async def backup(_: UserOut = Depends(require_admin)):
     """Dump controlroomdb to a SQL file and return it as a download."""
     result = subprocess.run(
         _pg_args("pg_dump") + ["--clean", "--if-exists"],
@@ -49,7 +49,7 @@ async def backup(_: UserOut = Depends(get_current_user)):
 
 
 @router.post("/restore")
-async def restore(file: UploadFile = File(...), _: UserOut = Depends(get_current_user)):
+async def restore(file: UploadFile = File(...), _: UserOut = Depends(require_admin)):
     """Restore controlroomdb from an uploaded SQL file."""
     if not file.filename or not file.filename.endswith(".sql"):
         raise HTTPException(status_code=400, detail="File must be a .sql file")

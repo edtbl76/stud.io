@@ -1,14 +1,18 @@
 'use client'
 
 import * as React from 'react'
-import { Trash2, Plus, KeyRound, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react'
+import Script from 'next/script'
+import { Trash2, Plus, KeyRound, Loader2, CheckCircle, AlertCircle, X, Link2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5150'
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
 
 interface User {
   user_id: string
   username: string
+  role: string
+  google_linked: boolean
   created_at: string
 }
 
@@ -46,7 +50,10 @@ export default function UsersPage() {
   const [newPw, setNewPw] = React.useState('')
   const [pwLoading, setPwLoading] = React.useState(false)
 
-  function authHeaders() {
+  // Google link — stores the user_id we're linking for the GIS callback
+  const linkingUserIdRef = React.useRef<string | null>(null)
+
+  function authHeaders(): HeadersInit {
     return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
   }
 
@@ -58,6 +65,40 @@ export default function UsersPage() {
   React.useEffect(() => {
     fetchUsers().finally(() => setLoading(false))
   }, [])
+
+  function initGoogle() {
+    if (!GOOGLE_CLIENT_ID || !window.google) return
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        const userId = linkingUserIdRef.current
+        if (!userId) return
+        linkingUserIdRef.current = null
+        setStatus(null)
+        try {
+          const res = await fetch(`${API}/users/${userId}/google`, {
+            method: 'PATCH',
+            headers: authHeaders(),
+            body: JSON.stringify({ credential: response.credential }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({ detail: res.statusText }))
+            throw new Error(err.detail ?? res.statusText)
+          }
+          setStatus({ type: 'success', message: 'Google account linked' })
+          await fetchUsers()
+        } catch (e) {
+          setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to link Google account' })
+        }
+      },
+    })
+  }
+
+  function handleLinkGoogle(userId: string) {
+    if (!window.google) return
+    linkingUserIdRef.current = userId
+    window.google.accounts.id.prompt()
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -81,6 +122,26 @@ export default function UsersPage() {
       setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to create user' })
     } finally {
       setAddLoading(false)
+    }
+  }
+
+  async function handleToggleRole(user: User) {
+    setStatus(null)
+    const newRole = user.role === 'admin' ? 'user' : 'admin'
+    try {
+      const res = await fetch(`${API}/users/${user.user_id}/role`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ role: newRole }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail ?? res.statusText)
+      }
+      setStatus({ type: 'success', message: `${user.username} is now ${newRole}` })
+      await fetchUsers()
+    } catch (e) {
+      setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to change role' })
     }
   }
 
@@ -127,6 +188,14 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col h-full px-6 py-6 max-w-2xl">
+      {GOOGLE_CLIENT_ID && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onLoad={initGoogle}
+        />
+      )}
+
       <h2 className="text-lg font-semibold text-foreground mb-1">Users</h2>
       <p className="text-xs text-muted-foreground mb-8">
         Manage accounts that can log into ControlRoom.
@@ -143,6 +212,7 @@ export default function UsersPage() {
             <thead>
               <tr className="border-b border-border text-muted-foreground">
                 <th className="text-left py-2 font-medium">Username</th>
+                <th className="text-left py-2 font-medium">Role</th>
                 <th className="text-left py-2 font-medium">Created</th>
                 <th className="py-2" />
               </tr>
@@ -157,11 +227,34 @@ export default function UsersPage() {
                         <span className="ml-2 text-muted-foreground">(you)</span>
                       )}
                     </td>
+                    <td className="py-2">
+                      <button
+                        onClick={() => handleToggleRole(u)}
+                        disabled={u.username === currentUsername}
+                        title={`Switch to ${u.role === 'admin' ? 'user' : 'admin'}`}
+                        className={`px-2 py-0.5 rounded text-xs font-medium transition-colors disabled:cursor-not-allowed ${
+                          u.role === 'admin'
+                            ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                            : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                        }`}
+                      >
+                        {u.role}
+                      </button>
+                    </td>
                     <td className="py-2 text-muted-foreground">
                       {new Date(u.created_at).toLocaleDateString()}
                     </td>
                     <td className="py-2 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {GOOGLE_CLIENT_ID && u.username === currentUsername && !u.google_linked && (
+                          <button
+                            onClick={() => handleLinkGoogle(u.user_id)}
+                            title="Link Google account"
+                            className="text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setChangingId(changingId === u.user_id ? null : u.user_id)
@@ -186,7 +279,7 @@ export default function UsersPage() {
                   </tr>
                   {changingId === u.user_id && (
                     <tr className="border-b border-border/50 bg-muted/30">
-                      <td colSpan={3} className="py-2 px-2">
+                      <td colSpan={4} className="py-2 px-2">
                         <div className="flex items-center gap-2">
                           <input
                             type="password"

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.workstations import WorkstationCreate, WorkstationUpdate, WorkstationOut
 
 router = APIRouter()
@@ -31,7 +32,7 @@ async def get_workstation(workstation_id: UUID, conn: Connection = Depends(get_c
 
 
 @router.post("", response_model=WorkstationOut, status_code=201)
-async def create_workstation(payload: WorkstationCreate, conn: Connection = Depends(get_conn)):
+async def create_workstation(payload: WorkstationCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     row = await conn.fetchrow(
         """
         INSERT INTO workstations
@@ -48,7 +49,7 @@ async def create_workstation(payload: WorkstationCreate, conn: Connection = Depe
 
 
 @router.patch("/{workstation_id}", response_model=WorkstationOut)
-async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, conn: Connection = Depends(get_conn)):
+async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM workstations WHERE workstation_id = $1", workstation_id):
         raise HTTPException(status_code=404, detail="Workstation not found")
 
@@ -65,7 +66,7 @@ async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, c
 
 
 @router.delete("/{workstation_id}", status_code=204)
-async def delete_workstation(workstation_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_workstation(workstation_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM workstations WHERE workstation_id = $1", workstation_id):
         raise HTTPException(status_code=404, detail="Workstation not found")
     await conn.execute("DELETE FROM workstations WHERE workstation_id = $1", workstation_id)

@@ -1,5 +1,6 @@
 import os
 os.environ.setdefault("DB_NAME", "controlroomdb_test")
+os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
 
 import json
 import bcrypt
@@ -16,10 +17,7 @@ TEST_DSN = "postgresql://studio:studio@localhost:5432/controlroomdb_test"
 
 @pytest_asyncio.fixture()
 async def conn():
-    """
-    Per-test direct connection with a transaction that rolls back on teardown.
-    DB state is never permanently mutated.
-    """
+    """Per-test direct connection with a rolled-back transaction."""
     connection = await asyncpg.connect(dsn=TEST_DSN)
     await connection.set_type_codec("json",  encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
     await connection.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
@@ -32,10 +30,7 @@ async def conn():
 
 @pytest_asyncio.fixture()
 async def client(conn):
-    """
-    AsyncClient wired to the FastAPI app, sharing the test transaction
-    so every request sees the same rolled-back state.
-    """
+    """AsyncClient wired to the FastAPI app, sharing the test transaction."""
     async def override_get_conn():
         yield conn
 
@@ -52,10 +47,21 @@ async def client(conn):
 
 @pytest_asyncio.fixture()
 async def auth_headers(conn):
-    """Insert a test user into the rolled-back transaction and return bearer token headers."""
+    """Insert a regular test user and return bearer token headers (role='user')."""
     hashed = bcrypt.hashpw(b"testpass", bcrypt.gensalt(rounds=4)).decode()
     await conn.execute(
-        "INSERT INTO users (username, password_hash) VALUES ('testuser', $1)", hashed
+        "INSERT INTO users (username, password_hash, role) VALUES ('testuser', $1, 'user')", hashed
     )
-    token = _create_token("testuser")
+    token = _create_token("testuser", "user")
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest_asyncio.fixture()
+async def admin_headers(conn):
+    """Insert an admin test user and return bearer token headers (role='admin')."""
+    hashed = bcrypt.hashpw(b"adminpass", bcrypt.gensalt(rounds=4)).decode()
+    await conn.execute(
+        "INSERT INTO users (username, password_hash, role) VALUES ('adminuser', $1, 'admin')", hashed
+    )
+    token = _create_token("adminuser", "admin")
     return {"Authorization": f"Bearer {token}"}

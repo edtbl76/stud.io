@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.models import ModelCreate, ModelUpdate, ModelOut
 
 router = APIRouter()
@@ -40,7 +41,7 @@ async def get_model(model_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=ModelOut, status_code=201)
-async def create_model(payload: ModelCreate, conn: Connection = Depends(get_conn)):
+async def create_model(payload: ModelCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     row = await conn.fetchrow(
         """
         INSERT INTO models
@@ -59,7 +60,7 @@ async def create_model(payload: ModelCreate, conn: Connection = Depends(get_conn
 
 
 @router.patch("/{model_id}", response_model=ModelOut)
-async def update_model(model_id: UUID, payload: ModelUpdate, conn: Connection = Depends(get_conn)):
+async def update_model(model_id: UUID, payload: ModelUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM models WHERE model_id = $1", model_id):
         raise HTTPException(status_code=404, detail="Model not found")
 
@@ -79,7 +80,7 @@ async def update_model(model_id: UUID, payload: ModelUpdate, conn: Connection = 
 
 
 @router.delete("/{model_id}", status_code=204)
-async def delete_model(model_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_model(model_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM models WHERE model_id = $1", model_id):
         raise HTTPException(status_code=404, detail="Model not found")
 

@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.effects import EffectCreate, EffectUpdate, EffectOut
 from routers._helpers import parent_ref_sql, encode_parent_refs
 
@@ -34,7 +35,7 @@ async def get_effect(effect_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=EffectOut, status_code=201)
-async def create_effect(payload: EffectCreate, conn: Connection = Depends(get_conn)):
+async def create_effect(payload: EffectCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     row = await conn.fetchrow(
         f"""
         INSERT INTO effects
@@ -59,7 +60,7 @@ async def create_effect(payload: EffectCreate, conn: Connection = Depends(get_co
 
 
 @router.patch("/{effect_id}", response_model=EffectOut)
-async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Connection = Depends(get_conn)):
+async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
         raise HTTPException(status_code=404, detail="Effect not found")
 
@@ -89,7 +90,7 @@ async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Connection
 
 
 @router.delete("/{effect_id}", status_code=204)
-async def delete_effect(effect_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_effect(effect_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
         raise HTTPException(status_code=404, detail="Effect not found")
 

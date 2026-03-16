@@ -46,55 +46,56 @@ async def test_unknown_slug(client):
     assert response.status_code == 404
 
 
-async def test_create_lookup(client):
-    response = await client.post("/config/tag-types", json={"type_name": "Test Tag Type"})
+async def test_create_lookup(client, admin_headers):
+    response = await client.post("/config/tag-types", json={"type_name": "Test Tag Type"}, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert data["type_name"] == "Test Tag Type"
     assert "type_id" in data
 
 
-async def test_create_lookup_minimal(client):
-    response = await client.post("/config/effect-types", json={"type_name": "Test Effect Type"})
+async def test_create_lookup_minimal(client, admin_headers):
+    response = await client.post("/config/effect-types", json={"type_name": "Test Effect Type"}, headers=admin_headers)
     assert response.status_code == 201
 
 
-async def test_create_lookup_missing_name(client):
-    response = await client.post("/config/tag-types", json={"type_description": "No name"})
+async def test_create_lookup_missing_name(client, admin_headers):
+    response = await client.post("/config/tag-types", json={"type_description": "No name"}, headers=admin_headers)
     assert response.status_code == 422
 
 
-async def test_update_lookup(client, conn):
+async def test_update_lookup(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO tool_types (type_name) VALUES ('Update Me Type') RETURNING type_id"
     )
     response = await client.patch(
         f"/config/tool-types/{row['type_id']}",
         json={"type_description": "Updated description"},
+        headers=admin_headers,
     )
     assert response.status_code == 200
     assert response.json()["type_description"] == "Updated description"
 
 
-async def test_update_lookup_not_found(client):
-    response = await client.patch(f"/config/tag-types/{uuid4()}", json={"type_name": "Ghost"})
+async def test_update_lookup_not_found(client, admin_headers):
+    response = await client.patch(f"/config/tag-types/{uuid4()}", json={"type_name": "Ghost"}, headers=admin_headers)
     assert response.status_code == 404
 
 
-async def test_delete_lookup(client, conn):
+async def test_delete_lookup(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO tag_types (type_name) VALUES ('Delete Me Tag') RETURNING type_id"
     )
-    response = await client.delete(f"/config/tag-types/{row['type_id']}")
+    response = await client.delete(f"/config/tag-types/{row['type_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
-async def test_delete_lookup_not_found(client):
-    response = await client.delete(f"/config/tag-types/{uuid4()}")
+async def test_delete_lookup_not_found(client, admin_headers):
+    response = await client.delete(f"/config/tag-types/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
 
 
-async def test_delete_lookup_blocked_when_referenced(client, conn):
+async def test_delete_lookup_blocked_when_referenced(client, conn, admin_headers):
     # Find a tag_type that is referenced by at least one record
     row = await conn.fetchrow(
         "SELECT DISTINCT t.type_id FROM tag_types t "
@@ -102,5 +103,5 @@ async def test_delete_lookup_blocked_when_referenced(client, conn):
     )
     if row is None:
         return  # no fixture data — skip
-    response = await client.delete(f"/config/tag-types/{row['type_id']}")
+    response = await client.delete(f"/config/tag-types/{row['type_id']}", headers=admin_headers)
     assert response.status_code == 409

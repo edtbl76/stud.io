@@ -1,15 +1,44 @@
 'use client'
 
 import * as React from 'react'
+import Script from 'next/script'
 import { useAuth } from '@/lib/auth'
 import { Loader2 } from 'lucide-react'
 
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
+
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, loginGoogle } = useAuth()
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
+  const googleButtonRef = React.useRef<HTMLDivElement>(null)
+
+  function initGoogle() {
+    if (!GOOGLE_CLIENT_ID || !window.google || !googleButtonRef.current) return
+    window.google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: async (response) => {
+        setError(null)
+        setLoading(true)
+        try {
+          await loginGoogle(response.credential)
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Google login failed')
+        } finally {
+          setLoading(false)
+        }
+      },
+    })
+    window.google.accounts.id.renderButton(googleButtonRef.current, {
+      type: 'standard',
+      theme: 'outline',
+      size: 'large',
+      text: 'signin_with',
+      width: 352,
+    })
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -26,6 +55,14 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
+      {GOOGLE_CLIENT_ID && (
+        <Script
+          src="https://accounts.google.com/gsi/client"
+          strategy="afterInteractive"
+          onLoad={initGoogle}
+        />
+      )}
+
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -80,6 +117,20 @@ export default function LoginPage() {
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Sign in
           </button>
+
+          {GOOGLE_CLIENT_ID && (
+            <>
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-card px-2 text-xs text-muted-foreground">or</span>
+                </div>
+              </div>
+              <div ref={googleButtonRef} className="flex justify-center" />
+            </>
+          )}
         </form>
       </div>
     </div>

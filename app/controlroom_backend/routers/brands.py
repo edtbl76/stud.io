@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection, ForeignKeyViolationError
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.brands import BrandCreate, BrandUpdate, BrandOut
 
 router = APIRouter()
@@ -39,7 +40,7 @@ async def get_brand(brand_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=BrandOut, status_code=201)
-async def create_brand(payload: BrandCreate, conn: Connection = Depends(get_conn)):
+async def create_brand(payload: BrandCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     row = await conn.fetchrow(
         """
         INSERT INTO brands (legal_name, brand_name, entity_type_id, website,
@@ -54,7 +55,7 @@ async def create_brand(payload: BrandCreate, conn: Connection = Depends(get_conn
 
 
 @router.patch("/{brand_id}", response_model=BrandOut)
-async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Connection = Depends(get_conn)):
+async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     existing = await conn.fetchrow("SELECT 1 FROM brands WHERE brand_id = $1", brand_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -73,7 +74,7 @@ async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Connection = 
 
 
 @router.delete("/{brand_id}", status_code=204)
-async def delete_brand(brand_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_brand(brand_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     existing = await conn.fetchrow("SELECT 1 FROM brands WHERE brand_id = $1", brand_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Brand not found")

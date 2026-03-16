@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { DataTable } from '@/components/DataTable'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,8 @@ export function TablePage<T>({
   renderModal,
 }: TablePageProps<T>) {
   const queryClient = useQueryClient()
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
   const [search, setSearch] = React.useState('')
   const [debouncedSearch, setDebouncedSearch] = React.useState('')
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
@@ -82,10 +85,12 @@ export function TablePage<T>({
             placeholder="Search..."
             className="w-56 h-8 text-xs"
           />
-          <Button size="sm" onClick={handleAdd} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />
-            Add
-          </Button>
+          {isAdmin && (
+            <Button size="sm" onClick={handleAdd} className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" />
+              Add
+            </Button>
+          )}
         </div>
       </div>
 

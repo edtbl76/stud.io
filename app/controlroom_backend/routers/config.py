@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.config import LookupCreate, LookupUpdate, LookupOut
 
 router = APIRouter()
@@ -82,7 +83,7 @@ async def get_lookup(slug: str, type_id: UUID, conn: Connection = Depends(get_co
 
 
 @router.post("/{slug}", response_model=LookupOut, status_code=201)
-async def create_lookup(slug: str, payload: LookupCreate, conn: Connection = Depends(get_conn)):
+async def create_lookup(slug: str, payload: LookupCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     table = _resolve(slug)
     row = await conn.fetchrow(
         f"INSERT INTO {table} (type_name, type_description) VALUES ($1,$2) RETURNING *",
@@ -92,7 +93,7 @@ async def create_lookup(slug: str, payload: LookupCreate, conn: Connection = Dep
 
 
 @router.patch("/{slug}/{type_id}", response_model=LookupOut)
-async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Connection = Depends(get_conn)):
+async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     table = _resolve(slug)
     if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
         raise HTTPException(status_code=404, detail="Not found")
@@ -110,7 +111,7 @@ async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: C
 
 
 @router.delete("/{slug}/{type_id}", status_code=204)
-async def delete_lookup(slug: str, type_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_lookup(slug: str, type_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     table = _resolve(slug)
     if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
         raise HTTPException(status_code=404, detail="Not found")

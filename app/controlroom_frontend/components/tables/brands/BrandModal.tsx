@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { Brand } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
 import { FieldRow } from '@/components/FieldRow'
@@ -53,6 +54,7 @@ function toForm(record: Brand | null): FormState {
 }
 
 export function BrandModal({ record, onClose, onMutate }: BrandModalProps) {
+  const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
@@ -108,6 +110,7 @@ export function BrandModal({ record, onClose, onMutate }: BrandModalProps) {
   return (
     <RecordModal
       title={title}
+      isAdmin={role === 'admin'}
       isEditing={isEditing}
       onEdit={() => setIsEditing(true)}
       onSave={() => {

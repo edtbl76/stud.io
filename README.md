@@ -55,23 +55,24 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 
 ## Section 2: Application Roadmap
 
-### Current State (v1.1)
+### Current State (v1.2)
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
 - Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
-- FastAPI backend — 146 tests passing, all endpoints live at `http://localhost:5150`
-- Full REST API: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search, Admin (backup/restore)
+- FastAPI backend — 209 tests passing, all endpoints live at `http://localhost:5150`
+- Full REST API: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search, Admin (backup/restore), Users
 - Next.js frontend — dark studio UI, sortable/filterable/resizable/reorderable data tables, read/edit/create/delete modals, all tables wired to the API
 - Row virtualization on large tables (Effects, Instruments, Libraries, Models)
 - Navigation: CATALOG, SESSION, TOOLS, CONFIG, ADMIN sections
 - Database backup and restore via the Admin UI
-- JWT authentication — login page, token stored in localStorage, protected routes, logout
-- Default credentials: `admin` / `admin` (seeded automatically on first startup)
+- **Auth & RBAC**: JWT authentication with two roles — `admin` (full read/write) and `user` (read-only). Write access is enforced at the API layer; Add/Edit/Delete controls hidden in the UI for non-admins. The ADMIN sidebar section is hidden for non-admins.
+- **Google Sign-In** (optional): set `GOOGLE_CLIENT_ID` in `docker-compose.yml` to enable a Google Sign-In button on the login page and a "Link Google" option in the Users admin panel. Leave empty to disable.
+- User management UI — add users, change passwords, toggle roles, link Google accounts
+- Default credentials: `admin` / `admin` (seeded automatically on first startup, role `admin`)
 - Full stack runs in Docker via `./app.sh`
 
 ### Future
 - Python recommendation engine (shared FastAPI codebase)
 - Google Sheets export
-- User management UI (add/change users and passwords)
 
 ---
 

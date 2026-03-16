@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { Effect } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
 import { FieldRow } from '@/components/FieldRow'
@@ -62,6 +63,7 @@ function toForm(record: Effect | null): FormState {
 }
 
 export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
+  const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
@@ -109,6 +111,7 @@ export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
   return (
     <RecordModal
       title={title}
+      isAdmin={role === 'admin'}
       isEditing={isEditing}
       onEdit={() => setIsEditing(true)}
       onSave={() => { setError(null); saveMutation.mutate() }}

@@ -48,8 +48,8 @@ async def test_get_library_not_found(client):
 # CREATE
 # ---------------------------------------------------------------------------
 
-async def test_create_library(client):
-    response = await client.post("/libraries", json={"library_name": "Test Library"})
+async def test_create_library(client, admin_headers):
+    response = await client.post("/libraries", json={"library_name": "Test Library"}, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert data["library_name"] == "Test Library"
@@ -57,19 +57,19 @@ async def test_create_library(client):
     assert data["parents"] == []
 
 
-async def test_create_library_missing_name(client):
-    response = await client.post("/libraries", json={"description": "No name"})
+async def test_create_library_missing_name(client, admin_headers):
+    response = await client.post("/libraries", json={"description": "No name"}, headers=admin_headers)
     assert response.status_code == 422
 
 
-async def test_create_library_with_parent(client, conn):
+async def test_create_library_with_parent(client, conn, admin_headers):
     parent = await conn.fetchrow(
         "INSERT INTO instruments (instrument_name) VALUES ('Parent Synth') RETURNING instrument_id"
     )
     response = await client.post("/libraries", json={
         "library_name": "Child Library",
         "parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}],
-    })
+    }, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert len(data["parents"]) == 1
@@ -80,18 +80,18 @@ async def test_create_library_with_parent(client, conn):
 # UPDATE
 # ---------------------------------------------------------------------------
 
-async def test_update_library(client, conn):
+async def test_update_library(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO libraries (library_name) VALUES ('Update Me') RETURNING library_id"
     )
-    response = await client.patch(f"/libraries/{row['library_id']}", json={"description": "Updated"})
+    response = await client.patch(f"/libraries/{row['library_id']}", json={"description": "Updated"}, headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["description"] == "Updated"
     assert response.json()["library_name"] == "Update Me"
 
 
-async def test_update_library_not_found(client):
-    response = await client.patch(f"/libraries/{uuid4()}", json={"description": "Ghost"})
+async def test_update_library_not_found(client, admin_headers):
+    response = await client.patch(f"/libraries/{uuid4()}", json={"description": "Ghost"}, headers=admin_headers)
     assert response.status_code == 404
 
 
@@ -99,14 +99,14 @@ async def test_update_library_not_found(client):
 # DELETE
 # ---------------------------------------------------------------------------
 
-async def test_delete_library(client, conn):
+async def test_delete_library(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO libraries (library_name) VALUES ('Delete Me') RETURNING library_id"
     )
-    response = await client.delete(f"/libraries/{row['library_id']}")
+    response = await client.delete(f"/libraries/{row['library_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
-async def test_delete_library_not_found(client):
-    response = await client.delete(f"/libraries/{uuid4()}")
+async def test_delete_library_not_found(client, admin_headers):
+    response = await client.delete(f"/libraries/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404

@@ -24,6 +24,7 @@ services:
       DB_NAME: controlroomdb
       DB_USER: studio
       DB_PASSWORD: studio
+      GOOGLE_CLIENT_ID: ""
     depends_on:
       - db
     restart: unless-stopped
@@ -36,6 +37,7 @@ services:
       - "2112:2112"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:5150
+      - NEXT_PUBLIC_GOOGLE_CLIENT_ID=
     volumes:
       - ./app/controlroom_frontend:/app
       - /app/node_modules

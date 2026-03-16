@@ -286,7 +286,25 @@ CREATE TABLE admin_tools (
 CREATE TABLE IF NOT EXISTS users (
     user_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     username      TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
+    password_hash TEXT,
+    role          TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+    google_id     TEXT UNIQUE,
+    email         TEXT UNIQUE,
     created_at    TIMESTAMP DEFAULT NOW(),
-    updated_at    TIMESTAMP DEFAULT NOW()
+    updated_at    TIMESTAMP DEFAULT NOW(),
+    CONSTRAINT users_must_have_auth CHECK (password_hash IS NOT NULL OR google_id IS NOT NULL)
 );
+
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user'));
+ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE;
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.table_constraints
+    WHERE constraint_name = 'users_must_have_auth'
+  ) THEN
+    ALTER TABLE users ADD CONSTRAINT users_must_have_auth
+      CHECK (password_hash IS NOT NULL OR google_id IS NOT NULL);
+  END IF;
+END $$;

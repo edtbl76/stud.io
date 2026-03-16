@@ -2,12 +2,14 @@
 
 import * as React from 'react'
 import { Download, Upload, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
+import { useAuth } from '@/lib/auth'
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5150'
 
 type Status = { type: 'success' | 'error'; message: string } | null
 
 export default function BackupRestorePage() {
+  const { token } = useAuth()
   const [restoreFile, setRestoreFile] = React.useState<File | null>(null)
   const [backupStatus, setBackupStatus] = React.useState<Status>(null)
   const [restoreStatus, setRestoreStatus] = React.useState<Status>(null)
@@ -19,7 +21,9 @@ export default function BackupRestorePage() {
     setBackupLoading(true)
     setBackupStatus(null)
     try {
-      const res = await fetch(`${API}/admin/backup`)
+      const res = await fetch(`${API}/admin/backup`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)
@@ -49,7 +53,11 @@ export default function BackupRestorePage() {
     try {
       const form = new FormData()
       form.append('file', restoreFile)
-      const res = await fetch(`${API}/admin/restore`, { method: 'POST', body: form })
+      const res = await fetch(`${API}/admin/restore`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)

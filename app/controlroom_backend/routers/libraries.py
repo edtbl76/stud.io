@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
+from routers.auth import require_admin, UserOut
 from schemas.libraries import LibraryCreate, LibraryUpdate, LibraryOut
 from routers._helpers import parent_ref_sql, encode_parent_refs
 
@@ -34,7 +35,7 @@ async def get_library(library_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=LibraryOut, status_code=201)
-async def create_library(payload: LibraryCreate, conn: Connection = Depends(get_conn)):
+async def create_library(payload: LibraryCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     row = await conn.fetchrow(
         f"""
         INSERT INTO libraries
@@ -54,7 +55,7 @@ async def create_library(payload: LibraryCreate, conn: Connection = Depends(get_
 
 
 @router.patch("/{library_id}", response_model=LibraryOut)
-async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Connection = Depends(get_conn)):
+async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
         raise HTTPException(status_code=404, detail="Library not found")
 
@@ -84,7 +85,7 @@ async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Connect
 
 
 @router.delete("/{library_id}", status_code=204)
-async def delete_library(library_id: UUID, conn: Connection = Depends(get_conn)):
+async def delete_library(library_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
     if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
         raise HTTPException(status_code=404, detail="Library not found")
 

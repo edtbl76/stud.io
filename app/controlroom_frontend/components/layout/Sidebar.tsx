@@ -67,7 +67,7 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { username, logout } = useAuth()
+  const { username, role, logout } = useAuth()
 
   // Default all groups collapsed
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set())
@@ -116,7 +116,7 @@ export function Sidebar() {
 
       {/* Nav groups */}
       <nav className="py-3">
-        {navGroups.map((group) => {
+        {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => {
           const isOpen = openGroups.has(group.title)
           return (
             <div key={group.title} className="mb-1">

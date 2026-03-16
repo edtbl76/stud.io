@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
+    google_client_id: str = ""  # empty = Google login disabled
 
     app_host: str = "0.0.0.0"
     app_port: int = 5150

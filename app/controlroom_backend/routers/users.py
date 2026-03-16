@@ -2,11 +2,14 @@ from uuid import UUID
 
 import bcrypt
 from asyncpg import Connection
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 from pydantic import BaseModel
 
+from config import settings
 from database import get_conn
-from routers.auth import get_current_user, UserOut
+from routers.auth import get_current_user, require_admin, UserOut
 
 router = APIRouter()
 
@@ -14,7 +17,9 @@ router = APIRouter()
 class UserListItem(BaseModel):
     user_id: str
     username: str
+    role: str
     created_at: str
+    google_linked: bool
 
 
 class UserCreate(BaseModel):
@@ -24,6 +29,14 @@ class UserCreate(BaseModel):
 
 class PasswordChange(BaseModel):
     password: str
+
+
+class RoleChange(BaseModel):
+    role: str
+
+
+class GoogleLink(BaseModel):
+    credential: str
 
 
 def _hash(plain: str) -> str:
@@ -36,13 +49,15 @@ async def list_users(
     _: UserOut = Depends(get_current_user),
 ):
     rows = await conn.fetch(
-        "SELECT user_id, username, created_at FROM users ORDER BY created_at"
+        "SELECT user_id, username, role, created_at, google_id FROM users ORDER BY created_at"
     )
     return [
         UserListItem(
             user_id=str(r["user_id"]),
             username=r["username"],
+            role=r["role"],
             created_at=r["created_at"].isoformat(),
+            google_linked=r["google_id"] is not None,
         )
         for r in rows
     ]
@@ -52,20 +67,22 @@ async def list_users(
 async def create_user(
     payload: UserCreate,
     conn: Connection = Depends(get_conn),
-    _: UserOut = Depends(get_current_user),
+    _: UserOut = Depends(require_admin),
 ):
     existing = await conn.fetchrow("SELECT 1 FROM users WHERE username = $1", payload.username)
     if existing:
         raise HTTPException(status_code=409, detail="Username already exists")
     row = await conn.fetchrow(
-        "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING user_id, username, created_at",
+        "INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING user_id, username, role, created_at, google_id",
         payload.username,
         _hash(payload.password),
     )
     return UserListItem(
         user_id=str(row["user_id"]),
         username=row["username"],
+        role=row["role"],
         created_at=row["created_at"].isoformat(),
+        google_linked=row["google_id"] is not None,
     )
 
 
@@ -85,11 +102,87 @@ async def change_password(
         raise HTTPException(status_code=404, detail="User not found")
 
 
+@router.patch("/{user_id}/role", status_code=204)
+async def change_role(
+    user_id: UUID,
+    payload: RoleChange,
+    conn: Connection = Depends(get_conn),
+    _: UserOut = Depends(require_admin),
+):
+    if payload.role not in ("admin", "user"):
+        raise HTTPException(status_code=422, detail="role must be 'admin' or 'user'")
+
+    row = await conn.fetchrow("SELECT role FROM users WHERE user_id = $1", user_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if payload.role == "user" and row["role"] == "admin":
+        admin_count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        if admin_count <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote the last admin")
+
+    await conn.execute(
+        "UPDATE users SET role = $1, updated_at = NOW() WHERE user_id = $2",
+        payload.role,
+        user_id,
+    )
+
+
+@router.patch("/{user_id}/google", status_code=204)
+async def link_google(
+    user_id: UUID,
+    payload: GoogleLink,
+    conn: Connection = Depends(get_conn),
+    current_user: UserOut = Depends(get_current_user),
+):
+    if current_user.user_id != str(user_id) and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+    if not settings.google_client_id:
+        raise HTTPException(status_code=501, detail="Google login is not configured")
+
+    try:
+        id_info = id_token.verify_oauth2_token(
+            payload.credential,
+            google_requests.Request(),
+            settings.google_client_id,
+        )
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google credential")
+
+    sub: str = id_info["sub"]
+    email: str = id_info["email"]
+
+    row = await conn.fetchrow("SELECT google_id FROM users WHERE user_id = $1", user_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if row["google_id"] is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Google account already linked. Unlink first before linking a new one.",
+        )
+
+    claimed = await conn.fetchrow(
+        "SELECT 1 FROM users WHERE google_id = $1 AND user_id != $2", sub, user_id
+    )
+    if claimed:
+        raise HTTPException(
+            status_code=409,
+            detail="This Google account is already linked to another user",
+        )
+
+    await conn.execute(
+        "UPDATE users SET google_id = $1, email = $2, updated_at = NOW() WHERE user_id = $3",
+        sub, email, user_id,
+    )
+
+
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(
     user_id: UUID,
     conn: Connection = Depends(get_conn),
-    current_user: UserOut = Depends(get_current_user),
+    current_user: UserOut = Depends(require_admin),
 ):
     row = await conn.fetchrow("SELECT username FROM users WHERE user_id = $1", user_id)
     if not row:

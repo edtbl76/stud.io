@@ -60,41 +60,41 @@ async def test_get_tool_not_found(client):
 
 
 @pytest.mark.parametrize("category", CATEGORIES)
-async def test_create_tool(client, category):
-    response = await client.post(f"/tools/{category}", json={"tool_name": f"Test {category} Tool"})
+async def test_create_tool(client, category, admin_headers):
+    response = await client.post(f"/tools/{category}", json={"tool_name": f"Test {category} Tool"}, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert data["tool_name"] == f"Test {category} Tool"
     assert "tool_id" in data
 
 
-async def test_create_tool_missing_name(client):
-    response = await client.post("/tools/workflow", json={"version": "1.0"})
+async def test_create_tool_missing_name(client, admin_headers):
+    response = await client.post("/tools/workflow", json={"version": "1.0"}, headers=admin_headers)
     assert response.status_code == 422
 
 
-async def test_update_tool(client, conn):
+async def test_update_tool(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO workflow_tools (tool_name) VALUES ('Update Me') RETURNING workflow_tool_id"
     )
-    response = await client.patch(f"/tools/workflow/{row['workflow_tool_id']}", json={"version": "3.0"})
+    response = await client.patch(f"/tools/workflow/{row['workflow_tool_id']}", json={"version": "3.0"}, headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["version"] == "3.0"
 
 
-async def test_update_tool_not_found(client):
-    response = await client.patch(f"/tools/workflow/{uuid4()}", json={"version": "1.0"})
+async def test_update_tool_not_found(client, admin_headers):
+    response = await client.patch(f"/tools/workflow/{uuid4()}", json={"version": "1.0"}, headers=admin_headers)
     assert response.status_code == 404
 
 
-async def test_delete_tool(client, conn):
+async def test_delete_tool(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO admin_tools (tool_name) VALUES ('Delete Me') RETURNING admin_tool_id"
     )
-    response = await client.delete(f"/tools/admin/{row['admin_tool_id']}")
+    response = await client.delete(f"/tools/admin/{row['admin_tool_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
-async def test_delete_tool_not_found(client):
-    response = await client.delete(f"/tools/workflow/{uuid4()}")
+async def test_delete_tool_not_found(client, admin_headers):
+    response = await client.delete(f"/tools/workflow/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404

@@ -5,6 +5,7 @@ pydantic==2.10.1
 pydantic-settings==2.6.1
 python-jose[cryptography]==3.3.0
 bcrypt==5.0.0
+google-auth>=2.38.0
 python-multipart==0.0.17
 
 # testing

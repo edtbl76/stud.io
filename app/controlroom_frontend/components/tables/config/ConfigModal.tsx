@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { useAuth } from '@/lib/auth'
 import { LookupOut } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
 import { FieldRow } from '@/components/FieldRow'
@@ -31,6 +32,7 @@ function toForm(record: LookupOut | null): FormState {
 }
 
 export function ConfigModal({ record, slug, onClose, onMutate }: ConfigModalProps) {
+  const { role } = useAuth()
   const isCreate = record === null
   const endpoint = `/config/${slug}`
   const [isEditing, setIsEditing] = React.useState(isCreate)
@@ -69,6 +71,7 @@ export function ConfigModal({ record, slug, onClose, onMutate }: ConfigModalProp
   return (
     <RecordModal
       title={title}
+      isAdmin={role === 'admin'}
       isEditing={isEditing}
       onEdit={() => setIsEditing(true)}
       onSave={() => { setError(null); saveMutation.mutate() }}

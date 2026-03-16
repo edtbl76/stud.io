@@ -14,6 +14,7 @@ import { Loader2 } from 'lucide-react'
 interface RecordModalProps {
   title: string
   isEditing: boolean
+  isAdmin: boolean
   onEdit: () => void
   onSave: () => void
   onDelete: () => void
@@ -26,6 +27,7 @@ interface RecordModalProps {
 export function RecordModal({
   title,
   isEditing,
+  isAdmin,
   onEdit,
   onSave,
   onDelete,
@@ -131,9 +133,11 @@ export function RecordModal({
             </>
           ) : (
             <>
-              <Button variant="outline" size="sm" onClick={onEdit}>
-                Edit
-              </Button>
+              {isAdmin && (
+                <Button variant="outline" size="sm" onClick={onEdit}>
+                  Edit
+                </Button>
+              )}
               <Button variant="ghost" size="sm" onClick={onClose}>
                 Close
               </Button>
