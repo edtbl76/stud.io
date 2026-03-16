@@ -342,3 +342,8 @@ nginx/certs/*.pem
 
 ### SonarQube
 .sonar-token
+
+### Coverage
+coverage.xml
+.coverage
+app/controlroom_frontend/coverage/
