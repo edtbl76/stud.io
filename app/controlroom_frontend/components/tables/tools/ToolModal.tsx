@@ -87,11 +87,14 @@ export function ToolModal({ record, category, onClose, onMutate }: ToolModalProp
 
   const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1)
 
-  const title = isCreate
-    ? `New ${categoryLabel} Tool`
-    : isEditing
-    ? `Edit: ${record!.full_tool_name}`
-    : record!.full_tool_name
+  let title: string
+  if (isCreate) {
+    title = `New ${categoryLabel} Tool`
+  } else if (isEditing) {
+    title = `Edit: ${record!.full_tool_name}`
+  } else {
+    title = record!.full_tool_name
+  }
 
   return (
     <RecordModal

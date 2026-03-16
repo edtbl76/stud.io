@@ -13,6 +13,7 @@ from routers._helpers import parent_ref_sql, encode_parent_refs
 router = APIRouter()
 
 _SELECT = "SELECT * FROM effects_view"
+_NOT_FOUND = "Effect not found"
 _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
 
@@ -27,11 +28,11 @@ async def list_effects(q: str | None = None, *, conn: Annotated[Connection, Depe
     return [EffectOut(**dict(r)) for r in rows]
 
 
-@router.get("/{effect_id}", response_model=EffectOut)
+@router.get("/{effect_id}", response_model=EffectOut, responses={404: {"description": "Not found"}})
 async def get_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE effect_id = $1", effect_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Effect not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return EffectOut(**dict(row))
 
 
@@ -60,10 +61,10 @@ async def create_effect(payload: EffectCreate, conn: Annotated[Connection, Depen
     return await get_effect(row["effect_id"], conn)
 
 
-@router.patch("/{effect_id}", response_model=EffectOut)
+@router.patch("/{effect_id}", response_model=EffectOut, responses={404: {"description": "Not found"}})
 async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
-        raise HTTPException(status_code=404, detail="Effect not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -90,10 +91,10 @@ async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[
     return await get_effect(effect_id, conn)
 
 
-@router.delete("/{effect_id}", status_code=204)
+@router.delete("/{effect_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
-        raise HTTPException(status_code=404, detail="Effect not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     for table in _PARENT_REF_TABLES:
         if await conn.fetchrow(

@@ -179,18 +179,20 @@ export function DataTable<TData, TValue>({
                       >
                         <div className="flex items-center gap-1">
                           {/* Drag handle — reorder only from here */}
-                          <span
+                          <button
+                            type="button"
                             draggable
                             onDragStart={(e) => handleDragStart(e, header.column.id)}
-                            className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/70 flex-shrink-0"
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/70 flex-shrink-0 bg-transparent border-0 p-0"
                           >
                             <GripVertical className="h-3 w-3" />
-                          </span>
+                          </button>
 
                           {/* Label + sort */}
-                          <div
+                            <button
+                            type="button"
                             className={cn(
-                              'flex items-center gap-1 flex-1 min-w-0',
+                              'flex items-center gap-1 flex-1 min-w-0 bg-transparent border-0 p-0 text-inherit',
                               sortable && 'cursor-pointer hover:text-foreground'
                             )}
                             onClick={sortable ? header.column.getToggleSortingHandler() : undefined}
@@ -200,21 +202,21 @@ export function DataTable<TData, TValue>({
                               : flexRender(header.column.columnDef.header, header.getContext())}
                             {sortable && (
                               <span className="flex-shrink-0">
-                                {sortDir === 'asc' ? (
-                                  <ChevronUp className="h-3 w-3" />
-                                ) : sortDir === 'desc' ? (
-                                  <ChevronDown className="h-3 w-3" />
-                                ) : (
-                                  <ChevronsUpDown className="h-3 w-3 opacity-40" />
-                                )}
+                                {(() => {
+                                  if (sortDir === 'asc') return <ChevronUp className="h-3 w-3" />
+                                  if (sortDir === 'desc') return <ChevronDown className="h-3 w-3" />
+                                  return <ChevronsUpDown className="h-3 w-3 opacity-40" />
+                                })()}
                               </span>
                             )}
-                          </div>
+                          </button>
                         </div>
 
                         {/* Resize handle — isolated from drag */}
                         {header.column.getCanResize() && (
-                          <div
+                          <button
+                            type="button"
+                            aria-label="Resize column"
                             onMouseDown={(e) => {
                               e.stopPropagation()
                               header.getResizeHandler()(e)
@@ -225,7 +227,7 @@ export function DataTable<TData, TValue>({
                             }}
                             onClick={(e) => e.stopPropagation()}
                             className={cn(
-                              'absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none select-none',
+                              'absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none select-none bg-transparent border-0 p-0',
                               'hover:bg-primary/40 transition-colors',
                               header.column.getIsResizing() && 'bg-primary/70'
                             )}
@@ -261,26 +263,33 @@ export function DataTable<TData, TValue>({
             ))}
           </thead>
           <tbody>
-            {isLoading ? (
-              Array.from({ length: 10 }).map((_, i) => (
-                <tr key={i} className="border-b border-border/50" style={{ height: ROW_HEIGHT }}>
-                  {columns.map((_, ci) => (
-                    <td key={ci} className="px-3 py-2">
-                      <Skeleton className="h-4 w-full" />
+            {(() => {
+              if (isLoading) {
+                const skeletonRows = Array.from({ length: 10 }, (_, i) => `skeleton-row-${i}`)
+                const skeletonCols = table.getAllLeafColumns().map((col) => col.id)
+                return skeletonRows.map((rowKey) => (
+                  <tr key={rowKey} className="border-b border-border/50" style={{ height: ROW_HEIGHT }}>
+                    {skeletonCols.map((colId) => (
+                      <td key={`${rowKey}-${colId}`} className="px-3 py-2">
+                        <Skeleton className="h-4 w-full" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              }
+              if (rows.length === 0) {
+                return (
+                  <tr>
+                    <td
+                      colSpan={table.getVisibleLeafColumns().length}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      No records found
                     </td>
-                  ))}
-                </tr>
-              ))
-            ) : rows.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={table.getVisibleLeafColumns().length}
-                  className="h-32 text-center text-muted-foreground"
-                >
-                  No records found
-                </td>
-              </tr>
-            ) : (
+                  </tr>
+                )
+              }
+              return (
               <>
                 {paddingTop > 0 && (
                   <tr><td style={{ height: paddingTop }} /></tr>
@@ -313,7 +322,8 @@ export function DataTable<TData, TValue>({
                   <tr><td style={{ height: paddingBottom }} /></tr>
                 )}
               </>
-            )}
+              )
+            })()}
           </tbody>
         </table>
       </div>

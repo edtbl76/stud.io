@@ -13,6 +13,7 @@ from routers._helpers import parent_ref_sql, encode_parent_refs
 router = APIRouter()
 
 _SELECT = "SELECT * FROM instruments_view"
+_NOT_FOUND = "Instrument not found"
 _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
 
@@ -27,11 +28,11 @@ async def list_instruments(q: str | None = None, *, conn: Annotated[Connection, 
     return [InstrumentOut(**dict(r)) for r in rows]
 
 
-@router.get("/{instrument_id}", response_model=InstrumentOut)
+@router.get("/{instrument_id}", response_model=InstrumentOut, responses={404: {"description": "Not found"}})
 async def get_instrument(instrument_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE instrument_id = $1", instrument_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return InstrumentOut(**dict(row))
 
 
@@ -59,10 +60,10 @@ async def create_instrument(payload: InstrumentCreate, conn: Annotated[Connectio
     return await get_instrument(row["instrument_id"], conn)
 
 
-@router.patch("/{instrument_id}", response_model=InstrumentOut)
+@router.patch("/{instrument_id}", response_model=InstrumentOut, responses={404: {"description": "Not found"}})
 async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -89,10 +90,10 @@ async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn
     return await get_instrument(instrument_id, conn)
 
 
-@router.delete("/{instrument_id}", status_code=204)
+@router.delete("/{instrument_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_instrument(instrument_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
-        raise HTTPException(status_code=404, detail="Instrument not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     for table in _PARENT_REF_TABLES:
         if await conn.fetchrow(

@@ -82,11 +82,14 @@ export function LibraryModal({ record, onClose, onMutate }: LibraryModalProps) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Library'
-    : isEditing
-    ? `Edit: ${record!.full_library_name}`
-    : record!.full_library_name
+  let title: string
+  if (isCreate) {
+    title = 'New Library'
+  } else if (isEditing) {
+    title = `Edit: ${record!.full_library_name}`
+  } else {
+    title = record!.full_library_name
+  }
 
   return (
     <RecordModal

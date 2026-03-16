@@ -32,7 +32,7 @@ services:
       context: ./app/controlroom_frontend
     container_name: controlroom_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=https://192.168.1.230.sslip.io:5150
+      - NEXT_PUBLIC_API_URL=https://localhost:5150
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=624395577295-k06o9nsf4agqkg0scn8tbavuhfmgba9r.apps.googleusercontent.com
     volumes:
       - ./app/controlroom_frontend:/app

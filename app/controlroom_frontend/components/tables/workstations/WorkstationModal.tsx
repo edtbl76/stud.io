@@ -85,11 +85,14 @@ export function WorkstationModal({ record, onClose, onMutate }: WorkstationModal
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Workstation'
-    : isEditing
-    ? `Edit: ${record!.full_tool_name}`
-    : record!.full_tool_name
+  let title: string
+  if (isCreate) {
+    title = 'New Workstation'
+  } else if (isEditing) {
+    title = `Edit: ${record!.full_tool_name}`
+  } else {
+    title = record!.full_tool_name
+  }
 
   return (
     <RecordModal

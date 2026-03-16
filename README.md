@@ -76,23 +76,17 @@ This will:
 3. Apply schema and semantic views to both databases
 4. Run the full backend test suite (209 tests)
 
-| Service | Local URL | Network URL |
-|---|---|---|
-| **App** (Next.js) | `https://localhost:2112` | `https://192.168.1.230.sslip.io:2112` |
-| **API** (FastAPI) | `https://localhost:5150` | `https://192.168.1.230.sslip.io:5150` |
-| **API Docs** (Swagger) | `https://localhost:5150/docs` | `https://192.168.1.230.sslip.io:5150/docs` |
+| Service | URL |
+|---|---|
+| **App** (Next.js) | `https://localhost:2112` |
+| **API** (FastAPI) | `https://localhost:5150` |
+| **API Docs** (Swagger) | `https://localhost:5150/docs` |
 
 > First run takes longer — Docker builds the frontend image and `npm install` runs inside the container.
 
 ### Accessing from other devices on the network
 
-Use `https://192.168.1.230.sslip.io:2112`. The `sslip.io` domain automatically resolves to `192.168.1.230` — no DNS setup required.
-
-Other devices will see a certificate warning unless you install the mkcert root CA on them. Find it with:
-```bash
-mkcert -CAROOT
-```
-Transfer `rootCA.pem` to each device and install it as a trusted certificate authority.
+Update `NEXT_PUBLIC_API_URL` in `docker-compose.yml` to your machine's local IP (e.g. `https://192.168.1.230:5150`), then regenerate the mkcert certificate to include that IP and reinstall the root CA on the remote device.
 
 ---
 

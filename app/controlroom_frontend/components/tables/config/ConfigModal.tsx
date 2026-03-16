@@ -62,11 +62,14 @@ export function ConfigModal({ record, slug, onClose, onMutate }: ConfigModalProp
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Entry'
-    : isEditing
-    ? `Edit: ${record!.type_name}`
-    : record!.type_name
+  let title: string
+  if (isCreate) {
+    title = 'New Entry'
+  } else if (isEditing) {
+    title = `Edit: ${record!.type_name}`
+  } else {
+    title = record!.type_name
+  }
 
   return (
     <RecordModal

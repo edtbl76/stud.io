@@ -14,6 +14,8 @@ from routers.auth import get_current_user, require_admin, UserOut
 
 router = APIRouter()
 
+_NOT_FOUND = "User not found"
+
 
 class UserListItem(BaseModel):
     user_id: str
@@ -64,7 +66,7 @@ async def list_users(
     ]
 
 
-@router.post("", response_model=UserListItem, status_code=201)
+@router.post("", response_model=UserListItem, status_code=201, responses={409: {"description": "Conflict"}})
 async def create_user(
     payload: UserCreate,
     conn: Annotated[Connection, Depends(get_conn)],
@@ -87,7 +89,7 @@ async def create_user(
     )
 
 
-@router.patch("/{user_id}/password", status_code=204)
+@router.patch("/{user_id}/password", status_code=204, responses={404: {"description": "Not found"}})
 async def change_password(
     user_id: UUID,
     payload: PasswordChange,
@@ -100,10 +102,10 @@ async def change_password(
         user_id,
     )
     if result == "UPDATE 0":
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
 
-@router.patch("/{user_id}/role", status_code=204)
+@router.patch("/{user_id}/role", status_code=204, responses={400: {"description": "Bad request"}, 404: {"description": "Not found"}, 422: {"description": "Unprocessable entity"}})
 async def change_role(
     user_id: UUID,
     payload: RoleChange,
@@ -115,7 +117,7 @@ async def change_role(
 
     row = await conn.fetchrow("SELECT role FROM users WHERE user_id = $1", user_id)
     if not row:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     if payload.role == "user" and row["role"] == "admin":
         admin_count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE role = 'admin'")
@@ -129,7 +131,7 @@ async def change_role(
     )
 
 
-@router.patch("/{user_id}/google", status_code=204)
+@router.patch("/{user_id}/google", status_code=204, responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}, 404: {"description": "Not found"}, 409: {"description": "Conflict"}, 501: {"description": "Not implemented"}})
 async def link_google(
     user_id: UUID,
     payload: GoogleLink,
@@ -156,7 +158,7 @@ async def link_google(
 
     row = await conn.fetchrow("SELECT google_id FROM users WHERE user_id = $1", user_id)
     if not row:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     if row["google_id"] is not None:
         raise HTTPException(
@@ -179,7 +181,7 @@ async def link_google(
     )
 
 
-@router.delete("/{user_id}", status_code=204)
+@router.delete("/{user_id}", status_code=204, responses={400: {"description": "Bad request"}, 404: {"description": "Not found"}})
 async def delete_user(
     user_id: UUID,
     conn: Annotated[Connection, Depends(get_conn)],
@@ -187,7 +189,7 @@ async def delete_user(
 ):
     row = await conn.fetchrow("SELECT username FROM users WHERE user_id = $1", user_id)
     if not row:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     if row["username"] == current_user.username:
         raise HTTPException(status_code=400, detail="Cannot delete your own account")
     count = await conn.fetchval("SELECT COUNT(*) FROM users")

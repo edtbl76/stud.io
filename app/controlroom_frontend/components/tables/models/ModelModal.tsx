@@ -102,11 +102,14 @@ export function ModelModal({ record, onClose, onMutate }: ModelModalProps) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Model'
-    : isEditing
-    ? `Edit: ${record!.full_model_name}`
-    : record!.full_model_name
+  let title: string
+  if (isCreate) {
+    title = 'New Model'
+  } else if (isEditing) {
+    title = `Edit: ${record!.full_model_name}`
+  } else {
+    title = record!.full_model_name
+  }
 
   return (
     <RecordModal

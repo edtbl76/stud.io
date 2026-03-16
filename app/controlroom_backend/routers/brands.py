@@ -11,6 +11,7 @@ from schemas.brands import BrandCreate, BrandUpdate, BrandOut
 router = APIRouter()
 
 _SELECT = "SELECT * FROM brands_view"
+_NOT_FOUND = "Brand not found"
 
 # Tables that may reference brands
 _REF_TABLES = ["models"]
@@ -32,11 +33,11 @@ async def list_brands(q: str | None = None, *, conn: Annotated[Connection, Depen
     return [_row_to_out(r) for r in rows]
 
 
-@router.get("/{brand_id}", response_model=BrandOut)
+@router.get("/{brand_id}", response_model=BrandOut, responses={404: {"description": "Not found"}})
 async def get_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE brand_id = $1", brand_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Brand not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return _row_to_out(row)
 
 
@@ -55,11 +56,11 @@ async def create_brand(payload: BrandCreate, conn: Annotated[Connection, Depends
     return await get_brand(row["brand_id"], conn)
 
 
-@router.patch("/{brand_id}", response_model=BrandOut)
+@router.patch("/{brand_id}", response_model=BrandOut, responses={404: {"description": "Not found"}})
 async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     existing = await conn.fetchrow("SELECT 1 FROM brands WHERE brand_id = $1", brand_id)
     if not existing:
-        raise HTTPException(status_code=404, detail="Brand not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -74,11 +75,11 @@ async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Annotated[Con
     return await get_brand(brand_id, conn)
 
 
-@router.delete("/{brand_id}", status_code=204)
+@router.delete("/{brand_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     existing = await conn.fetchrow("SELECT 1 FROM brands WHERE brand_id = $1", brand_id)
     if not existing:
-        raise HTTPException(status_code=404, detail="Brand not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     for table in _REF_TABLES:
         ref = await conn.fetchrow(

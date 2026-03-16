@@ -111,7 +111,7 @@ async def seed_default_admin(conn: Connection) -> None:
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.post("/token", response_model=Token)
+@router.post("/token", response_model=Token, responses={401: {"description": "Unauthorized"}})
 async def login(
     form: Annotated[OAuth2PasswordRequestForm, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
@@ -139,7 +139,7 @@ async def me(current_user: Annotated[UserOut, Depends(get_current_user)]):
     return current_user
 
 
-@router.post("/google", response_model=Token)
+@router.post("/google", response_model=Token, responses={401: {"description": "Unauthorized"}, 409: {"description": "Conflict"}, 501: {"description": "Not implemented"}})
 async def login_google(
     payload: GoogleLogin,
     response: Response,
