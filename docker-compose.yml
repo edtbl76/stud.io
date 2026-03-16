@@ -12,5 +12,21 @@ services:
       - studio_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  backstage:
+    build:
+      context: ./app/controlroom_backend
+    container_name: backstage
+    ports:
+      - "5150:5150"
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: controlroomdb
+      DB_USER: studio
+      DB_PASSWORD: studio
+    depends_on:
+      - db
+    restart: unless-stopped
+
 volumes:
   studio_db_data:

@@ -1,15 +1,16 @@
 #!/bin/bash
 # =============================================================================
-# STUD.io — Studio Script
-# Starts infrastructure, generates seeds, and reseeds the database
+# STUD.io — CSV Pipeline
+# Starts infrastructure, runs converters, generates seeds, and reseeds studio db
 # =============================================================================
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 
 echo "============================================================"
-echo "  STUD.io"
+echo "  STUD.io — CSV Pipeline"
 echo "============================================================"
 
 # ---------------------------------------------------------------------------
@@ -17,7 +18,7 @@ echo "============================================================"
 # ---------------------------------------------------------------------------
 echo ""
 echo "[1/4] Checking Docker containers..."
-cd "$SCRIPT_DIR"
+cd "$ROOT_DIR"
 
 if ! docker compose ps | grep -q "running"; then
     echo "  Starting containers..."
@@ -32,21 +33,24 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Generate seed files from CSVs
+# 2. Run converters
 # ---------------------------------------------------------------------------
 echo ""
 echo "[2/4] Running converters..."
-cd "$SCRIPT_DIR/util"
+cd "$SCRIPT_DIR"
 python3 convert_effects.py
 python3 convert_instruments.py
 python3 convert_libraries.py
 
+# ---------------------------------------------------------------------------
+# 3. Generate seed files
+# ---------------------------------------------------------------------------
 echo ""
 echo "[3/4] Generating seed files..."
 python3 generate_seeds.py
 
 # ---------------------------------------------------------------------------
-# 3. Reseed the database
+# 4. Reseed the database
 # ---------------------------------------------------------------------------
 echo ""
 echo "[4/4] Reseeding database..."
