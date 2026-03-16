@@ -3,18 +3,23 @@
 import * as React from 'react'
 import {
   ColumnDef,
+  ColumnFiltersState,
   ColumnOrderState,
   ColumnResizeMode,
   VisibilityState,
   flexRender,
   getCoreRowModel,
+  getFilteredRowModel,
   getSortedRowModel,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal } from 'lucide-react'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, GripVertical } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+
+const ROW_HEIGHT = 44
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -30,26 +35,46 @@ export function DataTable<TData, TValue>({
   isLoading = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [showColMenu, setShowColMenu] = React.useState(false)
   const [draggingId, setDraggingId] = React.useState<string | null>(null)
   const menuRef = React.useRef<HTMLDivElement>(null)
+  const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnVisibility, columnOrder },
+    state: { sorting, columnFilters, columnVisibility, columnOrder },
     onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     columnResizeMode: 'onChange' as ColumnResizeMode,
     enableColumnResizing: true,
   })
 
-  // Close column menu on outside click
+  const rows = table.getRowModel().rows
+
+  const virtualizer = useVirtualizer({
+    count: rows.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
+  })
+
+  const virtualItems = virtualizer.getVirtualItems()
+  const totalSize = virtualizer.getTotalSize()
+  const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0
+  const paddingBottom =
+    virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1].end : 0
+
+  const activeFilterCount = columnFilters.length
+
   React.useEffect(() => {
     if (!showColMenu) return
     function handleClick(e: MouseEvent) {
@@ -81,8 +106,18 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Column visibility toolbar */}
-      <div className="flex items-center justify-end px-4 py-2 border-b border-border/40">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border/40">
+        <div className="flex items-center gap-2">
+          {activeFilterCount > 0 && (
+            <button
+              onClick={() => setColumnFilters([])}
+              className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+            >
+              Clear {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
+            </button>
+          )}
+        </div>
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowColMenu((v) => !v)}
@@ -116,85 +151,127 @@ export function DataTable<TData, TValue>({
         </div>
       </div>
 
-      {/* Table */}
-      <div className="flex-1 overflow-auto">
+      {/* Scrollable table container */}
+      <div ref={scrollRef} className="flex-1 overflow-auto">
         <table
           className="text-sm"
           style={{ width: table.getTotalSize(), tableLayout: 'fixed' }}
         >
-          <thead>
+          <thead className="sticky top-0 z-10" style={{ backgroundColor: 'hsl(var(--card))' }}>
             {table.getHeaderGroups().map((headerGroup) => (
-              <tr key={headerGroup.id} className="border-b border-border">
-                {headerGroup.headers.map((header) => {
-                  const sortable = header.column.getCanSort()
-                  const sortDir = header.column.getIsSorted()
-                  return (
+              <React.Fragment key={headerGroup.id}>
+                {/* Column headers */}
+                <tr className="border-b border-border">
+                  {headerGroup.headers.map((header) => {
+                    const sortable = header.column.getCanSort()
+                    const sortDir = header.column.getIsSorted()
+                    return (
+                      <th
+                        key={header.id}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => handleDrop(e, header.column.id)}
+                        className={cn(
+                          'relative h-10 px-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide',
+                          'whitespace-nowrap select-none',
+                          draggingId === header.column.id && 'opacity-40',
+                        )}
+                        style={{ width: header.getSize() }}
+                      >
+                        <div className="flex items-center gap-1">
+                          {/* Drag handle — reorder only from here */}
+                          <span
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, header.column.id)}
+                            className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/70 flex-shrink-0"
+                          >
+                            <GripVertical className="h-3 w-3" />
+                          </span>
+
+                          {/* Label + sort */}
+                          <div
+                            className={cn(
+                              'flex items-center gap-1 flex-1 min-w-0',
+                              sortable && 'cursor-pointer hover:text-foreground'
+                            )}
+                            onClick={sortable ? header.column.getToggleSortingHandler() : undefined}
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(header.column.columnDef.header, header.getContext())}
+                            {sortable && (
+                              <span className="flex-shrink-0">
+                                {sortDir === 'asc' ? (
+                                  <ChevronUp className="h-3 w-3" />
+                                ) : sortDir === 'desc' ? (
+                                  <ChevronDown className="h-3 w-3" />
+                                ) : (
+                                  <ChevronsUpDown className="h-3 w-3 opacity-40" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Resize handle — isolated from drag */}
+                        {header.column.getCanResize() && (
+                          <div
+                            onMouseDown={(e) => {
+                              e.stopPropagation()
+                              header.getResizeHandler()(e)
+                            }}
+                            onTouchStart={(e) => {
+                              e.stopPropagation()
+                              header.getResizeHandler()(e)
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className={cn(
+                              'absolute right-0 top-0 h-full w-2 cursor-col-resize touch-none select-none',
+                              'hover:bg-primary/40 transition-colors',
+                              header.column.getIsResizing() && 'bg-primary/70'
+                            )}
+                          />
+                        )}
+                      </th>
+                    )
+                  })}
+                </tr>
+
+                {/* Filter row */}
+                <tr className="border-b border-border/60" style={{ backgroundColor: 'hsl(var(--muted) / 0.1)' }}>
+                  {headerGroup.headers.map((header) => (
                     <th
-                      key={header.id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, header.column.id)}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={(e) => handleDrop(e, header.column.id)}
-                      className={cn(
-                        'relative h-10 px-4 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide',
-                        'whitespace-nowrap select-none',
-                        draggingId === header.column.id && 'opacity-40',
-                      )}
+                      key={`filter-${header.id}`}
+                      className="px-3 py-1.5"
                       style={{ width: header.getSize() }}
                     >
-                      <div
-                        className={cn(
-                          'flex items-center gap-1 cursor-grab active:cursor-grabbing',
-                          sortable && 'hover:text-foreground'
-                        )}
-                        onClick={sortable ? header.column.getToggleSortingHandler() : undefined}
-                      >
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                        {sortable && (
-                          <span className="flex-shrink-0">
-                            {sortDir === 'asc' ? (
-                              <ChevronUp className="h-3 w-3" />
-                            ) : sortDir === 'desc' ? (
-                              <ChevronDown className="h-3 w-3" />
-                            ) : (
-                              <ChevronsUpDown className="h-3 w-3 opacity-40" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-                      {/* Resize handle */}
-                      {header.column.getCanResize() && (
-                        <div
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                          onClick={(e) => e.stopPropagation()}
-                          className={cn(
-                            'absolute right-0 top-0 h-full w-1.5 cursor-col-resize touch-none select-none',
-                            'hover:bg-primary/50 transition-colors',
-                            header.column.getIsResizing() && 'bg-primary'
-                          )}
+                      {header.column.getCanFilter() ? (
+                        <input
+                          value={(header.column.getFilterValue() as string) ?? ''}
+                          onChange={(e) =>
+                            header.column.setFilterValue(e.target.value || undefined)
+                          }
+                          placeholder="Filter…"
+                          className="w-full bg-transparent border border-border/60 rounded px-2 py-0.5 text-xs text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/60 transition-colors"
                         />
-                      )}
+                      ) : null}
                     </th>
-                  )
-                })}
-              </tr>
+                  ))}
+                </tr>
+              </React.Fragment>
             ))}
           </thead>
           <tbody>
             {isLoading ? (
-              Array.from({ length: 5 }).map((_, i) => (
-                <tr key={i} className="border-b border-border/50">
+              Array.from({ length: 10 }).map((_, i) => (
+                <tr key={i} className="border-b border-border/50" style={{ height: ROW_HEIGHT }}>
                   {columns.map((_, ci) => (
-                    <td key={ci} className="px-4 py-2">
+                    <td key={ci} className="px-3 py-2">
                       <Skeleton className="h-4 w-full" />
                     </td>
                   ))}
                 </tr>
               ))
-            ) : table.getRowModel().rows.length === 0 ? (
+            ) : rows.length === 0 ? (
               <tr>
                 <td
                   colSpan={table.getVisibleLeafColumns().length}
@@ -204,28 +281,38 @@ export function DataTable<TData, TValue>({
                 </td>
               </tr>
             ) : (
-              table.getRowModel().rows.map((row) => (
-                <tr
-                  key={row.id}
-                  className={cn(
-                    'border-b border-border/50 transition-colors',
-                    onRowClick && 'cursor-pointer hover:bg-muted/60'
-                  )}
-                  onClick={() => onRowClick?.(row.original)}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="px-4 py-2 align-middle overflow-hidden"
-                      style={{ width: cell.column.getSize() }}
+              <>
+                {paddingTop > 0 && (
+                  <tr><td style={{ height: paddingTop }} /></tr>
+                )}
+                {virtualItems.map((vRow) => {
+                  const row = rows[vRow.index]
+                  return (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        'border-b border-border/50 transition-colors',
+                        onRowClick && 'cursor-pointer hover:bg-muted/60'
+                      )}
+                      style={{ height: ROW_HEIGHT }}
+                      onClick={() => onRowClick?.(row.original)}
                     >
-                      <div className="truncate">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="px-3 py-2 align-middle"
+                          style={{ width: cell.column.getSize(), maxWidth: cell.column.getSize(), overflow: 'hidden' }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+                {paddingBottom > 0 && (
+                  <tr><td style={{ height: paddingBottom }} /></tr>
+                )}
+              </>
             )}
           </tbody>
         </table>

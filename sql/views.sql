@@ -80,11 +80,12 @@ SELECT
     -- model_ids → [{id, name}]
     e.model_ids,
     (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', m.model_name)
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
                 ORDER BY m.model_name
              ), '[]'::json)
      FROM   unnest(COALESCE(e.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid)                    AS models,
+     JOIN   models m ON m.model_id = uid
+     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)        AS models,
 
     -- effect_type_ids → [{id, name}]
     e.effect_type_ids,
@@ -164,11 +165,12 @@ SELECT
     -- model_ids → [{id, name}]
     i.model_ids,
     (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', m.model_name)
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
                 ORDER BY m.model_name
              ), '[]'::json)
      FROM   unnest(COALESCE(i.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid)                        AS models,
+     JOIN   models m ON m.model_id = uid
+     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)            AS models,
 
     -- instrument_type_ids → [{id, name}]
     i.instrument_type_ids,
@@ -247,11 +249,12 @@ SELECT
     -- model_ids → [{id, name}]
     l.model_ids,
     (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', m.model_name)
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
                 ORDER BY m.model_name
              ), '[]'::json)
      FROM   unnest(COALESCE(l.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid)                    AS models,
+     JOIN   models m ON m.model_id = uid
+     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)        AS models,
 
     -- tag_ids → [{id, name}]
     l.tag_ids,
@@ -390,11 +393,12 @@ SELECT
 
     mt.model_ids,
     (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', m.model_name)
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
                 ORDER BY m.model_name
              ), '[]'::json)
      FROM   unnest(COALESCE(mt.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid)                    AS models,
+     JOIN   models m ON m.model_id = uid
+     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)        AS models,
 
     mt.tool_type_ids,
     (SELECT COALESCE(json_agg(
@@ -442,11 +446,12 @@ SELECT
 
     rt.model_ids,
     (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', m.model_name)
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
                 ORDER BY m.model_name
              ), '[]'::json)
      FROM   unnest(COALESCE(rt.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid)                    AS models,
+     JOIN   models m ON m.model_id = uid
+     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)        AS models,
 
     rt.tool_type_ids,
     (SELECT COALESCE(json_agg(

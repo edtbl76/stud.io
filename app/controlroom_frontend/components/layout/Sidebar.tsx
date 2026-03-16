@@ -104,7 +104,7 @@ export function Sidebar() {
               {/* Group header — clickable */}
               <button
                 onClick={() => toggleGroup(group.title)}
-                className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors"
+                className="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold tracking-widest text-foreground uppercase hover:text-foreground transition-colors"
               >
                 {group.title}
                 <ChevronDown
@@ -125,7 +125,7 @@ export function Sidebar() {
                         <Link
                           href={item.href}
                           className={cn(
-                            'flex items-center px-4 py-2 text-sm transition-colors',
+                            'flex items-center px-4 py-1.5 text-xs transition-colors',
                             isActive
                               ? 'border-l-2 border-primary bg-primary/10 text-primary font-medium pl-[14px]'
                               : 'border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 pl-[14px]'

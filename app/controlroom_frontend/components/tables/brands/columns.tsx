@@ -9,21 +9,26 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     id: 'name',
     accessorFn: (row) => row.brand_name ?? row.legal_name,
     header: 'Name',
-    cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">{getValue() as string}</span>
-    ),
+    size: 200,
+    cell: ({ getValue }) => {
+      const val = getValue() as string
+      return <span className="font-medium text-foreground" title={val}>{val}</span>
+    },
   },
   {
     accessorKey: 'legal_name',
     header: 'Legal Name',
-    cell: ({ getValue }) => (
-      <span className="text-muted-foreground">{getValue() as string}</span>
-    ),
+    size: 240,
+    cell: ({ getValue }) => {
+      const val = getValue() as string
+      return <span className="text-muted-foreground" title={val}>{val}</span>
+    },
   },
   {
     id: 'type',
     accessorKey: 'entity_type_name',
     header: 'Type',
+    size: 140,
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -36,6 +41,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
   {
     accessorKey: 'website',
     header: 'Website',
+    size: 200,
     cell: ({ getValue }) => {
       const url = getValue() as string | null
       if (!url) return <span className="text-muted-foreground/40">—</span>
@@ -56,6 +62,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
   {
     accessorKey: 'founder',
     header: 'Founder',
+    size: 160,
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -68,6 +75,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
   {
     accessorKey: 'years',
     header: 'Years',
+    size: 120,
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (

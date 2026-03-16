@@ -8,13 +8,16 @@ export const libraryColumns: ColumnDef<Library, unknown>[] = [
   {
     accessorKey: 'full_library_name',
     header: 'Name',
-    cell: ({ getValue }) => (
-      <span className="font-medium text-foreground">{getValue() as string}</span>
-    ),
+    size: 320,
+    cell: ({ getValue }) => {
+      const val = getValue() as string
+      return <span className="font-medium text-foreground" title={val}>{val}</span>
+    },
   },
   {
     accessorKey: 'brand_name',
     header: 'Brand',
+    size: 180,
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -25,8 +28,18 @@ export const libraryColumns: ColumnDef<Library, unknown>[] = [
     },
   },
   {
+    id: 'models',
+    accessorFn: (row) => row.models?.map((m) => m.name).join(' ') ?? '',
+    header: 'Models',
+    size: 200,
+    enableSorting: false,
+    cell: ({ row }) => <TypeBadges types={row.original.models} />,
+  },
+  {
     id: 'tags',
+    accessorFn: (row) => row.tags?.map((t) => t.name).join(' ') ?? '',
     header: 'Tags',
+    size: 220,
     enableSorting: false,
     cell: ({ row }) => <TypeBadges types={row.original.tags} limit={3} />,
   },
