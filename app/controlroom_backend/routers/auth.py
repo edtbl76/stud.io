@@ -81,7 +81,7 @@ async def get_current_user(
     return UserOut(user_id=str(row["user_id"]), username=username, role=role)
 
 
-async def require_admin(current_user: Annotated[UserOut, Depends(get_current_user)]) -> UserOut:
+def require_admin(current_user: Annotated[UserOut, Depends(get_current_user)]) -> UserOut:
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
