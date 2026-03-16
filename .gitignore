@@ -339,3 +339,6 @@ nginx/certs/*.pem
 
 ### TypeScript build cache
 *.tsbuildinfo
+
+### SonarQube
+.sonar-token

@@ -35,8 +35,7 @@ cd "$SCRIPT_DIR"
 docker compose up -d --build
 
 if $WITH_DEV; then
-  echo "  Starting dev stack (SonarQube)..."
-  docker compose -f "$SCRIPT_DIR/docker-compose.dev.yml" -p dev up -d
+  bash "$SCRIPT_DIR/scripts/dev.sh" up
 fi
 
 # ---------------------------------------------------------------------------

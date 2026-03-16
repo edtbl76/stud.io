@@ -76,14 +76,24 @@ Transfer `rootCA.pem` to each device and install it as a trusted certificate aut
 A separate Docker project (`dev`) runs SonarQube for static analysis. It is completely isolated from the studio stack.
 
 ```bash
-# Start SonarQube
-./scripts/dev.sh up
-
-# Stop SonarQube
-./scripts/dev.sh down
+./scripts/dev.sh up      # Start (safe to run every time)
+./scripts/dev.sh down    # Stop (preserves data)
+./scripts/dev.sh reset   # Wipe all data and start fresh
+./scripts/dev.sh status  # Show running containers
 ```
 
-SonarQube opens at `http://localhost:9000`. Default login: `admin` / `admin` (change on first login).
+Or start it together with the main stack:
+
+```bash
+./app.sh --dev
+```
+
+`up` is progressive — each setup step only runs if needed:
+1. Password changed from default (once)
+2. Project created (once)
+3. Analysis token generated and saved to `.sonar-token` (once, gitignored)
+
+SonarQube opens at `http://localhost:9000`. Login: `admin` / `My@mpGoesTo11`.
 
 To run a scan after the dev stack is up:
 
@@ -92,6 +102,8 @@ To run a scan after the dev stack is up:
 ```
 
 Results appear at `http://localhost:9000/dashboard?id=controlroom`.
+
+> The scanner prints `ANALYSIS SUCCESSFUL, you can find the results at: http://sonarqube:9000/...` — ignore that URL. It's the internal container hostname. Use the link above instead.
 
 > Both stacks can run simultaneously — they use separate Docker networks and volumes.
 
