@@ -1,0 +1,23 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.10
+    hooks:
+      - id: ruff
+        args: [--quiet]
+        files: ^app/controlroom_backend/
+
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash scripts/run-pytest.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: tsc
+        name: tsc
+        entry: bash scripts/run-tsc.sh
+        language: system
+        pass_filenames: false
+        always_run: true

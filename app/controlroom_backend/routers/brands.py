@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from asyncpg import Connection, ForeignKeyViolationError
+from asyncpg import Connection
 
 from database import get_conn
 from routers.auth import require_admin, UserOut

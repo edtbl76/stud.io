@@ -11,6 +11,17 @@ A STUD.io application for managing studio gear, plugins, instruments, and sample
 - Python 3.12+
 - [mkcert](https://github.com/FiloSottile/mkcert) (for local HTTPS certificates)
 
+### First-time git hooks setup
+
+```bash
+pip install pre-commit
+./scripts/install-hooks.sh
+```
+
+This installs a pre-commit hook (via the [pre-commit framework](https://pre-commit.com)) that runs `ruff`, `pytest`, and `tsc --noEmit` before every commit. The commit is aborted if any check fails. Hook configuration lives in `.pre-commit-config.yaml`.
+
+---
+
 ### First-time HTTPS setup
 
 The app runs over HTTPS via an nginx reverse proxy. On a new machine:

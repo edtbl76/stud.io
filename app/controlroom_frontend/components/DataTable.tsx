@@ -14,7 +14,7 @@ import {
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { useVirtualizer } from '@tanstack/react-virtual'
+import { useVirtualizer, type VirtualItem } from '@tanstack/react-virtual'
 import { ChevronUp, ChevronDown, ChevronsUpDown, SlidersHorizontal, GripVertical } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -285,7 +285,7 @@ export function DataTable<TData, TValue>({
                 {paddingTop > 0 && (
                   <tr><td style={{ height: paddingTop }} /></tr>
                 )}
-                {virtualItems.map((vRow) => {
+                {virtualItems.map((vRow: VirtualItem) => {
                   const row = rows[vRow.index]
                   return (
                     <tr
