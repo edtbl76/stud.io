@@ -1,7 +1,9 @@
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env")
+
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "controlroomdb"
@@ -14,9 +16,6 @@ class Settings(BaseSettings):
 
     app_host: str = "0.0.0.0"
     app_port: int = 5150
-
-    class Config:
-        env_file = ".env"
 
     @property
     def db_dsn(self) -> str:
