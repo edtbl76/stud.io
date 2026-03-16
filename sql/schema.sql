@@ -8,7 +8,11 @@
 -- =============================================================================
 CREATE TYPE entity_type AS ENUM ('Manufacturer', 'Studio', 'Individual');
 CREATE TYPE parent_ref AS (table_name TEXT, id UUID);
-CREATE TYPE tool_type AS ENUM ('Standalone', 'Plugin', 'Embedded');
+CREATE TABLE tool_types (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
+);
 CREATE TYPE plugin_format AS ENUM ('AU', 'VST3', 'VST', 'UAD-2', 'UADx');
 CREATE TYPE tag_type AS ENUM (
     'Deprecated', 'Hardware', 'Mastering', 'Restoration',
@@ -42,7 +46,7 @@ CREATE TABLE workstations (
     brand_id        UUID REFERENCES brands(brand_id),
     tool_name       TEXT NOT NULL,
     version         TEXT,
-    tool_types      tool_type[],
+    tool_type_ids UUID[],
     plugin_formats  plugin_format[],
     description     TEXT,
     workflow_notes  TEXT,
@@ -61,7 +65,7 @@ CREATE TABLE measurement_tools (
     model_ids            UUID[],
     tool_name            TEXT NOT NULL,
     version              TEXT,
-    tool_types           tool_type[],
+    tool_type_ids UUID[],
     plugin_formats       plugin_format[],
     description          TEXT,
     workflow_notes       TEXT,
@@ -80,7 +84,7 @@ CREATE TABLE reference_tools (
     model_ids          UUID[],
     tool_name          TEXT NOT NULL,
     version            TEXT,
-    tool_types         tool_type[],
+    tool_type_ids UUID[],
     plugin_formats     plugin_format[],
     description        TEXT,
     workflow_notes     TEXT,
@@ -98,7 +102,7 @@ CREATE TABLE workflow_tools (
     brand_id          UUID REFERENCES brands(brand_id),
     tool_name         TEXT NOT NULL,
     version           TEXT,
-    tool_types        tool_type[],
+    tool_type_ids UUID[],
     plugin_formats    plugin_format[],
     description       TEXT,
     workflow_notes    TEXT,
@@ -116,7 +120,7 @@ CREATE TABLE composition_tools (
     brand_id             UUID REFERENCES brands(brand_id),
     tool_name            TEXT NOT NULL,
     version              TEXT,
-    tool_types           tool_type[],
+    tool_type_ids UUID[],
     plugin_formats       plugin_format[],
     description          TEXT,
     workflow_notes       TEXT,
@@ -183,7 +187,7 @@ CREATE TABLE effects (
     version          TEXT,
     collection       TEXT,
     effect_types     effect_type[],
-    tool_types       tool_type[],
+    tool_type_ids UUID[],
     plugin_formats   plugin_format[],
     description      TEXT,
     workflow_notes   TEXT,
@@ -216,7 +220,7 @@ CREATE TABLE instruments (
     instrument_name  TEXT NOT NULL,
     version          TEXT,
     instrument_types instrument_type[],
-    tool_types       tool_type[],
+    tool_type_ids UUID[],
     plugin_formats   plugin_format[],
     description      TEXT,
     instrument_notes TEXT,
@@ -261,7 +265,7 @@ CREATE TABLE admin_tools (
     brand_id        UUID REFERENCES brands(brand_id),
     tool_name       TEXT NOT NULL,
     version         TEXT,
-    tool_types      tool_type[],
+    tool_type_ids UUID[],
     plugin_formats  plugin_format[],
     description     TEXT,
     workflow_notes  TEXT,

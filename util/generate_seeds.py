@@ -55,23 +55,53 @@ def seed_header(table, csv_file):
     ]
 
 
+def build_tool_type_map():
+    """Return type_name.lower() → type_id from csv/tool_types.csv."""
+    src = CSV_DIR / "tool_types.csv"
+    m = {}
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            name = (row.get("type_name") or "").strip()
+            tid  = (row.get("type_id")   or "").strip()
+            if name and tid:
+                m[name.lower()] = tid
+    return m
+
+
+def resolve_tool_type_ids(tool_types_str, tool_type_map):
+    """Resolve comma-separated type names to a UUID array SQL literal."""
+    if not tool_types_str:
+        return "NULL::uuid[]"
+    ids = []
+    for name in tool_types_str.split(","):
+        name = name.strip()
+        tid  = tool_type_map.get(name.lower())
+        if tid:
+            ids.append(tid)
+    if not ids:
+        return "NULL::uuid[]"
+    return "'{" + ",".join(ids) + "}'::uuid[]"
+
+
 def tool_row(table, id_col, id_val, brand_id, tool_name, version,
-             tool_types, plugin_formats, description, workflow_notes, tags):
+             tool_types, plugin_formats, description, workflow_notes, tags,
+             tool_type_map):
     return (
         f"INSERT INTO {table}"
-        f" ({id_col}, brand_id, tool_name, version, tool_types, plugin_formats, description, workflow_notes, tags)"
+        f" ({id_col}, brand_id, tool_name, version, tool_type_ids, plugin_formats, description, workflow_notes, tags)"
         f" VALUES ("
         f"{escape(id_val)}, "
         f"{escape(brand_id) if brand_id else 'NULL'}, "
         f"{escape(tool_name)}, "
         f"{escape(version)}, "
-        f"{escape_array(tool_types, 'tool_type')}, "
+        f"{resolve_tool_type_ids(tool_types, tool_type_map)}, "
         f"{escape_array(plugin_formats, 'plugin_format')}, "
         f"{escape(description)}, "
         f"{escape(workflow_notes)}, "
         f"{escape_array(tags, 'tag_type')}"
         f") ON CONFLICT ({id_col}) DO UPDATE SET"
         f" version = EXCLUDED.version,"
+        f" tool_type_ids = EXCLUDED.tool_type_ids,"
         f" description = EXCLUDED.description,"
         f" workflow_notes = EXCLUDED.workflow_notes,"
         f" updated_at = NOW();"
@@ -143,15 +173,43 @@ def generate_brands():
 
 
 # ---------------------------------------------------------------------------
+# Tool Types
+# ---------------------------------------------------------------------------
+def generate_tool_types():
+    src  = CSV_DIR / "tool_types.csv"
+    dest = SEED_DIR / "02_tool_types.sql"
+    lines = seed_header("tool_types", "tool_types.csv")
+    rows = []
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            type_id   = (row.get("type_id")          or "").strip()
+            type_name = (row.get("type_name")         or "").strip()
+            type_desc = (row.get("type_description")  or "").strip() or None
+            if type_id and type_name:
+                rows.append((type_id, type_name, type_desc))
+    for type_id, type_name, type_desc in rows:
+        lines.append(
+            f"INSERT INTO tool_types (type_id, type_name, type_description)"
+            f" VALUES ({escape(type_id)}, {escape(type_name)}, {escape(type_desc)})"
+            f" ON CONFLICT (type_id) DO UPDATE SET"
+            f" type_name = EXCLUDED.type_name,"
+            f" type_description = EXCLUDED.type_description;"
+        )
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} tool types → {dest.name}")
+
+
+# ---------------------------------------------------------------------------
 # Workstations
 # ---------------------------------------------------------------------------
-def generate_workstations():
+def generate_workstations(tool_type_map):
     src  = CSV_DIR / "workstations.csv"
-    dest = SEED_DIR / "02_workstations.sql"
+    dest = SEED_DIR / "03_workstations.sql"
     rows = read_tool_csv(src, "workstation_id")
     lines = seed_header("workstations", "workstations.csv")
     for r in rows:
-        lines.append(tool_row("workstations", "workstation_id", *r))
+        lines.append(tool_row("workstations", "workstation_id", *r, tool_type_map=tool_type_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} workstations → {dest.name}")
@@ -160,13 +218,13 @@ def generate_workstations():
 # ---------------------------------------------------------------------------
 # Workflow Tools
 # ---------------------------------------------------------------------------
-def generate_workflow_tools():
+def generate_workflow_tools(tool_type_map):
     src  = CSV_DIR / "workflow_tools.csv"
-    dest = SEED_DIR / "03_workflow_tools.sql"
+    dest = SEED_DIR / "04_workflow_tools.sql"
     rows = read_tool_csv(src, "workflow_tool_id")
     lines = seed_header("workflow_tools", "workflow_tools.csv")
     for r in rows:
-        lines.append(tool_row("workflow_tools", "workflow_tool_id", *r))
+        lines.append(tool_row("workflow_tools", "workflow_tool_id", *r, tool_type_map=tool_type_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} workflow tools → {dest.name}")
@@ -175,13 +233,13 @@ def generate_workflow_tools():
 # ---------------------------------------------------------------------------
 # Measurement Tools
 # ---------------------------------------------------------------------------
-def generate_measurement_tools():
+def generate_measurement_tools(tool_type_map):
     src  = CSV_DIR / "measurement_tools.csv"
-    dest = SEED_DIR / "04_measurement_tools.sql"
+    dest = SEED_DIR / "05_measurement_tools.sql"
     rows = read_tool_csv(src, "measurement_tool_id")
     lines = seed_header("measurement_tools", "measurement_tools.csv")
     for r in rows:
-        lines.append(tool_row("measurement_tools", "measurement_tool_id", *r))
+        lines.append(tool_row("measurement_tools", "measurement_tool_id", *r, tool_type_map=tool_type_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} measurement tools → {dest.name}")
@@ -190,9 +248,9 @@ def generate_measurement_tools():
 # ---------------------------------------------------------------------------
 # Reference Tools
 # ---------------------------------------------------------------------------
-def generate_reference_tools():
+def generate_reference_tools(tool_type_map):
     src  = CSV_DIR / "reference_tools.csv"
-    dest = SEED_DIR / "05_reference_tools.sql"
+    dest = SEED_DIR / "06_reference_tools.sql"
 
     if not src.exists():
         log("reference_tools.csv not found — skipping")
@@ -201,7 +259,7 @@ def generate_reference_tools():
     rows = read_tool_csv(src, "reference_tool_id")
     lines = seed_header("reference_tools", "reference_tools.csv")
     for r in rows:
-        lines.append(tool_row("reference_tools", "reference_tool_id", *r))
+        lines.append(tool_row("reference_tools", "reference_tool_id", *r, tool_type_map=tool_type_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} reference tools → {dest.name}")
@@ -210,13 +268,13 @@ def generate_reference_tools():
 # ---------------------------------------------------------------------------
 # Composition Tools
 # ---------------------------------------------------------------------------
-def generate_composition_tools():
+def generate_composition_tools(tool_type_map):
     src  = CSV_DIR / "composition_tools.csv"
-    dest = SEED_DIR / "06_composition_tools.sql"
+    dest = SEED_DIR / "07_composition_tools.sql"
     rows = read_tool_csv(src, "composition_tool_id")
     lines = seed_header("composition_tools", "composition_tools.csv")
     for r in rows:
-        lines.append(tool_row("composition_tools", "composition_tool_id", *r))
+        lines.append(tool_row("composition_tools", "composition_tool_id", *r, tool_type_map=tool_type_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} composition tools → {dest.name}")
@@ -227,7 +285,7 @@ def generate_composition_tools():
 # ---------------------------------------------------------------------------
 def generate_models():
     src  = CSV_DIR / "models.csv"
-    dest = SEED_DIR / "08_models.sql"
+    dest = SEED_DIR / "09_models.sql"
 
     if not src.exists():
         log("models.csv not found — run convert_models.py first, then re-run")
@@ -292,9 +350,9 @@ def generate_models():
 # ---------------------------------------------------------------------------
 # Effects
 # ---------------------------------------------------------------------------
-def generate_effects():
+def generate_effects(tool_type_map):
     src  = CSV_DIR / "effects.csv"
-    dest = SEED_DIR / "09_effects.sql"
+    dest = SEED_DIR / "11_effects.sql"
 
     if not src.exists():
         log("effects.csv not found — run convert_effects.py first, then re-run")
@@ -333,7 +391,7 @@ def generate_effects():
         lines.append(
             f"INSERT INTO effects"
             f" (effect_id, brand_id, model_ids, effect_name, version, collection, effect_types,"
-            f" tool_types, plugin_formats, description, workflow_notes,"
+            f" tool_type_ids, plugin_formats, description, workflow_notes,"
             f" recording_notes, artist_reference, attributes, tags)"
             f" VALUES ("
             f"{escape(effect_id)}, "
@@ -343,7 +401,7 @@ def generate_effects():
             f"{escape(version)}, "
             f"{escape(collection)}, "
             f"{escape_array(effect_types, 'effect_type')}, "
-            f"{escape_array(tool_types, 'tool_type')}, "
+            f"{resolve_tool_type_ids(tool_types, tool_type_map)}, "
             f"{escape_array(plugin_formats, 'plugin_format')}, "
             f"{escape(description)}, "
             f"{escape(workflow_notes)}, "
@@ -358,7 +416,7 @@ def generate_effects():
             f" version = EXCLUDED.version,"
             f" collection = EXCLUDED.collection,"
             f" effect_types = EXCLUDED.effect_types,"
-            f" tool_types = EXCLUDED.tool_types,"
+            f" tool_type_ids = EXCLUDED.tool_type_ids,"
             f" plugin_formats = EXCLUDED.plugin_formats,"
             f" description = EXCLUDED.description,"
             f" workflow_notes = EXCLUDED.workflow_notes,"
@@ -376,13 +434,13 @@ def generate_effects():
 # ---------------------------------------------------------------------------
 # Admin Tools
 # ---------------------------------------------------------------------------
-def generate_admin_tools():
+def generate_admin_tools(tool_type_map):
     src  = CSV_DIR / "admin_tools.csv"
-    dest = SEED_DIR / "07_admin_tools.sql"
+    dest = SEED_DIR / "08_admin_tools.sql"
     rows = read_tool_csv(src, "admin_tool_id")
     lines = seed_header("admin_tools", "admin_tools.csv")
     for r in rows:
-        lines.append(tool_row("admin_tools", "admin_tool_id", *r))
+        lines.append(tool_row("admin_tools", "admin_tool_id", *r, tool_type_map=tool_type_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} admin tools → {dest.name}")
@@ -400,15 +458,18 @@ def main():
     for f in SEED_DIR.glob("*.sql"):
         f.unlink()
 
+    tool_type_map = build_tool_type_map()
+
     generate_brands()
-    generate_workstations()
-    generate_workflow_tools()
-    generate_measurement_tools()
-    generate_reference_tools()
-    generate_composition_tools()
-    generate_admin_tools()
+    generate_tool_types()
+    generate_workstations(tool_type_map)
+    generate_workflow_tools(tool_type_map)
+    generate_measurement_tools(tool_type_map)
+    generate_reference_tools(tool_type_map)
+    generate_composition_tools(tool_type_map)
+    generate_admin_tools(tool_type_map)
     generate_models()
-    generate_effects()
+    generate_effects(tool_type_map)
 
     print("\n" + "=" * 60)
     print("  Seed files written to sql/seeds/")
