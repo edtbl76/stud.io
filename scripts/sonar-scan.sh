@@ -24,8 +24,10 @@ for DIR in \
     "$HOME/opt/miniconda3/bin"; do
     [ -f "$DIR/python" ] && export PATH="$DIR:$PATH" && break
 done
+# Run from project root so --cov path is relative, producing a relative <source> in coverage.xml
+# that the Docker SonarQube scanner can resolve under /usr/src.
 python -m pytest "$PROJECT_ROOT/app/controlroom_backend/tests/" -q --tb=short \
-    --cov="$PROJECT_ROOT/app/controlroom_backend" \
+    --cov=app/controlroom_backend \
     --cov-config="$PROJECT_ROOT/app/controlroom_backend/.coveragerc" \
     --cov-report=xml:"$PROJECT_ROOT/app/controlroom_backend/coverage.xml" 2>&1 | tail -5
 
@@ -42,6 +44,13 @@ for DIR in \
 done
 node_modules/.bin/jest --coverage --coverageReporters=lcov --passWithNoTests 2>&1 | tail -3
 cd "$PROJECT_ROOT"
+
+# Fix lcov paths: Jest emits paths relative to the frontend dir (e.g. "SF:app/layout.tsx"),
+# but SonarQube resolves them from the project root, so prefix with the frontend subdirectory.
+LCOV="$PROJECT_ROOT/app/controlroom_frontend/coverage/lcov.info"
+if [ -f "$LCOV" ]; then
+  sed -i 's|^SF:|SF:app/controlroom_frontend/|' "$LCOV"
+fi
 
 echo "Running SonarQube scanner..."
 docker run --rm \
