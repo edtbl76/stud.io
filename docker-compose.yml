@@ -10,7 +10,6 @@ services:
       - "5432:5432"
     volumes:
       - studio_db_data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
     restart: unless-stopped
 
 volumes:
