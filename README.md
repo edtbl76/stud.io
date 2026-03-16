@@ -41,7 +41,8 @@ mkcert -cert-file nginx/certs/cert.pem \
 ### Start everything
 
 ```bash
-./app.sh
+./app.sh          # studio stack only
+./app.sh --dev    # studio stack + SonarQube
 ```
 
 This will:
@@ -67,6 +68,32 @@ Other devices will see a certificate warning unless you install the mkcert root 
 mkcert -CAROOT
 ```
 Transfer `rootCA.pem` to each device and install it as a trusted certificate authority.
+
+---
+
+### Dev Tooling Stack (SonarQube)
+
+A separate Docker project (`dev`) runs SonarQube for static analysis. It is completely isolated from the studio stack.
+
+```bash
+# Start SonarQube
+./scripts/dev.sh up
+
+# Stop SonarQube
+./scripts/dev.sh down
+```
+
+SonarQube opens at `http://localhost:9000`. Default login: `admin` / `admin` (change on first login).
+
+To run a scan after the dev stack is up:
+
+```bash
+./scripts/sonar-scan.sh
+```
+
+Results appear at `http://localhost:9000/dashboard?id=controlroom`.
+
+> Both stacks can run simultaneously — they use separate Docker networks and volumes.
 
 ---
 
@@ -96,7 +123,7 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 ### Current State (v1.3)
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
 - Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
-- FastAPI backend — 209 tests passing, all endpoints live at `http://localhost:5150`
+- FastAPI backend — 209 tests passing, all endpoints live at `https://localhost:5150`
 - Full REST API: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search, Admin (backup/restore), Users
 - Next.js frontend — dark studio UI, sortable/filterable/resizable/reorderable data tables, read/edit/create/delete modals, all tables wired to the API
 - Row virtualization on large tables (Effects, Instruments, Libraries, Models)

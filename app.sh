@@ -2,14 +2,28 @@
 # =============================================================================
 # STUD.io ControlRoom — App
 # Starts all containers and runs the backend test suite
+#
+# Usage:
+#   ./app.sh           # Start studio stack only
+#   ./app.sh --dev     # Start studio stack + dev tooling (SonarQube)
 # =============================================================================
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Parse flags
+WITH_DEV=false
+for arg in "$@"; do
+  case "$arg" in
+    --dev) WITH_DEV=true ;;
+    *) echo "Unknown flag: $arg"; exit 1 ;;
+  esac
+done
+
 echo "============================================================"
 echo "  STUD.io ControlRoom"
+if $WITH_DEV; then echo "  (+ dev stack)"; fi
 echo "============================================================"
 
 # ---------------------------------------------------------------------------
@@ -19,6 +33,11 @@ echo ""
 echo "[1/4] Starting Docker containers..."
 cd "$SCRIPT_DIR"
 docker compose up -d --build
+
+if $WITH_DEV; then
+  echo "  Starting dev stack (SonarQube)..."
+  docker compose -f "$SCRIPT_DIR/docker-compose.dev.yml" -p dev up -d
+fi
 
 # ---------------------------------------------------------------------------
 # 2. Wait for PostgreSQL
@@ -72,4 +91,8 @@ echo ""
 echo "  App:  https://localhost:2112  (or https://192.168.1.230.sslip.io:2112)"
 echo "  API:  https://localhost:5150  (or https://192.168.1.230.sslip.io:5150)"
 echo "  Docs: https://localhost:5150/docs"
+if $WITH_DEV; then
+  echo ""
+  echo "  SonarQube: http://localhost:9000"
+fi
 echo "============================================================"
