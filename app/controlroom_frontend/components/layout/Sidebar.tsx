@@ -1,7 +1,9 @@
 'use client'
 
+import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface NavItem {
@@ -58,6 +60,23 @@ const navGroups: NavGroup[] = [
 export function Sidebar() {
   const pathname = usePathname()
 
+  // Default all groups open; collapse if no item is active
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(() => {
+    return new Set(navGroups.map((g) => g.title))
+  })
+
+  function toggleGroup(title: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(title)) {
+        next.delete(title)
+      } else {
+        next.add(title)
+      }
+      return next
+    })
+  }
+
   return (
     <aside
       className="fixed left-0 top-0 z-40 h-screen w-56 flex-shrink-0 overflow-y-auto"
@@ -78,33 +97,50 @@ export function Sidebar() {
 
       {/* Nav groups */}
       <nav className="py-3">
-        {navGroups.map((group) => (
-          <div key={group.title} className="mb-4">
-            <div className="px-4 py-1.5 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase">
-              {group.title}
+        {navGroups.map((group) => {
+          const isOpen = openGroups.has(group.title)
+          return (
+            <div key={group.title} className="mb-1">
+              {/* Group header — clickable */}
+              <button
+                onClick={() => toggleGroup(group.title)}
+                className="w-full flex items-center justify-between px-4 py-1.5 text-[10px] font-semibold tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors"
+              >
+                {group.title}
+                <ChevronDown
+                  className={cn(
+                    'h-3 w-3 transition-transform duration-150',
+                    !isOpen && '-rotate-90'
+                  )}
+                />
+              </button>
+
+              {/* Items */}
+              {isOpen && (
+                <ul>
+                  {group.items.map((item) => {
+                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          href={item.href}
+                          className={cn(
+                            'flex items-center px-4 py-2 text-sm transition-colors',
+                            isActive
+                              ? 'border-l-2 border-primary bg-primary/10 text-primary font-medium pl-[14px]'
+                              : 'border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 pl-[14px]'
+                          )}
+                        >
+                          {item.label}
+                        </Link>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
             </div>
-            <ul>
-              {group.items.map((item) => {
-                const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className={cn(
-                        'flex items-center px-4 py-2 text-sm transition-colors',
-                        isActive
-                          ? 'border-l-2 border-primary bg-primary/10 text-primary font-medium pl-[14px]'
-                          : 'border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 pl-[14px]'
-                      )}
-                    >
-                      {item.label}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+          )
+        })}
       </nav>
     </aside>
   )
