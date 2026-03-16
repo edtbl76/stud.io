@@ -1,6 +1,7 @@
 import os
 os.environ.setdefault("DB_NAME", "controlroomdb_test")
 
+import json
 import pytest_asyncio
 import asyncpg
 from httpx import AsyncClient, ASGITransport
@@ -18,6 +19,8 @@ async def conn():
     DB state is never permanently mutated.
     """
     connection = await asyncpg.connect(dsn=TEST_DSN)
+    await connection.set_type_codec("json",  encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
+    await connection.set_type_codec("jsonb", encoder=json.dumps, decoder=json.loads, schema="pg_catalog")
     tx = connection.transaction()
     await tx.start()
     yield connection

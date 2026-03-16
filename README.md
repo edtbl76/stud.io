@@ -1,6 +1,6 @@
-# STUD.io
+# STUD.io ControlRoom
 
-A local web application for managing studio gear, plugins, instruments, and sample libraries — with a future Python-powered recommendation engine.
+A STUD.io application for managing studio gear, plugins, instruments, and sample libraries — with a future Python-powered recommendation engine.
 
 ---
 
@@ -22,6 +22,8 @@ This will:
 2. Run the full backend test suite
 
 **API server** runs at `http://localhost:5150`
+
+**Interactive API docs** (Swagger UI): `http://localhost:5150/docs`
 
 ---
 
@@ -50,14 +52,13 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 
 ### Current State
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
-- Semantic view layer in place (`sql/views.sql`) — all UUID arrays resolved to `[{id, name}]` objects, `parent_ids` resolved cross-table, `full_*_name` computed
-- FastAPI backend running on port `5150` in Docker
-- Test infrastructure in place (pytest + asyncio, real DB, transaction rollback isolation)
-- **Brands** router fully implemented and tested (15 tests)
+- Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
+- FastAPI backend complete — 146 tests passing, all endpoints live at `http://localhost:5150`
+- Full REST API covering: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search
+- Interactive docs at `http://localhost:5150/docs`
 
 ### In Progress
-- **Backend API**: REST endpoints for Models, Effects, Instruments, Libraries, Workstations, Tools, Config (lookup tables), Search
-- **Auth**: Simple JWT username/password login
+- **Auth**: JWT username/password login (users table + bcrypt + python-jose)
 
 ### Planned
 - **Frontend**: Next.js + React + Tailwind + shadcn/ui
@@ -65,7 +66,7 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 - **List Views**: Sortable/filterable data tables with bulk actions
 - **Record Modals**: Read-only and edit mode in a single modal, with clickable brand/model/parent references
 - **Global Search**: Full-database search bar in the header with a toggle to scope to the current list view
-- **Config Section**: UI management of all lookup tables (tag types, effect types, instrument types, etc.) — no schema migrations required
+- **Config Section**: UI management of all lookup tables — no schema migrations required
 
 ### Future
 - Python recommendation engine (shared FastAPI codebase)

@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# STUD.io — App
+# STUD.io ControlRoom — App
 # Starts infrastructure and runs the backend test suite
 # =============================================================================
 
@@ -9,7 +9,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "============================================================"
-echo "  STUD.io — App"
+echo "  STUD.io ControlRoom"
+echo "  API:  http://localhost:5150"
+echo "  Docs: http://localhost:5150/docs"
 echo "============================================================"
 
 # ---------------------------------------------------------------------------
@@ -50,5 +52,7 @@ python -m pytest tests/ -v
 
 echo ""
 echo "============================================================"
-echo "  Done."
+echo "  All tests passed."
+echo "  API:  http://localhost:5150"
+echo "  Docs: http://localhost:5150/docs"
 echo "============================================================"

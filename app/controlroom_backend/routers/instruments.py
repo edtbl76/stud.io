@@ -1,3 +1,103 @@
-from fastapi import APIRouter
+import json
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException
+from asyncpg import Connection
+
+from database import get_conn
+from schemas.instruments import InstrumentCreate, InstrumentUpdate, InstrumentOut
+from routers._helpers import parent_ref_sql, encode_parent_refs
 
 router = APIRouter()
+
+_SELECT = "SELECT * FROM instruments_view"
+_PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
+
+
+@router.get("", response_model=list[InstrumentOut])
+async def list_instruments(q: str | None = None, conn: Connection = Depends(get_conn)):
+    if q:
+        rows = await conn.fetch(
+            _SELECT + " WHERE instrument_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
+        )
+    else:
+        rows = await conn.fetch(_SELECT)
+    return [InstrumentOut(**dict(r)) for r in rows]
+
+
+@router.get("/{instrument_id}", response_model=InstrumentOut)
+async def get_instrument(instrument_id: UUID, conn: Connection = Depends(get_conn)):
+    row = await conn.fetchrow(_SELECT + " WHERE instrument_id = $1", instrument_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Instrument not found")
+    return InstrumentOut(**dict(row))
+
+
+@router.post("", response_model=InstrumentOut, status_code=201)
+async def create_instrument(payload: InstrumentCreate, conn: Connection = Depends(get_conn)):
+    row = await conn.fetchrow(
+        f"""
+        INSERT INTO instruments
+            (instrument_name, brand_id, model_ids, version,
+             instrument_type_ids, tool_type_ids, plugin_format_ids,
+             description, instrument_notes, recording_notes,
+             attributes, tag_ids, parent_ids)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
+                {parent_ref_sql('$13')})
+        RETURNING instrument_id
+        """,
+        payload.instrument_name, payload.brand_id, payload.model_ids,
+        payload.version,
+        payload.instrument_type_ids, payload.tool_type_ids, payload.plugin_format_ids,
+        payload.description, payload.instrument_notes, payload.recording_notes,
+        json.dumps(payload.attributes) if payload.attributes is not None else None,
+        payload.tag_ids,
+        encode_parent_refs(payload.parent_ids),
+    )
+    return await get_instrument(row["instrument_id"], conn)
+
+
+@router.patch("/{instrument_id}", response_model=InstrumentOut)
+async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn: Connection = Depends(get_conn)):
+    if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
+        raise HTTPException(status_code=404, detail="Instrument not found")
+
+    updates = payload.model_dump(exclude_unset=True)
+    if not updates:
+        return await get_instrument(instrument_id, conn)
+
+    set_parts, values, i = [], [], 2
+    for col, val in updates.items():
+        if col == "parent_ids":
+            set_parts.append(f"{col} = {parent_ref_sql(f'${i}')}")
+            values.append(encode_parent_refs(val))
+        elif col == "attributes" and val is not None:
+            set_parts.append(f"{col} = ${i}")
+            values.append(json.dumps(val))
+        else:
+            set_parts.append(f"{col} = ${i}")
+            values.append(val)
+        i += 1
+
+    set_parts.append("updated_at = NOW()")
+    await conn.execute(
+        f"UPDATE instruments SET {', '.join(set_parts)} WHERE instrument_id = $1",
+        instrument_id, *values,
+    )
+    return await get_instrument(instrument_id, conn)
+
+
+@router.delete("/{instrument_id}", status_code=204)
+async def delete_instrument(instrument_id: UUID, conn: Connection = Depends(get_conn)):
+    if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
+        raise HTTPException(status_code=404, detail="Instrument not found")
+
+    for table in _PARENT_REF_TABLES:
+        if await conn.fetchrow(
+            f"SELECT 1 FROM {table} WHERE EXISTS "
+            f"(SELECT 1 FROM unnest(parent_ids) p WHERE (p).id = $1) LIMIT 1",
+            instrument_id,
+        ):
+            raise HTTPException(status_code=409, detail=f"Instrument is referenced as a parent in {table}")
+
+    await conn.execute("DELETE FROM instruments WHERE instrument_id = $1", instrument_id)

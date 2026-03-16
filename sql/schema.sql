@@ -1,5 +1,5 @@
 -- =============================================================================
--- STUD.io Schema
+-- STUD.io ControlRoom — Schema
 -- Tables are added incrementally as each is properly designed
 -- =============================================================================
 
