@@ -6,18 +6,26 @@
 -- =============================================================================
 -- ENUMS
 -- =============================================================================
-CREATE TYPE entity_type AS ENUM ('Manufacturer', 'Studio', 'Individual');
+CREATE TABLE entity_types (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
+);
 CREATE TYPE parent_ref AS (table_name TEXT, id UUID);
 CREATE TABLE tool_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
-CREATE TYPE plugin_format AS ENUM ('AU', 'VST3', 'VST', 'UAD-2', 'UADx');
-CREATE TYPE tag_type AS ENUM (
-    'Deprecated', 'Hardware', 'Mastering', 'Restoration',
-    'Bass', 'Channel Strip', 'Drums', 'Filter Out', 'Guitar', 'Live Sound', 'Low DSP',
-    'Modeled', 'Remove', 'Stomp', 'Surround', 'Voice'
+CREATE TABLE plugin_formats (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
+);
+CREATE TABLE tag_types (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
 );
 
 -- =============================================================================
@@ -25,16 +33,16 @@ CREATE TYPE tag_type AS ENUM (
 -- Companies, recording studios, and individual builders associated with gear
 -- =============================================================================
 CREATE TABLE brands (
-    brand_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    legal_name   TEXT NOT NULL,
-    brand_name   TEXT,
-    entity_type  entity_type NOT NULL DEFAULT 'Manufacturer',
-    website      TEXT,
-    description  TEXT,
-    founder      TEXT,
-    years        TEXT,
-    created_at   TIMESTAMP DEFAULT NOW(),
-    updated_at   TIMESTAMP DEFAULT NOW()
+    brand_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    legal_name       TEXT NOT NULL,
+    brand_name       TEXT,
+    entity_type_id   UUID REFERENCES entity_types(type_id),
+    website          TEXT,
+    description      TEXT,
+    founder          TEXT,
+    years            TEXT,
+    created_at       TIMESTAMP DEFAULT NOW(),
+    updated_at       TIMESTAMP DEFAULT NOW()
 );
 
 -- =============================================================================
@@ -42,17 +50,17 @@ CREATE TABLE brands (
 -- DAWs and mastering suites — the primary hosts for production
 -- =============================================================================
 CREATE TABLE workstations (
-    workstation_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id        UUID REFERENCES brands(brand_id),
-    tool_name       TEXT NOT NULL,
-    version         TEXT,
-    tool_type_ids UUID[],
-    plugin_formats  plugin_format[],
-    description     TEXT,
-    workflow_notes  TEXT,
-    tags            tag_type[],
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
+    workstation_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id          UUID REFERENCES brands(brand_id),
+    tool_name         TEXT NOT NULL,
+    version           TEXT,
+    tool_type_ids     UUID[],
+    plugin_format_ids UUID[],
+    description       TEXT,
+    workflow_notes    TEXT,
+    tag_ids           UUID[],
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
 );
 
 -- =============================================================================
@@ -65,11 +73,11 @@ CREATE TABLE measurement_tools (
     model_ids            UUID[],
     tool_name            TEXT NOT NULL,
     version              TEXT,
-    tool_type_ids UUID[],
-    plugin_formats       plugin_format[],
+    tool_type_ids        UUID[],
+    plugin_format_ids    UUID[],
     description          TEXT,
     workflow_notes       TEXT,
-    tags                 tag_type[],
+    tag_ids              UUID[],
     created_at           TIMESTAMP DEFAULT NOW(),
     updated_at           TIMESTAMP DEFAULT NOW()
 );
@@ -84,11 +92,11 @@ CREATE TABLE reference_tools (
     model_ids          UUID[],
     tool_name          TEXT NOT NULL,
     version            TEXT,
-    tool_type_ids UUID[],
-    plugin_formats     plugin_format[],
+    tool_type_ids      UUID[],
+    plugin_format_ids  UUID[],
     description        TEXT,
     workflow_notes     TEXT,
-    tags               tag_type[],
+    tag_ids            UUID[],
     created_at         TIMESTAMP DEFAULT NOW(),
     updated_at         TIMESTAMP DEFAULT NOW()
 );
@@ -102,11 +110,11 @@ CREATE TABLE workflow_tools (
     brand_id          UUID REFERENCES brands(brand_id),
     tool_name         TEXT NOT NULL,
     version           TEXT,
-    tool_type_ids UUID[],
-    plugin_formats    plugin_format[],
+    tool_type_ids     UUID[],
+    plugin_format_ids UUID[],
     description       TEXT,
     workflow_notes    TEXT,
-    tags              tag_type[],
+    tag_ids           UUID[],
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );
@@ -120,11 +128,11 @@ CREATE TABLE composition_tools (
     brand_id             UUID REFERENCES brands(brand_id),
     tool_name            TEXT NOT NULL,
     version              TEXT,
-    tool_type_ids UUID[],
-    plugin_formats       plugin_format[],
+    tool_type_ids        UUID[],
+    plugin_format_ids    UUID[],
     description          TEXT,
     workflow_notes       TEXT,
-    tags                 tag_type[],
+    tag_ids              UUID[],
     created_at           TIMESTAMP DEFAULT NOW(),
     updated_at           TIMESTAMP DEFAULT NOW()
 );
@@ -133,20 +141,17 @@ CREATE TABLE composition_tools (
 -- MODELS
 -- Physical/hardware gear: amps, microphones, synths, keyboards, etc.
 -- =============================================================================
-CREATE TYPE model_type AS ENUM (
-    'Bass', 'Cabinet', 'Channel Strip', 'Combo', 'Console', 'Delay',
-    'Drums', 'Dynamics', 'EQ', 'Harmonic Coloration', 'Head',
-    'Keyboard', 'Microphone', 'Modulation', 'Multi Effects',
-    'Pitch Tools', 'Preamp', 'DI', 'Reverb', 'Sampler',
-    'Spatial Processing', 'Speaker','Stomp', 'Studio', 'Synth',
-    'Tape Machine', 'Utility'
+CREATE TABLE model_types (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
 );
 
 CREATE TABLE models (
     model_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     model_name       TEXT NOT NULL,
     brand_id         UUID REFERENCES brands(brand_id),
-    model_types      model_type[],
+    model_type_ids   UUID[],
     creator          TEXT,
     years_active     TEXT,
     links            TEXT,
@@ -172,32 +177,31 @@ LEFT JOIN brands ON brands.brand_id = models.brand_id;
 -- EFFECTS
 -- Software and hardware effects, optionally linked to a hardware model
 -- =============================================================================
-CREATE TYPE effect_type AS ENUM (
-    'Cabinet', 'Combo', 'Container', 'Delay',
-    'Dynamics', 'EQ', 'Harmonic Coloration', 'Head',
-    'Microphone', 'Modulation', 'Pitch Tools', 'Preamp', 'DI', 'Reverb&Room',
-    'Spatial Processing', 'Time/Phase'
+CREATE TABLE effect_types (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
 );
 
 CREATE TABLE effects (
-    effect_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id         UUID REFERENCES brands(brand_id),
-    model_ids        UUID[],
-    effect_name      TEXT NOT NULL,
-    version          TEXT,
-    collection       TEXT,
-    effect_types     effect_type[],
-    tool_type_ids UUID[],
-    plugin_formats   plugin_format[],
-    description      TEXT,
-    workflow_notes   TEXT,
-    recording_notes  TEXT,
-    artist_reference TEXT,
-    attributes       JSONB,
-    tags             tag_type[],
-    parent_ids       parent_ref[],
-    created_at       TIMESTAMP DEFAULT NOW(),
-    updated_at       TIMESTAMP DEFAULT NOW()
+    effect_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id          UUID REFERENCES brands(brand_id),
+    model_ids         UUID[],
+    effect_name       TEXT NOT NULL,
+    version           TEXT,
+    collection        TEXT,
+    effect_type_ids   UUID[],
+    tool_type_ids     UUID[],
+    plugin_format_ids UUID[],
+    description       TEXT,
+    workflow_notes    TEXT,
+    recording_notes   TEXT,
+    artist_reference  TEXT,
+    attributes        JSONB,
+    tag_ids           UUID[],
+    parent_ids        parent_ref[],
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
@@ -207,29 +211,29 @@ CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
 -- INSTRUMENTS
 -- Software instruments: synths, samplers, keyboards, drums, etc.
 -- =============================================================================
-CREATE TYPE instrument_type AS ENUM (
-    'Bass', 'Brass', 'Container', 'Drums & Percussion', 'Guitars',
-    'Keyboards', 'Pads & Textures', 'Pipes', 'Rhythm', 'Sampling',
-    'Sound Design', 'Strings', 'Synth', 'Vocal', 'Woodwinds', 'World Instruments'
+CREATE TABLE instrument_types (
+    type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type_name        TEXT NOT NULL UNIQUE,
+    type_description TEXT
 );
 
 CREATE TABLE instruments (
-    instrument_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id         UUID REFERENCES brands(brand_id),
-    model_ids        UUID[],
-    instrument_name  TEXT NOT NULL,
-    version          TEXT,
-    instrument_types instrument_type[],
-    tool_type_ids UUID[],
-    plugin_formats   plugin_format[],
-    description      TEXT,
-    instrument_notes TEXT,
-    recording_notes  TEXT,
-    tags             tag_type[],
-    attributes       JSONB,
-    parent_ids       parent_ref[],
-    created_at       TIMESTAMP DEFAULT NOW(),
-    updated_at       TIMESTAMP DEFAULT NOW()
+    instrument_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id           UUID REFERENCES brands(brand_id),
+    model_ids          UUID[],
+    instrument_name    TEXT NOT NULL,
+    version            TEXT,
+    instrument_type_ids UUID[],
+    tool_type_ids      UUID[],
+    plugin_format_ids  UUID[],
+    description        TEXT,
+    instrument_notes   TEXT,
+    recording_notes    TEXT,
+    tag_ids            UUID[],
+    attributes         JSONB,
+    parent_ids         parent_ref[],
+    created_at         TIMESTAMP DEFAULT NOW(),
+    updated_at         TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
@@ -240,17 +244,17 @@ CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
 -- Sample libraries and content packs linked to a host instrument or platform
 -- =============================================================================
 CREATE TABLE libraries (
-    library_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id      UUID REFERENCES brands(brand_id),
-    model_ids     UUID[],
+    library_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id          UUID REFERENCES brands(brand_id),
+    model_ids         UUID[],
     library_name      TEXT NOT NULL,
     description       TEXT,
     instrument_notes  TEXT,
     recording_notes   TEXT,
     attributes        JSONB,
-    parent_ids    parent_ref[],
-    created_at    TIMESTAMP DEFAULT NOW(),
-    updated_at    TIMESTAMP DEFAULT NOW()
+    parent_ids        parent_ref[],
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_libraries_attributes ON libraries USING GIN (attributes);
@@ -261,15 +265,15 @@ CREATE INDEX idx_libraries_attributes ON libraries USING GIN (attributes);
 -- License managers, downloaders, product portals — never recommended
 -- =============================================================================
 CREATE TABLE admin_tools (
-    admin_tool_id   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    brand_id        UUID REFERENCES brands(brand_id),
-    tool_name       TEXT NOT NULL,
-    version         TEXT,
-    tool_type_ids UUID[],
-    plugin_formats  plugin_format[],
-    description     TEXT,
-    workflow_notes  TEXT,
-    tags            tag_type[],
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
+    admin_tool_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    brand_id          UUID REFERENCES brands(brand_id),
+    tool_name         TEXT NOT NULL,
+    version           TEXT,
+    tool_type_ids     UUID[],
+    plugin_format_ids UUID[],
+    description       TEXT,
+    workflow_notes    TEXT,
+    tag_ids           UUID[],
+    created_at        TIMESTAMP DEFAULT NOW(),
+    updated_at        TIMESTAMP DEFAULT NOW()
 );

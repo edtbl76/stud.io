@@ -55,9 +55,12 @@ def seed_header(table, csv_file):
     ]
 
 
-def build_tool_type_map():
-    """Return type_name.lower() → type_id from csv/tool_types.csv."""
-    src = CSV_DIR / "tool_types.csv"
+# ---------------------------------------------------------------------------
+# Map builders
+# ---------------------------------------------------------------------------
+def _build_type_map(csv_name):
+    """Return type_name.lower() → type_id from the given CSV file."""
+    src = CSV_DIR / csv_name
     m = {}
     with open(src, newline='', encoding='utf-8') as f:
         for row in csv.DictReader(f):
@@ -68,14 +71,52 @@ def build_tool_type_map():
     return m
 
 
-def resolve_tool_type_ids(tool_types_str, tool_type_map):
-    """Resolve comma-separated type names to a UUID array SQL literal."""
-    if not tool_types_str:
+def build_tool_type_map():
+    """Return type_name.lower() → type_id from csv/tool_types.csv."""
+    return _build_type_map("tool_types.csv")
+
+
+def build_entity_type_map():
+    """Return type_name.lower() → type_id from csv/entity_types.csv."""
+    return _build_type_map("entity_types.csv")
+
+
+def build_plugin_format_map():
+    """Return type_name.lower() → type_id from csv/plugin_formats.csv."""
+    return _build_type_map("plugin_formats.csv")
+
+
+def build_tag_type_map():
+    """Return type_name.lower() → type_id from csv/tag_types.csv."""
+    return _build_type_map("tag_types.csv")
+
+
+def build_model_type_map():
+    """Return type_name.lower() → type_id from csv/model_types.csv."""
+    return _build_type_map("model_types.csv")
+
+
+def build_effect_type_map():
+    """Return type_name.lower() → type_id from csv/effect_types.csv."""
+    return _build_type_map("effect_types.csv")
+
+
+def build_instrument_type_map():
+    """Return type_name.lower() → type_id from csv/instrument_types.csv."""
+    return _build_type_map("instrument_types.csv")
+
+
+# ---------------------------------------------------------------------------
+# Resolvers
+# ---------------------------------------------------------------------------
+def _resolve_uuid_array(names_str, type_map):
+    """Resolve a comma-separated string of type names to a UUID array SQL literal."""
+    if not names_str:
         return "NULL::uuid[]"
     ids = []
-    for name in tool_types_str.split(","):
+    for name in names_str.split(","):
         name = name.strip()
-        tid  = tool_type_map.get(name.lower())
+        tid  = type_map.get(name.lower())
         if tid:
             ids.append(tid)
     if not ids:
@@ -83,22 +124,118 @@ def resolve_tool_type_ids(tool_types_str, tool_type_map):
     return "'{" + ",".join(ids) + "}'::uuid[]"
 
 
+def resolve_tool_type_ids(tool_types_str, tool_type_map):
+    """Resolve comma-separated type names to a UUID array SQL literal."""
+    return _resolve_uuid_array(tool_types_str, tool_type_map)
+
+
+def resolve_entity_type_id(entity_type_str, entity_type_map):
+    """Resolve a single entity type name to a UUID SQL literal or NULL."""
+    if not entity_type_str:
+        return "NULL"
+    tid = entity_type_map.get(entity_type_str.strip().lower())
+    if not tid:
+        return "NULL"
+    return escape(tid)
+
+
+def resolve_plugin_format_ids(plugin_formats_str, plugin_format_map):
+    """Resolve comma-separated plugin format names to a UUID array SQL literal."""
+    return _resolve_uuid_array(plugin_formats_str, plugin_format_map)
+
+
+def resolve_tag_ids(tags_str, tag_map):
+    """Resolve comma-separated tag names to a UUID array SQL literal."""
+    return _resolve_uuid_array(tags_str, tag_map)
+
+
+def resolve_model_type_ids(model_types_str, model_type_map):
+    """Resolve comma-separated model type names to a UUID array SQL literal."""
+    return _resolve_uuid_array(model_types_str, model_type_map)
+
+
+def resolve_effect_type_ids(effect_types_str, effect_type_map):
+    """Resolve comma-separated effect type names to a UUID array SQL literal."""
+    return _resolve_uuid_array(effect_types_str, effect_type_map)
+
+
+def resolve_instrument_type_ids(instrument_types_str, instrument_type_map):
+    """Resolve comma-separated instrument type names to a UUID array SQL literal."""
+    return _resolve_uuid_array(instrument_types_str, instrument_type_map)
+
+
+# ---------------------------------------------------------------------------
+# Generic lookup table seed generator
+# ---------------------------------------------------------------------------
+def _generate_lookup_table(table_name, csv_name, dest_name):
+    src  = CSV_DIR / csv_name
+    dest = SEED_DIR / dest_name
+    lines = seed_header(table_name, csv_name)
+    rows = []
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            type_id   = (row.get("type_id")          or "").strip()
+            type_name = (row.get("type_name")         or "").strip()
+            type_desc = (row.get("type_description")  or "").strip() or None
+            if type_id and type_name:
+                rows.append((type_id, type_name, type_desc))
+    for type_id, type_name, type_desc in rows:
+        lines.append(
+            f"INSERT INTO {table_name} (type_id, type_name, type_description)"
+            f" VALUES ({escape(type_id)}, {escape(type_name)}, {escape(type_desc)})"
+            f" ON CONFLICT (type_id) DO UPDATE SET"
+            f" type_name = EXCLUDED.type_name,"
+            f" type_description = EXCLUDED.type_description;"
+        )
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} {table_name} → {dest.name}")
+
+
+def generate_entity_types():
+    _generate_lookup_table("entity_types", "entity_types.csv", "01_entity_types.sql")
+
+
+def generate_tag_types():
+    _generate_lookup_table("tag_types", "tag_types.csv", "02_tag_types.sql")
+
+
+def generate_plugin_formats():
+    _generate_lookup_table("plugin_formats", "plugin_formats.csv", "03_plugin_formats.sql")
+
+
+def generate_effect_types():
+    _generate_lookup_table("effect_types", "effect_types.csv", "04_effect_types.sql")
+
+
+def generate_instrument_types():
+    _generate_lookup_table("instrument_types", "instrument_types.csv", "05_instrument_types.sql")
+
+
+def generate_model_types():
+    _generate_lookup_table("model_types", "model_types.csv", "06_model_types.sql")
+
+
+def generate_tool_types():
+    _generate_lookup_table("tool_types", "tool_types.csv", "07_tool_types.sql")
+
+
 def tool_row(table, id_col, id_val, brand_id, tool_name, version,
              tool_types, plugin_formats, description, workflow_notes, tags,
-             tool_type_map):
+             tool_type_map, plugin_format_map, tag_map):
     return (
         f"INSERT INTO {table}"
-        f" ({id_col}, brand_id, tool_name, version, tool_type_ids, plugin_formats, description, workflow_notes, tags)"
+        f" ({id_col}, brand_id, tool_name, version, tool_type_ids, plugin_format_ids, description, workflow_notes, tag_ids)"
         f" VALUES ("
         f"{escape(id_val)}, "
         f"{escape(brand_id) if brand_id else 'NULL'}, "
         f"{escape(tool_name)}, "
         f"{escape(version)}, "
         f"{resolve_tool_type_ids(tool_types, tool_type_map)}, "
-        f"{escape_array(plugin_formats, 'plugin_format')}, "
+        f"{resolve_plugin_format_ids(plugin_formats, plugin_format_map)}, "
         f"{escape(description)}, "
         f"{escape(workflow_notes)}, "
-        f"{escape_array(tags, 'tag_type')}"
+        f"{resolve_tag_ids(tags, tag_map)}"
         f") ON CONFLICT ({id_col}) DO UPDATE SET"
         f" version = EXCLUDED.version,"
         f" tool_type_ids = EXCLUDED.tool_type_ids,"
@@ -132,9 +269,9 @@ def read_tool_csv(src, id_col):
 # ---------------------------------------------------------------------------
 # Brands
 # ---------------------------------------------------------------------------
-def generate_brands():
+def generate_brands(entity_type_map):
     src  = CSV_DIR / "brands.csv"
-    dest = SEED_DIR / "01_brands.sql"
+    dest = SEED_DIR / "08_brands.sql"
 
     rows = []
     with open(src, newline='', encoding='utf-8') as f:
@@ -155,11 +292,11 @@ def generate_brands():
 
     for brand_id, legal_name, brand_name, entity_type, website, description, founder, years in rows:
         lines.append(
-            f"INSERT INTO brands (brand_id, legal_name, brand_name, entity_type, website, description, founder, years)"
-            f" VALUES ({escape(brand_id)}, {escape(legal_name)}, {escape(brand_name)}, {escape(entity_type)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
+            f"INSERT INTO brands (brand_id, legal_name, brand_name, entity_type_id, website, description, founder, years)"
+            f" VALUES ({escape(brand_id)}, {escape(legal_name)}, {escape(brand_name)}, {resolve_entity_type_id(entity_type, entity_type_map)}, {escape(website)}, {escape(description)}, {escape(founder)}, {escape(years)})"
             f" ON CONFLICT (brand_id) DO UPDATE SET"
             f" website = EXCLUDED.website,"
-            f" entity_type = EXCLUDED.entity_type,"
+            f" entity_type_id = EXCLUDED.entity_type_id,"
             f" description = EXCLUDED.description,"
             f" founder = EXCLUDED.founder,"
             f" years = EXCLUDED.years,"
@@ -173,43 +310,18 @@ def generate_brands():
 
 
 # ---------------------------------------------------------------------------
-# Tool Types
-# ---------------------------------------------------------------------------
-def generate_tool_types():
-    src  = CSV_DIR / "tool_types.csv"
-    dest = SEED_DIR / "02_tool_types.sql"
-    lines = seed_header("tool_types", "tool_types.csv")
-    rows = []
-    with open(src, newline='', encoding='utf-8') as f:
-        for row in csv.DictReader(f):
-            type_id   = (row.get("type_id")          or "").strip()
-            type_name = (row.get("type_name")         or "").strip()
-            type_desc = (row.get("type_description")  or "").strip() or None
-            if type_id and type_name:
-                rows.append((type_id, type_name, type_desc))
-    for type_id, type_name, type_desc in rows:
-        lines.append(
-            f"INSERT INTO tool_types (type_id, type_name, type_description)"
-            f" VALUES ({escape(type_id)}, {escape(type_name)}, {escape(type_desc)})"
-            f" ON CONFLICT (type_id) DO UPDATE SET"
-            f" type_name = EXCLUDED.type_name,"
-            f" type_description = EXCLUDED.type_description;"
-        )
-    lines.append("")
-    dest.write_text("\n".join(lines), encoding="utf-8")
-    log(f"{len(rows)} tool types → {dest.name}")
-
-
-# ---------------------------------------------------------------------------
 # Workstations
 # ---------------------------------------------------------------------------
-def generate_workstations(tool_type_map):
+def generate_workstations(tool_type_map, plugin_format_map, tag_map):
     src  = CSV_DIR / "workstations.csv"
-    dest = SEED_DIR / "03_workstations.sql"
+    dest = SEED_DIR / "10_workstations.sql"
     rows = read_tool_csv(src, "workstation_id")
     lines = seed_header("workstations", "workstations.csv")
     for r in rows:
-        lines.append(tool_row("workstations", "workstation_id", *r, tool_type_map=tool_type_map))
+        lines.append(tool_row("workstations", "workstation_id", *r,
+                              tool_type_map=tool_type_map,
+                              plugin_format_map=plugin_format_map,
+                              tag_map=tag_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} workstations → {dest.name}")
@@ -218,13 +330,16 @@ def generate_workstations(tool_type_map):
 # ---------------------------------------------------------------------------
 # Workflow Tools
 # ---------------------------------------------------------------------------
-def generate_workflow_tools(tool_type_map):
+def generate_workflow_tools(tool_type_map, plugin_format_map, tag_map):
     src  = CSV_DIR / "workflow_tools.csv"
-    dest = SEED_DIR / "04_workflow_tools.sql"
+    dest = SEED_DIR / "11_workflow_tools.sql"
     rows = read_tool_csv(src, "workflow_tool_id")
     lines = seed_header("workflow_tools", "workflow_tools.csv")
     for r in rows:
-        lines.append(tool_row("workflow_tools", "workflow_tool_id", *r, tool_type_map=tool_type_map))
+        lines.append(tool_row("workflow_tools", "workflow_tool_id", *r,
+                              tool_type_map=tool_type_map,
+                              plugin_format_map=plugin_format_map,
+                              tag_map=tag_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} workflow tools → {dest.name}")
@@ -233,13 +348,16 @@ def generate_workflow_tools(tool_type_map):
 # ---------------------------------------------------------------------------
 # Measurement Tools
 # ---------------------------------------------------------------------------
-def generate_measurement_tools(tool_type_map):
+def generate_measurement_tools(tool_type_map, plugin_format_map, tag_map):
     src  = CSV_DIR / "measurement_tools.csv"
-    dest = SEED_DIR / "05_measurement_tools.sql"
+    dest = SEED_DIR / "12_measurement_tools.sql"
     rows = read_tool_csv(src, "measurement_tool_id")
     lines = seed_header("measurement_tools", "measurement_tools.csv")
     for r in rows:
-        lines.append(tool_row("measurement_tools", "measurement_tool_id", *r, tool_type_map=tool_type_map))
+        lines.append(tool_row("measurement_tools", "measurement_tool_id", *r,
+                              tool_type_map=tool_type_map,
+                              plugin_format_map=plugin_format_map,
+                              tag_map=tag_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} measurement tools → {dest.name}")
@@ -248,9 +366,9 @@ def generate_measurement_tools(tool_type_map):
 # ---------------------------------------------------------------------------
 # Reference Tools
 # ---------------------------------------------------------------------------
-def generate_reference_tools(tool_type_map):
+def generate_reference_tools(tool_type_map, plugin_format_map, tag_map):
     src  = CSV_DIR / "reference_tools.csv"
-    dest = SEED_DIR / "06_reference_tools.sql"
+    dest = SEED_DIR / "13_reference_tools.sql"
 
     if not src.exists():
         log("reference_tools.csv not found — skipping")
@@ -259,7 +377,10 @@ def generate_reference_tools(tool_type_map):
     rows = read_tool_csv(src, "reference_tool_id")
     lines = seed_header("reference_tools", "reference_tools.csv")
     for r in rows:
-        lines.append(tool_row("reference_tools", "reference_tool_id", *r, tool_type_map=tool_type_map))
+        lines.append(tool_row("reference_tools", "reference_tool_id", *r,
+                              tool_type_map=tool_type_map,
+                              plugin_format_map=plugin_format_map,
+                              tag_map=tag_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} reference tools → {dest.name}")
@@ -268,22 +389,43 @@ def generate_reference_tools(tool_type_map):
 # ---------------------------------------------------------------------------
 # Composition Tools
 # ---------------------------------------------------------------------------
-def generate_composition_tools(tool_type_map):
+def generate_composition_tools(tool_type_map, plugin_format_map, tag_map):
     src  = CSV_DIR / "composition_tools.csv"
-    dest = SEED_DIR / "07_composition_tools.sql"
+    dest = SEED_DIR / "14_composition_tools.sql"
     rows = read_tool_csv(src, "composition_tool_id")
     lines = seed_header("composition_tools", "composition_tools.csv")
     for r in rows:
-        lines.append(tool_row("composition_tools", "composition_tool_id", *r, tool_type_map=tool_type_map))
+        lines.append(tool_row("composition_tools", "composition_tool_id", *r,
+                              tool_type_map=tool_type_map,
+                              plugin_format_map=plugin_format_map,
+                              tag_map=tag_map))
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} composition tools → {dest.name}")
 
 
 # ---------------------------------------------------------------------------
+# Admin Tools
+# ---------------------------------------------------------------------------
+def generate_admin_tools(tool_type_map, plugin_format_map, tag_map):
+    src  = CSV_DIR / "admin_tools.csv"
+    dest = SEED_DIR / "15_admin_tools.sql"
+    rows = read_tool_csv(src, "admin_tool_id")
+    lines = seed_header("admin_tools", "admin_tools.csv")
+    for r in rows:
+        lines.append(tool_row("admin_tools", "admin_tool_id", *r,
+                              tool_type_map=tool_type_map,
+                              plugin_format_map=plugin_format_map,
+                              tag_map=tag_map))
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} admin tools → {dest.name}")
+
+
+# ---------------------------------------------------------------------------
 # Models
 # ---------------------------------------------------------------------------
-def generate_models():
+def generate_models(model_type_map):
     src  = CSV_DIR / "models.csv"
     dest = SEED_DIR / "09_models.sql"
 
@@ -318,13 +460,13 @@ def generate_models():
         attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
         lines.append(
             f"INSERT INTO models"
-            f" (model_id, brand_id, model_name, model_types, creator, years_active,"
+            f" (model_id, brand_id, model_name, model_type_ids, creator, years_active,"
             f" links, description, recording_notes, artist_reference, attributes)"
             f" VALUES ("
             f"{escape(model_id)}, "
             f"{escape(brand_id) if brand_id else 'NULL'}, "
             f"{escape(model_name)}, "
-            f"{escape_array(model_types, 'model_type')}, "
+            f"{resolve_model_type_ids(model_types, model_type_map)}, "
             f"{escape(creator)}, "
             f"{escape(years_active)}, "
             f"{escape(links)}, "
@@ -333,7 +475,7 @@ def generate_models():
             f"{escape(artist_reference)}, "
             f"{attrs_sql}"
             f") ON CONFLICT (model_id) DO UPDATE SET"
-            f" model_types = EXCLUDED.model_types,"
+            f" model_type_ids = EXCLUDED.model_type_ids,"
             f" creator = EXCLUDED.creator,"
             f" years_active = EXCLUDED.years_active,"
             f" description = EXCLUDED.description,"
@@ -350,9 +492,9 @@ def generate_models():
 # ---------------------------------------------------------------------------
 # Effects
 # ---------------------------------------------------------------------------
-def generate_effects(tool_type_map):
+def generate_effects(tool_type_map, effect_type_map, plugin_format_map, tag_map):
     src  = CSV_DIR / "effects.csv"
-    dest = SEED_DIR / "11_effects.sql"
+    dest = SEED_DIR / "16_effects.sql"
 
     if not src.exists():
         log("effects.csv not found — run convert_effects.py first, then re-run")
@@ -390,9 +532,9 @@ def generate_effects(tool_type_map):
         attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
         lines.append(
             f"INSERT INTO effects"
-            f" (effect_id, brand_id, model_ids, effect_name, version, collection, effect_types,"
-            f" tool_type_ids, plugin_formats, description, workflow_notes,"
-            f" recording_notes, artist_reference, attributes, tags)"
+            f" (effect_id, brand_id, model_ids, effect_name, version, collection, effect_type_ids,"
+            f" tool_type_ids, plugin_format_ids, description, workflow_notes,"
+            f" recording_notes, artist_reference, attributes, tag_ids)"
             f" VALUES ("
             f"{escape(effect_id)}, "
             f"{escape(brand_id) if brand_id else 'NULL'}, "
@@ -400,50 +542,35 @@ def generate_effects(tool_type_map):
             f"{escape(effect_name)}, "
             f"{escape(version)}, "
             f"{escape(collection)}, "
-            f"{escape_array(effect_types, 'effect_type')}, "
+            f"{resolve_effect_type_ids(effect_types, effect_type_map)}, "
             f"{resolve_tool_type_ids(tool_types, tool_type_map)}, "
-            f"{escape_array(plugin_formats, 'plugin_format')}, "
+            f"{resolve_plugin_format_ids(plugin_formats, plugin_format_map)}, "
             f"{escape(description)}, "
             f"{escape(workflow_notes)}, "
             f"{escape(recording_notes)}, "
             f"{escape(artist_reference)}, "
             f"{attrs_sql}, "
-            f"{escape_array(tags, 'tag_type')}"
+            f"{resolve_tag_ids(tags, tag_map)}"
             f") ON CONFLICT (effect_id) DO UPDATE SET"
             f" brand_id = EXCLUDED.brand_id,"
             f" model_ids = EXCLUDED.model_ids,"
             f" effect_name = EXCLUDED.effect_name,"
             f" version = EXCLUDED.version,"
             f" collection = EXCLUDED.collection,"
-            f" effect_types = EXCLUDED.effect_types,"
+            f" effect_type_ids = EXCLUDED.effect_type_ids,"
             f" tool_type_ids = EXCLUDED.tool_type_ids,"
-            f" plugin_formats = EXCLUDED.plugin_formats,"
+            f" plugin_format_ids = EXCLUDED.plugin_format_ids,"
             f" description = EXCLUDED.description,"
             f" workflow_notes = EXCLUDED.workflow_notes,"
             f" recording_notes = EXCLUDED.recording_notes,"
             f" artist_reference = EXCLUDED.artist_reference,"
             f" attributes = EXCLUDED.attributes,"
-            f" tags = EXCLUDED.tags,"
+            f" tag_ids = EXCLUDED.tag_ids,"
             f" updated_at = NOW();"
         )
     lines.append("")
     dest.write_text("\n".join(lines), encoding="utf-8")
     log(f"{len(rows)} effects → {dest.name}")
-
-
-# ---------------------------------------------------------------------------
-# Admin Tools
-# ---------------------------------------------------------------------------
-def generate_admin_tools(tool_type_map):
-    src  = CSV_DIR / "admin_tools.csv"
-    dest = SEED_DIR / "08_admin_tools.sql"
-    rows = read_tool_csv(src, "admin_tool_id")
-    lines = seed_header("admin_tools", "admin_tools.csv")
-    for r in rows:
-        lines.append(tool_row("admin_tools", "admin_tool_id", *r, tool_type_map=tool_type_map))
-    lines.append("")
-    dest.write_text("\n".join(lines), encoding="utf-8")
-    log(f"{len(rows)} admin tools → {dest.name}")
 
 
 # ---------------------------------------------------------------------------
@@ -458,18 +585,30 @@ def main():
     for f in SEED_DIR.glob("*.sql"):
         f.unlink()
 
-    tool_type_map = build_tool_type_map()
+    entity_type_map    = build_entity_type_map()
+    tag_map            = build_tag_type_map()
+    plugin_format_map  = build_plugin_format_map()
+    effect_type_map    = build_effect_type_map()
+    instrument_type_map = build_instrument_type_map()
+    model_type_map     = build_model_type_map()
+    tool_type_map      = build_tool_type_map()
 
-    generate_brands()
+    generate_entity_types()
+    generate_tag_types()
+    generate_plugin_formats()
+    generate_effect_types()
+    generate_instrument_types()
+    generate_model_types()
     generate_tool_types()
-    generate_workstations(tool_type_map)
-    generate_workflow_tools(tool_type_map)
-    generate_measurement_tools(tool_type_map)
-    generate_reference_tools(tool_type_map)
-    generate_composition_tools(tool_type_map)
-    generate_admin_tools(tool_type_map)
-    generate_models()
-    generate_effects(tool_type_map)
+    generate_brands(entity_type_map)
+    generate_models(model_type_map)
+    generate_workstations(tool_type_map, plugin_format_map, tag_map)
+    generate_workflow_tools(tool_type_map, plugin_format_map, tag_map)
+    generate_measurement_tools(tool_type_map, plugin_format_map, tag_map)
+    generate_reference_tools(tool_type_map, plugin_format_map, tag_map)
+    generate_composition_tools(tool_type_map, plugin_format_map, tag_map)
+    generate_admin_tools(tool_type_map, plugin_format_map, tag_map)
+    generate_effects(tool_type_map, effect_type_map, plugin_format_map, tag_map)
 
     print("\n" + "=" * 60)
     print("  Seed files written to sql/seeds/")
