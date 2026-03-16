@@ -70,26 +70,28 @@ export default function UsersPage() {
     if (!GOOGLE_CLIENT_ID || !window.google) return
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        const userId = linkingUserIdRef.current
-        if (!userId) return
-        linkingUserIdRef.current = null
-        setStatus(null)
-        try {
-          const res = await fetch(`${API}/users/${userId}/google`, {
-            method: 'PATCH',
-            headers: authHeaders(),
-            body: JSON.stringify({ credential: response.credential }),
-          })
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ detail: res.statusText }))
-            throw new Error(err.detail ?? res.statusText)
+      callback: (response) => {
+        void (async () => {
+          const userId = linkingUserIdRef.current
+          if (!userId) return
+          linkingUserIdRef.current = null
+          setStatus(null)
+          try {
+            const res = await fetch(`${API}/users/${userId}/google`, {
+              method: 'PATCH',
+              headers: authHeaders(),
+              body: JSON.stringify({ credential: response.credential }),
+            })
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({ detail: res.statusText }))
+              throw new Error(err.detail ?? res.statusText)
+            }
+            setStatus({ type: 'success', message: 'Google account linked' })
+            await fetchUsers()
+          } catch (e) {
+            setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to link Google account' })
           }
-          setStatus({ type: 'success', message: 'Google account linked' })
-          await fetchUsers()
-        } catch (e) {
-          setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to link Google account' })
-        }
+        })()
       },
     })
   }
@@ -321,10 +323,11 @@ export default function UsersPage() {
       {/* Add user */}
       <section>
         <h3 className="text-sm font-medium text-foreground mb-4">Add User</h3>
-        <form onSubmit={handleAdd} className="flex items-end gap-3">
+        <form onSubmit={(e) => { void handleAdd(e) }} className="flex items-end gap-3">
           <div>
-            <label className="block text-xs text-muted-foreground mb-1.5">Username</label>
+            <label htmlFor="new-username" className="block text-xs text-muted-foreground mb-1.5">Username</label>
             <input
+              id="new-username"
               type="text"
               value={newUsername}
               onChange={(e) => setNewUsername(e.target.value)}
@@ -333,8 +336,9 @@ export default function UsersPage() {
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground mb-1.5">Password</label>
+            <label htmlFor="new-password" className="block text-xs text-muted-foreground mb-1.5">Password</label>
             <input
+              id="new-password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}

@@ -13,6 +13,7 @@ from routers._helpers import parent_ref_sql, encode_parent_refs
 router = APIRouter()
 
 _SELECT = "SELECT * FROM libraries_view"
+_NOT_FOUND = "Library not found"
 _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
 
@@ -27,11 +28,11 @@ async def list_libraries(q: str | None = None, *, conn: Annotated[Connection, De
     return [LibraryOut(**dict(r)) for r in rows]
 
 
-@router.get("/{library_id}", response_model=LibraryOut)
+@router.get("/{library_id}", response_model=LibraryOut, responses={404: {"description": "Not found"}})
 async def get_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE library_id = $1", library_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Library not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return LibraryOut(**dict(row))
 
 
@@ -55,10 +56,10 @@ async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Dep
     return await get_library(row["library_id"], conn)
 
 
-@router.patch("/{library_id}", response_model=LibraryOut)
+@router.patch("/{library_id}", response_model=LibraryOut, responses={404: {"description": "Not found"}})
 async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
-        raise HTTPException(status_code=404, detail="Library not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -85,10 +86,10 @@ async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotat
     return await get_library(library_id, conn)
 
 
-@router.delete("/{library_id}", status_code=204)
+@router.delete("/{library_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
-        raise HTTPException(status_code=404, detail="Library not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     for table in _PARENT_REF_TABLES:
         if await conn.fetchrow(

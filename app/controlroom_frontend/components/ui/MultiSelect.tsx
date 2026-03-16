@@ -65,11 +65,11 @@ export function MultiSelect({
             )}
           >
             <span className={value.length === 0 ? 'text-muted-foreground' : ''}>
-              {isLoading
-                ? 'Loading...'
-                : value.length === 0
-                ? placeholder
-                : `${value.length} selected`}
+              {(() => {
+                if (isLoading) return 'Loading...'
+                if (value.length === 0) return placeholder
+                return `${value.length} selected`
+              })()}
             </span>
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           </button>
@@ -86,11 +86,14 @@ export function MultiSelect({
             sideOffset={4}
             align="start"
           >
-            {isLoading ? (
-              <div className="p-3 text-sm text-muted-foreground">Loading options...</div>
-            ) : options.length === 0 ? (
-              <div className="p-3 text-sm text-muted-foreground">No options available</div>
-            ) : (
+            {(() => {
+              if (isLoading) return (
+                <div className="p-3 text-sm text-muted-foreground">Loading options...</div>
+              )
+              if (options.length === 0) return (
+                <div className="p-3 text-sm text-muted-foreground">No options available</div>
+              )
+              return (
               <div className="p-1">
                 {options.map(opt => {
                   const isSelected = value.includes(opt.type_id)
@@ -118,7 +121,8 @@ export function MultiSelect({
                   )
                 })}
               </div>
-            )}
+              )
+            })()}
           </PopoverPrimitive.Content>
         </PopoverPrimitive.Portal>
       </PopoverPrimitive.Root>

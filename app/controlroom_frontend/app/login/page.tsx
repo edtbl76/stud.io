@@ -19,16 +19,18 @@ export default function LoginPage() {
     if (!GOOGLE_CLIENT_ID || !window.google || !googleButtonRef.current) return
     window.google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: async (response) => {
-        setError(null)
-        setLoading(true)
-        try {
-          await loginGoogle(response.credential)
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'Google login failed')
-        } finally {
-          setLoading(false)
-        }
+      callback: (response) => {
+        void (async () => {
+          setError(null)
+          setLoading(true)
+          try {
+            await loginGoogle(response.credential)
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Google login failed')
+          } finally {
+            setLoading(false)
+          }
+        })()
       },
     })
     window.google.accounts.id.renderButton(googleButtonRef.current, {
@@ -73,14 +75,15 @@ export default function LoginPage() {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <form onSubmit={(e) => { void handleSubmit(e) }} className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <h2 className="text-sm font-medium text-foreground mb-5">Sign in</h2>
 
           <div className="mb-4">
-            <label className="block text-xs text-muted-foreground mb-1.5">
+            <label htmlFor="login-username" className="block text-xs text-muted-foreground mb-1.5">
               Username
             </label>
             <input
+              id="login-username"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -92,10 +95,11 @@ export default function LoginPage() {
           </div>
 
           <div className="mb-5">
-            <label className="block text-xs text-muted-foreground mb-1.5">
+            <label htmlFor="login-password" className="block text-xs text-muted-foreground mb-1.5">
               Password
             </label>
             <input
+              id="login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

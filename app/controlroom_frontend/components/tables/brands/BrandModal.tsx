@@ -101,11 +101,14 @@ export function BrandModal({ record, onClose, onMutate }: BrandModalProps) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Brand'
-    : isEditing
-    ? `Edit: ${record!.brand_name ?? record!.legal_name}`
-    : (record!.brand_name ?? record!.legal_name)
+  let title: string
+  if (isCreate) {
+    title = 'New Brand'
+  } else if (isEditing) {
+    title = `Edit: ${record!.brand_name ?? record!.legal_name}`
+  } else {
+    title = record!.brand_name ?? record!.legal_name
+  }
 
   return (
     <RecordModal

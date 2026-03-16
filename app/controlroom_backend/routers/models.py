@@ -12,6 +12,7 @@ from schemas.models import ModelCreate, ModelUpdate, ModelOut
 router = APIRouter()
 
 _SELECT = "SELECT * FROM models_view"
+_NOT_FOUND = "Model not found"
 
 _REF_CHECKS = [
     ("effects",           "model_ids"),
@@ -33,11 +34,11 @@ async def list_models(q: str | None = None, *, conn: Annotated[Connection, Depen
     return [ModelOut(**dict(r)) for r in rows]
 
 
-@router.get("/{model_id}", response_model=ModelOut)
+@router.get("/{model_id}", response_model=ModelOut, responses={404: {"description": "Not found"}})
 async def get_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE model_id = $1", model_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Model not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return ModelOut(**dict(row))
 
 
@@ -60,10 +61,10 @@ async def create_model(payload: ModelCreate, conn: Annotated[Connection, Depends
     return await get_model(row["model_id"], conn)
 
 
-@router.patch("/{model_id}", response_model=ModelOut)
+@router.patch("/{model_id}", response_model=ModelOut, responses={404: {"description": "Not found"}})
 async def update_model(model_id: UUID, payload: ModelUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM models WHERE model_id = $1", model_id):
-        raise HTTPException(status_code=404, detail="Model not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -80,10 +81,10 @@ async def update_model(model_id: UUID, payload: ModelUpdate, conn: Annotated[Con
     return await get_model(model_id, conn)
 
 
-@router.delete("/{model_id}", status_code=204)
+@router.delete("/{model_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM models WHERE model_id = $1", model_id):
-        raise HTTPException(status_code=404, detail="Model not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     for table, col in _REF_CHECKS:
         if await conn.fetchrow(f"SELECT 1 FROM {table} WHERE $1 = ANY({col}) LIMIT 1", model_id):

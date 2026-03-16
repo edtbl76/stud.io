@@ -4,7 +4,7 @@ Verifies admin role can write and user role cannot.
 Uses /brands as the representative resource for write tests.
 """
 import io
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, AsyncMock, MagicMock
 
 
 # ---------------------------------------------------------------------------
@@ -83,11 +83,10 @@ async def test_user_cannot_delete_brand(client, conn, auth_headers):
 # ---------------------------------------------------------------------------
 
 async def test_admin_can_access_backup(client, admin_headers):
-    mock_result = MagicMock()
-    mock_result.returncode = 0
-    mock_result.stdout = b"-- PostgreSQL database dump\n"
-    mock_result.stderr = b""
-    with patch("routers.admin_ops.subprocess.run", return_value=mock_result):
+    mock_proc = MagicMock()
+    mock_proc.returncode = 0
+    mock_proc.communicate = AsyncMock(return_value=(b"-- PostgreSQL database dump\n", b""))
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=mock_proc)):
         response = await client.get("/admin/backup", headers=admin_headers)
     assert response.status_code == 200
 

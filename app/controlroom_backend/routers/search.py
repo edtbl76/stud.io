@@ -37,7 +37,7 @@ _SOURCES = [
 ]
 
 
-@router.get("", response_model=list[SearchResult])
+@router.get("", response_model=list[SearchResult], responses={422: {"description": "Unprocessable entity"}})
 async def search(q: str, conn: Annotated[Connection, Depends(get_conn)]):
     if not q or len(q.strip()) < 2:
         raise HTTPException(status_code=422, detail="Query must be at least 2 characters")

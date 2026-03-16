@@ -104,7 +104,7 @@ export default function BackupRestorePage() {
       <section>
         <h3 className="text-sm font-medium text-foreground mb-1">Restore</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Upload a <code className="text-primary">.sql</code> backup file to restore the database.
+          Upload a <code className="text-primary">.sql</code> backup file to restore the database.{' '}
           <span className="text-destructive ml-1 font-medium">This will overwrite existing data.</span>
         </p>
         <div className="flex items-center gap-3 mb-4">

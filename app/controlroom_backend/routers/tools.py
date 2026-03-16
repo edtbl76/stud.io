@@ -17,6 +17,8 @@ from schemas.tools import ToolCreate, ToolUpdate, ToolOut
 
 router = APIRouter()
 
+_NOT_FOUND = "Tool not found"
+
 
 # ---------------------------------------------------------------------------
 # Config per tool category
@@ -83,14 +85,14 @@ async def list_tools(category: str, q: str | None = None, *, conn: Annotated[Con
     return [_row_to_out(r, cfg["id_col"]) for r in rows]
 
 
-@router.get("/{category}/{tool_id}", response_model=ToolOut)
+@router.get("/{category}/{tool_id}", response_model=ToolOut, responses={404: {"description": "Not found"}})
 async def get_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     cfg = _cfg(category)
     row = await conn.fetchrow(
         f"SELECT * FROM {cfg['view']} WHERE {cfg['id_col']} = $1", tool_id
     )
     if not row:
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return _row_to_out(row, cfg["id_col"])
 
 
@@ -116,13 +118,13 @@ async def create_tool(category: str, payload: ToolCreate, conn: Annotated[Connec
     return await get_tool(category, row[cfg["id_col"]], conn)
 
 
-@router.patch("/{category}/{tool_id}", response_model=ToolOut)
+@router.patch("/{category}/{tool_id}", response_model=ToolOut, responses={404: {"description": "Not found"}})
 async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     if not await conn.fetchrow(
         f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
     ):
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not cfg["has_model_ids"]:
@@ -139,11 +141,11 @@ async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: A
     return await get_tool(category, tool_id, conn)
 
 
-@router.delete("/{category}/{tool_id}", status_code=204)
+@router.delete("/{category}/{tool_id}", status_code=204, responses={404: {"description": "Not found"}})
 async def delete_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     if not await conn.fetchrow(
         f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
     ):
-        raise HTTPException(status_code=404, detail="Tool not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     await conn.execute(f"DELETE FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id)

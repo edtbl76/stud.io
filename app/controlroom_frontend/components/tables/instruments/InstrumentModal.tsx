@@ -95,11 +95,14 @@ export function InstrumentModal({ record, onClose, onMutate }: InstrumentModalPr
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Instrument'
-    : isEditing
-    ? `Edit: ${record!.full_instrument_name}`
-    : record!.full_instrument_name
+  let title: string
+  if (isCreate) {
+    title = 'New Instrument'
+  } else if (isEditing) {
+    title = `Edit: ${record!.full_instrument_name}`
+  } else {
+    title = record!.full_instrument_name
+  }
 
   return (
     <RecordModal

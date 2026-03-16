@@ -15,6 +15,8 @@ from schemas.config import LookupCreate, LookupUpdate, LookupOut
 
 router = APIRouter()
 
+_NOT_FOUND = "Not found"
+
 # Maps URL slug → DB table name
 _TABLES = {
     "entity-types":     "entity_types",
@@ -74,12 +76,12 @@ async def list_lookup(slug: str, conn: Annotated[Connection, Depends(get_conn)])
     return [LookupOut(**dict(r)) for r in rows]
 
 
-@router.get("/{slug}/{type_id}", response_model=LookupOut)
+@router.get("/{slug}/{type_id}", response_model=LookupOut, responses={404: {"description": "Not found"}})
 async def get_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     table = _resolve(slug)
     row = await conn.fetchrow(f"SELECT * FROM {table} WHERE type_id = $1", type_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return LookupOut(**dict(row))
 
 
@@ -93,11 +95,11 @@ async def create_lookup(slug: str, payload: LookupCreate, conn: Annotated[Connec
     return LookupOut(**dict(row))
 
 
-@router.patch("/{slug}/{type_id}", response_model=LookupOut)
+@router.patch("/{slug}/{type_id}", response_model=LookupOut, responses={404: {"description": "Not found"}})
 async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
     if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -111,11 +113,11 @@ async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: A
     return await get_lookup(slug, type_id, conn)
 
 
-@router.delete("/{slug}/{type_id}", status_code=204)
+@router.delete("/{slug}/{type_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
     if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
-        raise HTTPException(status_code=404, detail="Not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
     for ref_table, col, is_array in _REFS.get(table, []):
         if is_array:

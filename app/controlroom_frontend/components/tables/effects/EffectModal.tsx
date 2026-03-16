@@ -102,11 +102,14 @@ export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  const title = isCreate
-    ? 'New Effect'
-    : isEditing
-    ? `Edit: ${record!.full_effect_name}`
-    : record!.full_effect_name
+  let title: string
+  if (isCreate) {
+    title = 'New Effect'
+  } else if (isEditing) {
+    title = `Edit: ${record!.full_effect_name}`
+  } else {
+    title = record!.full_effect_name
+  }
 
   return (
     <RecordModal

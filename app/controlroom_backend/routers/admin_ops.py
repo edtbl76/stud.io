@@ -1,5 +1,5 @@
+import asyncio
 import os
-import subprocess
 from datetime import datetime
 from typing import Annotated
 
@@ -28,28 +28,30 @@ def _pg_args(command: str) -> list[str]:
     ]
 
 
-@router.get("/backup")
+@router.get("/backup", responses={500: {"description": "Internal server error"}})
 async def backup(_: Annotated[UserOut, Depends(require_admin)]):
     """Dump controlroomdb to a SQL file and return it as a download."""
-    result = subprocess.run(
-        _pg_args("pg_dump") + ["--clean", "--if-exists"],
-        capture_output=True,
+    proc = await asyncio.create_subprocess_exec(
+        *(_pg_args("pg_dump") + ["--clean", "--if-exists"]),
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
         env=_pg_env(),
     )
-    if result.returncode != 0:
-        raise HTTPException(status_code=500, detail=result.stderr.decode())
+    stdout, stderr = await proc.communicate()
+    if proc.returncode != 0:
+        raise HTTPException(status_code=500, detail=stderr.decode())
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"controlroomdb_{timestamp}.sql"
 
     return StreamingResponse(
-        iter([result.stdout]),
+        iter([stdout]),
         media_type="application/octet-stream",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
 
 
-@router.post("/restore")
+@router.post("/restore", responses={400: {"description": "Bad request"}, 500: {"description": "Internal server error"}})
 async def restore(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, Depends(require_admin)]):
     """Restore controlroomdb from an uploaded SQL file."""
     if not file.filename or not file.filename.endswith(".sql"):
@@ -57,13 +59,15 @@ async def restore(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, 
 
     sql_bytes = await file.read()
 
-    result = subprocess.run(
-        _pg_args("psql"),
-        input=sql_bytes,
-        capture_output=True,
+    proc = await asyncio.create_subprocess_exec(
+        *_pg_args("psql"),
+        stdin=asyncio.subprocess.PIPE,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
         env=_pg_env(),
     )
-    if result.returncode != 0:
-        raise HTTPException(status_code=500, detail=result.stderr.decode())
+    _, stderr = await proc.communicate(input=sql_bytes)
+    if proc.returncode != 0:
+        raise HTTPException(status_code=500, detail=stderr.decode())
 
     return {"status": "ok", "message": "Database restored successfully"}
