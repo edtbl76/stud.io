@@ -3,6 +3,7 @@ Config router — CRUD for all 7 lookup tables under /config/<table>.
 Tables: entity-types, tag-types, plugin-formats, model-types,
         effect-types, instrument-types, tool-types
 """
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -67,14 +68,14 @@ def _resolve(slug: str) -> str:
 
 
 @router.get("/{slug}", response_model=list[LookupOut])
-async def list_lookup(slug: str, conn: Connection = Depends(get_conn)):
+async def list_lookup(slug: str, conn: Annotated[Connection, Depends(get_conn)]):
     table = _resolve(slug)
     rows = await conn.fetch(f"SELECT * FROM {table} ORDER BY type_name")
     return [LookupOut(**dict(r)) for r in rows]
 
 
 @router.get("/{slug}/{type_id}", response_model=LookupOut)
-async def get_lookup(slug: str, type_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     table = _resolve(slug)
     row = await conn.fetchrow(f"SELECT * FROM {table} WHERE type_id = $1", type_id)
     if not row:
@@ -83,7 +84,7 @@ async def get_lookup(slug: str, type_id: UUID, conn: Connection = Depends(get_co
 
 
 @router.post("/{slug}", response_model=LookupOut, status_code=201)
-async def create_lookup(slug: str, payload: LookupCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_lookup(slug: str, payload: LookupCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
     row = await conn.fetchrow(
         f"INSERT INTO {table} (type_name, type_description) VALUES ($1,$2) RETURNING *",
@@ -93,7 +94,7 @@ async def create_lookup(slug: str, payload: LookupCreate, conn: Connection = Dep
 
 
 @router.patch("/{slug}/{type_id}", response_model=LookupOut)
-async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
     if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
         raise HTTPException(status_code=404, detail="Not found")
@@ -111,7 +112,7 @@ async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: C
 
 
 @router.delete("/{slug}/{type_id}", status_code=204)
-async def delete_lookup(slug: str, type_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
     if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
         raise HTTPException(status_code=404, detail="Not found")

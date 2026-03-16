@@ -21,3 +21,24 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+      - id: bandit
+        name: bandit
+        entry: bash scripts/run-bandit.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: pip-audit
+        name: pip-audit
+        entry: bash scripts/run-pip-audit.sh
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: npm-audit
+        name: npm-audit
+        entry: bash scripts/run-npm-audit.sh
+        language: system
+        pass_filenames: false
+        always_run: true

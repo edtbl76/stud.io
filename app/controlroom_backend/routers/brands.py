@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,7 +21,7 @@ def _row_to_out(row) -> BrandOut:
 
 
 @router.get("", response_model=list[BrandOut])
-async def list_brands(q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_brands(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     if q:
         rows = await conn.fetch(
             _SELECT + " WHERE brand_name ILIKE $1 OR legal_name ILIKE $1",
@@ -32,7 +33,7 @@ async def list_brands(q: str | None = None, conn: Connection = Depends(get_conn)
 
 
 @router.get("/{brand_id}", response_model=BrandOut)
-async def get_brand(brand_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE brand_id = $1", brand_id)
     if not row:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -40,7 +41,7 @@ async def get_brand(brand_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=BrandOut, status_code=201)
-async def create_brand(payload: BrandCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_brand(payload: BrandCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     row = await conn.fetchrow(
         """
         INSERT INTO brands (legal_name, brand_name, entity_type_id, website,
@@ -55,7 +56,7 @@ async def create_brand(payload: BrandCreate, conn: Connection = Depends(get_conn
 
 
 @router.patch("/{brand_id}", response_model=BrandOut)
-async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     existing = await conn.fetchrow("SELECT 1 FROM brands WHERE brand_id = $1", brand_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Brand not found")
@@ -74,7 +75,7 @@ async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Connection = 
 
 
 @router.delete("/{brand_id}", status_code=204)
-async def delete_brand(brand_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     existing = await conn.fetchrow("SELECT 1 FROM brands WHERE brand_id = $1", brand_id)
     if not existing:
         raise HTTPException(status_code=404, detail="Brand not found")

@@ -1,6 +1,7 @@
 import os
 import subprocess
 from datetime import datetime
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
@@ -28,7 +29,7 @@ def _pg_args(command: str) -> list[str]:
 
 
 @router.get("/backup")
-async def backup(_: UserOut = Depends(require_admin)):
+async def backup(_: Annotated[UserOut, Depends(require_admin)]):
     """Dump controlroomdb to a SQL file and return it as a download."""
     result = subprocess.run(
         _pg_args("pg_dump") + ["--clean", "--if-exists"],
@@ -49,7 +50,7 @@ async def backup(_: UserOut = Depends(require_admin)):
 
 
 @router.post("/restore")
-async def restore(file: UploadFile = File(...), _: UserOut = Depends(require_admin)):
+async def restore(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, Depends(require_admin)]):
     """Restore controlroomdb from an uploaded SQL file."""
     if not file.filename or not file.filename.endswith(".sql"):
         raise HTTPException(status_code=400, detail="File must be a .sql file")

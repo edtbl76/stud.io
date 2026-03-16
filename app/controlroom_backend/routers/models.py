@@ -1,4 +1,5 @@
 import json
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -22,7 +23,7 @@ _REF_CHECKS = [
 
 
 @router.get("", response_model=list[ModelOut])
-async def list_models(q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_models(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     if q:
         rows = await conn.fetch(
             _SELECT + " WHERE model_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
@@ -33,7 +34,7 @@ async def list_models(q: str | None = None, conn: Connection = Depends(get_conn)
 
 
 @router.get("/{model_id}", response_model=ModelOut)
-async def get_model(model_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE model_id = $1", model_id)
     if not row:
         raise HTTPException(status_code=404, detail="Model not found")
@@ -41,7 +42,7 @@ async def get_model(model_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=ModelOut, status_code=201)
-async def create_model(payload: ModelCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_model(payload: ModelCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     row = await conn.fetchrow(
         """
         INSERT INTO models
@@ -60,7 +61,7 @@ async def create_model(payload: ModelCreate, conn: Connection = Depends(get_conn
 
 
 @router.patch("/{model_id}", response_model=ModelOut)
-async def update_model(model_id: UUID, payload: ModelUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_model(model_id: UUID, payload: ModelUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM models WHERE model_id = $1", model_id):
         raise HTTPException(status_code=404, detail="Model not found")
 
@@ -80,7 +81,7 @@ async def update_model(model_id: UUID, payload: ModelUpdate, conn: Connection = 
 
 
 @router.delete("/{model_id}", status_code=204)
-async def delete_model(model_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM models WHERE model_id = $1", model_id):
         raise HTTPException(status_code=404, detail="Model not found")
 

@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,7 +14,7 @@ _SELECT = "SELECT * FROM workstations_view"
 
 
 @router.get("", response_model=list[WorkstationOut])
-async def list_workstations(q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_workstations(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     if q:
         rows = await conn.fetch(
             _SELECT + " WHERE tool_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
@@ -24,7 +25,7 @@ async def list_workstations(q: str | None = None, conn: Connection = Depends(get
 
 
 @router.get("/{workstation_id}", response_model=WorkstationOut)
-async def get_workstation(workstation_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_workstation(workstation_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE workstation_id = $1", workstation_id)
     if not row:
         raise HTTPException(status_code=404, detail="Workstation not found")
@@ -32,7 +33,7 @@ async def get_workstation(workstation_id: UUID, conn: Connection = Depends(get_c
 
 
 @router.post("", response_model=WorkstationOut, status_code=201)
-async def create_workstation(payload: WorkstationCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_workstation(payload: WorkstationCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     row = await conn.fetchrow(
         """
         INSERT INTO workstations
@@ -49,7 +50,7 @@ async def create_workstation(payload: WorkstationCreate, conn: Connection = Depe
 
 
 @router.patch("/{workstation_id}", response_model=WorkstationOut)
-async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM workstations WHERE workstation_id = $1", workstation_id):
         raise HTTPException(status_code=404, detail="Workstation not found")
 
@@ -66,7 +67,7 @@ async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, c
 
 
 @router.delete("/{workstation_id}", status_code=204)
-async def delete_workstation(workstation_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_workstation(workstation_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM workstations WHERE workstation_id = $1", workstation_id):
         raise HTTPException(status_code=404, detail="Workstation not found")
     await conn.execute("DELETE FROM workstations WHERE workstation_id = $1", workstation_id)

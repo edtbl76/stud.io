@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 import bcrypt
 from asyncpg import Connection
@@ -57,8 +58,8 @@ def _create_token(username: str, role: str = "user") -> str:
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
-    conn: Connection = Depends(get_conn),
+    token: Annotated[str, Depends(oauth2_scheme)],
+    conn: Annotated[Connection, Depends(get_conn)],
 ) -> UserOut:
     credentials_exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -80,7 +81,7 @@ async def get_current_user(
     return UserOut(user_id=str(row["user_id"]), username=username, role=role)
 
 
-async def require_admin(current_user: UserOut = Depends(get_current_user)) -> UserOut:
+async def require_admin(current_user: Annotated[UserOut, Depends(get_current_user)]) -> UserOut:
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
@@ -112,8 +113,8 @@ async def seed_default_admin(conn: Connection) -> None:
 
 @router.post("/token", response_model=Token)
 async def login(
-    form: OAuth2PasswordRequestForm = Depends(),
-    conn: Connection = Depends(get_conn),
+    form: Annotated[OAuth2PasswordRequestForm, Depends()],
+    conn: Annotated[Connection, Depends(get_conn)],
 ):
     row = await conn.fetchrow(
         "SELECT password_hash, role FROM users WHERE username = $1", form.username
@@ -134,7 +135,7 @@ async def login(
 
 
 @router.get("/me", response_model=UserOut)
-async def me(current_user: UserOut = Depends(get_current_user)):
+async def me(current_user: Annotated[UserOut, Depends(get_current_user)]):
     return current_user
 
 
@@ -142,7 +143,7 @@ async def me(current_user: UserOut = Depends(get_current_user)):
 async def login_google(
     payload: GoogleLogin,
     response: Response,
-    conn: Connection = Depends(get_conn),
+    conn: Annotated[Connection, Depends(get_conn)],
 ):
     if not settings.google_client_id:
         raise HTTPException(status_code=501, detail="Google login is not configured")

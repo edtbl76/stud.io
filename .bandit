@@ -1,0 +1,6 @@
+# B104: 0.0.0.0 binding is intentional — app runs inside Docker
+# B608: SQL f-strings use only internal hardcoded table/column names (never user input);
+#       all query values are properly parameterized via asyncpg placeholders ($1, $2, ...)
+skips:
+  - B104
+  - B608

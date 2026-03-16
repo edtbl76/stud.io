@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 from pydantic import BaseModel
 from uuid import UUID
-from typing import Optional
+from typing import Annotated, Optional
 
 from database import get_conn
 
@@ -38,7 +38,7 @@ _SOURCES = [
 
 
 @router.get("", response_model=list[SearchResult])
-async def search(q: str, conn: Connection = Depends(get_conn)):
+async def search(q: str, conn: Annotated[Connection, Depends(get_conn)]):
     if not q or len(q.strip()) < 2:
         raise HTTPException(status_code=422, detail="Query must be at least 2 characters")
 

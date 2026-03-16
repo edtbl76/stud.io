@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import UUID
 
 import bcrypt
@@ -45,8 +46,8 @@ def _hash(plain: str) -> str:
 
 @router.get("", response_model=list[UserListItem])
 async def list_users(
-    conn: Connection = Depends(get_conn),
-    _: UserOut = Depends(get_current_user),
+    conn: Annotated[Connection, Depends(get_conn)],
+    _: Annotated[UserOut, Depends(get_current_user)],
 ):
     rows = await conn.fetch(
         "SELECT user_id, username, role, created_at, google_id FROM users ORDER BY created_at"
@@ -66,8 +67,8 @@ async def list_users(
 @router.post("", response_model=UserListItem, status_code=201)
 async def create_user(
     payload: UserCreate,
-    conn: Connection = Depends(get_conn),
-    _: UserOut = Depends(require_admin),
+    conn: Annotated[Connection, Depends(get_conn)],
+    _: Annotated[UserOut, Depends(require_admin)],
 ):
     existing = await conn.fetchrow("SELECT 1 FROM users WHERE username = $1", payload.username)
     if existing:
@@ -90,8 +91,8 @@ async def create_user(
 async def change_password(
     user_id: UUID,
     payload: PasswordChange,
-    conn: Connection = Depends(get_conn),
-    _: UserOut = Depends(get_current_user),
+    conn: Annotated[Connection, Depends(get_conn)],
+    _: Annotated[UserOut, Depends(get_current_user)],
 ):
     result = await conn.execute(
         "UPDATE users SET password_hash = $1, updated_at = NOW() WHERE user_id = $2",
@@ -106,8 +107,8 @@ async def change_password(
 async def change_role(
     user_id: UUID,
     payload: RoleChange,
-    conn: Connection = Depends(get_conn),
-    _: UserOut = Depends(require_admin),
+    conn: Annotated[Connection, Depends(get_conn)],
+    _: Annotated[UserOut, Depends(require_admin)],
 ):
     if payload.role not in ("admin", "user"):
         raise HTTPException(status_code=422, detail="role must be 'admin' or 'user'")
@@ -132,8 +133,8 @@ async def change_role(
 async def link_google(
     user_id: UUID,
     payload: GoogleLink,
-    conn: Connection = Depends(get_conn),
-    current_user: UserOut = Depends(get_current_user),
+    conn: Annotated[Connection, Depends(get_conn)],
+    current_user: Annotated[UserOut, Depends(get_current_user)],
 ):
     if current_user.user_id != str(user_id) and current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Forbidden")
@@ -181,8 +182,8 @@ async def link_google(
 @router.delete("/{user_id}", status_code=204)
 async def delete_user(
     user_id: UUID,
-    conn: Connection = Depends(get_conn),
-    current_user: UserOut = Depends(require_admin),
+    conn: Annotated[Connection, Depends(get_conn)],
+    current_user: Annotated[UserOut, Depends(require_admin)],
 ):
     row = await conn.fetchrow("SELECT username FROM users WHERE user_id = $1", user_id)
     if not row:

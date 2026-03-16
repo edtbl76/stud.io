@@ -1,4 +1,5 @@
 import json
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,7 +17,7 @@ _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
 
 @router.get("", response_model=list[InstrumentOut])
-async def list_instruments(q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_instruments(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     if q:
         rows = await conn.fetch(
             _SELECT + " WHERE instrument_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
@@ -27,7 +28,7 @@ async def list_instruments(q: str | None = None, conn: Connection = Depends(get_
 
 
 @router.get("/{instrument_id}", response_model=InstrumentOut)
-async def get_instrument(instrument_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_instrument(instrument_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE instrument_id = $1", instrument_id)
     if not row:
         raise HTTPException(status_code=404, detail="Instrument not found")
@@ -35,7 +36,7 @@ async def get_instrument(instrument_id: UUID, conn: Connection = Depends(get_con
 
 
 @router.post("", response_model=InstrumentOut, status_code=201)
-async def create_instrument(payload: InstrumentCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_instrument(payload: InstrumentCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     row = await conn.fetchrow(
         f"""
         INSERT INTO instruments
@@ -59,7 +60,7 @@ async def create_instrument(payload: InstrumentCreate, conn: Connection = Depend
 
 
 @router.patch("/{instrument_id}", response_model=InstrumentOut)
-async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
         raise HTTPException(status_code=404, detail="Instrument not found")
 
@@ -89,7 +90,7 @@ async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn
 
 
 @router.delete("/{instrument_id}", status_code=204)
-async def delete_instrument(instrument_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_instrument(instrument_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM instruments WHERE instrument_id = $1", instrument_id):
         raise HTTPException(status_code=404, detail="Instrument not found")
 

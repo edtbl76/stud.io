@@ -5,6 +5,7 @@ Tools router — covers 5 tool tables under /tools/<category>:
 measurement and reference have model_ids; the others don't.
 ToolOut normalizes the per-table PK into `tool_id` for a uniform response shape.
 """
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -72,7 +73,7 @@ def _cfg(category: str) -> dict:
 # ---------------------------------------------------------------------------
 
 @router.get("/{category}", response_model=list[ToolOut])
-async def list_tools(category: str, q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_tools(category: str, q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     cfg = _cfg(category)
     sel = f"SELECT * FROM {cfg['view']}"
     if q:
@@ -83,7 +84,7 @@ async def list_tools(category: str, q: str | None = None, conn: Connection = Dep
 
 
 @router.get("/{category}/{tool_id}", response_model=ToolOut)
-async def get_tool(category: str, tool_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     cfg = _cfg(category)
     row = await conn.fetchrow(
         f"SELECT * FROM {cfg['view']} WHERE {cfg['id_col']} = $1", tool_id
@@ -94,7 +95,7 @@ async def get_tool(category: str, tool_id: UUID, conn: Connection = Depends(get_
 
 
 @router.post("/{category}", response_model=ToolOut, status_code=201)
-async def create_tool(category: str, payload: ToolCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_tool(category: str, payload: ToolCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     cols = ["tool_name", "brand_id", "version", "tool_type_ids",
             "plugin_format_ids", "description", "workflow_notes", "tag_ids"]
@@ -116,7 +117,7 @@ async def create_tool(category: str, payload: ToolCreate, conn: Connection = Dep
 
 
 @router.patch("/{category}/{tool_id}", response_model=ToolOut)
-async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     if not await conn.fetchrow(
         f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
@@ -139,7 +140,7 @@ async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: C
 
 
 @router.delete("/{category}/{tool_id}", status_code=204)
-async def delete_tool(category: str, tool_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     if not await conn.fetchrow(
         f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id

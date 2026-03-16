@@ -1,4 +1,5 @@
 import json
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,7 +17,7 @@ _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
 
 @router.get("", response_model=list[LibraryOut])
-async def list_libraries(q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_libraries(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     if q:
         rows = await conn.fetch(
             _SELECT + " WHERE library_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
@@ -27,7 +28,7 @@ async def list_libraries(q: str | None = None, conn: Connection = Depends(get_co
 
 
 @router.get("/{library_id}", response_model=LibraryOut)
-async def get_library(library_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE library_id = $1", library_id)
     if not row:
         raise HTTPException(status_code=404, detail="Library not found")
@@ -35,7 +36,7 @@ async def get_library(library_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=LibraryOut, status_code=201)
-async def create_library(payload: LibraryCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     row = await conn.fetchrow(
         f"""
         INSERT INTO libraries
@@ -55,7 +56,7 @@ async def create_library(payload: LibraryCreate, conn: Connection = Depends(get_
 
 
 @router.patch("/{library_id}", response_model=LibraryOut)
-async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
         raise HTTPException(status_code=404, detail="Library not found")
 
@@ -85,7 +86,7 @@ async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Connect
 
 
 @router.delete("/{library_id}", status_code=204)
-async def delete_library(library_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
         raise HTTPException(status_code=404, detail="Library not found")
 

@@ -1,4 +1,5 @@
 import json
+from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -16,7 +17,7 @@ _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
 
 @router.get("", response_model=list[EffectOut])
-async def list_effects(q: str | None = None, conn: Connection = Depends(get_conn)):
+async def list_effects(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
     if q:
         rows = await conn.fetch(
             _SELECT + " WHERE effect_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
@@ -27,7 +28,7 @@ async def list_effects(q: str | None = None, conn: Connection = Depends(get_conn
 
 
 @router.get("/{effect_id}", response_model=EffectOut)
-async def get_effect(effect_id: UUID, conn: Connection = Depends(get_conn)):
+async def get_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE effect_id = $1", effect_id)
     if not row:
         raise HTTPException(status_code=404, detail="Effect not found")
@@ -35,7 +36,7 @@ async def get_effect(effect_id: UUID, conn: Connection = Depends(get_conn)):
 
 
 @router.post("", response_model=EffectOut, status_code=201)
-async def create_effect(payload: EffectCreate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def create_effect(payload: EffectCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     row = await conn.fetchrow(
         f"""
         INSERT INTO effects
@@ -60,7 +61,7 @@ async def create_effect(payload: EffectCreate, conn: Connection = Depends(get_co
 
 
 @router.patch("/{effect_id}", response_model=EffectOut)
-async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
         raise HTTPException(status_code=404, detail="Effect not found")
 
@@ -90,7 +91,7 @@ async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Connection
 
 
 @router.delete("/{effect_id}", status_code=204)
-async def delete_effect(effect_id: UUID, conn: Connection = Depends(get_conn), _: UserOut = Depends(require_admin)):
+async def delete_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
     if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
         raise HTTPException(status_code=404, detail="Effect not found")
 
