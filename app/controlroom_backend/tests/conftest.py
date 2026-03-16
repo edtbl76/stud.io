@@ -2,12 +2,14 @@ import os
 os.environ.setdefault("DB_NAME", "controlroomdb_test")
 
 import json
+import bcrypt
 import pytest_asyncio
 import asyncpg
 from httpx import AsyncClient, ASGITransport
 
 from main import app
 from database import get_conn
+from routers.auth import _create_token
 
 TEST_DSN = "postgresql://studio:studio@localhost:5432/controlroomdb_test"
 
@@ -46,3 +48,14 @@ async def client(conn):
         yield ac
 
     app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture()
+async def auth_headers(conn):
+    """Insert a test user into the rolled-back transaction and return bearer token headers."""
+    hashed = bcrypt.hashpw(b"testpass", bcrypt.gensalt(rounds=4)).decode()
+    await conn.execute(
+        "INSERT INTO users (username, password_hash) VALUES ('testuser', $1)", hashed
+    )
+    token = _create_token("testuser")
+    return {"Authorization": f"Bearer {token}"}

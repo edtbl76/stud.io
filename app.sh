@@ -47,13 +47,15 @@ done
 echo " ready"
 
 # ---------------------------------------------------------------------------
-# 3. Apply semantic views to both databases
+# 3. Apply schema and semantic views to both databases
 # ---------------------------------------------------------------------------
 echo ""
-echo "[3/4] Applying semantic views..."
-docker compose exec -T db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/views.sql" > /dev/null
-docker compose exec -T db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/views.sql" > /dev/null
-echo "  Views applied"
+echo "[3/4] Applying schema and semantic views..."
+docker compose exec -T db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/schema.sql" > /dev/null
+docker compose exec -T db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/schema.sql" > /dev/null
+docker compose exec -T db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/views.sql"  > /dev/null
+docker compose exec -T db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/views.sql"  > /dev/null
+echo "  Schema and views applied"
 
 # ---------------------------------------------------------------------------
 # 4. Run backend test suite

@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import init_pool, close_pool
 from routers import brands, models, effects, instruments, libraries
-from routers import workstations, tools, config as config_router, search, auth, admin_ops
+from routers import workstations, tools, config as config_router, search, auth, admin_ops, users
 from routers.auth import seed_default_admin
 
 
@@ -40,6 +40,7 @@ app.include_router(workstations.router,  prefix="/workstations", tags=["workstat
 app.include_router(tools.router,         prefix="/tools",        tags=["tools"])
 app.include_router(config_router.router, prefix="/config",       tags=["config"])
 app.include_router(admin_ops.router,    prefix="/admin",         tags=["admin"])
+app.include_router(users.router,        prefix="/users",         tags=["users"])
 
 
 @app.get("/health")

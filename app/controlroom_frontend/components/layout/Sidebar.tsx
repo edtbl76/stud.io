@@ -48,6 +48,7 @@ const navGroups: NavGroup[] = [
     title: 'ADMIN',
     items: [
       { label: 'Backup & Restore', href: '/admin/backup' },
+      { label: 'Users', href: '/admin/users' },
     ],
   },
   {
@@ -68,10 +69,8 @@ export function Sidebar() {
   const pathname = usePathname()
   const { username, logout } = useAuth()
 
-  // Default all groups open; collapse if no item is active
-  const [openGroups, setOpenGroups] = React.useState<Set<string>>(() => {
-    return new Set(navGroups.map((g) => g.title))
-  })
+  // Default all groups collapsed
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set())
 
   function toggleGroup(title: string) {
     setOpenGroups((prev) => {
