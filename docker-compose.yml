@@ -28,5 +28,20 @@ services:
       - db
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./app/controlroom_frontend
+    container_name: controlroom_frontend
+    ports:
+      - "2112:2112"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5150
+    volumes:
+      - ./app/controlroom_frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backstage
+    restart: unless-stopped
+
 volumes:
   studio_db_data:

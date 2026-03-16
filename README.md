@@ -10,20 +10,25 @@ A STUD.io application for managing studio gear, plugins, instruments, and sample
 - Docker + Docker Compose
 - Python 3.12+
 
-### Infrastructure
+### Start everything
 
-**Start everything (Docker containers + run backend tests):**
 ```bash
 ./app.sh
 ```
 
 This will:
-1. Start the `controlroom_db` (PostgreSQL) and `controlroom_backend` (API server) containers
-2. Run the full backend test suite
+1. Build and start all three containers (`studio_db`, `backstage`, `controlroom_frontend`)
+2. Wait for PostgreSQL, API, and frontend to be healthy
+3. Apply semantic views to both databases
+4. Run the full backend test suite
 
-**API server** runs at `http://localhost:5150`
+| Service | URL |
+|---|---|
+| **App** (Next.js) | `http://localhost:2112` |
+| **API** (FastAPI) | `http://localhost:5150` |
+| **API Docs** (Swagger) | `http://localhost:5150/docs` |
 
-**Interactive API docs** (Swagger UI): `http://localhost:5150/docs`
+> First run takes longer — Docker builds the frontend image and `npm install` runs inside the container.
 
 ---
 
@@ -55,10 +60,11 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 - Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
 - FastAPI backend complete — 146 tests passing, all endpoints live at `http://localhost:5150`
 - Full REST API covering: Brands, Models, Effects, Instruments, Libraries, Workstations, Tools (5 tables), Config (7 lookup tables), Search
-- Interactive docs at `http://localhost:5150/docs`
+- Next.js frontend complete — dark studio UI, sortable data tables, read/edit/create/delete modals, global search, all tables wired to the API
+- Full stack runs in Docker via `./app.sh`
 
 ### In Progress
-- **Auth**: JWT username/password login (users table + bcrypt + python-jose)
+- **Auth**: JWT username/password login (users table + bcrypt + python-jose) — backend stub exists, login page pending
 
 ### Planned
 - **Frontend**: Next.js + React + Tailwind + shadcn/ui
