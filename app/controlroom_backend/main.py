@@ -6,11 +6,15 @@ from config import settings
 from database import init_pool, close_pool
 from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, admin_ops
+from routers.auth import seed_default_admin
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_pool()
+    from database import _pool
+    async with _pool.acquire() as conn:
+        await seed_default_admin(conn)
     yield
     await close_pool()
 

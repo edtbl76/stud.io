@@ -55,7 +55,7 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 
 ## Section 2: Application Roadmap
 
-### Current State (v1.0)
+### Current State (v1.1)
 - PostgreSQL schema fully defined with lookup tables (no ENUMs)
 - Semantic view layer (`sql/views.sql`) — 11 views resolving all UUID arrays to `[{id, name}]`, `parent_ids` cross-table, and `full_*_name` computed fields
 - FastAPI backend — 146 tests passing, all endpoints live at `http://localhost:5150`
@@ -64,14 +64,14 @@ All three databases live in the same PostgreSQL container (`studio_db`) on port 
 - Row virtualization on large tables (Effects, Instruments, Libraries, Models)
 - Navigation: CATALOG, SESSION, TOOLS, CONFIG, ADMIN sections
 - Database backup and restore via the Admin UI
+- JWT authentication — login page, token stored in localStorage, protected routes, logout
+- Default credentials: `admin` / `admin` (seeded automatically on first startup)
 - Full stack runs in Docker via `./app.sh`
-
-### In Progress
-- **Auth**: JWT username/password login (users table + bcrypt + python-jose) — backend stub exists, login page pending
 
 ### Future
 - Python recommendation engine (shared FastAPI codebase)
 - Google Sheets export
+- User management UI (add/change users and passwords)
 
 ---
 

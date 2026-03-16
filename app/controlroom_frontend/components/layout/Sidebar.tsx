@@ -3,8 +3,9 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth'
 
 interface NavItem {
   label: string
@@ -65,6 +66,7 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const { username, logout } = useAuth()
 
   // Default all groups open; collapse if no item is active
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(() => {
@@ -99,6 +101,18 @@ export function Sidebar() {
         <div className="text-sm font-semibold text-foreground mt-0.5">
           ControlRoom
         </div>
+      </div>
+
+      {/* User / logout */}
+      <div className="px-4 py-2.5 border-b border-sidebar-border flex items-center justify-between">
+        <span className="text-xs text-muted-foreground truncate">{username}</span>
+        <button
+          onClick={logout}
+          title="Sign out"
+          className="ml-2 flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <LogOut className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {/* Nav groups */}

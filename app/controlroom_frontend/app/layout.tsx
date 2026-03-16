@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import './globals.css'
 import { Providers } from './providers'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { LayoutShell } from '@/components/layout/LayoutShell'
 
 export const metadata: Metadata = {
   title: 'STUD.io ControlRoom',
@@ -17,12 +17,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body>
         <Providers>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <main className="flex-1 ml-56 min-h-screen overflow-auto bg-background">
-              {children}
-            </main>
-          </div>
+          <LayoutShell>{children}</LayoutShell>
         </Providers>
       </body>
     </html>

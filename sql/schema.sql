@@ -278,3 +278,15 @@ CREATE TABLE admin_tools (
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );
+
+-- =============================================================================
+-- USERS
+-- Application user accounts for login
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS users (
+    user_id       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    username      TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at    TIMESTAMP DEFAULT NOW(),
+    updated_at    TIMESTAMP DEFAULT NOW()
+);
