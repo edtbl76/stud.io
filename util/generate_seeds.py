@@ -574,6 +574,146 @@ def generate_effects(tool_type_map, effect_type_map, plugin_format_map, tag_map)
 
 
 # ---------------------------------------------------------------------------
+# Instruments
+# ---------------------------------------------------------------------------
+def generate_instruments(instrument_type_map, tool_type_map, plugin_format_map, tag_map):
+    src  = CSV_DIR / "instruments.csv"
+    dest = SEED_DIR / "17_instruments.sql"
+
+    if not src.exists():
+        log("instruments.csv not found — run convert_instruments.py first, then re-run")
+        return
+
+    rows = []
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            instrument_name = clean(row.get("instrument_name"))
+            if not instrument_name:
+                continue
+            rows.append((
+                clean(row.get("instrument_id")),
+                clean(row.get("brand_id")),
+                clean(row.get("model_ids")),
+                instrument_name,
+                clean(row.get("version")),
+                clean(row.get("instrument_types")),
+                clean(row.get("tool_types")),
+                clean(row.get("plugin_formats")),
+                clean(row.get("description")),
+                clean(row.get("instrument_notes")),
+                clean(row.get("recording_notes")),
+                clean(row.get("tags")),
+                clean(row.get("attributes")),
+            ))
+
+    lines = seed_header("instruments", "instruments.csv")
+    for (instrument_id, brand_id, model_ids, instrument_name, version,
+         instrument_types, tool_types, plugin_formats,
+         description, instrument_notes, recording_notes, tags, attributes) in rows:
+        attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
+        lines.append(
+            f"INSERT INTO instruments"
+            f" (instrument_id, brand_id, model_ids, instrument_name, version, instrument_type_ids,"
+            f" tool_type_ids, plugin_format_ids, description, instrument_notes,"
+            f" recording_notes, tag_ids, attributes)"
+            f" VALUES ("
+            f"{escape(instrument_id)}, "
+            f"{escape(brand_id) if brand_id else 'NULL'}, "
+            f"{escape_array(model_ids, 'uuid')}, "
+            f"{escape(instrument_name)}, "
+            f"{escape(version)}, "
+            f"{resolve_instrument_type_ids(instrument_types, instrument_type_map)}, "
+            f"{resolve_tool_type_ids(tool_types, tool_type_map)}, "
+            f"{resolve_plugin_format_ids(plugin_formats, plugin_format_map)}, "
+            f"{escape(description)}, "
+            f"{escape(instrument_notes)}, "
+            f"{escape(recording_notes)}, "
+            f"{resolve_tag_ids(tags, tag_map)}, "
+            f"{attrs_sql}"
+            f") ON CONFLICT (instrument_id) DO UPDATE SET"
+            f" brand_id = EXCLUDED.brand_id,"
+            f" model_ids = EXCLUDED.model_ids,"
+            f" instrument_name = EXCLUDED.instrument_name,"
+            f" version = EXCLUDED.version,"
+            f" instrument_type_ids = EXCLUDED.instrument_type_ids,"
+            f" tool_type_ids = EXCLUDED.tool_type_ids,"
+            f" plugin_format_ids = EXCLUDED.plugin_format_ids,"
+            f" description = EXCLUDED.description,"
+            f" instrument_notes = EXCLUDED.instrument_notes,"
+            f" recording_notes = EXCLUDED.recording_notes,"
+            f" tag_ids = EXCLUDED.tag_ids,"
+            f" attributes = EXCLUDED.attributes,"
+            f" updated_at = NOW();"
+        )
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} instruments → {dest.name}")
+
+
+# ---------------------------------------------------------------------------
+# Libraries
+# ---------------------------------------------------------------------------
+def generate_libraries(tag_map):
+    src  = CSV_DIR / "libraries.csv"
+    dest = SEED_DIR / "18_libraries.sql"
+
+    if not src.exists():
+        log("libraries.csv not found — run convert_libraries.py first, then re-run")
+        return
+
+    rows = []
+    with open(src, newline='', encoding='utf-8') as f:
+        for row in csv.DictReader(f):
+            library_name = clean(row.get("library_name"))
+            if not library_name:
+                continue
+            rows.append((
+                clean(row.get("library_id")),
+                clean(row.get("brand_id")),
+                clean(row.get("model_ids")),
+                library_name,
+                clean(row.get("description")),
+                clean(row.get("instrument_notes")),
+                clean(row.get("recording_notes")),
+                clean(row.get("tags")),
+                clean(row.get("attributes")),
+            ))
+
+    lines = seed_header("libraries", "libraries.csv")
+    for (library_id, brand_id, model_ids, library_name,
+         description, instrument_notes, recording_notes, tags, attributes) in rows:
+        attrs_sql = escape(attributes) + "::jsonb" if attributes else "NULL::jsonb"
+        lines.append(
+            f"INSERT INTO libraries"
+            f" (library_id, brand_id, model_ids, library_name, description,"
+            f" instrument_notes, recording_notes, tag_ids, attributes)"
+            f" VALUES ("
+            f"{escape(library_id)}, "
+            f"{escape(brand_id) if brand_id else 'NULL'}, "
+            f"{escape_array(model_ids, 'uuid')}, "
+            f"{escape(library_name)}, "
+            f"{escape(description)}, "
+            f"{escape(instrument_notes)}, "
+            f"{escape(recording_notes)}, "
+            f"{resolve_tag_ids(tags, tag_map)}, "
+            f"{attrs_sql}"
+            f") ON CONFLICT (library_id) DO UPDATE SET"
+            f" brand_id = EXCLUDED.brand_id,"
+            f" model_ids = EXCLUDED.model_ids,"
+            f" library_name = EXCLUDED.library_name,"
+            f" description = EXCLUDED.description,"
+            f" instrument_notes = EXCLUDED.instrument_notes,"
+            f" recording_notes = EXCLUDED.recording_notes,"
+            f" tag_ids = EXCLUDED.tag_ids,"
+            f" attributes = EXCLUDED.attributes,"
+            f" updated_at = NOW();"
+        )
+    lines.append("")
+    dest.write_text("\n".join(lines), encoding="utf-8")
+    log(f"{len(rows)} libraries → {dest.name}")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main():
@@ -609,6 +749,8 @@ def main():
     generate_composition_tools(tool_type_map, plugin_format_map, tag_map)
     generate_admin_tools(tool_type_map, plugin_format_map, tag_map)
     generate_effects(tool_type_map, effect_type_map, plugin_format_map, tag_map)
+    generate_instruments(instrument_type_map, tool_type_map, plugin_format_map, tag_map)
+    generate_libraries(tag_map)
 
     print("\n" + "=" * 60)
     print("  Seed files written to sql/seeds/")
