@@ -7,7 +7,7 @@ python-jose[cryptography]==3.3.0
 bcrypt==5.0.0
 google-auth>=2.38.0
 requests>=2.32.0
-python-multipart==0.0.17
+python-multipart==0.0.22
 
 # dev tools
 ruff==0.9.10
