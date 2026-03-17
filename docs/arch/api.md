@@ -24,7 +24,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
 | `/config/{slug}` | `routers/config.py` | CRUD for all lookup tables (effect-types, tag-types, etc.) |
 | `/search` | `routers/search.py` | Cross-table full-text search |
-| `/admin` | `routers/admin_ops.py` | Database backup and restore |
+| `/admin` | `routers/admin_ops.py` | Database backup, restore, and verification |
 | `/users` | `routers/users.py` | User management (admin only) |
 
 ---
@@ -119,8 +119,12 @@ Tests use a separate `controlroomdb_test` database. Each test wraps its operatio
 
 ### Backup
 
-`GET /admin/backup` — streams a `pg_dump` of `controlroomdb` as a SQL file download.
+`GET /admin/backup` — streams a `pg_dump` of `controlroomdb` as a SQL file download. The file includes an embedded manifest (row counts and content hashes per table) as a comment block at the top, enabling later verification.
 
 ### Restore
 
 `POST /admin/restore` — accepts a `.sql` file upload, drops and recreates `controlroomdb`, then pipes the file through `psql` to restore. This is destructive and irreversible.
+
+### Verify
+
+`POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary `controlroomdb_verify` database, computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).

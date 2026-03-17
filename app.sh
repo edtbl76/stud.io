@@ -32,7 +32,7 @@ echo "============================================================"
 echo ""
 echo "[1/4] Starting Docker containers..."
 cd "$SCRIPT_DIR"
-docker compose up -d --build
+docker compose up -d --build --force-recreate
 
 if $WITH_DEV; then
   bash "$SCRIPT_DIR/scripts/dev.sh" up

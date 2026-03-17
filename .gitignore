@@ -348,3 +348,4 @@ nginx/certs/*.pem
 coverage.xml
 .coverage
 app/controlroom_frontend/coverage/
+/CLAUDE.md

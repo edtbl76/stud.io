@@ -18,8 +18,34 @@ function mockOk(extra: object = {}) {
   return { ok: true, json: () => Promise.resolve({}), ...extra }
 }
 
-function mockErr(detail: string) {
-  return { ok: false, statusText: detail, json: () => Promise.resolve({ detail }) }
+function mockErr(detail: string, status = 500) {
+  return { ok: false, status, statusText: detail, json: () => Promise.resolve({ detail }) }
+}
+
+const verifyPassResult = {
+  passed: true,
+  created_at: '2026-03-17T12:00:00',
+  tables: [
+    { table: 'brands', rows_expected: 10, rows_actual: 10, hash_match: true, passed: true },
+    { table: 'models', rows_expected: 5, rows_actual: 5, hash_match: true, passed: true },
+  ],
+}
+
+const verifyFailResult = {
+  passed: false,
+  created_at: '2026-03-17T12:00:00',
+  tables: [
+    { table: 'brands', rows_expected: 10, rows_actual: 10, hash_match: true, passed: true },
+    { table: 'models', rows_expected: 5, rows_actual: 3, hash_match: false, passed: false },
+  ],
+}
+
+function selectVerifyFile() {
+  const inputs = document.querySelectorAll('input[type="file"]')
+  const verifyInput = inputs[1] as HTMLInputElement
+  const file = new File(['sql'], 'backup.sql', { type: 'text/plain' })
+  fireEvent.change(verifyInput, { target: { files: [file] } })
+  return verifyInput
 }
 
 describe('BackupRestorePage', () => {
@@ -102,6 +128,69 @@ describe('BackupRestorePage', () => {
     fireEvent.click(screen.getByRole('button', { name: /download backup/i }))
     await waitFor(() =>
       expect(screen.getByRole('button', { name: /download backup/i })).toBeDisabled()
+    )
+  })
+
+  // ---------------------------------------------------------------------------
+  // Verify section
+  // ---------------------------------------------------------------------------
+
+  it('renders Verify section with disabled button when no file selected', () => {
+    render(<BackupRestorePage />)
+    expect(screen.getByRole('button', { name: /verify backup/i })).toBeDisabled()
+  })
+
+  it('enables verify button after file is selected', () => {
+    render(<BackupRestorePage />)
+    selectVerifyFile()
+    expect(screen.getByRole('button', { name: /verify backup/i })).not.toBeDisabled()
+  })
+
+  it('disables verify button while request is in progress', async () => {
+    mockFetch.mockImplementation(() => new Promise(() => {}))
+    render(<BackupRestorePage />)
+    selectVerifyFile()
+    fireEvent.click(screen.getByRole('button', { name: /verify backup/i }))
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: /verify backup/i })).toBeDisabled()
+    )
+  })
+
+  it('shows PASSED badge and results table on successful verify', async () => {
+    mockFetch.mockResolvedValue(mockOk({ json: () => Promise.resolve(verifyPassResult) }))
+    render(<BackupRestorePage />)
+    selectVerifyFile()
+    fireEvent.click(screen.getByRole('button', { name: /verify backup/i }))
+    await waitFor(() => expect(screen.getByText('PASSED')).toBeInTheDocument())
+    expect(screen.getByText('brands')).toBeInTheDocument()
+    expect(screen.getByText('models')).toBeInTheDocument()
+  })
+
+  it('shows FAILED badge when verify finds mismatches', async () => {
+    mockFetch.mockResolvedValue(mockOk({ json: () => Promise.resolve(verifyFailResult) }))
+    render(<BackupRestorePage />)
+    selectVerifyFile()
+    fireEvent.click(screen.getByRole('button', { name: /verify backup/i }))
+    await waitFor(() => expect(screen.getByText('FAILED')).toBeInTheDocument())
+  })
+
+  it('shows generic error message on 500 response', async () => {
+    mockFetch.mockResolvedValue(mockErr('Internal server error', 500))
+    render(<BackupRestorePage />)
+    selectVerifyFile()
+    fireEvent.click(screen.getByRole('button', { name: /verify backup/i }))
+    await waitFor(() =>
+      expect(screen.getByText('Internal server error')).toBeInTheDocument()
+    )
+  })
+
+  it('shows re-download message when manifest is missing', async () => {
+    mockFetch.mockResolvedValue(mockErr('No valid manifest found. Re-download a fresh backup to enable verification.', 400))
+    render(<BackupRestorePage />)
+    selectVerifyFile()
+    fireEvent.click(screen.getByRole('button', { name: /verify backup/i }))
+    await waitFor(() =>
+      expect(screen.getByText(/re-download a fresh backup/i)).toBeInTheDocument()
     )
   })
 })

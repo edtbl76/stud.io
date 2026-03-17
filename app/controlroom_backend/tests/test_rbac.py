@@ -86,7 +86,12 @@ async def test_admin_can_access_backup(client, admin_headers):
     mock_proc = MagicMock()
     mock_proc.returncode = 0
     mock_proc.communicate = AsyncMock(return_value=(b"-- PostgreSQL database dump\n", b""))
-    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=mock_proc)):
+    mock_conn = AsyncMock()
+    mock_conn.fetch = AsyncMock(return_value=[{"table_name": "brands"}])
+    mock_conn.fetchrow = AsyncMock(return_value={"row_count": 1, "content_hash": "abc"})
+    mock_conn.close = AsyncMock()
+    with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=mock_proc)), \
+         patch("asyncpg.connect", new=AsyncMock(return_value=mock_conn)):
         response = await client.get("/admin/backup", headers=admin_headers)
     assert response.status_code == 200
 
