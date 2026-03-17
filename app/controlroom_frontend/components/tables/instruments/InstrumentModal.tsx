@@ -13,8 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
+import { BrandSelect } from '@/components/ui/BrandSelect'
 
-const ENDPOINT = '/session/instruments'
+const ENDPOINT = '/instruments'
 
 interface InstrumentModalProps {
   record: Instrument | null
@@ -24,6 +25,8 @@ interface InstrumentModalProps {
 
 interface FormState {
   instrument_name: string
+  brand_id: string
+  brand_name: string
   version: string
   instrument_type_ids: string[]
   tool_type_ids: string[]
@@ -38,13 +41,15 @@ interface FormState {
 function toForm(record: Instrument | null): FormState {
   if (!record) {
     return {
-      instrument_name: '', version: '',
+      instrument_name: '', brand_id: '', brand_name: '', version: '',
       instrument_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
       description: '', instrument_notes: '', recording_notes: '', attributes: '',
     }
   }
   return {
     instrument_name: record.instrument_name ?? '',
+    brand_id: record.brand_id ?? '',
+    brand_name: record.brand_name ?? '',
     version: record.version ?? '',
     instrument_type_ids: record.instrument_type_ids ?? [],
     tool_type_ids: record.tool_type_ids ?? [],
@@ -68,6 +73,7 @@ export function InstrumentModal({ record, onClose, onMutate }: InstrumentModalPr
     mutationFn: () => {
       const body: Record<string, unknown> = {}
       if (form.instrument_name) body.instrument_name = form.instrument_name
+      if (form.brand_id) body.brand_id = form.brand_id
       if (form.version) body.version = form.version
       if (form.instrument_type_ids.length) body.instrument_type_ids = form.instrument_type_ids
       if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
@@ -125,6 +131,10 @@ export function InstrumentModal({ record, onClose, onMutate }: InstrumentModalPr
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="instrument_name">Instrument Name *</Label>
             <Input id="instrument_name" value={form.instrument_name} onChange={(e) => set('instrument_name', e.target.value)} placeholder="Instrument Name" />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Brand</Label>
+            <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="version">Version</Label>

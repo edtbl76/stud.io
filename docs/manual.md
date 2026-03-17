@@ -60,10 +60,10 @@ Admins see an **Edit** button in the modal footer. Click it to switch to edit mo
 
 In edit mode:
 - Text fields become inputs
+- **Brand** — typeahead search field: start typing to search existing brands and select one. If the brand doesn't exist yet, a **Create "..."** option appears. Clicking it opens an inline form to create the brand on the spot.
 - Lookup fields (types, formats, tags) become multi-select dropdowns populated from the CONFIG tables
 - `model_ids` and `parent_ids` are searchable multi-selects resolved by name
 - `attributes` is a freeform JSON field
-- The **Brand** field is read-only in edit mode (shown as a link)
 
 Click **Save** to apply changes. Click **Cancel** to discard.
 
@@ -89,9 +89,9 @@ Each config table works the same way as a regular table: browse, add, edit, dele
 
 Download a full SQL dump of the `controlroomdb` database, or restore from a previously downloaded backup file.
 
-- **Download Backup** — fetches a `.sql` dump and saves it to your downloads folder
-- **Choose File** — select a `.sql` backup file from your machine
-- **Restore Database** — uploads the selected file and restores the database (destructive — overwrites all current data)
+- **Download Backup** — fetches a `.sql` dump (filename: `controlroomdb_<timestamp>.sql`) and saves it to your downloads folder. The file includes an embedded verification manifest (row counts and content hashes per table).
+- **Restore Database** — select a `.sql` backup file and click Restore to overwrite the current database. Destructive and irreversible — back up first.
+- **Verify Backup** — select a backup file to confirm it is intact. The file is restored to a temporary database, content hashes are recomputed and compared against the embedded manifest, then the temporary database is dropped. Results show pass/fail per table with row counts and hash status. Only works with backups downloaded from this app (older files without a manifest return an error).
 
 ### Users *(admin role only)*
 

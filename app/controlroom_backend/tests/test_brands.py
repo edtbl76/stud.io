@@ -85,9 +85,12 @@ async def test_create_brand_minimal(client, admin_headers):
     assert response.json()["legal_name"] == "Minimal Brand"
 
 
-async def test_create_brand_missing_legal_name(client, admin_headers):
-    response = await client.post("/brands", json={"brand_name": "No Legal Name"}, headers=admin_headers)
-    assert response.status_code == 422
+async def test_create_brand_brand_name_only(client, admin_headers):
+    response = await client.post("/brands", json={"brand_name": "BrandNameOnly"}, headers=admin_headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["brand_name"] == "BrandNameOnly"
+    assert data["legal_name"] is None
 
 
 # ---------------------------------------------------------------------------

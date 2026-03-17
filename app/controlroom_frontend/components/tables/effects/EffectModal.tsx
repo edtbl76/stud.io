@@ -13,8 +13,9 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
+import { BrandSelect } from '@/components/ui/BrandSelect'
 
-const ENDPOINT = '/session/effects'
+const ENDPOINT = '/effects'
 
 interface EffectModalProps {
   record: Effect | null
@@ -24,6 +25,8 @@ interface EffectModalProps {
 
 interface FormState {
   effect_name: string
+  brand_id: string
+  brand_name: string
   version: string
   collection: string
   effect_type_ids: string[]
@@ -40,7 +43,7 @@ interface FormState {
 function toForm(record: Effect | null): FormState {
   if (!record) {
     return {
-      effect_name: '', version: '', collection: '',
+      effect_name: '', brand_id: '', brand_name: '', version: '', collection: '',
       effect_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
       description: '', workflow_notes: '', recording_notes: '', artist_reference: '',
       attributes: '',
@@ -48,6 +51,8 @@ function toForm(record: Effect | null): FormState {
   }
   return {
     effect_name: record.effect_name ?? '',
+    brand_id: record.brand_id ?? '',
+    brand_name: record.brand_name ?? '',
     version: record.version ?? '',
     collection: record.collection ?? '',
     effect_type_ids: record.effect_type_ids ?? [],
@@ -69,22 +74,27 @@ export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
 
+  function buildBody() {
+    const body: Record<string, unknown> = {}
+    if (form.effect_name) body.effect_name = form.effect_name
+    if (form.brand_id) body.brand_id = form.brand_id
+    if (form.version) body.version = form.version
+    if (form.collection) body.collection = form.collection
+    if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
+    if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
+    if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
+    if (form.tag_ids.length) body.tag_ids = form.tag_ids
+    if (form.description) body.description = form.description
+    if (form.workflow_notes) body.workflow_notes = form.workflow_notes
+    if (form.recording_notes) body.recording_notes = form.recording_notes
+    if (form.artist_reference) body.artist_reference = form.artist_reference
+    if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
+    return body
+  }
+
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body: Record<string, unknown> = {}
-      if (form.effect_name) body.effect_name = form.effect_name
-      if (form.version) body.version = form.version
-      if (form.collection) body.collection = form.collection
-      if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
-      if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
-      if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
-      if (form.tag_ids.length) body.tag_ids = form.tag_ids
-      if (form.description) body.description = form.description
-      if (form.workflow_notes) body.workflow_notes = form.workflow_notes
-      if (form.recording_notes) body.recording_notes = form.recording_notes
-      if (form.artist_reference) body.artist_reference = form.artist_reference
-      if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
-
+      const body = buildBody()
       if (!record) return api.create<Effect>(ENDPOINT, body)
       return api.update<Effect>(ENDPOINT, record.effect_id, body)
     },
@@ -132,6 +142,10 @@ export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="effect_name">Effect Name *</Label>
             <Input id="effect_name" value={form.effect_name} onChange={(e) => set('effect_name', e.target.value)} placeholder="Effect Name" />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Brand</Label>
+            <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="version">Version</Label>

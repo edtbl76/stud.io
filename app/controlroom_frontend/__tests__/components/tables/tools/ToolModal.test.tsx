@@ -24,6 +24,10 @@ jest.mock('@/components/ui/MultiSelect', () => ({
   MultiSelect: () => null,
 }))
 
+jest.mock('@/components/ui/BrandSelect', () => ({
+  BrandSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },

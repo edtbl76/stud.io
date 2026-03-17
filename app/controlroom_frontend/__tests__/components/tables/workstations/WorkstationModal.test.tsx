@@ -24,6 +24,10 @@ jest.mock('@/components/ui/MultiSelect', () => ({
   MultiSelect: () => null,
 }))
 
+jest.mock('@/components/ui/BrandSelect', () => ({
+  BrandSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -88,7 +92,7 @@ describe('WorkstationModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/tool name/i), { target: { value: 'B Rig' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/session/workstations', expect.objectContaining({ tool_name: 'B Rig' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/workstations', expect.objectContaining({ tool_name: 'B Rig' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -122,7 +126,7 @@ describe('WorkstationModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Main Rig'), { target: { value: 'Studio A Rig' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/session/workstations', 'ws-1', expect.objectContaining({ tool_name: 'Studio A Rig' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/workstations', 'ws-1', expect.objectContaining({ tool_name: 'Studio A Rig' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -136,7 +140,7 @@ describe('WorkstationModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/session/workstations', 'ws-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/workstations', 'ws-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 

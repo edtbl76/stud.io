@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
+import { BrandSelect } from '@/components/ui/BrandSelect'
 
 const ENDPOINT = '/catalog/models'
 
@@ -23,6 +24,8 @@ interface ModelModalProps {
 
 interface FormState {
   model_name: string
+  brand_id: string
+  brand_name: string
   model_type_ids: string[]
   creator: string
   years_active: string
@@ -37,6 +40,8 @@ function toForm(record: Model | null): FormState {
   if (!record) {
     return {
       model_name: '',
+      brand_id: '',
+      brand_name: '',
       model_type_ids: [],
       creator: '',
       years_active: '',
@@ -49,6 +54,8 @@ function toForm(record: Model | null): FormState {
   }
   return {
     model_name: record.model_name ?? '',
+    brand_id: record.brand_id ?? '',
+    brand_name: record.brand_name ?? '',
     model_type_ids: record.model_type_ids ?? [],
     creator: record.creator ?? '',
     years_active: record.years_active ?? '',
@@ -71,6 +78,7 @@ export function ModelModal({ record, onClose, onMutate }: ModelModalProps) {
     mutationFn: () => {
       const body: Record<string, unknown> = {}
       if (form.model_name) body.model_name = form.model_name
+      if (form.brand_id) body.brand_id = form.brand_id
       if (form.model_type_ids.length > 0) body.model_type_ids = form.model_type_ids
       if (form.creator) body.creator = form.creator
       if (form.years_active) body.years_active = form.years_active
@@ -139,11 +147,10 @@ export function ModelModal({ record, onClose, onMutate }: ModelModalProps) {
             />
           </div>
 
-          {!isCreate && record?.brand_name && (
-            <div className="col-span-2">
-              <FieldRow label="Brand" value={record.brand_name} />
-            </div>
-          )}
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Brand</Label>
+            <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
+          </div>
 
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Model Types</Label>

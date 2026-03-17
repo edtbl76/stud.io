@@ -13,8 +13,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
+import { BrandSelect } from '@/components/ui/BrandSelect'
 
-const ENDPOINT = '/session/libraries'
+const ENDPOINT = '/libraries'
 
 interface LibraryModalProps {
   record: Library | null
@@ -24,6 +25,8 @@ interface LibraryModalProps {
 
 interface FormState {
   library_name: string
+  brand_id: string
+  brand_name: string
   tag_ids: string[]
   description: string
   instrument_notes: string
@@ -34,12 +37,14 @@ interface FormState {
 function toForm(record: Library | null): FormState {
   if (!record) {
     return {
-      library_name: '', tag_ids: [],
+      library_name: '', brand_id: '', brand_name: '', tag_ids: [],
       description: '', instrument_notes: '', recording_notes: '', attributes: '',
     }
   }
   return {
     library_name: record.library_name ?? '',
+    brand_id: record.brand_id ?? '',
+    brand_name: record.brand_name ?? '',
     tag_ids: record.tag_ids ?? [],
     description: record.description ?? '',
     instrument_notes: record.instrument_notes ?? '',
@@ -59,6 +64,7 @@ export function LibraryModal({ record, onClose, onMutate }: LibraryModalProps) {
     mutationFn: () => {
       const body: Record<string, unknown> = {}
       if (form.library_name) body.library_name = form.library_name
+      if (form.brand_id) body.brand_id = form.brand_id
       if (form.tag_ids.length) body.tag_ids = form.tag_ids
       if (form.description) body.description = form.description
       if (form.instrument_notes) body.instrument_notes = form.instrument_notes
@@ -112,6 +118,10 @@ export function LibraryModal({ record, onClose, onMutate }: LibraryModalProps) {
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="library_name">Library Name *</Label>
             <Input id="library_name" value={form.library_name} onChange={(e) => set('library_name', e.target.value)} placeholder="Library Name" />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Brand</Label>
+            <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Tags</Label>

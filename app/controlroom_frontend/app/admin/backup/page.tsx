@@ -52,7 +52,8 @@ export default function BackupRestorePage() {
       }
       const disposition = res.headers.get('Content-Disposition') ?? ''
       const match = disposition.match(/filename=(.+)/)
-      const filename = match ? match[1] : 'controlroomdb.sql'
+      const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15)
+      const filename = match ? match[1] : `controlroomdb_${ts}.sql`
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')

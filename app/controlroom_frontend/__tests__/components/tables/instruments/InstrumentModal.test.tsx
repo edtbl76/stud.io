@@ -24,6 +24,10 @@ jest.mock('@/components/ui/MultiSelect', () => ({
   MultiSelect: () => null,
 }))
 
+jest.mock('@/components/ui/BrandSelect', () => ({
+  BrandSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -95,7 +99,7 @@ describe('InstrumentModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/instrument name/i), { target: { value: 'Upright Bass' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/session/instruments', expect.objectContaining({ instrument_name: 'Upright Bass' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/instruments', expect.objectContaining({ instrument_name: 'Upright Bass' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -129,7 +133,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Grand Piano'), { target: { value: 'Baby Grand' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/session/instruments', 'inst-1', expect.objectContaining({ instrument_name: 'Baby Grand' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/instruments', 'inst-1', expect.objectContaining({ instrument_name: 'Baby Grand' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -143,7 +147,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/session/instruments', 'inst-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/instruments', 'inst-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
