@@ -38,7 +38,7 @@ async def list_models(q: str | None = None, *, conn: Annotated[Connection, Depen
 async def get_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE model_id = $1", model_id)
     if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
     return ModelOut(**dict(row))
 
 

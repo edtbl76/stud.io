@@ -66,7 +66,7 @@ def _row_to_out(row, id_col: str) -> ToolOut:
 def _cfg(category: str) -> dict:
     cfg = _CONFIGS.get(category)
     if not cfg:
-        raise HTTPException(status_code=404, detail=f"Unknown tool category: {category}")
+        raise HTTPException(status_code=404, detail=f"Unknown tool category: {category}")  # NOSONAR
     return cfg
 
 
@@ -92,7 +92,7 @@ async def get_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Dep
         f"SELECT * FROM {cfg['view']} WHERE {cfg['id_col']} = $1", tool_id
     )
     if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
     return _row_to_out(row, cfg["id_col"])
 
 

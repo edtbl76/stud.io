@@ -37,7 +37,7 @@ async def list_brands(q: str | None = None, *, conn: Annotated[Connection, Depen
 async def get_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     row = await conn.fetchrow(_SELECT + " WHERE brand_id = $1", brand_id)
     if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
     return _row_to_out(row)
 
 

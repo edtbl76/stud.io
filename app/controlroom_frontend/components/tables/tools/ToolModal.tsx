@@ -68,8 +68,8 @@ export function ToolModal({ record, category, onClose, onMutate }: ToolModalProp
       if (form.description) body.description = form.description
       if (form.workflow_notes) body.workflow_notes = form.workflow_notes
 
-      if (isCreate) return api.create<Tool>(endpoint, body)
-      return api.update<Tool>(endpoint, record!.tool_id, body)
+      if (!record) return api.create<Tool>(endpoint, body)
+      return api.update<Tool>(endpoint, record.tool_id, body)
     },
     onSuccess: () => { onMutate(); onClose() },
     onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
@@ -88,12 +88,12 @@ export function ToolModal({ record, category, onClose, onMutate }: ToolModalProp
   const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1)
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = `New ${categoryLabel} Tool`
   } else if (isEditing) {
-    title = `Edit: ${record!.full_tool_name}`
+    title = `Edit: ${record.full_tool_name}`
   } else {
-    title = record!.full_tool_name
+    title = record.full_tool_name
   }
 
   return (

@@ -65,8 +65,8 @@ export function LibraryModal({ record, onClose, onMutate }: LibraryModalProps) {
       if (form.recording_notes) body.recording_notes = form.recording_notes
       if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
 
-      if (isCreate) return api.create<Library>(ENDPOINT, body)
-      return api.update<Library>(ENDPOINT, record!.library_id, body)
+      if (!record) return api.create<Library>(ENDPOINT, body)
+      return api.update<Library>(ENDPOINT, record.library_id, body)
     },
     onSuccess: () => { onMutate(); onClose() },
     onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
@@ -83,12 +83,12 @@ export function LibraryModal({ record, onClose, onMutate }: LibraryModalProps) {
   }
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = 'New Library'
   } else if (isEditing) {
-    title = `Edit: ${record!.full_library_name}`
+    title = `Edit: ${record.full_library_name}`
   } else {
-    title = record!.full_library_name
+    title = record.full_library_name
   }
 
   return (

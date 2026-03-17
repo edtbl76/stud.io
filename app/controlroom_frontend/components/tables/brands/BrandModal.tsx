@@ -71,10 +71,10 @@ export function BrandModal({ record, onClose, onMutate }: BrandModalProps) {
       if (form.founder) body.founder = form.founder
       if (form.years) body.years = form.years
 
-      if (isCreate) {
-        return api.create<Brand>(ENDPOINT, body)
+      if (record) {
+        return api.update<Brand>(ENDPOINT, record.brand_id, body)
       } else {
-        return api.update<Brand>(ENDPOINT, record!.brand_id, body)
+        return api.create<Brand>(ENDPOINT, body)
       }
     },
     onSuccess: () => {
@@ -102,12 +102,12 @@ export function BrandModal({ record, onClose, onMutate }: BrandModalProps) {
   }
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = 'New Brand'
   } else if (isEditing) {
-    title = `Edit: ${record!.brand_name ?? record!.legal_name}`
+    title = `Edit: ${record.brand_name ?? record.legal_name ?? ''}`
   } else {
-    title = record!.brand_name ?? record!.legal_name
+    title = record.brand_name ?? record.legal_name ?? ''
   }
 
   return (

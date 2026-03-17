@@ -66,40 +66,42 @@ export default function UsersPage() {
     fetchUsers().finally(() => setLoading(false))
   }, [])
 
+  async function _handleLinkResponse(credential: string) {
+    const userId = linkingUserIdRef.current
+    if (!userId) return
+    linkingUserIdRef.current = null
+    setStatus(null)
+    try {
+      const res = await fetch(`${API}/users/${userId}/google`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ credential }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: res.statusText }))
+        throw new Error(err.detail ?? res.statusText)
+      }
+      setStatus({ type: 'success', message: 'Google account linked' })
+      await fetchUsers()
+    } catch (e) {
+      setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to link Google account' })
+    }
+  }
+
   function initGoogle() {
-    if (!GOOGLE_CLIENT_ID || !window.google) return
-    window.google.accounts.id.initialize({
+    const gApi = globalThis.window?.google
+    if (!GOOGLE_CLIENT_ID || !gApi) return
+    gApi.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
-      callback: (response) => {
-        void (async () => {
-          const userId = linkingUserIdRef.current
-          if (!userId) return
-          linkingUserIdRef.current = null
-          setStatus(null)
-          try {
-            const res = await fetch(`${API}/users/${userId}/google`, {
-              method: 'PATCH',
-              headers: authHeaders(),
-              body: JSON.stringify({ credential: response.credential }),
-            })
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({ detail: res.statusText }))
-              throw new Error(err.detail ?? res.statusText)
-            }
-            setStatus({ type: 'success', message: 'Google account linked' })
-            await fetchUsers()
-          } catch (e) {
-            setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to link Google account' })
-          }
-        })()
-      },
+      callback: (response) => { void _handleLinkResponse(response.credential) },
     })
   }
 
   function handleLinkGoogle(userId: string) {
-    if (!window.google) return
+    const gApi = globalThis.window?.google
+    if (!gApi) return
     linkingUserIdRef.current = userId
-    window.google.accounts.id.prompt()
+    gApi.accounts.id.prompt()
   }
 
   async function handleAdd(e: React.FormEvent) {

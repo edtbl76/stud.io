@@ -16,8 +16,9 @@ export default function LoginPage() {
   const googleButtonRef = React.useRef<HTMLDivElement>(null)
 
   function initGoogle() {
-    if (!GOOGLE_CLIENT_ID || !window.google || !googleButtonRef.current) return
-    window.google.accounts.id.initialize({
+    const gApi = globalThis.window?.google
+    if (!GOOGLE_CLIENT_ID || !gApi || !googleButtonRef.current) return
+    gApi.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: (response) => {
         void (async () => {
@@ -33,7 +34,7 @@ export default function LoginPage() {
         })()
       },
     })
-    window.google.accounts.id.renderButton(googleButtonRef.current, {
+    gApi.accounts.id.renderButton(googleButtonRef.current, {
       type: 'standard',
       theme: 'outline',
       size: 'large',
