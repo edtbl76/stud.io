@@ -23,7 +23,7 @@ export function MultiSelect({
   onChange,
   placeholder = 'Select...',
   singleSelect = false,
-}: MultiSelectProps) {
+}: Readonly<MultiSelectProps>) {
   const [open, setOpen] = React.useState(false)
 
   const { data: options = [], isLoading } = useQuery({

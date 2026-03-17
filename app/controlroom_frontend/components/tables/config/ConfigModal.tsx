@@ -31,7 +31,7 @@ function toForm(record: LookupOut | null): FormState {
   }
 }
 
-export function ConfigModal({ record, slug, onClose, onMutate }: ConfigModalProps) {
+export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<ConfigModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const endpoint = `/config/${slug}`

@@ -30,7 +30,7 @@ export function TablePage<T>({
   columns,
   getRowId,
   renderModal,
-}: TablePageProps<T>) {
+}: Readonly<TablePageProps<T>>) {
   const queryClient = useQueryClient()
   const { role } = useAuth()
   const isAdmin = role === 'admin'
@@ -74,7 +74,7 @@ export function TablePage<T>({
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           {!isLoading && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              {data.length} record{data.length !== 1 ? 's' : ''}
+              {data.length} record{data.length === 1 ? '' : 's'}
             </p>
           )}
         </div>

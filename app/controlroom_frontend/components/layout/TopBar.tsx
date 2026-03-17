@@ -9,7 +9,7 @@ interface TopBarProps {
   title: string
 }
 
-export function TopBar({ title }: TopBarProps) {
+export function TopBar({ title }: Readonly<TopBarProps>) {
   const router = useRouter()
   const [query, setQuery] = React.useState('')
 

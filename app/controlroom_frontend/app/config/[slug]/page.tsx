@@ -10,7 +10,7 @@ interface ConfigPageProps {
   params: { slug: string }
 }
 
-export default function ConfigPage({ params }: ConfigPageProps) {
+export default function ConfigPage({ params }: Readonly<ConfigPageProps>) {
   const { slug } = params
   const title = formatSlug(slug)
   const endpoint = `/config/${slug}`

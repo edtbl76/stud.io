@@ -7,7 +7,7 @@ interface TypeBadgesProps {
   limit?: number
 }
 
-export function TypeBadges({ types, limit }: TypeBadgesProps) {
+export function TypeBadges({ types, limit }: Readonly<TypeBadgesProps>) {
   if (!types || types.length === 0) {
     return <span className="text-muted-foreground">—</span>
   }
