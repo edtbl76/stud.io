@@ -34,7 +34,7 @@ Array columns (e.g. `tag_ids UUID[]`) store references to these lookup tables di
 
 | Table | Description |
 |---|---|
-| `brands` | Companies, recording studios, and individual builders |
+| `brands` | Companies, recording studios, and individual builders. `legal_name` is nullable — a brand can be created with only `brand_name`. |
 | `models` | Physical/hardware gear — amps, microphones, synths, keyboards |
 | `effects` | Software and hardware effects, optionally linked to a model |
 | `instruments` | Software instruments — synths, samplers, keyboards, drums |

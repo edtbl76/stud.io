@@ -40,6 +40,6 @@ See [docs/setup.md](docs/setup.md) for prerequisites, HTTPS setup, and full deta
 
 ---
 
-## Current version: v1.3
+## Current version: v1.4
 
-Full REST API, Next.js frontend, JWT auth with RBAC, Google Sign-In, database backup/restore, user management, SonarQube quality gate, and pre-commit hooks. See the [user manual](docs/manual.md) for the complete feature list and the [architecture docs](docs/arch/) for the technical overview.
+Full REST API, Next.js frontend, JWT auth with RBAC, Google Sign-In, database backup/restore with manifest-based verification, user management, brand typeahead with inline create, SonarQube quality gate, and pre-commit hooks. See the [user manual](docs/manual.md) for the complete feature list and the [architecture docs](docs/arch/) for the technical overview.

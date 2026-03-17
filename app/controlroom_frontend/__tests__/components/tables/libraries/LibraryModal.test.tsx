@@ -24,6 +24,10 @@ jest.mock('@/components/ui/MultiSelect', () => ({
   MultiSelect: () => null,
 }))
 
+jest.mock('@/components/ui/BrandSelect', () => ({
+  BrandSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -88,7 +92,7 @@ describe('LibraryModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/library name/i), { target: { value: 'Cinematic Strings' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/session/libraries', expect.objectContaining({ library_name: 'Cinematic Strings' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/libraries', expect.objectContaining({ library_name: 'Cinematic Strings' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -121,7 +125,7 @@ describe('LibraryModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Orchestral Essentials'), { target: { value: 'Orchestral Pro' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/session/libraries', 'lib-1', expect.objectContaining({ library_name: 'Orchestral Pro' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/libraries', 'lib-1', expect.objectContaining({ library_name: 'Orchestral Pro' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -135,7 +139,7 @@ describe('LibraryModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/session/libraries', 'lib-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/libraries', 'lib-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 

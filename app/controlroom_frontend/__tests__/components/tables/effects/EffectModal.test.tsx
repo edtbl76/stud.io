@@ -24,6 +24,10 @@ jest.mock('@/components/ui/MultiSelect', () => ({
   MultiSelect: () => null,
 }))
 
+jest.mock('@/components/ui/BrandSelect', () => ({
+  BrandSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -98,7 +102,7 @@ describe('EffectModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/effect name/i), { target: { value: 'Hall Reverb' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/session/effects', expect.objectContaining({ effect_name: 'Hall Reverb' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/effects', expect.objectContaining({ effect_name: 'Hall Reverb' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -132,7 +136,7 @@ describe('EffectModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Reverb One'), { target: { value: 'Reverb Two' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/session/effects', 'effect-1', expect.objectContaining({ effect_name: 'Reverb Two' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/effects', 'effect-1', expect.objectContaining({ effect_name: 'Reverb Two' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -146,7 +150,7 @@ describe('EffectModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/session/effects', 'effect-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/effects', 'effect-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 

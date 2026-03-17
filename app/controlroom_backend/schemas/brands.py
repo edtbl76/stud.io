@@ -5,7 +5,7 @@ from typing import Optional
 
 
 class BrandCreate(BaseModel):
-    legal_name: str
+    legal_name: Optional[str] = None
     brand_name: Optional[str] = None
     entity_type_id: Optional[UUID] = None
     website: Optional[str] = None
@@ -26,7 +26,7 @@ class BrandUpdate(BaseModel):
 
 class BrandOut(BaseModel):
     brand_id: UUID
-    legal_name: str
+    legal_name: Optional[str] = None
     brand_name: Optional[str] = None
     entity_type_id: Optional[UUID] = None
     entity_type_name: Optional[str] = None
