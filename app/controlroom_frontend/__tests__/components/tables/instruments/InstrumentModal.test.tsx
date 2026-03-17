@@ -1,8 +1,12 @@
 import * as React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { InstrumentModal } from '@/components/tables/instruments/InstrumentModal'
 import type { Instrument } from '@/lib/types'
+
+const mockCreate = jest.fn()
+const mockUpdate = jest.fn()
+const mockDelete = jest.fn()
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => ({ role: 'admin', token: 'test-token' }),
@@ -10,9 +14,9 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('@/lib/api', () => ({
   api: {
-    create: jest.fn().mockResolvedValue({}),
-    update: jest.fn().mockResolvedValue({}),
-    delete: jest.fn().mockResolvedValue(undefined),
+    create: (...args: unknown[]) => mockCreate(...args),
+    update: (...args: unknown[]) => mockUpdate(...args),
+    delete: (...args: unknown[]) => mockDelete(...args),
   },
 }))
 
@@ -22,21 +26,18 @@ jest.mock('@/components/ui/MultiSelect', () => ({
 
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
 }
 
 const mockInstrument: Instrument = {
-  instrument_id: 'test-instrument-id',
-  instrument_name: 'Test Instrument',
+  instrument_id: 'inst-1',
+  instrument_name: 'Grand Piano',
   brand_id: null,
-  brand_name: null,
-  full_instrument_name: 'Test Instrument',
-  version: null,
+  brand_name: 'Steinway',
+  full_instrument_name: 'Steinway Grand Piano',
+  version: '1.0',
   model_ids: null,
   models: [],
   instrument_type_ids: null,
@@ -48,42 +49,111 @@ const mockInstrument: Instrument = {
   tag_ids: null,
   tags: [],
   parents: [],
-  description: null,
-  instrument_notes: null,
+  description: 'A beautiful piano',
+  instrument_notes: '88 keys sampled',
   recording_notes: null,
   attributes: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }
 
-describe('InstrumentModal', () => {
+describe('InstrumentModal — view mode', () => {
+  beforeEach(() => jest.clearAllMocks())
+
   it('shows create title when record is null', () => {
-    renderWithClient(
-      <InstrumentModal record={null} onClose={() => {}} onMutate={() => {}} />
-    )
+    renderWithClient(<InstrumentModal record={null} onClose={() => {}} onMutate={() => {}} />)
     expect(screen.getByText('New Instrument')).toBeInTheDocument()
   })
 
   it('shows edit title when editing an existing record', () => {
-    renderWithClient(
-      <InstrumentModal
-        record={mockInstrument}
-        onClose={() => {}}
-        onMutate={() => {}}
-      />
-    )
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /edit/i }))
-    expect(screen.getByText(/Edit: Test Instrument/i)).toBeInTheDocument()
+    expect(screen.getByText(/Edit: Steinway Grand Piano/i)).toBeInTheDocument()
   })
 
-  it('displays record name in view mode', () => {
-    renderWithClient(
-      <InstrumentModal
-        record={mockInstrument}
-        onClose={() => {}}
-        onMutate={() => {}}
-      />
-    )
-    expect(screen.getAllByText('Test Instrument').length).toBeGreaterThan(0)
+  it('displays record fields in view mode', () => {
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.getByText('A beautiful piano')).toBeInTheDocument()
+    expect(screen.getByText('88 keys sampled')).toBeInTheDocument()
+  })
+})
+
+describe('InstrumentModal — create mode', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders required form field in create mode', () => {
+    renderWithClient(<InstrumentModal record={null} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.getByLabelText(/instrument name/i)).toBeInTheDocument()
+  })
+
+  it('calls api.create with form data on save', async () => {
+    mockCreate.mockResolvedValue({ ...mockInstrument, instrument_id: 'new-id' })
+    const onMutate = jest.fn()
+    const onClose = jest.fn()
+    renderWithClient(<InstrumentModal record={null} onClose={onClose} onMutate={onMutate} />)
+
+    fireEvent.change(screen.getByLabelText(/instrument name/i), { target: { value: 'Upright Bass' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/session/instruments', expect.objectContaining({ instrument_name: 'Upright Bass' })))
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('shows error message when create fails', async () => {
+    mockCreate.mockRejectedValue(new Error('Name is required'))
+    renderWithClient(<InstrumentModal record={null} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(screen.getByText('Name is required')).toBeInTheDocument())
+  })
+})
+
+describe('InstrumentModal — edit mode', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders form fields with existing values', () => {
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    expect(screen.getByDisplayValue('Grand Piano')).toBeInTheDocument()
+    expect(screen.getByDisplayValue('1.0')).toBeInTheDocument()
+  })
+
+  it('calls api.update on save', async () => {
+    mockUpdate.mockResolvedValue(mockInstrument)
+    const onMutate = jest.fn()
+    const onClose = jest.fn()
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={onClose} onMutate={onMutate} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByDisplayValue('Grand Piano'), { target: { value: 'Baby Grand' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/session/instruments', 'inst-1', expect.objectContaining({ instrument_name: 'Baby Grand' })))
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('calls api.delete and closes after confirming delete', async () => {
+    mockDelete.mockResolvedValue(undefined)
+    const onMutate = jest.fn()
+    const onClose = jest.fn()
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={onClose} onMutate={onMutate} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/session/instruments', 'inst-1'))
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('shows error when save fails', async () => {
+    mockUpdate.mockRejectedValue(new Error('Update failed'))
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(screen.getByText('Update failed')).toBeInTheDocument())
   })
 })
