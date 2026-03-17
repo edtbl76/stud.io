@@ -85,8 +85,8 @@ export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
       if (form.artist_reference) body.artist_reference = form.artist_reference
       if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
 
-      if (isCreate) return api.create<Effect>(ENDPOINT, body)
-      return api.update<Effect>(ENDPOINT, record!.effect_id, body)
+      if (!record) return api.create<Effect>(ENDPOINT, body)
+      return api.update<Effect>(ENDPOINT, record.effect_id, body)
     },
     onSuccess: () => { onMutate(); onClose() },
     onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
@@ -103,12 +103,12 @@ export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
   }
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = 'New Effect'
   } else if (isEditing) {
-    title = `Edit: ${record!.full_effect_name}`
+    title = `Edit: ${record.full_effect_name}`
   } else {
-    title = record!.full_effect_name
+    title = record.full_effect_name
   }
 
   return (

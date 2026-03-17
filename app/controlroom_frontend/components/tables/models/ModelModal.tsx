@@ -82,10 +82,10 @@ export function ModelModal({ record, onClose, onMutate }: ModelModalProps) {
         try { body.attributes = JSON.parse(form.attributes) } catch {}
       }
 
-      if (isCreate) {
-        return api.create<Model>(ENDPOINT, body)
+      if (record) {
+        return api.update<Model>(ENDPOINT, record.model_id, body)
       } else {
-        return api.update<Model>(ENDPOINT, record!.model_id, body)
+        return api.create<Model>(ENDPOINT, body)
       }
     },
     onSuccess: () => { onMutate(); onClose() },
@@ -103,12 +103,12 @@ export function ModelModal({ record, onClose, onMutate }: ModelModalProps) {
   }
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = 'New Model'
   } else if (isEditing) {
-    title = `Edit: ${record!.full_model_name}`
+    title = `Edit: ${record.full_model_name}`
   } else {
-    title = record!.full_model_name
+    title = record.full_model_name
   }
 
   return (

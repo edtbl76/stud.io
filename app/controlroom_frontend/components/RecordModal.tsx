@@ -35,7 +35,7 @@ export function RecordModal({
   isSaving = false,
   isDeleting = false,
   children,
-}: RecordModalProps) {
+}: Readonly<RecordModalProps>) {
   const [confirmDelete, setConfirmDelete] = React.useState(false)
 
   function handleDelete() {

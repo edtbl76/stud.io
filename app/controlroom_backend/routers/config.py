@@ -65,7 +65,7 @@ _REFS = {
 def _resolve(slug: str) -> str:
     table = _TABLES.get(slug)
     if not table:
-        raise HTTPException(status_code=404, detail=f"Unknown config table: {slug}")
+        raise HTTPException(status_code=404, detail=f"Unknown config table: {slug}")  # NOSONAR
     return table
 
 

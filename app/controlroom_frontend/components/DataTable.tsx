@@ -22,10 +22,10 @@ import { cn } from '@/lib/utils'
 const ROW_HEIGHT = 44
 
 interface DataTableProps<TData, TValue> {
-  columns: ColumnDef<TData, TValue>[]
-  data: TData[]
-  onRowClick?: (row: TData) => void
-  isLoading?: boolean
+  readonly columns: ColumnDef<TData, TValue>[]
+  readonly data: TData[]
+  readonly onRowClick?: (row: TData) => void
+  readonly isLoading?: boolean
 }
 
 export function DataTable<TData, TValue>({
@@ -71,7 +71,7 @@ export function DataTable<TData, TValue>({
   const totalSize = virtualizer.getTotalSize()
   const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0
   const paddingBottom =
-    virtualItems.length > 0 ? totalSize - virtualItems[virtualItems.length - 1].end : 0
+    virtualItems.length > 0 ? totalSize - virtualItems.at(-1)!.end : 0
 
   const activeFilterCount = columnFilters.length
 

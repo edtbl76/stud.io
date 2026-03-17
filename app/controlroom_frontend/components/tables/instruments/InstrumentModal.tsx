@@ -78,8 +78,8 @@ export function InstrumentModal({ record, onClose, onMutate }: InstrumentModalPr
       if (form.recording_notes) body.recording_notes = form.recording_notes
       if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
 
-      if (isCreate) return api.create<Instrument>(ENDPOINT, body)
-      return api.update<Instrument>(ENDPOINT, record!.instrument_id, body)
+      if (!record) return api.create<Instrument>(ENDPOINT, body)
+      return api.update<Instrument>(ENDPOINT, record.instrument_id, body)
     },
     onSuccess: () => { onMutate(); onClose() },
     onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
@@ -96,12 +96,12 @@ export function InstrumentModal({ record, onClose, onMutate }: InstrumentModalPr
   }
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = 'New Instrument'
   } else if (isEditing) {
-    title = `Edit: ${record!.full_instrument_name}`
+    title = `Edit: ${record.full_instrument_name}`
   } else {
-    title = record!.full_instrument_name
+    title = record.full_instrument_name
   }
 
   return (

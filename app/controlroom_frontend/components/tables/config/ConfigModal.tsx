@@ -45,8 +45,8 @@ export function ConfigModal({ record, slug, onClose, onMutate }: ConfigModalProp
       if (form.type_name) body.type_name = form.type_name
       if (form.type_description) body.type_description = form.type_description
 
-      if (isCreate) return api.create<LookupOut>(endpoint, body)
-      return api.update<LookupOut>(endpoint, record!.type_id, body)
+      if (!record) return api.create<LookupOut>(endpoint, body)
+      return api.update<LookupOut>(endpoint, record.type_id, body)
     },
     onSuccess: () => { onMutate(); onClose() },
     onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
@@ -63,12 +63,12 @@ export function ConfigModal({ record, slug, onClose, onMutate }: ConfigModalProp
   }
 
   let title: string
-  if (isCreate) {
+  if (!record) {
     title = 'New Entry'
   } else if (isEditing) {
-    title = `Edit: ${record!.type_name}`
+    title = `Edit: ${record.type_name}`
   } else {
-    title = record!.type_name
+    title = record.type_name
   }
 
   return (
