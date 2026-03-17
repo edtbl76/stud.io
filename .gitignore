@@ -349,3 +349,9 @@ coverage.xml
 .coverage
 app/controlroom_frontend/coverage/
 /CLAUDE.md
+
+# Playwright
+app/controlroom_frontend/e2e/.auth/
+app/controlroom_frontend/playwright-report/
+app/controlroom_frontend/test-results/
+/test-results/.last-run.json

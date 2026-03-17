@@ -54,7 +54,7 @@ function toForm(record: Tool | null): FormState {
   }
 }
 
-export function ToolModal({ record, category, onClose, onMutate }: ToolModalProps) {
+export function ToolModal({ record, category, onClose, onMutate }: Readonly<ToolModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const endpoint = `/tools/${category}`

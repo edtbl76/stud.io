@@ -6,6 +6,7 @@ const createJestConfig = nextJest({ dir: './' })
 const config: Config = {
   testEnvironment: 'jest-environment-jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  testPathIgnorePatterns: ['/node_modules/', '/.next/', '/e2e/'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
@@ -18,6 +19,8 @@ const config: Config = {
     '!**/__tests__/**',
     '!jest.config.ts',
     '!jest.setup.ts',
+    '!playwright.config.ts',
+    '!e2e/**',
     '!tailwind.config.ts',
     '!next.config.mjs',
     '!postcss.config.mjs',

@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 
-const ENDPOINT = '/catalog/models'
+const ENDPOINT = '/models'
 
 interface ModelModalProps {
   record: Model | null
@@ -67,7 +67,7 @@ function toForm(record: Model | null): FormState {
   }
 }
 
-export function ModelModal({ record, onClose, onMutate }: ModelModalProps) {
+export function ModelModal({ record, onClose, onMutate }: Readonly<ModelModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)

@@ -8,23 +8,9 @@ repos:
 
   - repo: local
     hooks:
-      - id: pytest
-        name: pytest
-        entry: bash scripts/run-pytest.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-
-      - id: tsc
-        name: tsc
-        entry: bash scripts/run-tsc.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-
-      - id: jest
-        name: jest
-        entry: bash scripts/run-jest.sh
+      - id: unit-tests
+        name: unit tests (tsc + jest + pytest)
+        entry: bash scripts/test-unit.sh
         language: system
         pass_filenames: false
         always_run: true

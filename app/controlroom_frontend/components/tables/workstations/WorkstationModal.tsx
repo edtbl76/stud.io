@@ -55,7 +55,7 @@ function toForm(record: Workstation | null): FormState {
   }
 }
 
-export function WorkstationModal({ record, onClose, onMutate }: WorkstationModalProps) {
+export function WorkstationModal({ record, onClose, onMutate }: Readonly<WorkstationModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)

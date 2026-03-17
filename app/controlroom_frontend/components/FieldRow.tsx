@@ -7,7 +7,7 @@ interface FieldRowProps {
   className?: string
 }
 
-export function FieldRow({ label, value, className }: FieldRowProps) {
+export function FieldRow({ label, value, className }: Readonly<FieldRowProps>) {
   const isEmpty =
     value === null ||
     value === undefined ||

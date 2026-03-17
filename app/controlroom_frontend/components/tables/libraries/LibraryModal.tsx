@@ -53,7 +53,7 @@ function toForm(record: Library | null): FormState {
   }
 }
 
-export function LibraryModal({ record, onClose, onMutate }: LibraryModalProps) {
+export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)

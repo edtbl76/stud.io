@@ -18,7 +18,7 @@ interface User {
 
 type Status = { type: 'success' | 'error'; message: string } | null
 
-function StatusMessage({ status, onDismiss }: { status: NonNullable<Status>; onDismiss: () => void }) {
+function StatusMessage({ status, onDismiss }: Readonly<{ status: NonNullable<Status>; onDismiss: () => void }>) {
   return (
     <div className={`flex items-center gap-2 mt-3 text-xs ${
       status.type === 'success' ? 'text-green-400' : 'text-destructive'

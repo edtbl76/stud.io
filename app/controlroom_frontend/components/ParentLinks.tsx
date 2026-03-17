@@ -5,7 +5,7 @@ interface ParentLinksProps {
   parents: ParentRef[] | null | undefined
 }
 
-export function ParentLinks({ parents }: ParentLinksProps) {
+export function ParentLinks({ parents }: Readonly<ParentLinksProps>) {
   if (!parents || parents.length === 0) {
     return <span className="text-muted-foreground italic">—</span>
   }

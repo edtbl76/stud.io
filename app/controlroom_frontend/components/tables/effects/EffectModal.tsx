@@ -67,7 +67,7 @@ function toForm(record: Effect | null): FormState {
   }
 }
 
-export function EffectModal({ record, onClose, onMutate }: EffectModalProps) {
+export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)

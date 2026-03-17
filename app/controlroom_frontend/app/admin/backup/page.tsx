@@ -51,8 +51,8 @@ export default function BackupRestorePage() {
         throw new Error(err.detail ?? res.statusText)
       }
       const disposition = res.headers.get('Content-Disposition') ?? ''
-      const match = disposition.match(/filename=(.+)/)
-      const ts = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15)
+      const match = /filename=(.+)/.exec(disposition)
+      const ts = new Date().toISOString().replaceAll(/[-:T]/g, '').slice(0, 14)
       const filename = match ? match[1] : `controlroomdb_${ts}.sql`
       const blob = await res.blob()
       const url = URL.createObjectURL(blob)
@@ -266,7 +266,7 @@ export default function BackupRestorePage() {
   )
 }
 
-function StatusMessage({ status }: { status: NonNullable<Status> }) {
+function StatusMessage({ status }: Readonly<{ status: NonNullable<Status> }>) {
   return (
     <div className={`flex items-center gap-2 mt-3 text-xs ${
       status.type === 'success' ? 'text-green-400' : 'text-destructive'

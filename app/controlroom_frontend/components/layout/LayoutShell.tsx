@@ -4,7 +4,7 @@ import * as React from 'react'
 import { usePathname } from 'next/navigation'
 import { Sidebar } from './Sidebar'
 
-export function LayoutShell({ children }: { children: React.ReactNode }) {
+export function LayoutShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname()
   const isLogin = pathname === '/login'
 

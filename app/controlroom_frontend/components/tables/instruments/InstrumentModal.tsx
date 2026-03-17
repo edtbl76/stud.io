@@ -62,7 +62,7 @@ function toForm(record: Instrument | null): FormState {
   }
 }
 
-export function InstrumentModal({ record, onClose, onMutate }: InstrumentModalProps) {
+export function InstrumentModal({ record, onClose, onMutate }: Readonly<InstrumentModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)

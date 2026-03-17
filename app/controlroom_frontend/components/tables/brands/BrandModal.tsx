@@ -12,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 
-const ENDPOINT = '/catalog/brands'
+const ENDPOINT = '/brands'
 
 interface BrandModalProps {
   record: Brand | null
@@ -53,7 +53,7 @@ function toForm(record: Brand | null): FormState {
   }
 }
 
-export function BrandModal({ record, onClose, onMutate }: BrandModalProps) {
+export function BrandModal({ record, onClose, onMutate }: Readonly<BrandModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
   const [isEditing, setIsEditing] = React.useState(isCreate)
