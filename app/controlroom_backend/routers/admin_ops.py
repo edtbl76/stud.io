@@ -7,8 +7,10 @@ from typing import Annotated
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 
 from config import settings
+from database import get_conn
 from routers.auth import require_admin, UserOut
 
 router = APIRouter()
@@ -120,6 +122,81 @@ def _compare_manifests(expected: dict, actual: dict) -> dict:
         "created_at": expected.get("created_at"),
         "tables": table_results,
     }
+
+
+# ---------------------------------------------------------------------------
+# Stats models
+# ---------------------------------------------------------------------------
+
+class TableStat(BaseModel):
+    name: str
+    count: int
+
+
+class StatGroup(BaseModel):
+    label: str
+    tables: list[TableStat]
+
+
+class StatsResponse(BaseModel):
+    groups: list[StatGroup]
+    total: int
+
+
+# Table names below are hardcoded constants — they must never be sourced from
+# external input. The `users` table is intentionally excluded; user counts belong
+# on the Users page, not the catalog stats page.
+_STATS_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
+    ("Catalog", [
+        ("Brands", "brands"),
+        ("Models", "models"),
+    ]),
+    ("Session", [
+        ("Effects", "effects"),
+        ("Instruments", "instruments"),
+        ("Libraries", "libraries"),
+        ("Workstations", "workstations"),
+    ]),
+    ("Tools", [
+        ("Admin", "admin_tools"),
+        ("Composition", "composition_tools"),
+        ("Measurement", "measurement_tools"),
+        ("Reference", "reference_tools"),
+        ("Workflow", "workflow_tools"),
+    ]),
+    ("Config", [
+        ("Effect Types", "effect_types"),
+        ("Entity Types", "entity_types"),
+        ("Instrument Types", "instrument_types"),
+        ("Model Types", "model_types"),
+        ("Plugin Formats", "plugin_formats"),
+        ("Tag Types", "tag_types"),
+        ("Tool Types", "tool_types"),
+    ]),
+]
+
+
+@router.get("/stats")
+async def stats(
+    _: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> StatsResponse:
+    """Return row counts for all content and lookup tables, grouped by category."""
+    groups: list[StatGroup] = []
+    total = 0
+
+    for label, table_pairs in _STATS_GROUPS:
+        table_stats: list[TableStat] = []
+        for display_name, table_name in table_pairs:
+            row = await conn.fetchrow(f"SELECT COUNT(*)::int AS cnt FROM {table_name}")  # safe: table_name is from _STATS_GROUPS (hardcoded constant)
+            count = row["cnt"]
+            table_stats.append(TableStat(name=display_name, count=count))
+            total += count
+
+        table_stats.sort(key=lambda t: (-t.count, t.name))
+        groups.append(StatGroup(label=label, tables=table_stats))
+
+    return StatsResponse(groups=groups, total=total)
 
 
 @router.get("/backup", responses={500: {"description": "Internal server error"}})
