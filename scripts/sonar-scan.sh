@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run SonarQube scanner against the project.
-# Requires the dev stack to be running: ./app.sh --dev  or  ./scripts/dev.sh up
+# Requires the dev stack to be running: ./build.sh --dev  or  ./scripts/dev.sh up
 set -e
 
 SONAR_HOST="http://localhost:9000"
