@@ -7,11 +7,13 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
 from routers.auth import require_admin, UserOut
 from schemas.config import LookupCreate, LookupUpdate, LookupOut
+from routers._helpers import _serializable, log_audit
 
 router = APIRouter()
 
@@ -72,61 +74,83 @@ def _resolve(slug: str) -> str:
 @router.get("/{slug}", response_model=list[LookupOut])
 async def list_lookup(slug: str, conn: Annotated[Connection, Depends(get_conn)]):
     table = _resolve(slug)
-    rows = await conn.fetch(f"SELECT * FROM {table} ORDER BY type_name")
+    rows = await conn.fetch(f"SELECT * FROM {table} WHERE deleted_at IS NULL ORDER BY type_name")
     return [LookupOut(**dict(r)) for r in rows]
 
 
 @router.get("/{slug}/{type_id}", response_model=LookupOut, responses={404: {"description": "Not found"}})
 async def get_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
     table = _resolve(slug)
-    row = await conn.fetchrow(f"SELECT * FROM {table} WHERE type_id = $1", type_id)
+    row = await conn.fetchrow(
+        f"SELECT * FROM {table} WHERE type_id = $1 AND deleted_at IS NULL", type_id
+    )
     if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
     return LookupOut(**dict(row))
 
 
 @router.post("/{slug}", response_model=LookupOut, status_code=201)
-async def create_lookup(slug: str, payload: LookupCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
+async def create_lookup(slug: str, payload: LookupCreate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
-    row = await conn.fetchrow(
-        f"INSERT INTO {table} (type_name, type_description) VALUES ($1,$2) RETURNING *",
-        payload.type_name, payload.type_description,
-    )
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            f"INSERT INTO {table} (type_name, type_description) VALUES ($1,$2) RETURNING *",
+            payload.type_name, payload.type_description,
+        )
+        await log_audit(conn, table, row["type_id"], "CREATE",
+                        performed_by=user.username, new_data=_serializable(dict(row)))
     return LookupOut(**dict(row))
 
 
-@router.patch("/{slug}/{type_id}", response_model=LookupOut, responses={404: {"description": "Not found"}})
-async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
+@router.patch("/{slug}/{type_id}", response_model=LookupOut, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
+async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
-    if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
+    old_row = await conn.fetchrow(f"SELECT * FROM {table} WHERE type_id = $1", type_id)
+    if not old_row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if old_row["deleted_at"] is not None:
+        raise HTTPException(status_code=409, detail="Cannot update a deleted record")
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
         return await get_lookup(slug, type_id, conn)
 
     set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates))
-    await conn.execute(
-        f"UPDATE {table} SET {set_clauses} WHERE type_id = $1",
-        type_id, *updates.values(),
-    )
+    async with conn.transaction():
+        await conn.execute(
+            f"UPDATE {table} SET {set_clauses} WHERE type_id = $1",
+            type_id, *updates.values(),
+        )
+        new_row = await conn.fetchrow(f"SELECT * FROM {table} WHERE type_id = $1", type_id)
+        await log_audit(conn, table, type_id, "UPDATE",
+                        performed_by=user.username,
+                        old_data=_serializable(dict(old_row)),
+                        new_data=_serializable(dict(new_row)))
     return await get_lookup(slug, type_id, conn)
 
 
 @router.delete("/{slug}/{type_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
-async def delete_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
+async def delete_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     table = _resolve(slug)
-    if not await conn.fetchrow(f"SELECT 1 FROM {table} WHERE type_id = $1", type_id):
+    row = await conn.fetchrow(f"SELECT * FROM {table} WHERE type_id = $1", type_id)
+    if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if row["deleted_at"] is not None:
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
+        )
 
     for ref_table, col, is_array in _REFS.get(table, []):
         if is_array:
             ref = await conn.fetchrow(
-                f"SELECT 1 FROM {ref_table} WHERE $1 = ANY({col}) LIMIT 1", type_id
+                f"SELECT 1 FROM {ref_table} WHERE $1 = ANY({col}) AND deleted_at IS NULL LIMIT 1",
+                type_id,
             )
         else:
             ref = await conn.fetchrow(
-                f"SELECT 1 FROM {ref_table} WHERE {col} = $1 LIMIT 1", type_id
+                f"SELECT 1 FROM {ref_table} WHERE {col} = $1 AND deleted_at IS NULL LIMIT 1",
+                type_id,
             )
         if ref:
             raise HTTPException(
@@ -134,4 +158,7 @@ async def delete_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, De
                 detail=f"Type is in use by {ref_table}.{col} and cannot be deleted",
             )
 
-    await conn.execute(f"DELETE FROM {table} WHERE type_id = $1", type_id)
+    async with conn.transaction():
+        await conn.execute(f"UPDATE {table} SET deleted_at = NOW() WHERE type_id = $1", type_id)
+        await log_audit(conn, table, type_id, "DELETE",
+                        performed_by=user.username, old_data=_serializable(dict(row)))

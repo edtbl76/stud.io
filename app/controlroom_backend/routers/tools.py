@@ -9,11 +9,13 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
 from routers.auth import require_admin, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
+from routers._helpers import _serializable, log_audit
 
 router = APIRouter()
 
@@ -97,7 +99,7 @@ async def get_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Dep
 
 
 @router.post("/{category}", response_model=ToolOut, status_code=201)
-async def create_tool(category: str, payload: ToolCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
+async def create_tool(category: str, payload: ToolCreate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     cols = ["tool_name", "brand_id", "version", "tool_type_ids",
             "plugin_format_ids", "description", "workflow_notes", "tag_ids"]
@@ -110,21 +112,30 @@ async def create_tool(category: str, payload: ToolCreate, conn: Annotated[Connec
         vals.insert(1, payload.model_ids)
 
     placeholders = ", ".join(f"${i+1}" for i in range(len(vals)))
-    row = await conn.fetchrow(
-        f"INSERT INTO {cfg['table']} ({', '.join(cols)}) VALUES ({placeholders}) "
-        f"RETURNING {cfg['id_col']}",
-        *vals,
-    )
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            f"INSERT INTO {cfg['table']} ({', '.join(cols)}) VALUES ({placeholders}) "
+            f"RETURNING {cfg['id_col']}",
+            *vals,
+        )
+        new_row = await conn.fetchrow(
+            f"SELECT * FROM {cfg['table']} WHERE {cfg['id_col']} = $1", row[cfg["id_col"]]
+        )
+        await log_audit(conn, cfg["table"], row[cfg["id_col"]], "CREATE",
+                        performed_by=user.username, new_data=_serializable(dict(new_row)))
     return await get_tool(category, row[cfg["id_col"]], conn)
 
 
-@router.patch("/{category}/{tool_id}", response_model=ToolOut, responses={404: {"description": "Not found"}})
-async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
+@router.patch("/{category}/{tool_id}", response_model=ToolOut, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
+async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
-    if not await conn.fetchrow(
-        f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
-    ):
+    old_row = await conn.fetchrow(
+        f"SELECT * FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
+    )
+    if not old_row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if old_row["deleted_at"] is not None:
+        raise HTTPException(status_code=409, detail="Cannot update a deleted record")
 
     updates = payload.model_dump(exclude_unset=True)
     if not cfg["has_model_ids"]:
@@ -133,19 +144,38 @@ async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: A
         return await get_tool(category, tool_id, conn)
 
     set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates))
-    await conn.execute(
-        f"UPDATE {cfg['table']} SET {set_clauses}, updated_at = NOW() "
-        f"WHERE {cfg['id_col']} = $1",
-        tool_id, *updates.values(),
-    )
+    async with conn.transaction():
+        await conn.execute(
+            f"UPDATE {cfg['table']} SET {set_clauses}, updated_at = NOW() "
+            f"WHERE {cfg['id_col']} = $1",
+            tool_id, *updates.values(),
+        )
+        new_row = await conn.fetchrow(
+            f"SELECT * FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
+        )
+        await log_audit(conn, cfg["table"], tool_id, "UPDATE",
+                        performed_by=user.username,
+                        old_data=_serializable(dict(old_row)),
+                        new_data=_serializable(dict(new_row)))
     return await get_tool(category, tool_id, conn)
 
 
 @router.delete("/{category}/{tool_id}", status_code=204, responses={404: {"description": "Not found"}})
-async def delete_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
+async def delete_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
-    if not await conn.fetchrow(
-        f"SELECT 1 FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
-    ):
+    row = await conn.fetchrow(
+        f"SELECT * FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id
+    )
+    if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
-    await conn.execute(f"DELETE FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id)
+    if row["deleted_at"] is not None:
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
+        )
+    async with conn.transaction():
+        await conn.execute(
+            f"UPDATE {cfg['table']} SET deleted_at = NOW() WHERE {cfg['id_col']} = $1", tool_id
+        )
+        await log_audit(conn, cfg["table"], tool_id, "DELETE",
+                        performed_by=user.username, old_data=_serializable(dict(row)))

@@ -308,3 +308,60 @@ DO $$ BEGIN
       CHECK (password_hash IS NOT NULL OR google_id IS NOT NULL);
   END IF;
 END $$;
+
+-- =============================================================================
+-- SOFT-DELETE: deleted_at on all 18 content and config tables
+-- =============================================================================
+ALTER TABLE brands            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE models            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE effects           ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE instruments       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE libraries         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE workstations      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE admin_tools       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE composition_tools ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE measurement_tools ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE reference_tools   ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE workflow_tools    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE effect_types      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE entity_types      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE instrument_types  ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE model_types       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE plugin_formats    ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE tag_types         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE tool_types        ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
+
+-- =============================================================================
+-- AUDIT LOG
+-- =============================================================================
+-- NOTE: All timestamp columns in audit_log use TIMESTAMPTZ (timezone-aware).
+-- Existing content table timestamps (created_at, updated_at) use TIMESTAMP (no timezone).
+-- This is an intentional improvement — TIMESTAMPTZ is unambiguously correct for audit data.
+-- When comparing audit timestamps to content timestamps, PostgreSQL performs an implicit cast
+-- using the session timezone. A future migration to bring existing columns to TIMESTAMPTZ
+-- is tracked but out of scope here.
+CREATE TABLE IF NOT EXISTS audit_log (
+    audit_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    table_name      TEXT NOT NULL,
+    record_id       UUID NOT NULL,    -- PK value of the audited row; no FK (row may be deleted)
+    operation       TEXT NOT NULL CHECK (operation IN ('CREATE', 'UPDATE', 'DELETE')),
+    old_data        JSONB,
+    new_data        JSONB,
+    performed_by    TEXT NOT NULL,
+    performed_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    acknowledged_at TIMESTAMPTZ,
+    acknowledged_by TEXT,
+    undone_at       TIMESTAMPTZ,
+    undone_by       TEXT,
+    CONSTRAINT audit_log_state_exclusive CHECK (
+        acknowledged_at IS NULL OR undone_at IS NULL
+    )
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_log_table_record
+    ON audit_log (table_name, record_id);
+CREATE INDEX IF NOT EXISTS idx_audit_log_performed_at
+    ON audit_log (performed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_log_pending
+    ON audit_log (performed_at DESC)
+    WHERE acknowledged_at IS NULL AND undone_at IS NULL;

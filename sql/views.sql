@@ -29,7 +29,8 @@ SELECT
     b.created_at,
     b.updated_at
 FROM brands b
-LEFT JOIN entity_types et ON et.type_id = b.entity_type_id;
+LEFT JOIN entity_types et ON et.type_id = b.entity_type_id
+WHERE b.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -61,7 +62,8 @@ SELECT
     m.created_at,
     m.updated_at
 FROM  models m
-LEFT JOIN brands b ON b.brand_id = m.brand_id;
+LEFT JOIN brands b ON b.brand_id = m.brand_id
+WHERE m.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -147,7 +149,8 @@ SELECT
     e.created_at,
     e.updated_at
 FROM  effects e
-LEFT JOIN brands b ON b.brand_id = e.brand_id;
+LEFT JOIN brands b ON b.brand_id = e.brand_id
+WHERE e.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -231,7 +234,8 @@ SELECT
     i.created_at,
     i.updated_at
 FROM  instruments i
-LEFT JOIN brands b ON b.brand_id = i.brand_id;
+LEFT JOIN brands b ON b.brand_id = i.brand_id
+WHERE i.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -288,7 +292,8 @@ SELECT
     l.created_at,
     l.updated_at
 FROM  libraries l
-LEFT JOIN brands b ON b.brand_id = l.brand_id;
+LEFT JOIN brands b ON b.brand_id = l.brand_id
+WHERE l.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -332,7 +337,8 @@ SELECT
     w.created_at,
     w.updated_at
 FROM  workstations w
-LEFT JOIN brands b ON b.brand_id = w.brand_id;
+LEFT JOIN brands b ON b.brand_id = w.brand_id
+WHERE w.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -376,7 +382,8 @@ SELECT
     wt.created_at,
     wt.updated_at
 FROM  workflow_tools wt
-LEFT JOIN brands b ON b.brand_id = wt.brand_id;
+LEFT JOIN brands b ON b.brand_id = wt.brand_id
+WHERE wt.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -429,7 +436,8 @@ SELECT
     mt.created_at,
     mt.updated_at
 FROM  measurement_tools mt
-LEFT JOIN brands b ON b.brand_id = mt.brand_id;
+LEFT JOIN brands b ON b.brand_id = mt.brand_id
+WHERE mt.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -482,7 +490,8 @@ SELECT
     rt.created_at,
     rt.updated_at
 FROM  reference_tools rt
-LEFT JOIN brands b ON b.brand_id = rt.brand_id;
+LEFT JOIN brands b ON b.brand_id = rt.brand_id
+WHERE rt.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -526,7 +535,8 @@ SELECT
     ct.created_at,
     ct.updated_at
 FROM  composition_tools ct
-LEFT JOIN brands b ON b.brand_id = ct.brand_id;
+LEFT JOIN brands b ON b.brand_id = ct.brand_id
+WHERE ct.deleted_at IS NULL;
 
 
 -- ---------------------------------------------------------------------------
@@ -570,4 +580,5 @@ SELECT
     at.created_at,
     at.updated_at
 FROM  admin_tools at
-LEFT JOIN brands b ON b.brand_id = at.brand_id;
+LEFT JOIN brands b ON b.brand_id = at.brand_id
+WHERE at.deleted_at IS NULL;

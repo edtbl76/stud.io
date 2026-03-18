@@ -7,8 +7,7 @@
 
 Completed work.
 
-* [x]
-
+* [x] Soft-Delete Support (Audit Infrastructure) #P0 #data #M (v1.6.2)
 
 ---
 
@@ -16,7 +15,8 @@ Completed work.
 
 Work in progress. (Hopefully not blocked)
 
-* [ ] Soft-Delete Support #P3 #data #M
+
+* [ ] Change Review Page Implementation #P0 #data #M
 
 ---
 
@@ -24,6 +24,8 @@ Work in progress. (Hopefully not blocked)
 
 Work that is part of the current [roadmap](roadmap.md)
 
+
+* [ ] Record History UI #P0 #data #M
 * [ ] Bulk Edit Fields in List View #P0 #data #editing #M
 * [ ] Google Sheets Export/Import #P0 #data #interop #M
 * [ ] Model fields enriches Modal Views #P0 #data #modeling #M

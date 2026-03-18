@@ -3,16 +3,18 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
 from routers.auth import require_admin, UserOut
 from schemas.libraries import LibraryCreate, LibraryUpdate, LibraryOut
-from routers._helpers import parent_ref_sql, encode_parent_refs
+from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit
 
 router = APIRouter()
 
 _SELECT = "SELECT * FROM libraries_view"
+_SELECT_ONE = "SELECT * FROM libraries WHERE library_id = $1"
 _NOT_FOUND = "Library not found"
 _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
@@ -37,29 +39,36 @@ async def get_library(library_id: UUID, conn: Annotated[Connection, Depends(get_
 
 
 @router.post("", response_model=LibraryOut, status_code=201)
-async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
-    row = await conn.fetchrow(
-        f"""
-        INSERT INTO libraries
-            (library_name, brand_id, model_ids, description,
-             instrument_notes, recording_notes, tag_ids, attributes, parent_ids)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
-                {parent_ref_sql('$9')})
-        RETURNING library_id
-        """,
-        payload.library_name, payload.brand_id, payload.model_ids,
-        payload.description, payload.instrument_notes, payload.recording_notes,
-        payload.tag_ids,
-        json.dumps(payload.attributes) if payload.attributes is not None else None,
-        encode_parent_refs(payload.parent_ids),
-    )
+async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            f"""
+            INSERT INTO libraries
+                (library_name, brand_id, model_ids, description,
+                 instrument_notes, recording_notes, tag_ids, attributes, parent_ids)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
+                    {parent_ref_sql('$9')})
+            RETURNING library_id
+            """,
+            payload.library_name, payload.brand_id, payload.model_ids,
+            payload.description, payload.instrument_notes, payload.recording_notes,
+            payload.tag_ids,
+            json.dumps(payload.attributes) if payload.attributes is not None else None,
+            encode_parent_refs(payload.parent_ids),
+        )
+        new_row = await conn.fetchrow(_SELECT_ONE, row["library_id"])
+        await log_audit(conn, "libraries", row["library_id"], "CREATE",
+                        performed_by=user.username, new_data=_serializable(dict(new_row)))
     return await get_library(row["library_id"], conn)
 
 
-@router.patch("/{library_id}", response_model=LibraryOut, responses={404: {"description": "Not found"}})
-async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
-    if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
+@router.patch("/{library_id}", response_model=LibraryOut, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
+async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
+    old_row = await conn.fetchrow(_SELECT_ONE, library_id)
+    if not old_row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if old_row["deleted_at"] is not None:
+        raise HTTPException(status_code=409, detail="Cannot update a deleted record")
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -79,24 +88,39 @@ async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotat
         i += 1
 
     set_parts.append("updated_at = NOW()")
-    await conn.execute(
-        f"UPDATE libraries SET {', '.join(set_parts)} WHERE library_id = $1",
-        library_id, *values,
-    )
+    async with conn.transaction():
+        await conn.execute(
+            f"UPDATE libraries SET {', '.join(set_parts)} WHERE library_id = $1",
+            library_id, *values,
+        )
+        new_row = await conn.fetchrow(_SELECT_ONE, library_id)
+        await log_audit(conn, "libraries", library_id, "UPDATE",
+                        performed_by=user.username,
+                        old_data=_serializable(dict(old_row)),
+                        new_data=_serializable(dict(new_row)))
     return await get_library(library_id, conn)
 
 
 @router.delete("/{library_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
-async def delete_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
-    if not await conn.fetchrow("SELECT 1 FROM libraries WHERE library_id = $1", library_id):
+async def delete_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
+    row = await conn.fetchrow(_SELECT_ONE, library_id)
+    if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if row["deleted_at"] is not None:
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
+        )
 
     for table in _PARENT_REF_TABLES:
         if await conn.fetchrow(
-            f"SELECT 1 FROM {table} WHERE EXISTS "
+            f"SELECT 1 FROM {table} WHERE deleted_at IS NULL AND EXISTS "
             f"(SELECT 1 FROM unnest(parent_ids) p WHERE (p).id = $1) LIMIT 1",
             library_id,
         ):
             raise HTTPException(status_code=409, detail=f"Library is referenced as a parent in {table}")
 
-    await conn.execute("DELETE FROM libraries WHERE library_id = $1", library_id)
+    async with conn.transaction():
+        await conn.execute("UPDATE libraries SET deleted_at = NOW() WHERE library_id = $1", library_id)
+        await log_audit(conn, "libraries", library_id, "DELETE",
+                        performed_by=user.username, old_data=_serializable(dict(row)))
