@@ -24,7 +24,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
 | `/config/{slug}` | `routers/config.py` | CRUD for all lookup tables (effect-types, tag-types, etc.) |
 | `/search` | `routers/search.py` | Cross-table full-text search |
-| `/admin` | `routers/admin_ops.py` | Database backup, restore, and verification |
+| `/admin` | `routers/admin_ops.py` | Database backup, restore, verification, and catalog row-count stats |
 | `/users` | `routers/users.py` | User management (admin only) |
 
 ---
@@ -137,3 +137,7 @@ Tests use a separate `controlroomdb_test` database. Each test wraps its operatio
 ### Verify
 
 `POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary `controlroomdb_verify` database, computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
+
+### Stats
+
+`GET /admin/stats` — returns row counts for all 18 content and lookup tables grouped by Catalog, Session, Tools, and Config. Tables within each group are sorted by count descending, display name ascending as tie-break. The `total` field is the sum across all groups and excludes the `users` table.

@@ -80,4 +80,22 @@ describe('Sidebar', () => {
     const brandsLink = screen.getByRole('link', { name: 'Brands' })
     expect(brandsLink.className).toContain('text-primary')
   })
+
+  it('renders Stats link in the ADMIN group', () => {
+    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
+    render(<Sidebar />)
+    fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
+    expect(screen.getByRole('link', { name: /^stats$/i })).toBeInTheDocument()
+  })
+
+  it('renders ADMIN group items in alphabetical order', () => {
+    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
+    render(<Sidebar />)
+    fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
+    const adminLinks = screen
+      .getAllByRole('link')
+      .filter((l) => (l.getAttribute('href') ?? '').startsWith('/admin/'))
+    const labels = adminLinks.map((l) => l.textContent)
+    expect(labels).toEqual(['Backup & Restore', 'Stats', 'Users'])
+  })
 })

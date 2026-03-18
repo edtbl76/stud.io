@@ -1,0 +1,80 @@
+'use client'
+
+import * as React from 'react'
+import { Loader2, AlertCircle } from 'lucide-react'
+
+interface TableStat {
+  name: string
+  count: number
+}
+
+interface StatGroup {
+  label: string
+  tables: TableStat[]
+}
+
+interface StatsResponse {
+  groups: StatGroup[]
+  total: number
+}
+
+export default function StatsPage() {
+  const [data, setData] = React.useState<StatsResponse | null>(null)
+  const [error, setError] = React.useState(false)
+
+  React.useEffect(() => {
+    fetch('/api/admin/stats')
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to fetch stats')
+        return res.json() as Promise<StatsResponse>
+      })
+      .then(setData)
+      .catch(() => setError(true))
+  }, [])
+
+  if (error) {
+    return (
+      <div className="px-6 py-6">
+        <div className="flex items-center gap-2 text-xs text-destructive">
+          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          Could not load stats.
+        </div>
+      </div>
+    )
+  }
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center px-6 py-6">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-6 py-6 max-w-sm">
+      <h2 className="text-lg font-semibold text-foreground mb-6">Stats</h2>
+
+      {data.groups.map((group) => (
+        <section key={group.label} className="mb-6">
+          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
+            {group.label}
+          </div>
+          {group.tables.map((table) => (
+            <div key={table.name} className="flex justify-between text-xs py-0.5">
+              <span className="text-foreground">{table.name}</span>
+              <span className="font-mono text-muted-foreground">
+                {table.count.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </section>
+      ))}
+
+      <div className="border-t border-border pt-2 flex justify-between text-xs text-muted-foreground">
+        <span>Total</span>
+        <span className="font-mono">{data.total.toLocaleString()}</span>
+      </div>
+    </div>
+  )
+}
