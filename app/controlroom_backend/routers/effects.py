@@ -3,16 +3,18 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
 from routers.auth import require_admin, UserOut
 from schemas.effects import EffectCreate, EffectUpdate, EffectOut
-from routers._helpers import parent_ref_sql, encode_parent_refs
+from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit
 
 router = APIRouter()
 
 _SELECT = "SELECT * FROM effects_view"
+_SELECT_ONE = "SELECT * FROM effects WHERE effect_id = $1"
 _NOT_FOUND = "Effect not found"
 _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 
@@ -37,34 +39,41 @@ async def get_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_co
 
 
 @router.post("", response_model=EffectOut, status_code=201)
-async def create_effect(payload: EffectCreate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
-    row = await conn.fetchrow(
-        f"""
-        INSERT INTO effects
-            (effect_name, brand_id, model_ids, version, collection,
-             effect_type_ids, tool_type_ids, plugin_format_ids,
-             description, workflow_notes, recording_notes, artist_reference,
-             attributes, tag_ids, parent_ids)
-        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
-                {parent_ref_sql('$15')})
-        RETURNING effect_id
-        """,
-        payload.effect_name, payload.brand_id, payload.model_ids,
-        payload.version, payload.collection,
-        payload.effect_type_ids, payload.tool_type_ids, payload.plugin_format_ids,
-        payload.description, payload.workflow_notes, payload.recording_notes,
-        payload.artist_reference,
-        json.dumps(payload.attributes) if payload.attributes is not None else None,
-        payload.tag_ids,
-        encode_parent_refs(payload.parent_ids),
-    )
+async def create_effect(payload: EffectCreate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
+    async with conn.transaction():
+        row = await conn.fetchrow(
+            f"""
+            INSERT INTO effects
+                (effect_name, brand_id, model_ids, version, collection,
+                 effect_type_ids, tool_type_ids, plugin_format_ids,
+                 description, workflow_notes, recording_notes, artist_reference,
+                 attributes, tag_ids, parent_ids)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
+                    {parent_ref_sql('$15')})
+            RETURNING effect_id
+            """,
+            payload.effect_name, payload.brand_id, payload.model_ids,
+            payload.version, payload.collection,
+            payload.effect_type_ids, payload.tool_type_ids, payload.plugin_format_ids,
+            payload.description, payload.workflow_notes, payload.recording_notes,
+            payload.artist_reference,
+            json.dumps(payload.attributes) if payload.attributes is not None else None,
+            payload.tag_ids,
+            encode_parent_refs(payload.parent_ids),
+        )
+        new_row = await conn.fetchrow(_SELECT_ONE, row["effect_id"])
+        await log_audit(conn, "effects", row["effect_id"], "CREATE",
+                        performed_by=user.username, new_data=_serializable(dict(new_row)))
     return await get_effect(row["effect_id"], conn)
 
 
-@router.patch("/{effect_id}", response_model=EffectOut, responses={404: {"description": "Not found"}})
-async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
-    if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
+@router.patch("/{effect_id}", response_model=EffectOut, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
+async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
+    old_row = await conn.fetchrow(_SELECT_ONE, effect_id)
+    if not old_row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if old_row["deleted_at"] is not None:
+        raise HTTPException(status_code=409, detail="Cannot update a deleted record")
 
     updates = payload.model_dump(exclude_unset=True)
     if not updates:
@@ -84,24 +93,39 @@ async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[
         i += 1
 
     set_parts.append("updated_at = NOW()")
-    await conn.execute(
-        f"UPDATE effects SET {', '.join(set_parts)} WHERE effect_id = $1",
-        effect_id, *values,
-    )
+    async with conn.transaction():
+        await conn.execute(
+            f"UPDATE effects SET {', '.join(set_parts)} WHERE effect_id = $1",
+            effect_id, *values,
+        )
+        new_row = await conn.fetchrow(_SELECT_ONE, effect_id)
+        await log_audit(conn, "effects", effect_id, "UPDATE",
+                        performed_by=user.username,
+                        old_data=_serializable(dict(old_row)),
+                        new_data=_serializable(dict(new_row)))
     return await get_effect(effect_id, conn)
 
 
 @router.delete("/{effect_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
-async def delete_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_conn)], _: Annotated[UserOut, Depends(require_admin)]):
-    if not await conn.fetchrow("SELECT 1 FROM effects WHERE effect_id = $1", effect_id):
+async def delete_effect(effect_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
+    row = await conn.fetchrow(_SELECT_ONE, effect_id)
+    if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    if row["deleted_at"] is not None:
+        return JSONResponse(
+            status_code=200,
+            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
+        )
 
     for table in _PARENT_REF_TABLES:
         if await conn.fetchrow(
-            f"SELECT 1 FROM {table} WHERE EXISTS "
+            f"SELECT 1 FROM {table} WHERE deleted_at IS NULL AND EXISTS "
             f"(SELECT 1 FROM unnest(parent_ids) p WHERE (p).id = $1) LIMIT 1",
             effect_id,
         ):
             raise HTTPException(status_code=409, detail=f"Effect is referenced as a parent in {table}")
 
-    await conn.execute("DELETE FROM effects WHERE effect_id = $1", effect_id)
+    async with conn.transaction():
+        await conn.execute("UPDATE effects SET deleted_at = NOW() WHERE effect_id = $1", effect_id)
+        await log_audit(conn, "effects", effect_id, "DELETE",
+                        performed_by=user.username, old_data=_serializable(dict(row)))
