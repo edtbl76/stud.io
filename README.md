@@ -30,8 +30,11 @@ The stack runs entirely in Docker. A single command starts everything.
 # First time only
 ./scripts/install-hooks.sh
 
-# Start the app
-./app.sh
+# Start the app (stack + unit tests + E2E tests)
+./build.sh
+
+# Start the app with SonarQube quality gate
+./build.sh --dev
 ```
 
 App runs at `https://localhost:2112`. Default login: `admin` / `admin`.
@@ -40,6 +43,6 @@ See [docs/setup.md](docs/setup.md) for prerequisites, HTTPS setup, and full deta
 
 ---
 
-## Current version: v1.4
+## Current version: v1.5
 
-Full REST API, Next.js frontend, JWT auth with RBAC, Google Sign-In, database backup/restore with manifest-based verification, user management, brand typeahead with inline create, SonarQube quality gate, and pre-commit hooks. See the [user manual](docs/manual.md) for the complete feature list and the [architecture docs](docs/arch/) for the technical overview.
+Full REST API, Next.js frontend, JWT auth with RBAC, Google Sign-In, database backup/restore with manifest-based verification, user management, brand typeahead with inline create, SonarQube quality gate, Playwright E2E test suite, and pre-commit hooks. See the [user manual](docs/manual.md) for the complete feature list and the [architecture docs](docs/arch/) for the technical overview.

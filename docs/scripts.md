@@ -6,20 +6,26 @@ All scripts live in `scripts/` (dev tooling and hook runners) or `util/` (legacy
 
 ## scripts/
 
-### `app.sh` *(project root)*
+### `build.sh` *(project root)*
 
-Main entry point. Starts the full Docker stack.
+Main entry point. Starts the full Docker stack, runs tests, and optionally runs a SonarQube quality gate.
 
 ```bash
-./app.sh          # studio stack only
-./app.sh --dev    # studio stack + SonarQube
+./build.sh              # stack + unit tests + E2E tests
+./build.sh --skip-tests # stack only
+./build.sh --skip-e2e   # stack + unit tests only
+./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
 ```
+
+Flags can be combined (e.g. `./build.sh --dev --skip-e2e`). With `--dev`, E2E is blocked if the SonarQube quality gate fails.
 
 On startup it:
 1. Builds and starts all containers
 2. Waits for PostgreSQL, API, and frontend health checks
 3. Applies `sql/schema.sql` and `sql/views.sql` to `controlroomdb` and `controlroomdb_test`
-4. Runs the full backend test suite
+4. Runs backend (`pytest`) and frontend (`jest`) unit tests
+5. (With `--dev`) Runs the SonarQube scanner and checks the quality gate — aborts if it fails
+6. Runs the Playwright E2E test suite
 
 ---
 

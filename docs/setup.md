@@ -63,11 +63,13 @@ The `nginx/certs/` directory is git-ignored — certs must be generated locally 
 ## Running the app
 
 ```bash
-./app.sh          # studio stack only
-./app.sh --dev    # studio stack + SonarQube
+./build.sh              # stack + unit tests + E2E tests
+./build.sh --skip-tests # stack only
+./build.sh --skip-e2e   # stack + unit tests only
+./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
 ```
 
-This builds and starts four containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`, `controlroom_nginx`), waits for each to be healthy, applies the schema and semantic views to both databases, and runs the full backend test suite.
+This builds and starts four containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`, `controlroom_nginx`), waits for each to be healthy, applies the schema and semantic views to both databases, and runs the test suite.
 
 | Service | URL |
 |---|---|
@@ -97,7 +99,7 @@ A separate Docker project (`dev`) runs SonarQube for static analysis, completely
 Or start it alongside the main stack:
 
 ```bash
-./app.sh --dev
+./build.sh --dev
 ```
 
 `up` is idempotent — each setup step only runs if needed:

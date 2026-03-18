@@ -2,7 +2,7 @@
 
 ## Docker services
 
-The studio stack (`./app.sh`) runs four containers in a single Docker network:
+The studio stack (`./build.sh`) runs four containers in a single Docker network:
 
 | Container | Image | Port | Role |
 |---|---|---|---|
@@ -58,7 +58,7 @@ All external traffic goes through nginx on port 443. The app and API are not dir
 
 ## Startup sequence
 
-`app.sh` brings up services in dependency order and gates each on a health check before proceeding:
+`build.sh` brings up services in dependency order and gates each on a health check before proceeding:
 
 1. **`studio_db`** — waits for `pg_isready`
 2. **`controlroom_backend`** — waits for `/health` to return 200; applies schema + views to `controlroomdb` and `controlroomdb_test` on first run

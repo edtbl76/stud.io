@@ -6,7 +6,7 @@ setup('authenticate', async ({ page }) => {
   await page.goto('/')
   await page.getByLabel(/username/i).fill('admin')
   await page.getByLabel(/password/i).fill('admin')
-  await page.getByRole('button', { name: /sign in/i }).click()
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click()
   await expect(page).not.toHaveURL(/login/)
   await page.context().storageState({ path: 'e2e/.auth/state.json' })
 })
