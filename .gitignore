@@ -335,6 +335,7 @@ cython_debug/
 
 **/.claude/
 docs/superpowers/
+.worktrees/
 
 ### SSL certs
 nginx/certs/*.pem
