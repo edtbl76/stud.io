@@ -2,10 +2,6 @@ import * as React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import BackupRestorePage from '@/app/admin/backup/page'
 
-jest.mock('@/lib/auth', () => ({
-  useAuth: () => ({ token: 'test-token' }),
-}))
-
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 

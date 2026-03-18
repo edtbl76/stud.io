@@ -81,7 +81,31 @@ First run takes longer — Docker builds the frontend image and `npm install` ru
 
 ### Accessing from other devices on the network
 
-Update `NEXT_PUBLIC_API_URL` in `docker-compose.yml` to your machine's local IP (e.g. `https://192.168.1.230:5150`), then regenerate the mkcert certificate to include that IP and reinstall the root CA on the remote device.
+The app uses a BFF (Backend for Frontend) architecture — all API calls are relative paths routed through the Next.js server. There is no `NEXT_PUBLIC_API_URL` to change.
+
+To access from another machine:
+1. Make sure the mkcert certificate includes that machine's IP (see step 3 above — `192.168.1.230` is already included)
+2. Install the mkcert root CA on the remote device
+3. Browse to `https://192.168.1.230:2112` from the remote machine
+
+### Google SSO and sslip.io
+
+Google OAuth does not permit raw IP addresses in Authorized JavaScript Origins. To use Google Sign-In from any machine (including localhost or remote LAN devices), you must use a DNS-resolvable hostname.
+
+**[sslip.io](https://sslip.io)** is a public DNS service that maps `<ip>.sslip.io` to that IP. For example, `192.168.1.230.sslip.io` resolves to `192.168.1.230`.
+
+**Google Cloud Console configuration (already done):**
+- Authorized JavaScript origins: `https://192.168.1.230.sslip.io:2112`
+- Authorized redirect URIs: `https://192.168.1.230.sslip.io:2112`
+
+**mkcert certificate** (already included in the generation command above): `192.168.1.230.sslip.io`
+
+**To log in with Google from any machine**, navigate to:
+```
+https://192.168.1.230.sslip.io:2112
+```
+
+Standard username/password login works on any URL (localhost, IP, or sslip.io hostname). Google SSO requires the sslip.io hostname specifically.
 
 ---
 

@@ -6,7 +6,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 
 - Base URL: `https://localhost:5150`
 - Interactive docs: `https://localhost:5150/docs` (Swagger UI)
-- All endpoints require a JWT bearer token except `/auth/login` and `/health`
+- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, and `/health`
 
 ---
 
@@ -33,15 +33,24 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 
 JWT-based. Tokens are signed with HS256 using `JWT_SECRET` and expire after `JWT_EXPIRE_MINUTES` (default 8 hours).
 
-**Login flow:**
-1. `POST /auth/login` with `{username, password}` → returns `{access_token, token_type}`
-2. All subsequent requests include `Authorization: Bearer <token>`
+The FastAPI auth endpoints are not called directly from the browser. All auth flows go through the Next.js BFF, which stores the JWT in an httpOnly cookie and never exposes it to client-side JavaScript.
+
+**Username/password login flow:**
+1. Browser calls `POST /api/auth/token` (Next.js BFF)
+2. BFF forwards credentials to FastAPI `POST /auth/token` → receives `{access_token}`
+3. BFF calls `GET /auth/me` with the token to fetch `{username, role}`
+4. BFF sets `controlroom_token` httpOnly cookie and returns `{username, role}` to the browser
 
 **Google Sign-In flow:**
 1. Frontend renders the Google Identity button (requires `NEXT_PUBLIC_GOOGLE_CLIENT_ID`)
 2. Google returns a credential (ID token) to the frontend callback
-3. Frontend sends the ID token to `POST /auth/google` → backend verifies it and returns a JWT
-4. If no account is linked to that Google ID, the request is rejected (user must be created and linked by an admin first)
+3. Browser calls `POST /api/auth/google` (Next.js BFF) with the ID token
+4. BFF forwards the credential to FastAPI `POST /auth/google` → receives `{access_token}`
+5. BFF sets the httpOnly cookie and returns `{username, role}` to the browser
+6. If no account is linked to that Google ID, FastAPI returns 401 and the BFF forwards it
+
+**Subsequent requests:**
+All API calls use relative `/api/...` paths. The Next.js catch-all proxy reads the `controlroom_token` cookie and adds `Authorization: Bearer <token>` before forwarding to FastAPI.
 
 **Default admin account:** `admin` / `admin` — seeded automatically on first startup if no users exist.
 

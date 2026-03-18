@@ -5,7 +5,6 @@ import Script from 'next/script'
 import { Trash2, Plus, KeyRound, Loader2, CheckCircle, AlertCircle, X, Link2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5150'
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
 
 interface User {
@@ -35,7 +34,7 @@ function StatusMessage({ status, onDismiss }: Readonly<{ status: NonNullable<Sta
 }
 
 export default function UsersPage() {
-  const { token, username: currentUsername } = useAuth()
+  const { username: currentUsername } = useAuth()
   const [users, setUsers] = React.useState<User[]>([])
   const [loading, setLoading] = React.useState(true)
   const [status, setStatus] = React.useState<Status>(null)
@@ -53,12 +52,8 @@ export default function UsersPage() {
   // Google link — stores the user_id we're linking for the GIS callback
   const linkingUserIdRef = React.useRef<string | null>(null)
 
-  function authHeaders(): HeadersInit {
-    return { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-  }
-
   async function fetchUsers() {
-    const res = await fetch(`${API}/users`, { headers: authHeaders() })
+    const res = await fetch('/api/users', { headers: { 'Content-Type': 'application/json' } })
     if (res.ok) setUsers(await res.json())
   }
 
@@ -72,9 +67,9 @@ export default function UsersPage() {
     linkingUserIdRef.current = null
     setStatus(null)
     try {
-      const res = await fetch(`${API}/users/${userId}/google`, {
+      const res = await fetch(`/api/users/${userId}/google`, {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential }),
       })
       if (!res.ok) {
@@ -109,9 +104,9 @@ export default function UsersPage() {
     setAddLoading(true)
     setStatus(null)
     try {
-      const res = await fetch(`${API}/users`, {
+      const res = await fetch('/api/users', {
         method: 'POST',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: newUsername, password: newPassword }),
       })
       if (!res.ok) {
@@ -133,9 +128,9 @@ export default function UsersPage() {
     setStatus(null)
     const newRole = user.role === 'admin' ? 'user' : 'admin'
     try {
-      const res = await fetch(`${API}/users/${user.user_id}/role`, {
+      const res = await fetch(`/api/users/${user.user_id}/role`, {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: newRole }),
       })
       if (!res.ok) {
@@ -152,10 +147,7 @@ export default function UsersPage() {
   async function handleDelete(user: User) {
     setStatus(null)
     try {
-      const res = await fetch(`${API}/users/${user.user_id}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      })
+      const res = await fetch(`/api/users/${user.user_id}`, { method: 'DELETE' })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)
@@ -171,9 +163,9 @@ export default function UsersPage() {
     setPwLoading(true)
     setStatus(null)
     try {
-      const res = await fetch(`${API}/users/${userId}/password`, {
+      const res = await fetch(`/api/users/${userId}/password`, {
         method: 'PATCH',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPw }),
       })
       if (!res.ok) {

@@ -3,7 +3,7 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import UsersPage from '@/app/admin/users/page'
 
 jest.mock('@/lib/auth', () => ({
-  useAuth: () => ({ token: 'test-token', username: 'admin' }),
+  useAuth: () => ({ username: 'admin' }),
 }))
 
 jest.mock('next/script', () => ({
