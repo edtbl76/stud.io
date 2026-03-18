@@ -51,8 +51,10 @@ All external traffic goes through nginx on port 443. The app and API are not dir
 
 | Variable | Description |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Base URL for API calls (e.g. `https://localhost:5150`) — must be reachable from the browser |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID — must match the backend value |
+| `BACKEND_URL` | Internal URL of the FastAPI backend (e.g. `http://controlroom_backend:5150`) — server-side only, never sent to the browser |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth client ID — baked into the client bundle; must match the backend value |
+
+`NEXT_PUBLIC_API_URL` was removed when the app was rewritten as a BFF. All API calls are now relative `/api/...` paths routed through the Next.js server, so there is no browser-visible backend URL.
 
 ---
 
@@ -70,10 +72,12 @@ All external traffic goes through nginx on port 443. The app and API are not dir
 
 ## HTTPS
 
-nginx terminates TLS using a mkcert-generated certificate stored in `nginx/certs/` (gitignored). The certificate covers `localhost`, `127.0.0.1`, and the machine's local IP/hostname.
+nginx terminates TLS using a mkcert-generated certificate stored in `nginx/certs/` (gitignored). The certificate covers `localhost`, `127.0.0.1`, the machine's local IP/hostname, and the `.sslip.io` alias used for Google OAuth.
 
-The nginx config forwards:
-- `https://localhost/` → Next.js frontend (`http://controlroom_frontend:2112`)
-- `https://localhost:5150/` → FastAPI backend (`http://controlroom_backend:5150`)
+The nginx config runs two server blocks:
+- Port **2112** → all traffic to Next.js (`http://frontend:2112`) — the main application entry point
+- Port **5150** → all traffic to FastAPI (`http://controlroom_backend:5150`) — used for direct Swagger UI access only
 
-For Google OAuth to work from other devices on the network, the certificate must include the machine's local IP and the `.sslip.io` hostname (e.g. `192.168.1.230.sslip.io`) — Google OAuth requires a public TLD. See [setup.md](../setup.md) for the mkcert command.
+Browsers only talk to the Next.js server (port 2112). The Next.js BFF routes all `/api/...` calls to FastAPI internally over the Docker network, so FastAPI is never called directly from browser code.
+
+For Google OAuth to work from other devices on the network, the certificate must include the machine's local IP and the `.sslip.io` hostname (e.g. `192.168.1.230.sslip.io`) — Google OAuth requires a public TLD. See [setup.md](../setup.md) for details.

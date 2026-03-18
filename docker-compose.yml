@@ -32,7 +32,7 @@ services:
       context: ./app/controlroom_frontend
     container_name: controlroom_frontend
     environment:
-      - NEXT_PUBLIC_API_URL=https://localhost:5150
+      - BACKEND_URL=http://controlroom_backend:5150
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com
     volumes:
       - ./app/controlroom_frontend:/app

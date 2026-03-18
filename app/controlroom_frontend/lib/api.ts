@@ -1,18 +1,8 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5150'
-const TOKEN_KEY = 'controlroom_token'
-
-function authHeader(): HeadersInit {
-  if (globalThis.window === undefined) return {}
-  const token = localStorage.getItem(TOKEN_KEY)
-  return token ? { Authorization: `Bearer ${token}` } : {}
-}
-
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(`/api${path}`, {
     ...init,
     headers: {
       'Content-Type': 'application/json',
-      ...authHeader(),
       ...init?.headers,
     },
   })

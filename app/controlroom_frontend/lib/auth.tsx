@@ -3,11 +3,7 @@
 import * as React from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
-const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5150'
-const TOKEN_KEY = 'controlroom_token'
-
 interface AuthContextValue {
-  token: string | null
   username: string | null
   role: string | null
   login: (username: string, password: string) => Promise<void>
@@ -18,45 +14,25 @@ interface AuthContextValue {
 const AuthContext = React.createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [token, setToken] = React.useState<string | null>(null)
   const [username, setUsername] = React.useState<string | null>(null)
   const [role, setRole] = React.useState<string | null>(null)
   const [checked, setChecked] = React.useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
-  async function _applyToken(accessToken: string) {
-    localStorage.setItem(TOKEN_KEY, accessToken)
-    setToken(accessToken)
-    const me = await fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    const meData = await me.json()
-    setUsername(meData.username)
-    setRole(meData.role)
-  }
-
-  // On mount, restore token from localStorage and validate it
+  // On mount, check for an existing session via the httpOnly cookie
   React.useEffect(() => {
-    const stored = localStorage.getItem(TOKEN_KEY)
-    if (!stored) {
-      setChecked(true)
-      return
-    }
-    fetch(`${API}/auth/me`, {
-      headers: { Authorization: `Bearer ${stored}` },
-    })
+    fetch('/api/auth/me')
       .then((r) => {
-        if (!r.ok) throw new Error('invalid')
+        if (!r.ok) throw new Error('not authenticated')
         return r.json()
       })
-      .then((data) => {
-        setToken(stored)
+      .then((data: { username: string; role: string }) => {
         setUsername(data.username)
         setRole(data.role)
       })
       .catch(() => {
-        localStorage.removeItem(TOKEN_KEY)
+        // No valid session — leave username null
       })
       .finally(() => setChecked(true))
   }, [])
@@ -64,68 +40,61 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
   // Redirect unauthenticated users away from protected pages
   React.useEffect(() => {
     if (!checked) return
-    if (!token && pathname !== '/login') {
-      router.replace('/login')
-    }
-    if (token && pathname === '/login') {
-      router.replace('/')
-    }
-  }, [checked, token, pathname, router])
+    if (!username && pathname !== '/login') router.replace('/login')
+    if (username && pathname === '/login') router.replace('/')
+  }, [checked, username, pathname, router])
 
   async function login(user: string, password: string) {
     const form = new URLSearchParams()
     form.append('username', user)
     form.append('password', password)
 
-    const res = await fetch(`${API}/auth/token`, {
+    const res = await fetch('/api/auth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: form.toString(),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Login failed' }))
       throw new Error(err.detail ?? 'Login failed')
     }
-    const data = await res.json()
-    await _applyToken(data.access_token)
+    const data = (await res.json()) as { username: string; role: string }
+    setUsername(data.username)
+    setRole(data.role)
   }
 
   async function loginGoogle(credential: string) {
-    const res = await fetch(`${API}/auth/google`, {
+    const res = await fetch('/api/auth/google', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ credential }),
     })
     if (!res.ok) {
       const err = await res.json().catch(() => ({ detail: 'Google login failed' }))
       throw new Error(err.detail ?? 'Google login failed')
     }
-    const data = await res.json()
-    await _applyToken(data.access_token)
+    const data = (await res.json()) as { username: string; role: string }
+    setUsername(data.username)
+    setRole(data.role)
   }
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY)
-    setToken(null)
+    void fetch('/api/auth/logout', { method: 'POST' })
     setUsername(null)
     setRole(null)
     router.replace('/login')
   }
 
   const value = React.useMemo(
-    () => ({ token, username, role, login, loginGoogle, logout }),
+    () => ({ username, role, login, loginGoogle, logout }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [token, username, role],
+    [username, role],
   )
 
-  // Don't render children until we've checked the stored token
+  // Don't render children until we've checked for an existing session
   if (!checked) return null
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextValue {
