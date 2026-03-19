@@ -26,6 +26,8 @@ interface DataTableProps<TData, TValue> {
   readonly data: TData[]
   readonly onRowClick?: (row: TData) => void
   readonly isLoading?: boolean
+  readonly selectedIds?: Set<string>
+  readonly getRowId?: (row: TData) => string
 }
 
 export function DataTable<TData, TValue>({
@@ -33,6 +35,8 @@ export function DataTable<TData, TValue>({
   data,
   onRowClick,
   isLoading = false,
+  selectedIds,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -128,7 +132,7 @@ export function DataTable<TData, TValue>({
           </button>
           {showColMenu && (
             <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded border border-border bg-card shadow-lg py-1">
-              {table.getAllLeafColumns().map((col) => {
+              {table.getAllLeafColumns().filter((col) => col.id !== '__select__').map((col) => {
                 const header = col.columnDef.header
                 const label = typeof header === 'string' ? header : col.id
                 return (
@@ -301,7 +305,8 @@ export function DataTable<TData, TValue>({
                       key={row.id}
                       className={cn(
                         'border-b border-border/50 transition-colors',
-                        onRowClick && 'cursor-pointer hover:bg-muted/60'
+                        onRowClick && 'cursor-pointer hover:bg-muted/60',
+                        selectedIds && getRowId && selectedIds.has(getRowId(row.original)) && 'bg-primary/10'
                       )}
                       style={{ height: ROW_HEIGHT }}
                       onClick={() => onRowClick?.(row.original)}

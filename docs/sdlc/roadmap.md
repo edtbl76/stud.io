@@ -2,7 +2,7 @@
 
 ## Current Version
 
-1.6.3
+1.6.4
 
 ## Current Release Target
 

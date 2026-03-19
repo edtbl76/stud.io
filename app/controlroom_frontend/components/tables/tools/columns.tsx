@@ -3,6 +3,14 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Tool } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
+import type { BulkEditField } from '@/lib/bulkEdit'
+
+export const toolBulkEditFields: BulkEditField[] = [
+  { key: 'tool_type_ids', label: 'Tool Types', type: 'multiselect', configSlug: 'tool-types' },
+  { key: 'plugin_format_ids', label: 'Plugin Formats', type: 'multiselect', configSlug: 'plugin-formats' },
+  { key: 'tag_ids', label: 'Tags', type: 'multiselect', configSlug: 'tag-types' },
+  { key: 'version', label: 'Version', type: 'text' },
+]
 
 export const toolColumns: ColumnDef<Tool, unknown>[] = [
   {

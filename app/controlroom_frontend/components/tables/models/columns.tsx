@@ -3,6 +3,11 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Model } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
+import type { BulkEditField } from '@/lib/bulkEdit'
+
+export const modelBulkEditFields: BulkEditField[] = [
+  { key: 'model_type_ids', label: 'Model Types', type: 'multiselect', configSlug: 'model-types' },
+]
 
 export const modelColumns: ColumnDef<Model, unknown>[] = [
   {

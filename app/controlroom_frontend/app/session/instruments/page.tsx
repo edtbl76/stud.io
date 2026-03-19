@@ -1,7 +1,7 @@
 'use client'
 
 import { TablePage } from '@/components/TablePage'
-import { instrumentColumns } from '@/components/tables/instruments/columns'
+import { instrumentColumns, instrumentBulkEditFields } from '@/components/tables/instruments/columns'
 import { InstrumentModal } from '@/components/tables/instruments/InstrumentModal'
 import { Instrument } from '@/lib/types'
 
@@ -12,6 +12,7 @@ export default function InstrumentsPage() {
       endpoint="/instruments"
       queryKey="/session/instruments"
       columns={instrumentColumns}
+      bulkEditFields={instrumentBulkEditFields}
       getRowId={(row) => row.instrument_id}
       renderModal={(record, onClose, onMutate) => (
         <InstrumentModal record={record} onClose={onClose} onMutate={onMutate} />
