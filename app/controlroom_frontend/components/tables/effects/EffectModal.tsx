@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { Effect } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
+import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
 import { TypeBadges } from '@/components/TypeBadges'
 import { ParentLinks } from '@/components/ParentLinks'
@@ -40,6 +41,31 @@ interface FormState {
   attributes: string
 }
 
+function getEffectTitle(mode: 'view' | 'edit' | 'history', record: Effect | null): string {
+  if (mode === 'history') return `${record?.full_effect_name ?? ''} — History`
+  if (!record) return 'New Effect'
+  if (mode === 'edit') return `Edit: ${record.full_effect_name}`
+  return record.full_effect_name
+}
+
+function buildEffectPayload(form: FormState): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (form.effect_name) body.effect_name = form.effect_name
+  if (form.brand_id) body.brand_id = form.brand_id
+  if (form.version) body.version = form.version
+  if (form.collection) body.collection = form.collection
+  if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
+  if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
+  if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
+  if (form.tag_ids.length) body.tag_ids = form.tag_ids
+  if (form.description) body.description = form.description
+  if (form.workflow_notes) body.workflow_notes = form.workflow_notes
+  if (form.recording_notes) body.recording_notes = form.recording_notes
+  if (form.artist_reference) body.artist_reference = form.artist_reference
+  if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
+  return body
+}
+
 function toForm(record: Effect | null): FormState {
   if (!record) {
     return {
@@ -70,31 +96,13 @@ function toForm(record: Effect | null): FormState {
 export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
-  const [isEditing, setIsEditing] = React.useState(isCreate)
+  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
 
-  function buildBody() {
-    const body: Record<string, unknown> = {}
-    if (form.effect_name) body.effect_name = form.effect_name
-    if (form.brand_id) body.brand_id = form.brand_id
-    if (form.version) body.version = form.version
-    if (form.collection) body.collection = form.collection
-    if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
-    if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
-    if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
-    if (form.tag_ids.length) body.tag_ids = form.tag_ids
-    if (form.description) body.description = form.description
-    if (form.workflow_notes) body.workflow_notes = form.workflow_notes
-    if (form.recording_notes) body.recording_notes = form.recording_notes
-    if (form.artist_reference) body.artist_reference = form.artist_reference
-    if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
-    return body
-  }
-
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body = buildBody()
+      const body = buildEffectPayload(form)
       if (!record) return api.create<Effect>(ENDPOINT, body)
       return api.update<Effect>(ENDPOINT, record.effect_id, body)
     },
@@ -112,32 +120,35 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  let title: string
-  if (!record) {
-    title = 'New Effect'
-  } else if (isEditing) {
-    title = `Edit: ${record.full_effect_name}`
-  } else {
-    title = record.full_effect_name
-  }
+  const title = getEffectTitle(mode, record)
 
   return (
     <RecordModal
       title={title}
       isAdmin={role === 'admin'}
-      isEditing={isEditing}
-      onEdit={() => setIsEditing(true)}
+      isEditing={mode === 'edit'}
+      isHistory={mode === 'history'}
+      onEdit={() => setMode('edit')}
+      onHistory={record ? () => setMode('history') : undefined}
       onSave={() => { setError(null); saveMutation.mutate() }}
       onDelete={() => deleteMutation.mutate()}
       onClose={onClose}
       isSaving={saveMutation.isPending}
       isDeleting={deleteMutation.isPending}
     >
+      {mode === 'history' ? (
+        <RecordHistoryView
+          historyUrl={`/effects/${record!.effect_id}/history`}
+          isAdmin={role === 'admin'}
+          onUndo={() => { onMutate(); onClose() }}
+        />
+      ) : (
+      <>
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
       )}
 
-      {isEditing ? (
+      {mode === 'edit' ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="effect_name">Effect Name *</Label>
@@ -224,6 +235,8 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
           <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
           <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
         </div>
+      )}
+      </>
       )}
     </RecordModal>
   )

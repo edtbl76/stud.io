@@ -129,6 +129,36 @@ describe('RecordModal — two-stage delete', () => {
   })
 })
 
+describe('RecordModal — history mode', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('shows History button when onHistory is provided', () => {
+    renderModal({ onHistory: jest.fn() })
+    expect(screen.getByRole('button', { name: /^history$/i })).toBeInTheDocument()
+  })
+
+  it('hides History button when onHistory is not provided', () => {
+    renderModal()
+    expect(screen.queryByRole('button', { name: /^history$/i })).not.toBeInTheDocument()
+  })
+
+  it('renders only Close button when isHistory is true', () => {
+    renderModal({ isHistory: true })
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
+    const footerClose = closeButtons.find(b => b.textContent?.trim() === 'Close')
+    expect(footerClose).toBeDefined()
+    expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^history$/i })).not.toBeInTheDocument()
+  })
+
+  it('calls onHistory when History is clicked', () => {
+    const onHistory = jest.fn()
+    renderModal({ onHistory })
+    fireEvent.click(screen.getByRole('button', { name: /^history$/i }))
+    expect(onHistory).toHaveBeenCalled()
+  })
+})
+
 describe('RecordModal — loading states', () => {
   beforeEach(() => jest.clearAllMocks())
 

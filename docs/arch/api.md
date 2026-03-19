@@ -88,6 +88,20 @@ DELETE /{resource}/{id}     # Delete (from base table)
 
 After every write, the response re-fetches from the semantic view so the returned record includes all resolved display names.
 
+### Record history endpoint
+
+Every content router and both dynamic routers expose a history endpoint:
+
+```
+GET /{resource}/{id}/history          # individual content routers (brands, models, effects, etc.)
+GET /tools/{category}/{id}/history    # tools router (resolves table from category)
+GET /config/{slug}/{id}/history       # config router (resolves table from slug)
+```
+
+Accessible by any authenticated user. Returns all `audit_log` entries for the given record sorted `performed_at DESC`, with `old_data` and `new_data` fully included (unlike the Change Review list endpoint). No pagination — a single record's history is bounded.
+
+Response model: `list[AuditEntryWithData]` (defined in `routers/_helpers.py`).
+
 ### Dynamic router: tools
 
 `/tools/{category}` maps to one of five base tables based on the category path parameter:
@@ -144,7 +158,7 @@ Tests use a separate `controlroomdb_test` database. Each test wraps its operatio
 
 ### Change Review
 
-`GET /admin/change-review` — returns a paginated list of `audit_log` entries. Accessible by any authenticated user. Optional query parameters: `table` (filter by table name), `operation` (`CREATE`, `UPDATE`, `DELETE`), `status` (`pending` [default], `acknowledged`, `undone`, `all`), `page` (1-based, default 1), `page_size` (default 50, max 200). Results sorted by `performed_at DESC`. The `record_display_name` field is always `null` in Sub-project 2; name resolution is added in Sub-project 3.
+`GET /admin/change-review` — returns a paginated list of `audit_log` entries. Accessible by any authenticated user. Optional query parameters: `table` (filter by table name), `operation` (`CREATE`, `UPDATE`, `DELETE`), `status` (`pending` [default], `acknowledged`, `undone`, `all`), `page` (1-based, default 1), `page_size` (default 50, max 200). Results sorted by `performed_at DESC`. The `record_display_name` field is populated by querying each table's name column (base table, not view, so soft-deleted records still resolve); falls back to the first 8 characters of `record_id` for hard-deleted records.
 
 `POST /admin/change-review/{audit_id}/acknowledge` — admin only. Marks the audit entry as acknowledged (`acknowledged_at`, `acknowledged_by`). Returns the updated entry. Returns 409 if already resolved.
 

@@ -6,9 +6,9 @@ from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
-from routers.auth import require_admin, UserOut
+from routers.auth import require_admin, get_current_user, UserOut
 from schemas.brands import BrandCreate, BrandUpdate, BrandOut
-from routers._helpers import _serializable, log_audit
+from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
 
@@ -85,6 +85,15 @@ async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Annotated[Con
                         old_data=_serializable(dict(old_row)),
                         new_data=_serializable(dict(new_row)))
     return await get_brand(brand_id, conn)
+
+
+@router.get("/{brand_id}/history", responses={401: {"description": "Unauthorized"}})
+async def get_brand_history(
+    brand_id: UUID,
+    current_user: Annotated[UserOut, Depends(get_current_user)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> list[AuditEntryWithData]:
+    return await get_record_history(conn, "brands", brand_id)
 
 
 @router.delete("/{brand_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})

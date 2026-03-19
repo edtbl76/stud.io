@@ -20,7 +20,7 @@ The sidebar on the left organizes the app into five sections. Each section is co
 | **SESSION** | Effects, Instruments, Libraries, Workstations |
 | **TOOLS** | Admin, Composition, Measurement, Reference, Workflow |
 | **CONFIG** | Effect Types, Entity Types, Instrument Types, Model Types, Plugin Formats, Tag Types, Tool Types |
-| **ADMIN** | Backup & Restore, Users *(admin role only)* |
+| **ADMIN** | Stats, Change Review, Backup & Restore, Users *(admin role only)* |
 
 The ADMIN section is hidden for users with the `user` role.
 
@@ -73,6 +73,20 @@ In edit mode, a **Delete** button appears in the bottom-left of the footer. Clic
 
 If the record is referenced by other records in the database, the delete will be rejected with an explanatory error message.
 
+### Record history
+
+A **History** button appears in the modal footer (view mode only) for any existing record. Click it to view the full audit trail for that record.
+
+The history view shows all changes in reverse chronological order, with:
+
+- **Operation badge** — `CREATE`, `UPDATE`, or `DELETE`
+- **Timestamp** and **user** who made the change
+- **Diff** (UPDATE only) — shows only the fields that changed, with old value → new value
+- **Undo button** (admin only) — reverses a change that has not yet been acknowledged or undone. On success the modal closes and the table refreshes.
+- **Acknowledged** / **Undone** badge — shown when the entry has already been resolved
+
+Close returns to the read-only view of the record.
+
 ---
 
 ## CONFIG tables
@@ -84,6 +98,19 @@ Each config table works the same way as a regular table: browse, add, edit, dele
 ---
 
 ## ADMIN section
+
+### Stats
+
+A dashboard showing row counts for all tables, grouped by Catalog, Session, Tools, and Config. Tables with pending changes (unacknowledged creates, updates, or deletes) show an annotation indicating how many entries await review.
+
+### Change Review
+
+A paginated audit log of all changes made through the app. Shows each create, update, or delete with the table, record name, operation, user, and timestamp.
+
+- **Filters** — filter by table, operation (`CREATE`/`UPDATE`/`DELETE`), and status (`Pending`/`Acknowledged`/`Undone`/`All`)
+- **Acknowledge** — mark an entry as reviewed. Does not reverse the change.
+- **Undo** — reverses the original operation: hard-deletes a created record, restores the previous state for an update, or un-deletes a soft-deleted record.
+- **Permanent Delete** (DELETE entries only) — hard-deletes the soft-deleted record. Irreversible.
 
 ### Backup & Restore
 

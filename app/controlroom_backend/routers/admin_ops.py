@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from config import settings
 from database import get_conn
 from routers.auth import require_admin, get_current_user, UserOut
-from routers._helpers import parent_ref_sql
+from routers._helpers import parent_ref_sql, AuditEntryWithData
 
 router = APIRouter()
 
@@ -166,27 +166,36 @@ class AuditEntry(BaseModel):
     record_display_name: str | None = None
 
 
-class AuditEntryWithData(BaseModel):
-    audit_id: UUID
-    table_name: str
-    record_id: UUID
-    operation: str
-    performed_by: str
-    performed_at: datetime
-    old_data: dict | None = None
-    new_data: dict | None = None
-    acknowledged_at: datetime | None = None
-    acknowledged_by: str | None = None
-    undone_at: datetime | None = None
-    undone_by: str | None = None
-    record_display_name: str | None = None
-
 
 class ChangeReviewResponse(BaseModel):
     total: int
     page: int
     page_size: int
     entries: list[AuditEntry]
+
+
+# Display name column for each audited table (used by list_change_review).
+# Table names are hardcoded constants — never sourced from external input.
+_NAME_COL: dict[str, str] = {
+    "brands":              "brand_name",
+    "models":              "model_name",
+    "effects":             "effect_name",
+    "instruments":         "instrument_name",
+    "libraries":           "library_name",
+    "workstations":        "tool_name",
+    "admin_tools":         "tool_name",
+    "composition_tools":   "tool_name",
+    "measurement_tools":   "tool_name",
+    "reference_tools":     "tool_name",
+    "workflow_tools":      "tool_name",
+    "effect_types":        "type_name",
+    "entity_types":        "type_name",
+    "instrument_types":    "type_name",
+    "model_types":         "type_name",
+    "plugin_formats":      "type_name",
+    "tag_types":           "type_name",
+    "tool_types":          "type_name",
+}
 
 
 # Primary key column name for each audited table.
@@ -304,7 +313,21 @@ async def list_change_review(
         *params, page_size, offset,
     )
 
-    entries = [AuditEntry(**dict(row), record_display_name=None) for row in rows]
+    entries = []
+    for row in rows:
+        d = dict(row)
+        table = d["table_name"]
+        record_id = d["record_id"]
+        display_name: str | None = None
+        name_col = _NAME_COL.get(table)
+        pk_col = _TABLE_PK.get(table)
+        if name_col and pk_col:
+            name_row = await conn.fetchrow(
+                f"SELECT {name_col} FROM {table} WHERE {pk_col} = $1",  # safe: name_col/pk_col/table from constants
+                record_id,
+            )
+            display_name = name_row[name_col] if name_row else str(record_id)[:8]
+        entries.append(AuditEntry(**d, record_display_name=display_name))
     return ChangeReviewResponse(total=total, page=page, page_size=page_size, entries=entries)
 
 

@@ -26,6 +26,7 @@ run_sql() {
 }
 
 echo "[reset-test-db] Dropping $TEST_DB..."
+run_sql postgres "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '$TEST_DB' AND pid <> pg_backend_pid();"
 run_sql postgres "DROP DATABASE IF EXISTS $TEST_DB;"
 
 echo "[reset-test-db] Cloning $SRC_DB → $TEST_DB..."

@@ -29,11 +29,12 @@ app/controlroom_frontend/
 │   ├── session/            # Effects, Instruments, Libraries, Workstations
 │   ├── tools/              # Admin, Composition, Measurement, Reference, Workflow tools
 │   ├── config/             # Lookup table editors (7 tables)
-│   └── admin/              # Backup/Restore, Users
+│   └── admin/              # Stats, Change Review, Backup/Restore, Users
 ├── components/
 │   ├── DataTable.tsx        # Virtualized TanStack Table wrapper
 │   ├── TablePage.tsx        # Generic page: search + table + modal
-│   ├── RecordModal.tsx      # Generic modal shell: view/edit/delete lifecycle
+│   ├── RecordModal.tsx      # Generic modal shell: view/edit/history/delete lifecycle
+│   ├── RecordHistoryView.tsx # Audit history view: operation badges, diff table, undo
 │   ├── FieldRow.tsx         # Label + value display row (handles empty states)
 │   ├── TypeBadges.tsx       # Renders [{id, name}] arrays as badge pills
 │   ├── ParentLinks.tsx      # Renders parent_ref arrays
@@ -51,9 +52,11 @@ app/controlroom_frontend/
 ├── lib/
 │   ├── api.ts              # Typed fetch wrapper — calls relative /api/... paths
 │   ├── auth.tsx            # AuthContext, useAuth hook, session management
+│   ├── computeDiff.ts      # Field-level diff between two JSON snapshots (for history view)
 │   ├── types.ts            # TypeScript interfaces for all API response shapes
 │   └── utils.ts            # Tailwind class merge utility (cn)
-└── __tests__/              # Jest + React Testing Library unit tests
+├── __tests__/              # Jest + React Testing Library unit tests
+└── e2e/                    # Playwright end-to-end tests (run against test stack on port 3001)
 ```
 
 ---
@@ -73,10 +76,19 @@ Handles: data fetching via `useQuery`, search with 300ms debounce, Add button (a
 ### `RecordModal`
 
 The generic modal shell used by all per-table modals. Handles:
-- View mode vs. edit mode toggle
+- View / edit / history mode toggle
 - Two-stage delete confirmation (Delete → "Are you sure?" → Confirm Delete)
 - `isSaving` / `isDeleting` loading states with button disabling
-- Admin-only Edit button
+- Admin-only Edit button; History button for existing records (any authenticated user)
+
+### `RecordHistoryView`
+
+Renders the full audit trail for a single record. Fetches from `/{resource}/{id}/history` at mount. Shows each `audit_log` entry with:
+- Operation badge (`CREATE` / `UPDATE` / `DELETE`)
+- Timestamp and actor
+- Field-level diff table for UPDATE entries (computed by `lib/computeDiff.ts`)
+- Undo button (admin only, for unresolved entries)
+- Acknowledged / Undone badges for resolved entries
 
 ### Per-table modals (`BrandModal`, `EffectModal`, etc.)
 
@@ -163,3 +175,5 @@ Unit tests use [Jest](https://jestjs.io/) + [React Testing Library](https://test
 - Google SSO paths are not tested — they require mocking the Google Identity Services API and a module-level env var that requires `jest.resetModules()`. Documented with a `NOTE:` comment in the relevant test files.
 
 Coverage is collected via `jest --coverage` and reported to SonarQube as LCOV. New code must meet ≥ 80% line coverage to pass the quality gate.
+
+End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. They run against the test stack (frontend on port 3001, backend on port 5151, `controlroomdb_test` database). Auth state is saved to `e2e/.auth/state.json` by the `auth.setup.ts` project and reused across tests. Run via `./scripts/test-e2e.sh`.

@@ -47,6 +47,29 @@ Array columns (e.g. `tag_ids UUID[]`) store references to these lookup tables di
 | `admin_tools` | License managers, downloaders, product portals |
 | `users` | Application user accounts |
 
+### Soft delete
+
+All content tables (brands, models, effects, instruments, libraries, workstations, and all five tool tables) and all lookup/config tables have a `deleted_at TIMESTAMPTZ` column. Deleting a record through the API sets `deleted_at` to the current time rather than removing the row. All semantic views filter `WHERE deleted_at IS NULL` so soft-deleted records are invisible to normal queries.
+
+Hard deletion (permanently removing the row) is performed through the Change Review admin endpoint after a soft-delete has been reviewed.
+
+### Audit log
+
+Every write operation (CREATE, UPDATE, DELETE) on content and config tables is recorded in the `audit_log` table. The API routers call `log_audit()` inside the same transaction as the data change.
+
+| Column | Description |
+|---|---|
+| `audit_id` | UUID primary key |
+| `table_name` | Name of the affected table |
+| `record_id` | UUID of the affected record |
+| `operation` | `CREATE`, `UPDATE`, or `DELETE` |
+| `performed_by` | Username of the user who made the change |
+| `performed_at` | Timestamp of the change |
+| `old_data` | JSON snapshot of the row before the change (null for CREATE) |
+| `new_data` | JSON snapshot of the row after the change (null for DELETE) |
+| `acknowledged_at` / `acknowledged_by` | Set when an admin reviews the entry via Change Review |
+| `undone_at` / `undone_by` | Set when an admin reverses the change via Change Review |
+
 ### Parent references
 
 Effects, instruments, and libraries support a `parent_ids` column of type `parent_ref[]`, where `parent_ref` is a PostgreSQL composite type `(table_name TEXT, id UUID)`. This allows a record to reference parents in any table — e.g. a library can be parented to an instrument or another library.
