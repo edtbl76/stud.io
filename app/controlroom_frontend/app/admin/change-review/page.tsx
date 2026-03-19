@@ -200,12 +200,15 @@ export default function ChangeReviewPage() {
         </select>
       </div>
 
-      {/* Table */}
-      {!data ? (
+      {/* Loading spinner */}
+      {!data && (
         <div className="flex items-center justify-center py-10">
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
-      ) : (
+      )}
+
+      {/* Table */}
+      {data && (
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
@@ -222,25 +225,17 @@ export default function ChangeReviewPage() {
               {data.entries.map((entry) => {
                 const isResolved = !!(entry.acknowledged_at || entry.undone_at)
                 const rowError = rowErrors[entry.audit_id]
-                return (
-                  <tr key={entry.audit_id} className="border-b border-border/50">
-                    <td className="py-1.5 pr-4 text-muted-foreground">
-                      {timeAgo(entry.performed_at)}
-                    </td>
-                    <td className="py-1.5 pr-4">{entry.table_name}</td>
-                    <td className="py-1.5 pr-4 font-mono text-muted-foreground">
-                      {entry.record_display_name ?? entry.record_id.slice(0, 8)}
-                    </td>
-                    <td className="py-1.5 pr-4">{entry.operation}</td>
-                    <td className="py-1.5 pr-4 text-muted-foreground">{entry.performed_by}</td>
-                    <td className="py-1.5">
-                      {rowError ? (
-                        <span className="text-destructive">{rowError}</span>
-                      ) : isResolved ? (
-                        <span className="text-muted-foreground italic">
-                          {entry.acknowledged_at ? 'Acknowledged' : 'Undone'}
-                        </span>
-                      ) : isAdmin ? (
+                let actionsCell: React.ReactNode
+                if (rowError) {
+                  actionsCell = <span className="text-destructive">{rowError}</span>
+                } else if (isResolved) {
+                  actionsCell = (
+                    <span className="text-muted-foreground italic">
+                      {entry.acknowledged_at ? 'Acknowledged' : 'Undone'}
+                    </span>
+                  )
+                } else if (isAdmin) {
+                  actionsCell = (
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleAction(entry.audit_id, 'POST', 'undo')}
@@ -266,8 +261,22 @@ export default function ChangeReviewPage() {
                             </button>
                           )}
                         </div>
-                      ) : null}
+                  )
+                } else {
+                  actionsCell = null
+                }
+                return (
+                  <tr key={entry.audit_id} className="border-b border-border/50">
+                    <td className="py-1.5 pr-4 text-muted-foreground">
+                      {timeAgo(entry.performed_at)}
                     </td>
+                    <td className="py-1.5 pr-4">{entry.table_name}</td>
+                    <td className="py-1.5 pr-4 font-mono text-muted-foreground">
+                      {entry.record_display_name ?? entry.record_id.slice(0, 8)}
+                    </td>
+                    <td className="py-1.5 pr-4">{entry.operation}</td>
+                    <td className="py-1.5 pr-4 text-muted-foreground">{entry.performed_by}</td>
+                    <td className="py-1.5">{actionsCell}</td>
                   </tr>
                 )
               })}
@@ -283,7 +292,7 @@ export default function ChangeReviewPage() {
         </div>
       )}
 
-      {/* Pagination — always rendered so tests can find the buttons */}
+      {/* Pagination */}
       <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
         <button
           onClick={() => setPage((p) => Math.max(1, p - 1))}

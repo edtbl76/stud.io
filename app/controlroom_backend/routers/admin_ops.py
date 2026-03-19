@@ -159,10 +159,10 @@ class AuditEntry(BaseModel):
     operation: str
     performed_by: str
     performed_at: datetime
-    acknowledged_at: datetime | None
-    acknowledged_by: str | None
-    undone_at: datetime | None
-    undone_by: str | None
+    acknowledged_at: datetime | None = None
+    acknowledged_by: str | None = None
+    undone_at: datetime | None = None
+    undone_by: str | None = None
     record_display_name: str | None = None
 
 
@@ -227,8 +227,7 @@ async def _apply_old_data(
 
 @router.get(
     "/change-review",
-    response_model=ChangeReviewResponse,
-    responses={401: {"description": "Unauthorized"}},
+    responses={401: {"description": "Unauthorized"}, 422: {"description": "Invalid status"}},
 )
 async def list_change_review(
     current_user: Annotated[UserOut, Depends(get_current_user)],
@@ -236,11 +235,10 @@ async def list_change_review(
     table: str | None = None,
     operation: str | None = None,
     status: str = "pending",
-    page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=50, ge=1),
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1)] = 50,
 ) -> ChangeReviewResponse:
     """Return paginated audit log entries with optional filters."""
-    _VALID_STATUSES = {"pending", "acknowledged", "undone", "all"}
     if status not in _VALID_STATUSES:
         raise HTTPException(status_code=422, detail=f"status must be one of: {', '.join(sorted(_VALID_STATUSES))}")
 
@@ -294,6 +292,8 @@ async def list_change_review(
     return ChangeReviewResponse(total=total, page=page, page_size=page_size, entries=entries)
 
 
+_VALID_STATUSES = {"pending", "acknowledged", "undone", "all"}
+
 _AUDIT_SELECT = (
     "SELECT audit_id, table_name, record_id, operation, "
     "performed_by, performed_at, "
@@ -304,9 +304,13 @@ _AUDIT_SELECT = (
 )
 
 
+_NOT_FOUND = "Audit entry not found"
+_ALREADY_ACKNOWLEDGED = "Entry is already acknowledged"
+_ALREADY_UNDONE = "Entry is already undone"
+
+
 @router.post(
     "/change-review/{audit_id}/acknowledge",
-    response_model=AuditEntry,
     responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}},
 )
 async def acknowledge_change(
@@ -317,11 +321,11 @@ async def acknowledge_change(
     """Mark an audit entry as acknowledged."""
     row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Audit entry not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     if row["acknowledged_at"] is not None:
-        raise HTTPException(status_code=409, detail="Entry is already acknowledged")
+        raise HTTPException(status_code=409, detail=_ALREADY_ACKNOWLEDGED)
     if row["undone_at"] is not None:
-        raise HTTPException(status_code=409, detail="Entry is already undone")
+        raise HTTPException(status_code=409, detail=_ALREADY_UNDONE)
 
     updated = await conn.fetchrow(
         """UPDATE audit_log
@@ -338,7 +342,6 @@ async def acknowledge_change(
 
 @router.post(
     "/change-review/{audit_id}/undo",
-    response_model=AuditEntry,
     responses={
         404: {"description": "Not found"},
         409: {"description": "Conflict"},
@@ -353,11 +356,11 @@ async def undo_change(
     """Reverse the original database operation."""
     row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Audit entry not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     if row["acknowledged_at"] is not None:
-        raise HTTPException(status_code=409, detail="Entry is already acknowledged")
+        raise HTTPException(status_code=409, detail=_ALREADY_ACKNOWLEDGED)
     if row["undone_at"] is not None:
-        raise HTTPException(status_code=409, detail="Entry is already undone")
+        raise HTTPException(status_code=409, detail=_ALREADY_UNDONE)
 
     table = row["table_name"]
     record_id = row["record_id"]
@@ -414,6 +417,7 @@ async def undo_change(
         400: {"description": "Bad request"},
         404: {"description": "Not found"},
         409: {"description": "Conflict"},
+        500: {"description": "Unrecognized table"},
     },
 )
 async def permanent_delete(
@@ -424,11 +428,11 @@ async def permanent_delete(
     """Hard-delete the record referenced by a DELETE audit entry."""
     row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
     if not row:
-        raise HTTPException(status_code=404, detail="Audit entry not found")
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
     if row["acknowledged_at"] is not None:
-        raise HTTPException(status_code=409, detail="Entry is already acknowledged")
+        raise HTTPException(status_code=409, detail=_ALREADY_ACKNOWLEDGED)
     if row["undone_at"] is not None:
-        raise HTTPException(status_code=409, detail="Entry is already undone")
+        raise HTTPException(status_code=409, detail=_ALREADY_UNDONE)
     if row["operation"] != "DELETE":
         raise HTTPException(
             status_code=400,
