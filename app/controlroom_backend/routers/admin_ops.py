@@ -166,6 +166,22 @@ class AuditEntry(BaseModel):
     record_display_name: str | None = None
 
 
+class AuditEntryWithData(BaseModel):
+    audit_id: UUID
+    table_name: str
+    record_id: UUID
+    operation: str
+    performed_by: str
+    performed_at: datetime
+    old_data: dict | None = None
+    new_data: dict | None = None
+    acknowledged_at: datetime | None = None
+    acknowledged_by: str | None = None
+    undone_at: datetime | None = None
+    undone_by: str | None = None
+    record_display_name: str | None = None
+
+
 class ChangeReviewResponse(BaseModel):
     total: int
     page: int
@@ -307,6 +323,35 @@ _AUDIT_SELECT = (
 _NOT_FOUND = "Audit entry not found"
 _ALREADY_ACKNOWLEDGED = "Entry is already acknowledged"
 _ALREADY_UNDONE = "Entry is already undone"
+
+
+@router.get(
+    "/change-review/{audit_id}",
+    responses={401: {"description": "Unauthorized"}, 404: {"description": "Not found"}},
+)
+async def get_change_detail(
+    audit_id: UUID,
+    current_user: Annotated[UserOut, Depends(get_current_user)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> AuditEntryWithData:
+    """Return a single audit entry including old_data and new_data for diff display."""
+    row = await conn.fetchrow(
+        """SELECT audit_id, table_name, record_id, operation,
+                  performed_by, performed_at,
+                  old_data, new_data,
+                  acknowledged_at, acknowledged_by,
+                  undone_at, undone_by
+           FROM audit_log WHERE audit_id = $1""",
+        audit_id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail=_NOT_FOUND)
+    row_dict = dict(row)
+    for field in ("old_data", "new_data"):
+        val = row_dict.get(field)
+        if isinstance(val, str):
+            row_dict[field] = json.loads(val)
+    return AuditEntryWithData(**row_dict, record_display_name=None)
 
 
 @router.post(

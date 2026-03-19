@@ -8,7 +8,7 @@
 Completed work.
 
 * [x] Soft-Delete Support (Audit Infrastructure) #P0 #data #M (v1.6.2)
-* [x] Change Review Page Implementation #P0 #data #M 
+* [x] Change Review Page Implementation #P0 #data #M (v1.6.3)
 
 
 ---

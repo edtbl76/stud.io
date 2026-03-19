@@ -149,6 +149,10 @@ async def test_change_role_admin_can_change(client, conn, admin_headers):
 
 
 async def test_change_role_last_admin_blocked(client, conn, admin_headers):
+    # Demote all other admins so adminuser is the only one, then verify downgrade is blocked
+    await conn.execute(
+        "UPDATE users SET role = 'user' WHERE username != 'adminuser' AND role = 'admin'"
+    )
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'adminuser'")
     response = await client.patch(
         f"/users/{row['user_id']}/role",

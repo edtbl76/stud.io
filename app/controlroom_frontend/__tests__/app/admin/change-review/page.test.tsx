@@ -113,18 +113,27 @@ describe('ChangeReviewPage', () => {
     expect(screen.queryByRole('button', { name: /acknowledge/i })).not.toBeInTheDocument()
   })
 
+  it('DELETE entries show Permanently Delete but not Acknowledge', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    // There is exactly one DELETE entry — it should have Permanently Delete, not Acknowledge
+    expect(screen.getAllByRole('button', { name: /permanently delete/i })).toHaveLength(1)
+    // UPDATE entry has Acknowledge; DELETE entry does not — total should be 1
+    expect(screen.getAllByRole('button', { name: /acknowledge/i })).toHaveLength(1)
+  })
+
   it('clicking Acknowledge calls the correct endpoint and removes entry', async () => {
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
 
+    // Acknowledge is only on the UPDATE entry (mockUpdateEntry), not the DELETE entry
     const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
-    // The DELETE entry is first
-    mockFetch.mockResolvedValueOnce(ok({ ...mockEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
+    mockFetch.mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
 
     fireEvent.click(ackButtons[0])
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockEntry.audit_id}/acknowledge`),
+        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}/acknowledge`),
         expect.objectContaining({ method: 'POST' })
       )
     })
@@ -175,6 +184,81 @@ describe('ChangeReviewPage', () => {
     await waitFor(() =>
       expect(screen.getByText(/Entry is already acknowledged/i)).toBeInTheDocument()
     )
+  })
+
+  it('clicking a row fetches the detail endpoint and shows the diff modal', async () => {
+    const detailEntry = {
+      ...mockUpdateEntry,
+      old_data: { effect_name: 'Reverb', version: '1.0' },
+      new_data: { effect_name: 'Reverb', version: '2.0' },
+    }
+    // First call: list; second call: detail on row click
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok(detailEntry))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const rows = document.querySelectorAll('tbody tr')
+    fireEvent.click(rows[1]) // second row = UPDATE entry
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}`)
+      )
+      expect(screen.getByText('Before')).toBeInTheDocument()
+      expect(screen.getByText('After')).toBeInTheDocument()
+    })
+  })
+
+  it('diff modal can be closed', async () => {
+    const detailEntry = {
+      ...mockUpdateEntry,
+      old_data: { effect_name: 'Reverb', version: '1.0' },
+      new_data: { effect_name: 'Reverb', version: '2.0' },
+    }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok(detailEntry))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const rows = document.querySelectorAll('tbody tr')
+    fireEvent.click(rows[1])
+
+    await waitFor(() => expect(screen.getByText('Before')).toBeInTheDocument())
+
+    fireEvent.click(screen.getByRole('button', { name: '' })) // X button
+    await waitFor(() => expect(screen.queryByText('Before')).not.toBeInTheDocument())
+  })
+
+  it('auto-navigates to previous page when current page entries are all removed', async () => {
+    const page2Response = {
+      total: 51,
+      page: 2,
+      page_size: 50,
+      entries: [mockEntry],
+    }
+    const emptyPage2 = { total: 50, page: 2, page_size: 50, entries: [] }
+    const page1Response = { total: 50, page: 1, page_size: 50, entries: [mockUpdateEntry] }
+
+    mockFetch
+      .mockResolvedValueOnce(ok(page2Response))   // initial load (page 1 in test, but sets up state)
+      .mockResolvedValueOnce(ok({ ...mockEntry, undone_at: '2026-03-18T14:01:00Z' })) // undo action
+      .mockResolvedValueOnce(ok(page1Response))   // re-fetch on page decrease
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getByText('DELETE'))
+
+    const undoButtons = screen.getAllByRole('button', { name: /undo/i })
+    fireEvent.click(undoButtons[0])
+
+    await waitFor(() => {
+      // After removing the only entry, the page effect fires and fetches page 1
+      expect(screen.queryByText('DELETE')).not.toBeInTheDocument()
+    })
   })
 
   it('shows badge instead of buttons for already-resolved entries', async () => {

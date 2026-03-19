@@ -1,4 +1,20 @@
 services:
+  controlroom_backend_test:
+    build:
+      context: ./app/controlroom_backend
+    container_name: controlroom_backend_test
+    environment:
+      DB_HOST: studio_db
+      DB_PORT: 5432
+      DB_NAME: controlroomdb_test
+      DB_USER: studio
+      DB_PASSWORD: studio
+    ports:
+      - "5151:5150"
+    networks:
+      - studio_default
+    restart: unless-stopped
+
   sonarqube_db:
     image: postgres:17
     container_name: sonarqube_db
@@ -32,3 +48,7 @@ volumes:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
+
+networks:
+  studio_default:
+    external: true
