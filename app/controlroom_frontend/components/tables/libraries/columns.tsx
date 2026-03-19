@@ -3,6 +3,11 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Library } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
+import type { BulkEditField } from '@/lib/bulkEdit'
+
+export const libraryBulkEditFields: BulkEditField[] = [
+  { key: 'tag_ids', label: 'Tags', type: 'multiselect', configSlug: 'tag-types' },
+]
 
 export const libraryColumns: ColumnDef<Library, unknown>[] = [
   {

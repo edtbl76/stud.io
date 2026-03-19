@@ -1,7 +1,7 @@
 'use client'
 
 import { TablePage } from '@/components/TablePage'
-import { brandColumns } from '@/components/tables/brands/columns'
+import { brandColumns, brandBulkEditFields } from '@/components/tables/brands/columns'
 import { BrandModal } from '@/components/tables/brands/BrandModal'
 import { Brand } from '@/lib/types'
 
@@ -13,6 +13,7 @@ export default function BrandsPage() {
       queryKey="/catalog/brands"
       columns={brandColumns}
       getRowId={(row) => row.brand_id}
+      bulkEditFields={brandBulkEditFields}
       renderModal={(record, onClose, onMutate) => (
         <BrandModal record={record} onClose={onClose} onMutate={onMutate} />
       )}

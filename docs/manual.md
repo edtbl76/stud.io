@@ -44,6 +44,26 @@ Click any row to open the record in a modal.
 
 Admins see an **Add** button in the top-right corner of every table. Click it to open a blank create form.
 
+### Bulk edit (admin only)
+
+Content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) show a checkbox column. Select one or more rows to open the bulk edit bar at the top of the table.
+
+The bulk edit bar lets you set a single field to the same value across all selected records:
+
+1. Pick a field from the **Set field** dropdown — only fields appropriate for bulk editing are offered (never names or descriptions)
+2. Enter or select the new value
+3. Click **Apply to N** — the change is applied to each selected record via individual PATCH requests
+
+For **multiselect fields** (tags, types), the new value is merged into each record's existing values — existing values are preserved and duplicates are deduplicated.
+
+For **single-select fields** (entity type, model type, etc.), the selected value replaces the existing value.
+
+For **text fields** (version, collection, etc.), the typed value replaces the existing value.
+
+Click the **×** next to the count to clear the selection without applying changes.
+
+CONFIG tables do not have a checkbox column — bulk edit is not available there.
+
 ---
 
 ## Record modal

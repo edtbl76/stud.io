@@ -1,8 +1,9 @@
 import * as React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { TablePage } from '@/components/TablePage'
+import type { BulkEditField } from '@/lib/bulkEdit'
 
 // useVirtualizer needs ResizeObserver in jsdom
 globalThis.ResizeObserver = jest.fn().mockImplementation(() => ({
@@ -11,10 +12,34 @@ globalThis.ResizeObserver = jest.fn().mockImplementation(() => ({
   disconnect: jest.fn(),
 }))
 
+// useVirtualizer returns 0 items in jsdom (no real scroll dimensions).
+// Mock it to always render all rows so row cells are visible in tests.
+jest.mock('@tanstack/react-virtual', () => ({
+  useVirtualizer: ({ count, estimateSize }: { count: number; estimateSize: () => number }) => {
+    const size = estimateSize()
+    return {
+      getVirtualItems: () =>
+        Array.from({ length: count }, (_, i) => ({
+          index: i,
+          start: i * size,
+          end: (i + 1) * size,
+          size,
+          key: i,
+          lane: 0,
+        })),
+      getTotalSize: () => count * size,
+    }
+  },
+}))
+
 const mockApiList = jest.fn()
+const mockApiUpdate = jest.fn()
 
 jest.mock('@/lib/api', () => ({
-  api: { list: (...args: unknown[]) => mockApiList(...args) },
+  api: {
+    list: (...args: unknown[]) => mockApiList(...args),
+    update: (...args: unknown[]) => mockApiUpdate(...args),
+  },
 }))
 
 jest.mock('@/lib/auth', () => ({
@@ -30,9 +55,13 @@ const columns: ColumnDef<Row, unknown>[] = [
   { accessorKey: 'name', header: 'Name' },
 ]
 
-const rows: Row[] = [{ id: '1', name: 'Alpha' }]
+const rows: Row[] = [{ id: '1', name: 'Alpha' }, { id: '2', name: 'Beta' }]
 
-function renderPage(roleOverride?: string) {
+const bulkEditFields: BulkEditField[] = [
+  { key: 'name', label: 'Name', type: 'text' },
+]
+
+function renderPage(roleOverride?: string, withBulkEdit = false) {
   if (roleOverride !== undefined) {
     mockUseAuth = () => ({ role: roleOverride })
   } else {
@@ -51,6 +80,7 @@ function renderPage(roleOverride?: string) {
         queryKey="test"
         columns={columns}
         getRowId={(r) => r.id}
+        bulkEditFields={withBulkEdit ? bulkEditFields : undefined}
         renderModal={(record, onClose) => (
           <div data-testid="modal">
             {record === null ? 'create' : record?.name}
@@ -70,24 +100,24 @@ describe('TablePage', () => {
   it('renders the page title', async () => {
     renderPage()
     expect(screen.getByText('Test Table')).toBeInTheDocument()
-    await waitFor(() => screen.getByText('1 record'))
+    await waitFor(() => screen.getByText('2 records'))
   })
 
   it('renders Add button for admin', async () => {
     renderPage('admin')
-    await waitFor(() => screen.getByText('1 record'))
+    await waitFor(() => screen.getByText('2 records'))
     expect(screen.getByRole('button', { name: /add/i })).toBeInTheDocument()
   })
 
   it('hides Add button for non-admin', async () => {
     renderPage('user')
-    await waitFor(() => screen.getByText('1 record'))
+    await waitFor(() => screen.getByText('2 records'))
     expect(screen.queryByRole('button', { name: /add/i })).not.toBeInTheDocument()
   })
 
   it('opens create modal when Add is clicked', async () => {
     renderPage('admin')
-    await waitFor(() => screen.getByText('1 record'))
+    await waitFor(() => screen.getByText('2 records'))
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
     expect(screen.getByTestId('modal')).toBeInTheDocument()
     expect(screen.getByText('create')).toBeInTheDocument()
@@ -95,7 +125,7 @@ describe('TablePage', () => {
 
   it('closes modal when onClose is called', async () => {
     renderPage('admin')
-    await waitFor(() => screen.getByText('1 record'))
+    await waitFor(() => screen.getByText('2 records'))
     fireEvent.click(screen.getByRole('button', { name: /add/i }))
     expect(screen.getByTestId('modal')).toBeInTheDocument()
     fireEvent.click(screen.getByText('close-modal'))
@@ -103,7 +133,6 @@ describe('TablePage', () => {
   })
 
   it('shows plural record count', async () => {
-    mockApiList.mockResolvedValue([...rows, { id: '2', name: 'Beta' }])
     renderPage()
     await waitFor(() => screen.getByText('2 records'))
   })
@@ -119,5 +148,99 @@ describe('TablePage', () => {
   it('renders search input', async () => {
     renderPage()
     expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument()
+  })
+})
+
+describe('TablePage bulk edit', () => {
+  beforeEach(() => {
+    mockApiList.mockResolvedValue(rows)
+    mockApiUpdate.mockResolvedValue({})
+  })
+
+  it('shows checkbox column for admin with bulkEditFields', async () => {
+    renderPage('admin', true)
+    await waitFor(() => screen.getByText('2 records'))
+    expect(screen.getByLabelText('Select all')).toBeInTheDocument()
+  })
+
+  it('does not show checkbox column without bulkEditFields', async () => {
+    renderPage('admin', false)
+    await waitFor(() => screen.getByText('2 records'))
+    expect(screen.queryByLabelText('Select all')).not.toBeInTheDocument()
+  })
+
+  it('does not show checkbox column for non-admin', async () => {
+    renderPage('user', true)
+    await waitFor(() => screen.getByText('2 records'))
+    expect(screen.queryByLabelText('Select all')).not.toBeInTheDocument()
+  })
+
+  it('shows bulk edit bar when rows are selected', async () => {
+    renderPage('admin', true)
+    await waitFor(() => screen.getByText('2 records'))
+    const checkboxes = screen.getAllByRole('checkbox')
+    // First checkbox is "select all", rest are per-row
+    fireEvent.click(checkboxes[1])
+    const bar = screen.getByTestId('bulk-edit-bar')
+    expect(bar).toBeInTheDocument()
+    expect(within(bar).getByText('1')).toBeInTheDocument()
+  })
+
+  it('hides bulk edit bar when selection is cleared', async () => {
+    renderPage('admin', true)
+    await waitFor(() => screen.getByText('2 records'))
+    const checkboxes = screen.getAllByRole('checkbox')
+    fireEvent.click(checkboxes[1])
+    expect(screen.getByTestId('bulk-edit-bar')).toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('Clear selection'))
+    expect(screen.queryByTestId('bulk-edit-bar')).not.toBeInTheDocument()
+  })
+
+  it('select-all checkbox selects all visible rows', async () => {
+    renderPage('admin', true)
+    await waitFor(() => screen.getByText('2 records'))
+    const selectAll = screen.getByLabelText('Select all')
+    fireEvent.click(selectAll)
+    const bar = screen.getByTestId('bulk-edit-bar')
+    expect(bar).toBeInTheDocument()
+    expect(within(bar).getByText('2')).toBeInTheDocument()
+  })
+
+  it('clears bulk selection after apply completes', async () => {
+    renderPage('admin', true)
+    await waitFor(() => screen.getByText('2 records'))
+
+    fireEvent.click(screen.getByLabelText('Select all'))
+    expect(screen.getByTestId('bulk-edit-bar')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), {
+      target: { value: 'name' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Set Name…'), {
+      target: { value: 'Updated' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }))
+
+    await waitFor(() => expect(mockApiUpdate).toHaveBeenCalledTimes(2))
+    await waitFor(() =>
+      expect(screen.queryByTestId('bulk-edit-bar')).not.toBeInTheDocument()
+    )
+  })
+})
+
+describe('TablePage row interaction', () => {
+  beforeEach(() => {
+    mockApiList.mockResolvedValue(rows)
+  })
+
+  it('clicking a row opens its modal', async () => {
+    renderPage('admin')
+    await waitFor(() => screen.getByText('2 records'))
+
+    // Click on first data cell (td) — event bubbles to the tr onClick handler
+    const cells = screen.getAllByRole('cell')
+    fireEvent.click(cells[0])
+
+    await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
   })
 })

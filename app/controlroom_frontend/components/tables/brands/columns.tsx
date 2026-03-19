@@ -3,6 +3,11 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { ExternalLink } from 'lucide-react'
 import { Brand } from '@/lib/types'
+import type { BulkEditField } from '@/lib/bulkEdit'
+
+export const brandBulkEditFields: BulkEditField[] = [
+  { key: 'entity_type_id', label: 'Entity Type', type: 'singleselect', configSlug: 'entity-types' },
+]
 
 export const brandColumns: ColumnDef<Brand, unknown>[] = [
   {

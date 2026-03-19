@@ -15,6 +15,7 @@ interface MultiSelectProps {
   onChange: (value: string[]) => void
   placeholder?: string
   singleSelect?: boolean
+  hideBadges?: boolean
 }
 
 export function MultiSelect({
@@ -23,6 +24,7 @@ export function MultiSelect({
   onChange,
   placeholder = 'Select...',
   singleSelect = false,
+  hideBadges = false,
 }: Readonly<MultiSelectProps>) {
   const [open, setOpen] = React.useState(false)
 
@@ -127,7 +129,7 @@ export function MultiSelect({
         </PopoverPrimitive.Portal>
       </PopoverPrimitive.Root>
 
-      {selectedOptions.length > 0 && (
+      {!hideBadges && selectedOptions.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {selectedOptions.map(opt => (
             <Badge key={opt.type_id} variant="secondary" className="gap-1 pr-1">
