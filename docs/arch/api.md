@@ -141,3 +141,13 @@ Tests use a separate `controlroomdb_test` database. Each test wraps its operatio
 ### Stats
 
 `GET /admin/stats` — returns row counts for all 18 content and lookup tables grouped by Catalog, Session, Tools, and Config. Tables within each group are sorted by count descending, display name ascending as tie-break. The `total` field is the sum across all groups and excludes the `users` table.
+
+### Change Review
+
+`GET /admin/change-review` — returns a paginated list of `audit_log` entries. Accessible by any authenticated user. Optional query parameters: `table` (filter by table name), `operation` (`CREATE`, `UPDATE`, `DELETE`), `status` (`pending` [default], `acknowledged`, `undone`, `all`), `page` (1-based, default 1), `page_size` (default 50, max 200). Results sorted by `performed_at DESC`. The `record_display_name` field is always `null` in Sub-project 2; name resolution is added in Sub-project 3.
+
+`POST /admin/change-review/{audit_id}/acknowledge` — admin only. Marks the audit entry as acknowledged (`acknowledged_at`, `acknowledged_by`). Returns the updated entry. Returns 409 if already resolved.
+
+`POST /admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents undo-CREATE.
+
+`DELETE /admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.

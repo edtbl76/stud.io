@@ -3,15 +3,17 @@ import json
 import os
 from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from config import settings
 from database import get_conn
-from routers.auth import require_admin, UserOut
+from routers.auth import require_admin, get_current_user, UserOut
+from routers._helpers import parent_ref_sql
 
 router = APIRouter()
 
@@ -131,6 +133,9 @@ def _compare_manifests(expected: dict, actual: dict) -> dict:
 class TableStat(BaseModel):
     name: str
     count: int
+    pending_creates: int = 0
+    pending_deletes: int = 0
+    pending_updates: int = 0
 
 
 class StatGroup(BaseModel):
@@ -143,35 +148,339 @@ class StatsResponse(BaseModel):
     total: int
 
 
+# ---------------------------------------------------------------------------
+# Change Review models
+# ---------------------------------------------------------------------------
+
+class AuditEntry(BaseModel):
+    audit_id: UUID
+    table_name: str
+    record_id: UUID
+    operation: str
+    performed_by: str
+    performed_at: datetime
+    acknowledged_at: datetime | None
+    acknowledged_by: str | None
+    undone_at: datetime | None
+    undone_by: str | None
+    record_display_name: str | None = None
+
+
+class ChangeReviewResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    entries: list[AuditEntry]
+
+
+# Primary key column name for each audited table.
+# Table names are hardcoded constants — never sourced from external input.
+_TABLE_PK: dict[str, str] = {
+    "brands":              "brand_id",
+    "models":              "model_id",
+    "effects":             "effect_id",
+    "instruments":         "instrument_id",
+    "libraries":           "library_id",
+    "workstations":        "workstation_id",
+    "admin_tools":         "admin_tool_id",
+    "composition_tools":   "composition_tool_id",
+    "measurement_tools":   "measurement_tool_id",
+    "reference_tools":     "reference_tool_id",
+    "workflow_tools":      "workflow_tool_id",
+    "effect_types":        "type_id",
+    "entity_types":        "type_id",
+    "instrument_types":    "type_id",
+    "model_types":         "type_id",
+    "plugin_formats":      "type_id",
+    "tag_types":           "type_id",
+    "tool_types":          "type_id",
+}
+
+
+async def _apply_old_data(
+    conn: asyncpg.Connection,
+    table: str,
+    pk_col: str,
+    record_id: UUID,
+    old_data: dict,
+) -> None:
+    """Restore a row to its old_data snapshot, excluding PK and created_at."""
+    skip = {pk_col, "created_at"}
+    set_parts, values, i = [], [], 1
+    for col, val in old_data.items():
+        if col in skip:
+            continue
+        if col == "parent_ids":
+            set_parts.append(f"{col} = {parent_ref_sql(f'${i}')}")
+            values.append(json.dumps(val))
+        else:
+            set_parts.append(f"{col} = ${i}")
+            values.append(val)
+        i += 1
+    if not set_parts:
+        return
+    await conn.execute(
+        f"UPDATE {table} SET {', '.join(set_parts)} WHERE {pk_col} = ${i}",
+        *values, record_id,
+    )
+
+
+@router.get(
+    "/change-review",
+    response_model=ChangeReviewResponse,
+    responses={401: {"description": "Unauthorized"}},
+)
+async def list_change_review(
+    current_user: Annotated[UserOut, Depends(get_current_user)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+    table: str | None = None,
+    operation: str | None = None,
+    status: str = "pending",
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=1),
+) -> ChangeReviewResponse:
+    """Return paginated audit log entries with optional filters."""
+    _VALID_STATUSES = {"pending", "acknowledged", "undone", "all"}
+    if status not in _VALID_STATUSES:
+        raise HTTPException(status_code=422, detail=f"status must be one of: {', '.join(sorted(_VALID_STATUSES))}")
+
+    if page_size > 200:
+        page_size = 200
+
+    conditions: list[str] = []
+    params: list = []
+    i = 1
+
+    if status == "pending":
+        conditions.append("acknowledged_at IS NULL AND undone_at IS NULL")
+    elif status == "acknowledged":
+        conditions.append("acknowledged_at IS NOT NULL")
+    elif status == "undone":
+        conditions.append("undone_at IS NOT NULL")
+    # "all" → no filter
+
+    if table is not None:
+        conditions.append(f"table_name = ${i}")
+        params.append(table)
+        i += 1
+
+    if operation is not None:
+        conditions.append(f"operation = ${i}")
+        params.append(operation)
+        i += 1
+
+    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+    total = await conn.fetchval(
+        f"SELECT COUNT(*)::int FROM audit_log {where}", *params  # safe: conditions built from literals and $N placeholders only
+    )
+
+    offset = (page - 1) * page_size
+    rows = await conn.fetch(
+        f"""
+        SELECT audit_id, table_name, record_id, operation,
+               performed_by, performed_at,
+               acknowledged_at, acknowledged_by,
+               undone_at, undone_by
+        FROM audit_log
+        {where}
+        ORDER BY performed_at DESC
+        LIMIT ${i} OFFSET ${i+1}
+        """,  # safe: where clause built from literals and $N placeholders only
+        *params, page_size, offset,
+    )
+
+    entries = [AuditEntry(**dict(row), record_display_name=None) for row in rows]
+    return ChangeReviewResponse(total=total, page=page, page_size=page_size, entries=entries)
+
+
+_AUDIT_SELECT = (
+    "SELECT audit_id, table_name, record_id, operation, "
+    "performed_by, performed_at, "
+    "acknowledged_at, acknowledged_by, "
+    "undone_at, undone_by, "
+    "old_data "
+    "FROM audit_log WHERE audit_id = $1"
+)
+
+
+@router.post(
+    "/change-review/{audit_id}/acknowledge",
+    response_model=AuditEntry,
+    responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}},
+)
+async def acknowledge_change(
+    audit_id: UUID,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> AuditEntry:
+    """Mark an audit entry as acknowledged."""
+    row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Audit entry not found")
+    if row["acknowledged_at"] is not None:
+        raise HTTPException(status_code=409, detail="Entry is already acknowledged")
+    if row["undone_at"] is not None:
+        raise HTTPException(status_code=409, detail="Entry is already undone")
+
+    updated = await conn.fetchrow(
+        """UPDATE audit_log
+           SET acknowledged_at = NOW(), acknowledged_by = $2
+           WHERE audit_id = $1
+           RETURNING audit_id, table_name, record_id, operation,
+                     performed_by, performed_at,
+                     acknowledged_at, acknowledged_by,
+                     undone_at, undone_by""",
+        audit_id, user.username,
+    )
+    return AuditEntry(**dict(updated), record_display_name=None)
+
+
+@router.post(
+    "/change-review/{audit_id}/undo",
+    response_model=AuditEntry,
+    responses={
+        404: {"description": "Not found"},
+        409: {"description": "Conflict"},
+        500: {"description": "Unrecognized table"},
+    },
+)
+async def undo_change(
+    audit_id: UUID,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> AuditEntry:
+    """Reverse the original database operation."""
+    row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Audit entry not found")
+    if row["acknowledged_at"] is not None:
+        raise HTTPException(status_code=409, detail="Entry is already acknowledged")
+    if row["undone_at"] is not None:
+        raise HTTPException(status_code=409, detail="Entry is already undone")
+
+    table = row["table_name"]
+    record_id = row["record_id"]
+    operation = row["operation"]
+
+    if table not in _TABLE_PK:
+        raise HTTPException(status_code=500, detail="Unrecognized table in audit log")
+    pk_col = _TABLE_PK[table]
+
+    async with conn.transaction():
+        try:
+            if operation == "CREATE":
+                await conn.execute(
+                    f"DELETE FROM {table} WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
+                )
+            elif operation == "UPDATE":
+                old_data = row["old_data"] or {}
+                if isinstance(old_data, str):
+                    old_data = json.loads(old_data)
+                await _apply_old_data(conn, table, pk_col, record_id, old_data)
+            elif operation == "DELETE":
+                await conn.execute(
+                    f"UPDATE {table} SET deleted_at = NULL WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
+                )
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail="Unrecognized operation in audit log",
+                )
+        except asyncpg.ForeignKeyViolationError:
+            raise HTTPException(
+                status_code=409,
+                detail="Cannot undo: record is referenced by other records",
+            )
+
+        updated = await conn.fetchrow(
+            """UPDATE audit_log
+               SET undone_at = NOW(), undone_by = $2
+               WHERE audit_id = $1
+               RETURNING audit_id, table_name, record_id, operation,
+                         performed_by, performed_at,
+                         acknowledged_at, acknowledged_by,
+                         undone_at, undone_by""",
+            audit_id, user.username,
+        )
+
+    return AuditEntry(**dict(updated), record_display_name=None)
+
+
+@router.delete(
+    "/change-review/{audit_id}/permanent",
+    status_code=204,
+    responses={
+        400: {"description": "Bad request"},
+        404: {"description": "Not found"},
+        409: {"description": "Conflict"},
+    },
+)
+async def permanent_delete(
+    audit_id: UUID,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> None:
+    """Hard-delete the record referenced by a DELETE audit entry."""
+    row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Audit entry not found")
+    if row["acknowledged_at"] is not None:
+        raise HTTPException(status_code=409, detail="Entry is already acknowledged")
+    if row["undone_at"] is not None:
+        raise HTTPException(status_code=409, detail="Entry is already undone")
+    if row["operation"] != "DELETE":
+        raise HTTPException(
+            status_code=400,
+            detail="Permanent delete is only valid for DELETE operations",
+        )
+
+    table = row["table_name"]
+    record_id = row["record_id"]
+    if table not in _TABLE_PK:
+        raise HTTPException(status_code=500, detail="Unrecognized table in audit log")
+    pk_col = _TABLE_PK[table]
+
+    async with conn.transaction():
+        await conn.execute(
+            f"DELETE FROM {table} WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
+        )
+        await conn.execute(
+            "UPDATE audit_log SET undone_at = NOW(), undone_by = $2 WHERE audit_id = $1",
+            audit_id, user.username,
+        )
+
+
 # Table names below are hardcoded constants — they must never be sourced from
 # external input. The `users` table is intentionally excluded; user counts belong
 # on the Users page, not the catalog stats page.
-_STATS_GROUPS: list[tuple[str, list[tuple[str, str]]]] = [
+# (display_name, table_name, has_soft_delete)
+_STATS_GROUPS: list[tuple[str, list[tuple[str, str, bool]]]] = [
     ("Catalog", [
-        ("Brands", "brands"),
-        ("Models", "models"),
+        ("Brands",  "brands",  True),
+        ("Models",  "models",  True),
     ]),
     ("Session", [
-        ("Effects", "effects"),
-        ("Instruments", "instruments"),
-        ("Libraries", "libraries"),
-        ("Workstations", "workstations"),
+        ("Effects",      "effects",      True),
+        ("Instruments",  "instruments",  True),
+        ("Libraries",    "libraries",    True),
+        ("Workstations", "workstations", True),
     ]),
     ("Tools", [
-        ("Admin", "admin_tools"),
-        ("Composition", "composition_tools"),
-        ("Measurement", "measurement_tools"),
-        ("Reference", "reference_tools"),
-        ("Workflow", "workflow_tools"),
+        ("Admin",       "admin_tools",       True),
+        ("Composition", "composition_tools", True),
+        ("Measurement", "measurement_tools", True),
+        ("Reference",   "reference_tools",   True),
+        ("Workflow",    "workflow_tools",    True),
     ]),
     ("Config", [
-        ("Effect Types", "effect_types"),
-        ("Entity Types", "entity_types"),
-        ("Instrument Types", "instrument_types"),
-        ("Model Types", "model_types"),
-        ("Plugin Formats", "plugin_formats"),
-        ("Tag Types", "tag_types"),
-        ("Tool Types", "tool_types"),
+        ("Effect Types",      "effect_types",     True),
+        ("Entity Types",      "entity_types",     True),
+        ("Instrument Types",  "instrument_types", True),
+        ("Model Types",       "model_types",      True),
+        ("Plugin Formats",    "plugin_formats",   True),
+        ("Tag Types",         "tag_types",        True),
+        ("Tool Types",        "tool_types",       True),
     ]),
 ]
 
@@ -185,13 +494,46 @@ async def stats(
     groups: list[StatGroup] = []
     total = 0
 
-    for label, table_pairs in _STATS_GROUPS:
+    for label, table_triples in _STATS_GROUPS:
         table_stats: list[TableStat] = []
-        for display_name, table_name in table_pairs:
-            row = await conn.fetchrow(f"SELECT COUNT(*)::int AS cnt FROM {table_name}")  # safe: table_name is from _STATS_GROUPS (hardcoded constant)
-            count = row["cnt"]
-            table_stats.append(TableStat(name=display_name, count=count))
-            total += count
+        for display_name, table_name, has_soft_delete in table_triples:
+            if has_soft_delete:
+                row = await conn.fetchrow(
+                    f"SELECT COUNT(*)::int AS cnt FROM {table_name} WHERE deleted_at IS NULL"  # safe: table_name from _STATS_GROUPS constant
+                )
+            else:
+                row = await conn.fetchrow(
+                    f"SELECT COUNT(*)::int AS cnt FROM {table_name}"  # safe: table_name from _STATS_GROUPS constant
+                )
+            active_count = row["cnt"]
+
+            # Pending change counts from audit_log
+            pending_row = await conn.fetchrow(
+                """
+                SELECT
+                    COUNT(*) FILTER (WHERE operation = 'CREATE') ::int AS creates,
+                    COUNT(*) FILTER (WHERE operation = 'DELETE') ::int AS deletes,
+                    COUNT(*) FILTER (WHERE operation = 'UPDATE') ::int AS updates
+                FROM audit_log
+                WHERE table_name = $1
+                  AND acknowledged_at IS NULL
+                  AND undone_at IS NULL
+                """,
+                table_name,
+            )
+            pending_creates = pending_row["creates"]
+            pending_deletes = pending_row["deletes"]
+            pending_updates = pending_row["updates"]
+
+            adjusted_count = active_count - pending_creates + pending_deletes
+            table_stats.append(TableStat(
+                name=display_name,
+                count=adjusted_count,
+                pending_creates=pending_creates,
+                pending_deletes=pending_deletes,
+                pending_updates=pending_updates,
+            ))
+            total += adjusted_count
 
         table_stats.sort(key=lambda t: (-t.count, t.name))
         groups.append(StatGroup(label=label, tables=table_stats))

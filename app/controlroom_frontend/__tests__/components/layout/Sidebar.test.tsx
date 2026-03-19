@@ -88,6 +88,13 @@ describe('Sidebar', () => {
     expect(screen.getByRole('link', { name: /^stats$/i })).toBeInTheDocument()
   })
 
+  it('renders Change Review link in the ADMIN group', () => {
+    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
+    render(<Sidebar />)
+    fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
+    expect(screen.getByRole('link', { name: /^change review$/i })).toBeInTheDocument()
+  })
+
   it('renders ADMIN group items in alphabetical order', () => {
     mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
     render(<Sidebar />)
@@ -96,6 +103,6 @@ describe('Sidebar', () => {
       .getAllByRole('link')
       .filter((l) => (l.getAttribute('href') ?? '').startsWith('/admin/'))
     const labels = adminLinks.map((l) => l.textContent)
-    expect(labels).toEqual(['Backup & Restore', 'Stats', 'Users'])
+    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Stats', 'Users'])
   })
 })

@@ -6,6 +6,9 @@ import { Loader2, AlertCircle } from 'lucide-react'
 interface TableStat {
   name: string
   count: number
+  pending_creates: number
+  pending_deletes: number
+  pending_updates: number
 }
 
 interface StatGroup {
@@ -60,14 +63,38 @@ export default function StatsPage() {
           <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">
             {group.label}
           </div>
-          {group.tables.map((table) => (
-            <div key={table.name} className="flex justify-between text-xs py-0.5">
-              <span className="text-foreground">{table.name}</span>
-              <span className="font-mono text-muted-foreground">
-                {table.count.toLocaleString()}
-              </span>
-            </div>
-          ))}
+          {group.tables.map((table) => {
+            const annotations: string[] = []
+            if (table.pending_updates > 0) {
+              annotations.push(
+                `${table.pending_updates} pending ${table.pending_updates === 1 ? 'update' : 'updates'}`
+              )
+            }
+            if (table.pending_creates > 0) {
+              annotations.push(
+                `${table.pending_creates} pending ${table.pending_creates === 1 ? 'addition' : 'additions'}`
+              )
+            }
+            if (table.pending_deletes > 0) {
+              annotations.push(
+                `${table.pending_deletes} pending ${table.pending_deletes === 1 ? 'deletion' : 'deletions'}`
+              )
+            }
+
+            return (
+              <div key={table.name} className="flex justify-between text-xs py-0.5">
+                <span className="text-foreground">{table.name}</span>
+                <span className="font-mono text-muted-foreground text-right">
+                  {table.count.toLocaleString()}
+                  {annotations.length > 0 && (
+                    <span className="ml-1 text-amber-500 font-normal">
+                      ({annotations.join(', ')})
+                    </span>
+                  )}
+                </span>
+              </div>
+            )
+          })}
         </section>
       ))}
 
