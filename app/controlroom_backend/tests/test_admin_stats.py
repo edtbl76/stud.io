@@ -128,7 +128,15 @@ async def test_stats_pending_creates_excluded_from_count(client, admin_headers, 
     )
     # displayed count = active - pending_creates + pending_deletes
     assert brands_stat["count"] == before_active - 1
-    assert brands_stat["pending_creates"] == 1
+    # pending_creates should have increased by exactly 1 from the baseline
+    baseline = await conn.fetchval(
+        """SELECT COUNT(*)::int FROM audit_log
+           WHERE table_name = 'brands' AND operation = 'CREATE'
+             AND acknowledged_at IS NULL AND undone_at IS NULL
+             AND record_id != $1""",
+        brand_id,
+    )
+    assert brands_stat["pending_creates"] == baseline + 1
 
 
 async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn):
@@ -158,7 +166,14 @@ async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn)
         t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
     assert brands_stat["count"] == active_count + 1
-    assert brands_stat["pending_deletes"] == 1
+    baseline = await conn.fetchval(
+        """SELECT COUNT(*)::int FROM audit_log
+           WHERE table_name = 'brands' AND operation = 'DELETE'
+             AND acknowledged_at IS NULL AND undone_at IS NULL
+             AND record_id != $1""",
+        brand_id,
+    )
+    assert brands_stat["pending_deletes"] == baseline + 1
 
 
 async def test_stats_pending_updates_no_count_change(client, admin_headers, conn):
@@ -183,4 +198,11 @@ async def test_stats_pending_updates_no_count_change(client, admin_headers, conn
         t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
     assert brands_stat["count"] == active_count
-    assert brands_stat["pending_updates"] == 1
+    baseline = await conn.fetchval(
+        """SELECT COUNT(*)::int FROM audit_log
+           WHERE table_name = 'brands' AND operation = 'UPDATE'
+             AND acknowledged_at IS NULL AND undone_at IS NULL
+             AND record_id != $1""",
+        brand_id,
+    )
+    assert brands_stat["pending_updates"] == baseline + 1
