@@ -43,6 +43,6 @@ See [docs/setup.md](docs/setup.md) for prerequisites, HTTPS setup, and full deta
 
 ---
 
-## Current version: v1.5
+## Current Capabilities
 
-Full REST API, Next.js frontend, JWT auth with RBAC, Google Sign-In, database backup/restore with manifest-based verification, user management, brand typeahead with inline create, SonarQube quality gate, Playwright E2E test suite, and pre-commit hooks. See the [user manual](docs/manual.md) for the complete feature list and the [architecture docs](docs/arch/) for the technical overview.
+Full REST API, Next.js frontend, JWT auth with RBAC, Google Sign-In, database backup/restore with manifest-based verification, user management, brand typeahead with inline create, soft-delete with audit logging, Change Review admin workflow, per-record history view with field-level diffs and undo, SonarQube quality gate, Playwright E2E test suite, and pre-commit hooks. See the [user manual](docs/manual.md) for the complete feature list and the [architecture docs](docs/arch/) for the technical overview.

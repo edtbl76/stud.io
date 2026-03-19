@@ -1,6 +1,57 @@
 """Shared router utilities."""
+import json
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
+
+from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    import asyncpg
+
+
+class AuditEntryWithData(BaseModel):
+    audit_id: uuid.UUID
+    table_name: str
+    record_id: uuid.UUID
+    operation: str
+    performed_by: str
+    performed_at: datetime
+    old_data: dict | None = None
+    new_data: dict | None = None
+    acknowledged_at: datetime | None = None
+    acknowledged_by: str | None = None
+    undone_at: datetime | None = None
+    undone_by: str | None = None
+    record_display_name: str | None = None
+
+
+async def get_record_history(
+    conn: "asyncpg.Connection",
+    table_name: str,
+    record_id: uuid.UUID,
+) -> list[AuditEntryWithData]:
+    """Return audit log entries for a single record, sorted performed_at DESC."""
+    rows = await conn.fetch(
+        """SELECT audit_id, table_name, record_id, operation,
+                  performed_by, performed_at,
+                  old_data, new_data,
+                  acknowledged_at, acknowledged_by,
+                  undone_at, undone_by
+           FROM audit_log
+           WHERE table_name = $1 AND record_id = $2
+           ORDER BY performed_at DESC""",
+        table_name, record_id,
+    )
+    result = []
+    for row in rows:
+        d = dict(row)
+        for field in ("old_data", "new_data"):
+            val = d.get(field)
+            if isinstance(val, str):
+                d[field] = json.loads(val)
+        result.append(AuditEntryWithData(**d, record_display_name=None))
+    return result
 
 
 # SQL expression that converts a JSON parameter ($N) to parent_ref[].

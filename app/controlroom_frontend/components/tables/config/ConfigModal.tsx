@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { LookupOut } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
+import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -35,7 +36,7 @@ export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<Config
   const { role } = useAuth()
   const isCreate = record === null
   const endpoint = `/config/${slug}`
-  const [isEditing, setIsEditing] = React.useState(isCreate)
+  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
 
@@ -63,9 +64,11 @@ export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<Config
   }
 
   let title: string
-  if (!record) {
+  if (mode === 'history') {
+    title = `${record?.type_name ?? ''} — History`
+  } else if (!record) {
     title = 'New Entry'
-  } else if (isEditing) {
+  } else if (mode === 'edit') {
     title = `Edit: ${record.type_name}`
   } else {
     title = record.type_name
@@ -75,19 +78,29 @@ export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<Config
     <RecordModal
       title={title}
       isAdmin={role === 'admin'}
-      isEditing={isEditing}
-      onEdit={() => setIsEditing(true)}
+      isEditing={mode === 'edit'}
+      isHistory={mode === 'history'}
+      onEdit={() => setMode('edit')}
+      onHistory={record ? () => setMode('history') : undefined}
       onSave={() => { setError(null); saveMutation.mutate() }}
       onDelete={() => deleteMutation.mutate()}
       onClose={onClose}
       isSaving={saveMutation.isPending}
       isDeleting={deleteMutation.isPending}
     >
+      {mode === 'history' ? (
+        <RecordHistoryView
+          historyUrl={`/config/${slug}/${record!.type_id}/history`}
+          isAdmin={role === 'admin'}
+          onUndo={() => { onMutate(); onClose() }}
+        />
+      ) : (
+      <>
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
       )}
 
-      {isEditing ? (
+      {mode === 'edit' ? (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="type_name">Name *</Label>
@@ -115,6 +128,8 @@ export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<Config
           <FieldRow label="Description" value={record?.type_description} />
           <FieldRow label="ID" value={<code className="text-xs font-mono text-muted-foreground">{record?.type_id}</code>} />
         </div>
+      )}
+      </>
       )}
     </RecordModal>
   )

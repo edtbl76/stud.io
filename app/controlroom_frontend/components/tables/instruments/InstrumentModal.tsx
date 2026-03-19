@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { Instrument } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
+import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
 import { TypeBadges } from '@/components/TypeBadges'
 import { ParentLinks } from '@/components/ParentLinks'
@@ -38,6 +39,29 @@ interface FormState {
   attributes: string
 }
 
+function getInstrumentTitle(mode: 'view' | 'edit' | 'history', record: Instrument | null): string {
+  if (mode === 'history') return `${record?.full_instrument_name ?? ''} — History`
+  if (!record) return 'New Instrument'
+  if (mode === 'edit') return `Edit: ${record.full_instrument_name}`
+  return record.full_instrument_name
+}
+
+function buildInstrumentPayload(form: FormState): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (form.instrument_name) body.instrument_name = form.instrument_name
+  if (form.brand_id) body.brand_id = form.brand_id
+  if (form.version) body.version = form.version
+  if (form.instrument_type_ids.length) body.instrument_type_ids = form.instrument_type_ids
+  if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
+  if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
+  if (form.tag_ids.length) body.tag_ids = form.tag_ids
+  if (form.description) body.description = form.description
+  if (form.instrument_notes) body.instrument_notes = form.instrument_notes
+  if (form.recording_notes) body.recording_notes = form.recording_notes
+  if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
+  return body
+}
+
 function toForm(record: Instrument | null): FormState {
   if (!record) {
     return {
@@ -65,25 +89,13 @@ function toForm(record: Instrument | null): FormState {
 export function InstrumentModal({ record, onClose, onMutate }: Readonly<InstrumentModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
-  const [isEditing, setIsEditing] = React.useState(isCreate)
+  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body: Record<string, unknown> = {}
-      if (form.instrument_name) body.instrument_name = form.instrument_name
-      if (form.brand_id) body.brand_id = form.brand_id
-      if (form.version) body.version = form.version
-      if (form.instrument_type_ids.length) body.instrument_type_ids = form.instrument_type_ids
-      if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
-      if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
-      if (form.tag_ids.length) body.tag_ids = form.tag_ids
-      if (form.description) body.description = form.description
-      if (form.instrument_notes) body.instrument_notes = form.instrument_notes
-      if (form.recording_notes) body.recording_notes = form.recording_notes
-      if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
-
+      const body = buildInstrumentPayload(form)
       if (!record) return api.create<Instrument>(ENDPOINT, body)
       return api.update<Instrument>(ENDPOINT, record.instrument_id, body)
     },
@@ -101,32 +113,35 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  let title: string
-  if (!record) {
-    title = 'New Instrument'
-  } else if (isEditing) {
-    title = `Edit: ${record.full_instrument_name}`
-  } else {
-    title = record.full_instrument_name
-  }
+  const title = getInstrumentTitle(mode, record)
 
   return (
     <RecordModal
       title={title}
       isAdmin={role === 'admin'}
-      isEditing={isEditing}
-      onEdit={() => setIsEditing(true)}
+      isEditing={mode === 'edit'}
+      isHistory={mode === 'history'}
+      onEdit={() => setMode('edit')}
+      onHistory={record ? () => setMode('history') : undefined}
       onSave={() => { setError(null); saveMutation.mutate() }}
       onDelete={() => deleteMutation.mutate()}
       onClose={onClose}
       isSaving={saveMutation.isPending}
       isDeleting={deleteMutation.isPending}
     >
+      {mode === 'history' ? (
+        <RecordHistoryView
+          historyUrl={`/instruments/${record!.instrument_id}/history`}
+          isAdmin={role === 'admin'}
+          onUndo={() => { onMutate(); onClose() }}
+        />
+      ) : (
+      <>
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
       )}
 
-      {isEditing ? (
+      {mode === 'edit' ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="instrument_name">Instrument Name *</Label>
@@ -203,6 +218,8 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
           <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
           <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
         </div>
+      )}
+      </>
       )}
     </RecordModal>
   )

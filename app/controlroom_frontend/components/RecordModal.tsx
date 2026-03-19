@@ -19,6 +19,8 @@ interface RecordModalProps {
   onSave: () => void
   onDelete: () => void
   onClose: () => void
+  onHistory?: () => void
+  isHistory?: boolean
   isSaving?: boolean
   isDeleting?: boolean
   children: React.ReactNode
@@ -32,6 +34,8 @@ export function RecordModal({
   onSave,
   onDelete,
   onClose,
+  onHistory,
+  isHistory = false,
   isSaving = false,
   isDeleting = false,
   children,
@@ -50,10 +54,104 @@ export function RecordModal({
     setConfirmDelete(false)
   }
 
-  // Reset confirm state when editing mode changes
+  // Reset confirm state when editing mode or history mode changes
   React.useEffect(() => {
     setConfirmDelete(false)
-  }, [isEditing])
+  }, [isEditing, isHistory])
+
+  function renderFooter() {
+    if (isEditing) {
+      return (
+        <>
+          {confirmDelete ? (
+            <div className="flex items-center gap-2 mr-auto">
+              <span className="text-sm text-destructive">Are you sure?</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  'Confirm Delete'
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancelDelete}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDelete}
+              disabled={isSaving}
+              className="mr-auto"
+            >
+              Delete
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={isSaving || isDeleting}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="default"
+            size="sm"
+            onClick={onSave}
+            disabled={isSaving || isDeleting}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              'Save'
+            )}
+          </Button>
+        </>
+      )
+    }
+    if (isHistory) {
+      return (
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      )
+    }
+    return (
+      <>
+        {isAdmin && (
+          <Button variant="outline" size="sm" onClick={onEdit}>
+            Edit
+          </Button>
+        )}
+        {onHistory && (
+          <Button variant="outline" size="sm" onClick={onHistory}>
+            History
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" onClick={onClose}>
+          Close
+        </Button>
+      </>
+    )
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -67,82 +165,7 @@ export function RecordModal({
         </div>
 
         <DialogFooter>
-          {isEditing ? (
-            <>
-              {confirmDelete ? (
-                <div className="flex items-center gap-2 mr-auto">
-                  <span className="text-sm text-destructive">Are you sure?</span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDelete}
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                        Deleting...
-                      </>
-                    ) : (
-                      'Confirm Delete'
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelDelete}
-                    disabled={isDeleting}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              ) : (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={handleDelete}
-                  disabled={isSaving}
-                  className="mr-auto"
-                >
-                  Delete
-                </Button>
-              )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-                disabled={isSaving || isDeleting}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="default"
-                size="sm"
-                onClick={onSave}
-                disabled={isSaving || isDeleting}
-              >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  'Save'
-                )}
-              </Button>
-            </>
-          ) : (
-            <>
-              {isAdmin && (
-                <Button variant="outline" size="sm" onClick={onEdit}>
-                  Edit
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={onClose}>
-                Close
-              </Button>
-            </>
-          )}
+          {renderFooter()}
         </DialogFooter>
       </DialogContent>
     </Dialog>

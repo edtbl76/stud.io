@@ -141,7 +141,7 @@ function DiffModal({ entry, onClose }: DiffModalProps) {
       />
       <dialog
         open
-        className="relative m-0 border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4 bg-background p-0"
+        className="relative m-0 border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4 bg-background text-foreground p-0"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">

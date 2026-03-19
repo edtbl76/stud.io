@@ -13,9 +13,9 @@ from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
-from routers.auth import require_admin, UserOut
+from routers.auth import require_admin, get_current_user, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
-from routers._helpers import _serializable, log_audit
+from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
 
@@ -158,6 +158,17 @@ async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: A
                         old_data=_serializable(dict(old_row)),
                         new_data=_serializable(dict(new_row)))
     return await get_tool(category, tool_id, conn)
+
+
+@router.get("/{category}/{tool_id}/history", responses={401: {"description": "Unauthorized"}})
+async def get_tool_history(
+    category: str,
+    tool_id: UUID,
+    current_user: Annotated[UserOut, Depends(get_current_user)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> list[AuditEntryWithData]:
+    cfg = _cfg(category)
+    return await get_record_history(conn, cfg["table"], tool_id)
 
 
 @router.delete("/{category}/{tool_id}", status_code=204, responses={404: {"description": "Not found"}})

@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { Workstation } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
+import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
 import { TypeBadges } from '@/components/TypeBadges'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,26 @@ interface FormState {
   workflow_notes: string
 }
 
+function getWorkstationTitle(mode: 'view' | 'edit' | 'history', record: Workstation | null): string {
+  if (mode === 'history') return `${record?.full_tool_name ?? ''} — History`
+  if (!record) return 'New Workstation'
+  if (mode === 'edit') return `Edit: ${record.full_tool_name}`
+  return record.full_tool_name
+}
+
+function buildWorkstationPayload(form: FormState): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (form.tool_name) body.tool_name = form.tool_name
+  if (form.brand_id) body.brand_id = form.brand_id
+  if (form.version) body.version = form.version
+  if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
+  if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
+  if (form.tag_ids.length) body.tag_ids = form.tag_ids
+  if (form.description) body.description = form.description
+  if (form.workflow_notes) body.workflow_notes = form.workflow_notes
+  return body
+}
+
 function toForm(record: Workstation | null): FormState {
   if (!record) {
     return {
@@ -58,22 +79,13 @@ function toForm(record: Workstation | null): FormState {
 export function WorkstationModal({ record, onClose, onMutate }: Readonly<WorkstationModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
-  const [isEditing, setIsEditing] = React.useState(isCreate)
+  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body: Record<string, unknown> = {}
-      if (form.tool_name) body.tool_name = form.tool_name
-      if (form.brand_id) body.brand_id = form.brand_id
-      if (form.version) body.version = form.version
-      if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
-      if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
-      if (form.tag_ids.length) body.tag_ids = form.tag_ids
-      if (form.description) body.description = form.description
-      if (form.workflow_notes) body.workflow_notes = form.workflow_notes
-
+      const body = buildWorkstationPayload(form)
       if (!record) return api.create<Workstation>(ENDPOINT, body)
       return api.update<Workstation>(ENDPOINT, record.workstation_id, body)
     },
@@ -91,32 +103,35 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  let title: string
-  if (!record) {
-    title = 'New Workstation'
-  } else if (isEditing) {
-    title = `Edit: ${record.full_tool_name}`
-  } else {
-    title = record.full_tool_name
-  }
+  const title = getWorkstationTitle(mode, record)
 
   return (
     <RecordModal
       title={title}
       isAdmin={role === 'admin'}
-      isEditing={isEditing}
-      onEdit={() => setIsEditing(true)}
+      isEditing={mode === 'edit'}
+      isHistory={mode === 'history'}
+      onEdit={() => setMode('edit')}
+      onHistory={record ? () => setMode('history') : undefined}
       onSave={() => { setError(null); saveMutation.mutate() }}
       onDelete={() => deleteMutation.mutate()}
       onClose={onClose}
       isSaving={saveMutation.isPending}
       isDeleting={deleteMutation.isPending}
     >
+      {mode === 'history' ? (
+        <RecordHistoryView
+          historyUrl={`/workstations/${record!.workstation_id}/history`}
+          isAdmin={role === 'admin'}
+          onUndo={() => { onMutate(); onClose() }}
+        />
+      ) : (
+      <>
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
       )}
 
-      {isEditing ? (
+      {mode === 'edit' ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="tool_name">Tool Name *</Label>
@@ -164,6 +179,8 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
           <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
           <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
         </div>
+      )}
+      </>
       )}
     </RecordModal>
   )

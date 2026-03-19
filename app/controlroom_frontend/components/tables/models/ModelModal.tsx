@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { Model } from '@/lib/types'
 import { RecordModal } from '@/components/RecordModal'
+import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
 import { TypeBadges } from '@/components/TypeBadges'
 import { Input } from '@/components/ui/input'
@@ -34,6 +35,30 @@ interface FormState {
   recording_notes: string
   artist_reference: string
   attributes: string
+}
+
+function getModelTitle(mode: 'view' | 'edit' | 'history', record: Model | null): string {
+  if (mode === 'history') return `${record?.full_model_name ?? ''} — History`
+  if (!record) return 'New Model'
+  if (mode === 'edit') return `Edit: ${record.full_model_name}`
+  return record.full_model_name
+}
+
+function buildModelPayload(form: FormState): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (form.model_name) body.model_name = form.model_name
+  if (form.brand_id) body.brand_id = form.brand_id
+  if (form.model_type_ids.length > 0) body.model_type_ids = form.model_type_ids
+  if (form.creator) body.creator = form.creator
+  if (form.years_active) body.years_active = form.years_active
+  if (form.links) body.links = form.links
+  if (form.description) body.description = form.description
+  if (form.recording_notes) body.recording_notes = form.recording_notes
+  if (form.artist_reference) body.artist_reference = form.artist_reference
+  if (form.attributes) {
+    try { body.attributes = JSON.parse(form.attributes) } catch {}
+  }
+  return body
 }
 
 function toForm(record: Model | null): FormState {
@@ -70,31 +95,15 @@ function toForm(record: Model | null): FormState {
 export function ModelModal({ record, onClose, onMutate }: Readonly<ModelModalProps>) {
   const { role } = useAuth()
   const isCreate = record === null
-  const [isEditing, setIsEditing] = React.useState(isCreate)
+  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
   const [form, setForm] = React.useState<FormState>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
 
   const saveMutation = useMutation({
     mutationFn: () => {
-      const body: Record<string, unknown> = {}
-      if (form.model_name) body.model_name = form.model_name
-      if (form.brand_id) body.brand_id = form.brand_id
-      if (form.model_type_ids.length > 0) body.model_type_ids = form.model_type_ids
-      if (form.creator) body.creator = form.creator
-      if (form.years_active) body.years_active = form.years_active
-      if (form.links) body.links = form.links
-      if (form.description) body.description = form.description
-      if (form.recording_notes) body.recording_notes = form.recording_notes
-      if (form.artist_reference) body.artist_reference = form.artist_reference
-      if (form.attributes) {
-        try { body.attributes = JSON.parse(form.attributes) } catch {}
-      }
-
-      if (record) {
-        return api.update<Model>(ENDPOINT, record.model_id, body)
-      } else {
-        return api.create<Model>(ENDPOINT, body)
-      }
+      const body = buildModelPayload(form)
+      if (record) return api.update<Model>(ENDPOINT, record.model_id, body)
+      return api.create<Model>(ENDPOINT, body)
     },
     onSuccess: () => { onMutate(); onClose() },
     onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
@@ -110,32 +119,35 @@ export function ModelModal({ record, onClose, onMutate }: Readonly<ModelModalPro
     setForm(prev => ({ ...prev, [key]: value }))
   }
 
-  let title: string
-  if (!record) {
-    title = 'New Model'
-  } else if (isEditing) {
-    title = `Edit: ${record.full_model_name}`
-  } else {
-    title = record.full_model_name
-  }
+  const title = getModelTitle(mode, record)
 
   return (
     <RecordModal
       title={title}
       isAdmin={role === 'admin'}
-      isEditing={isEditing}
-      onEdit={() => setIsEditing(true)}
+      isEditing={mode === 'edit'}
+      isHistory={mode === 'history'}
+      onEdit={() => setMode('edit')}
+      onHistory={record ? () => setMode('history') : undefined}
       onSave={() => { setError(null); saveMutation.mutate() }}
       onDelete={() => deleteMutation.mutate()}
       onClose={onClose}
       isSaving={saveMutation.isPending}
       isDeleting={deleteMutation.isPending}
     >
+      {mode === 'history' ? (
+        <RecordHistoryView
+          historyUrl={`/models/${record!.model_id}/history`}
+          isAdmin={role === 'admin'}
+          onUndo={() => { onMutate(); onClose() }}
+        />
+      ) : (
+      <>
       {error && (
         <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
       )}
 
-      {isEditing ? (
+      {mode === 'edit' ? (
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="model_name">Model Name *</Label>
@@ -270,6 +282,8 @@ export function ModelModal({ record, onClose, onMutate }: Readonly<ModelModalPro
           <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
           <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
         </div>
+      )}
+      </>
       )}
     </RecordModal>
   )
