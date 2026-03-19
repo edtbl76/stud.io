@@ -1,0 +1,195 @@
+import * as React from 'react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import ChangeReviewPage from '@/app/admin/change-review/page'
+
+jest.mock('@/lib/auth', () => ({
+  useAuth: () => mockUseAuth(),
+}))
+
+let mockUseAuth = () => ({ username: 'admin', role: 'admin' })
+
+const mockFetch = jest.fn()
+global.fetch = mockFetch
+
+const mockEntry = {
+  audit_id: 'aaaaaaaa-0000-0000-0000-000000000001',
+  table_name: 'effects',
+  record_id: 'bbbbbbbb-0000-0000-0000-000000000001',
+  operation: 'DELETE',
+  performed_by: 'admin',
+  performed_at: '2026-03-18T14:00:00Z',
+  acknowledged_at: null,
+  acknowledged_by: null,
+  undone_at: null,
+  undone_by: null,
+  record_display_name: null,
+}
+
+const mockUpdateEntry = {
+  ...mockEntry,
+  audit_id: 'aaaaaaaa-0000-0000-0000-000000000002',
+  operation: 'UPDATE',
+}
+
+const mockResponse = {
+  total: 2,
+  page: 1,
+  page_size: 50,
+  entries: [mockEntry, mockUpdateEntry],
+}
+
+function ok(data: unknown = {}) {
+  return Promise.resolve({ ok: true, json: () => Promise.resolve(data), status: 200 })
+}
+
+function err(detail: string, status = 500) {
+  return Promise.resolve({
+    ok: false,
+    status,
+    json: () => Promise.resolve({ detail }),
+  })
+}
+
+describe('ChangeReviewPage', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+    mockUseAuth = () => ({ username: 'admin', role: 'admin' })
+    mockFetch.mockResolvedValue(ok(mockResponse))
+  })
+
+  it('renders the page heading', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => expect(screen.getByText('Change Review')).toBeInTheDocument())
+  })
+
+  it('renders filter dropdowns', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getByText('Change Review'))
+    expect(screen.getByRole('combobox', { name: /table/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /operation/i })).toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: /status/i })).toBeInTheDocument()
+  })
+
+  it('renders entries from the API', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => expect(screen.getAllByText('effects').length).toBeGreaterThan(0))
+    expect(screen.getByText('DELETE')).toBeInTheDocument()
+  })
+
+  it('shows Loader2 spinner while loading', () => {
+    mockFetch.mockImplementation(() => new Promise(() => {}))
+    render(<ChangeReviewPage />)
+    expect(document.querySelector('.lucide-loader-circle')).toBeInTheDocument()
+  })
+
+  it('shows error state on API failure', async () => {
+    mockFetch.mockResolvedValue(err('Internal Server Error'))
+    render(<ChangeReviewPage />)
+    await waitFor(() =>
+      expect(screen.getByText(/could not load/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows Undo and Acknowledge buttons for admin users on pending entries', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    expect(screen.getAllByRole('button', { name: /undo/i }).length).toBeGreaterThan(0)
+    expect(screen.getAllByRole('button', { name: /acknowledge/i }).length).toBeGreaterThan(0)
+  })
+
+  it('shows Permanently Delete button for DELETE pending entries', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    expect(
+      screen.getAllByRole('button', { name: /permanently delete/i }).length
+    ).toBeGreaterThan(0)
+  })
+
+  it('hides action buttons for non-admin users', async () => {
+    mockUseAuth = () => ({ username: 'bob', role: 'user' })
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /acknowledge/i })).not.toBeInTheDocument()
+  })
+
+  it('clicking Acknowledge calls the correct endpoint and removes entry', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
+    // The DELETE entry is first
+    mockFetch.mockResolvedValueOnce(ok({ ...mockEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
+
+    fireEvent.click(ackButtons[0])
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/admin/change-review/${mockEntry.audit_id}/acknowledge`),
+        expect.objectContaining({ method: 'POST' })
+      )
+    })
+  })
+
+  it('clicking Undo calls the undo endpoint', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const undoButtons = screen.getAllByRole('button', { name: /undo/i })
+    mockFetch.mockResolvedValueOnce(ok({ ...mockEntry, undone_at: '2026-03-18T14:01:00Z', undone_by: 'admin' }))
+
+    fireEvent.click(undoButtons[0])
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/admin/change-review/${mockEntry.audit_id}/undo`),
+        expect.objectContaining({ method: 'POST' })
+      )
+    })
+  })
+
+  it('clicking Permanently Delete calls the permanent endpoint', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const permButtons = screen.getAllByRole('button', { name: /permanently delete/i })
+    mockFetch.mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
+
+    fireEvent.click(permButtons[0])
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/admin/change-review/${mockEntry.audit_id}/permanent`),
+        expect.objectContaining({ method: 'DELETE' })
+      )
+    })
+  })
+
+  it('shows inline error on 409 with detail message', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
+    mockFetch.mockResolvedValueOnce(
+      err('Entry is already acknowledged', 409)
+    )
+
+    fireEvent.click(ackButtons[0])
+    await waitFor(() =>
+      expect(screen.getByText(/Entry is already acknowledged/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows badge instead of buttons for already-resolved entries', async () => {
+    const resolvedEntry = { ...mockEntry, acknowledged_at: '2026-03-18T14:00:00Z', acknowledged_by: 'admin' }
+    mockFetch.mockResolvedValue(ok({ total: 1, page: 1, page_size: 50, entries: [resolvedEntry] }))
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument()
+    expect(screen.getByText(/acknowledged/i)).toBeInTheDocument()
+  })
+
+  it('renders pagination controls', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getByText('Change Review'))
+    expect(screen.getByRole('button', { name: /previous/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
+  })
+})

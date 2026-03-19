@@ -90,3 +90,97 @@ async def test_stats_count_reflects_inserted_row(client, admin_headers, conn):
         if t["name"] == "Brands"
     )
     assert brands_after == brands_before + 1
+
+
+async def test_stats_table_stat_has_pending_fields(client, admin_headers):
+    """Each table stat must include pending_creates, pending_deletes, pending_updates."""
+    response = await client.get("/admin/stats", headers=admin_headers)
+    data = response.json()
+    for group in data["groups"]:
+        for table in group["tables"]:
+            assert "pending_creates" in table
+            assert "pending_deletes" in table
+            assert "pending_updates" in table
+
+
+async def test_stats_pending_creates_excluded_from_count(client, admin_headers, conn):
+    """A pending CREATE entry causes the displayed count to be one less than active rows."""
+    # Insert a brand so there is an active row
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('__pending_test__') RETURNING brand_id"
+    )
+    # Simulate a pending CREATE audit entry for that brand
+    await conn.execute(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by, new_data)
+           VALUES ('brands', $1, 'CREATE', 'admin', '{}')""",
+        brand_id,
+    )
+
+    before_active = await conn.fetchval(
+        "SELECT COUNT(*)::int FROM brands WHERE deleted_at IS NULL"
+    )
+
+    response = await client.get("/admin/stats", headers=admin_headers)
+    data = response.json()
+    brands_stat = next(
+        t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
+    )
+    # displayed count = active - pending_creates + pending_deletes
+    assert brands_stat["count"] == before_active - 1
+    assert brands_stat["pending_creates"] == 1
+
+
+async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn):
+    """A pending DELETE entry causes the displayed count to be one more than active rows."""
+    # Insert and soft-delete a brand
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('__del_test__') RETURNING brand_id"
+    )
+    await conn.execute(
+        "UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id
+    )
+    # Simulate a pending DELETE audit entry
+    await conn.execute(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by, old_data)
+           VALUES ('brands', $1, 'DELETE', 'admin', '{}')""",
+        brand_id,
+    )
+
+    active_count = await conn.fetchval(
+        "SELECT COUNT(*)::int FROM brands WHERE deleted_at IS NULL"
+    )
+
+    response = await client.get("/admin/stats", headers=admin_headers)
+    data = response.json()
+    brands_stat = next(
+        t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
+    )
+    assert brands_stat["count"] == active_count + 1
+    assert brands_stat["pending_deletes"] == 1
+
+
+async def test_stats_pending_updates_no_count_change(client, admin_headers, conn):
+    """A pending UPDATE entry does not change the displayed count."""
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('__upd_test__') RETURNING brand_id"
+    )
+    await conn.execute(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by, old_data, new_data)
+           VALUES ('brands', $1, 'UPDATE', 'admin', '{}', '{}')""",
+        brand_id,
+    )
+
+    active_count = await conn.fetchval(
+        "SELECT COUNT(*)::int FROM brands WHERE deleted_at IS NULL"
+    )
+
+    response = await client.get("/admin/stats", headers=admin_headers)
+    data = response.json()
+    brands_stat = next(
+        t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
+    )
+    assert brands_stat["count"] == active_count
+    assert brands_stat["pending_updates"] == 1

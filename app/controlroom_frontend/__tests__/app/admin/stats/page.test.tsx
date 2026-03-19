@@ -11,39 +11,101 @@ const mockStatsResponse = {
     {
       label: 'Catalog',
       tables: [
-        { name: 'Models', count: 87 },
-        { name: 'Brands', count: 24 },
+        { name: 'Models', count: 87, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Brands', count: 24, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
       ],
     },
     {
       label: 'Session',
       tables: [
-        { name: 'Libraries', count: 401 },
-        { name: 'Effects', count: 312 },
-        { name: 'Instruments', count: 198 },
-        { name: 'Workstations', count: 6 },
+        { name: 'Libraries', count: 401, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Effects', count: 312, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Instruments', count: 198, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Workstations', count: 6, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
       ],
     },
     {
       label: 'Tools',
       tables: [
-        { name: 'Workflow', count: 22 },
-        { name: 'Admin', count: 14 },
-        { name: 'Measurement', count: 11 },
-        { name: 'Composition', count: 9 },
-        { name: 'Reference', count: 7 },
+        { name: 'Workflow', count: 22, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Admin', count: 14, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Measurement', count: 11, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Composition', count: 9, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Reference', count: 7, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
       ],
     },
     {
       label: 'Config',
       tables: [
-        { name: 'Tag Types', count: 23 },
-        { name: 'Effect Types', count: 18 },
-        { name: 'Instrument Types', count: 12 },
-        { name: 'Tool Types', count: 8 },
-        { name: 'Model Types', count: 6 },
-        { name: 'Plugin Formats', count: 5 },
-        { name: 'Entity Types', count: 4 },
+        { name: 'Tag Types', count: 23, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Effect Types', count: 18, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Instrument Types', count: 12, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Tool Types', count: 8, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Model Types', count: 6, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Plugin Formats', count: 5, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Entity Types', count: 4, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+      ],
+    },
+  ],
+  total: 1167,
+}
+
+const mockStatsWithPendingResponse = {
+  groups: [
+    {
+      label: 'Catalog',
+      tables: [
+        { name: 'Brands', count: 24, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        {
+          name: 'Models',
+          count: 86,           // 87 active - 1 pending create + 0 pending deletes
+          pending_creates: 1,
+          pending_deletes: 0,
+          pending_updates: 0,
+        },
+      ],
+    },
+    {
+      label: 'Session',
+      tables: [
+        {
+          name: 'Effects',
+          count: 313,          // 312 active + 1 pending delete
+          pending_creates: 0,
+          pending_deletes: 1,
+          pending_updates: 0,
+        },
+        {
+          name: 'Instruments',
+          count: 198,
+          pending_creates: 0,
+          pending_deletes: 0,
+          pending_updates: 2,
+        },
+        { name: 'Libraries', count: 401, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Workstations', count: 6, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+      ],
+    },
+    {
+      label: 'Tools',
+      tables: [
+        { name: 'Workflow', count: 22, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Admin', count: 14, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Measurement', count: 11, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Composition', count: 9, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Reference', count: 7, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+      ],
+    },
+    {
+      label: 'Config',
+      tables: [
+        { name: 'Tag Types', count: 23, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Effect Types', count: 18, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Instrument Types', count: 12, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Tool Types', count: 8, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Model Types', count: 6, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Plugin Formats', count: 5, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Entity Types', count: 4, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
       ],
     },
   ],
@@ -106,6 +168,30 @@ describe('StatsPage', () => {
     render(<StatsPage />)
     await waitFor(() =>
       expect(screen.getByText(/could not load stats/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows pending creation annotation', async () => {
+    mockFetch.mockResolvedValue(mockOk(mockStatsWithPendingResponse))
+    render(<StatsPage />)
+    await waitFor(() =>
+      expect(screen.getByText(/1 pending addition/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows pending deletion annotation', async () => {
+    mockFetch.mockResolvedValue(mockOk(mockStatsWithPendingResponse))
+    render(<StatsPage />)
+    await waitFor(() =>
+      expect(screen.getByText(/1 pending deletion/i)).toBeInTheDocument()
+    )
+  })
+
+  it('shows pending update annotation without changing count', async () => {
+    mockFetch.mockResolvedValue(mockOk(mockStatsWithPendingResponse))
+    render(<StatsPage />)
+    await waitFor(() =>
+      expect(screen.getByText(/2 pending updates/i)).toBeInTheDocument()
     )
   })
 })
