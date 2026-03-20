@@ -46,6 +46,39 @@ def _hash(plain: str) -> str:
     return bcrypt.hashpw(plain.encode(), bcrypt.gensalt(rounds=12)).decode()
 
 
+def _verify_google_credential(credential: str, client_id: str) -> dict[str, str]:
+    try:
+        id_info = id_token.verify_oauth2_token(
+            credential, google_requests.Request(), client_id
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid Google credential",
+        )
+    return {"sub": id_info["sub"], "email": id_info["email"]}
+
+
+async def _check_last_admin(
+    conn: Connection, new_role: str, current_role: str
+) -> None:
+    if new_role == "user" and current_role == "admin":
+        admin_count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE role = 'admin'")
+        if admin_count <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote the last admin")
+
+
+async def _check_google_claim(conn: Connection, sub: str, user_id: UUID) -> None:
+    claimed = await conn.fetchrow(
+        "SELECT 1 FROM users WHERE google_id = $1 AND user_id != $2", sub, user_id
+    )
+    if claimed:
+        raise HTTPException(
+            status_code=409,
+            detail="This Google account is already linked to another user",
+        )
+
+
 @router.get("", response_model=list[UserListItem])
 async def list_users(
     conn: Annotated[Connection, Depends(get_conn)],
@@ -119,11 +152,7 @@ async def change_role(
     if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
 
-    if payload.role == "user" and row["role"] == "admin":
-        admin_count = await conn.fetchval("SELECT COUNT(*) FROM users WHERE role = 'admin'")
-        if admin_count <= 1:
-            raise HTTPException(status_code=400, detail="Cannot demote the last admin")
-
+    await _check_last_admin(conn, payload.role, row["role"])
     await conn.execute(
         "UPDATE users SET role = $1, updated_at = NOW() WHERE user_id = $2",
         payload.role,
@@ -144,17 +173,9 @@ async def link_google(
     if not settings.google_client_id:
         raise HTTPException(status_code=501, detail="Google login is not configured")
 
-    try:
-        id_info = id_token.verify_oauth2_token(
-            payload.credential,
-            google_requests.Request(),
-            settings.google_client_id,
-        )
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google credential")
-
-    sub: str = id_info["sub"]
-    email: str = id_info["email"]
+    google_info = _verify_google_credential(payload.credential, settings.google_client_id)
+    sub: str = google_info["sub"]
+    email: str = google_info["email"]
 
     row = await conn.fetchrow("SELECT google_id FROM users WHERE user_id = $1", user_id)
     if not row:
@@ -166,15 +187,7 @@ async def link_google(
             detail="Google account already linked. Unlink first before linking a new one.",
         )
 
-    claimed = await conn.fetchrow(
-        "SELECT 1 FROM users WHERE google_id = $1 AND user_id != $2", sub, user_id
-    )
-    if claimed:
-        raise HTTPException(
-            status_code=409,
-            detail="This Google account is already linked to another user",
-        )
-
+    await _check_google_claim(conn, sub, user_id)
     await conn.execute(
         "UPDATE users SET google_id = $1, email = $2, updated_at = NOW() WHERE user_id = $3",
         sub, email, user_id,
