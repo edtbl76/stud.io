@@ -23,7 +23,10 @@
         "-e", "CS_MOUNT_PATH=/home/edwardmangini/Documents/Studio/STUD.io",
         "--mount", "type=bind,src=/home/edwardmangini/Documents/Studio/STUD.io,dst=/mount/,ro",
         "codescene/codescene-mcp"
-      ]
+      ],
+      "env": {
+        "CS_ACCESS_TOKEN": "pat_eyJpZCI6NjI1ODQsInJhbmQiOiJZNy9CUVJuS1BXbUlUVit0VkVncXh2bEw4TUhRL2szOCJ9"
+      }
     }
   }
 }

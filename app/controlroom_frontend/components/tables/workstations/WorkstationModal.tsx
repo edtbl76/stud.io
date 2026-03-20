@@ -1,10 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
 import { Workstation } from '@/lib/types'
+import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
@@ -77,52 +75,25 @@ function toForm(record: Workstation | null): FormState {
 }
 
 export function WorkstationModal({ record, onClose, onMutate }: Readonly<WorkstationModalProps>) {
-  const { role } = useAuth()
-  const isCreate = record === null
-  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
-  const [form, setForm] = React.useState<FormState>(() => toForm(record))
-  const [error, setError] = React.useState<string | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const body = buildWorkstationPayload(form)
-      if (!record) return api.create<Workstation>(ENDPOINT, body)
-      return api.update<Workstation>(ENDPOINT, record.workstation_id, body)
-    },
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => api.delete(ENDPOINT, record!.workstation_id),
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Delete failed'),
-  })
-
-  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm(prev => ({ ...prev, [key]: value }))
-  }
-
-  const title = getWorkstationTitle(mode, record)
+  const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
+    useRecordModal<Workstation, FormState>({
+      record,
+      endpoint: ENDPOINT,
+      getRecordId: (r) => r.workstation_id,
+      getHistoryUrl: (r) => `/workstations/${r.workstation_id}/history`,
+      getTitle: getWorkstationTitle,
+      toForm,
+      buildPayload: buildWorkstationPayload,
+      onClose,
+      onMutate,
+    })
 
   return (
-    <RecordModal
-      title={title}
-      isAdmin={role === 'admin'}
-      isEditing={mode === 'edit'}
-      isHistory={mode === 'history'}
-      onEdit={() => setMode('edit')}
-      onHistory={record ? () => setMode('history') : undefined}
-      onSave={() => { setError(null); saveMutation.mutate() }}
-      onDelete={() => deleteMutation.mutate()}
-      onClose={onClose}
-      isSaving={saveMutation.isPending}
-      isDeleting={deleteMutation.isPending}
-    >
+    <RecordModal {...recordModalProps}>
       {mode === 'history' ? (
         <RecordHistoryView
-          historyUrl={`/workstations/${record!.workstation_id}/history`}
-          isAdmin={role === 'admin'}
+          historyUrl={historyUrl}
+          isAdmin={isAdmin}
           onUndo={() => { onMutate(); onClose() }}
         />
       ) : (

@@ -1,10 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
 import { LookupOut } from '@/lib/types'
+import { useRecordModal, ModalMode } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
@@ -32,66 +30,40 @@ function toForm(record: LookupOut | null): FormState {
   }
 }
 
+function buildConfigPayload(form: FormState): Record<string, unknown> {
+  const body: Record<string, unknown> = {}
+  if (form.type_name) body.type_name = form.type_name
+  if (form.type_description) body.type_description = form.type_description
+  return body
+}
+
+function getConfigTitle(mode: ModalMode, record: LookupOut | null): string {
+  if (mode === 'history') return `${record?.type_name ?? ''} — History`
+  if (!record) return 'New Entry'
+  if (mode === 'edit') return `Edit: ${record.type_name}`
+  return record.type_name
+}
+
 export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<ConfigModalProps>) {
-  const { role } = useAuth()
-  const isCreate = record === null
-  const endpoint = `/config/${slug}`
-  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
-  const [form, setForm] = React.useState<FormState>(() => toForm(record))
-  const [error, setError] = React.useState<string | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const body: Record<string, unknown> = {}
-      if (form.type_name) body.type_name = form.type_name
-      if (form.type_description) body.type_description = form.type_description
-
-      if (!record) return api.create<LookupOut>(endpoint, body)
-      return api.update<LookupOut>(endpoint, record.type_id, body)
-    },
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => api.delete(endpoint, record!.type_id),
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Delete failed'),
-  })
-
-  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm(prev => ({ ...prev, [key]: value }))
-  }
-
-  let title: string
-  if (mode === 'history') {
-    title = `${record?.type_name ?? ''} — History`
-  } else if (!record) {
-    title = 'New Entry'
-  } else if (mode === 'edit') {
-    title = `Edit: ${record.type_name}`
-  } else {
-    title = record.type_name
-  }
+  const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
+    useRecordModal<LookupOut, FormState>({
+      record,
+      endpoint: `/config/${slug}`,
+      getRecordId: (r) => r.type_id,
+      getHistoryUrl: (r) => `/config/${slug}/${r.type_id}/history`,
+      getTitle: getConfigTitle,
+      toForm,
+      buildPayload: buildConfigPayload,
+      onClose,
+      onMutate,
+    })
 
   return (
-    <RecordModal
-      title={title}
-      isAdmin={role === 'admin'}
-      isEditing={mode === 'edit'}
-      isHistory={mode === 'history'}
-      onEdit={() => setMode('edit')}
-      onHistory={record ? () => setMode('history') : undefined}
-      onSave={() => { setError(null); saveMutation.mutate() }}
-      onDelete={() => deleteMutation.mutate()}
-      onClose={onClose}
-      isSaving={saveMutation.isPending}
-      isDeleting={deleteMutation.isPending}
-    >
+    <RecordModal {...recordModalProps}>
       {mode === 'history' ? (
         <RecordHistoryView
-          historyUrl={`/config/${slug}/${record!.type_id}/history`}
-          isAdmin={role === 'admin'}
+          historyUrl={historyUrl}
+          isAdmin={isAdmin}
           onUndo={() => { onMutate(); onClose() }}
         />
       ) : (
