@@ -61,26 +61,36 @@ export default function UsersPage() {
     fetchUsers().finally(() => setLoading(false))
   }, [])
 
-  async function _handleLinkResponse(credential: string) {
-    const userId = linkingUserIdRef.current
-    if (!userId) return
-    linkingUserIdRef.current = null
+  async function callApi(
+    url: string,
+    init: RequestInit,
+    successMsg: string,
+    fallbackError: string,
+  ): Promise<void> {
     setStatus(null)
     try {
-      const res = await fetch(`/api/users/${userId}/google`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential }),
-      })
+      const res = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...init })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)
       }
-      setStatus({ type: 'success', message: 'Google account linked' })
+      setStatus({ type: 'success', message: successMsg })
       await fetchUsers()
     } catch (e) {
-      setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to link Google account' })
+      setStatus({ type: 'error', message: e instanceof Error ? e.message : fallbackError })
     }
+  }
+
+  async function _handleLinkResponse(credential: string) {
+    const userId = linkingUserIdRef.current
+    if (!userId) return
+    linkingUserIdRef.current = null
+    await callApi(
+      `/api/users/${userId}/google`,
+      { method: 'PATCH', body: JSON.stringify({ credential }) },
+      'Google account linked',
+      'Failed to link Google account',
+    )
   }
 
   function initGoogle() {
@@ -125,38 +135,22 @@ export default function UsersPage() {
   }
 
   async function handleToggleRole(user: User) {
-    setStatus(null)
     const newRole = user.role === 'admin' ? 'user' : 'admin'
-    try {
-      const res = await fetch(`/api/users/${user.user_id}/role`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role: newRole }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail ?? res.statusText)
-      }
-      setStatus({ type: 'success', message: `${user.username} is now ${newRole}` })
-      await fetchUsers()
-    } catch (e) {
-      setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to change role' })
-    }
+    await callApi(
+      `/api/users/${user.user_id}/role`,
+      { method: 'PATCH', body: JSON.stringify({ role: newRole }) },
+      `${user.username} is now ${newRole}`,
+      'Failed to change role',
+    )
   }
 
   async function handleDelete(user: User) {
-    setStatus(null)
-    try {
-      const res = await fetch(`/api/users/${user.user_id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ detail: res.statusText }))
-        throw new Error(err.detail ?? res.statusText)
-      }
-      setStatus({ type: 'success', message: `User "${user.username}" deleted` })
-      await fetchUsers()
-    } catch (e) {
-      setStatus({ type: 'error', message: e instanceof Error ? e.message : 'Failed to delete user' })
-    }
+    await callApi(
+      `/api/users/${user.user_id}`,
+      { method: 'DELETE' },
+      `User "${user.username}" deleted`,
+      'Failed to delete user',
+    )
   }
 
   async function handleChangePassword(userId: string) {
