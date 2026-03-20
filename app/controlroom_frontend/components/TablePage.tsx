@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { ColumnDef, SortingState } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
@@ -174,6 +174,7 @@ export function TablePage<T>({
     initialPageParam: 0,
     getNextPageParam,
     enabled: paginated,
+    placeholderData: keepPreviousData,
   })
 
   const pagedItems = React.useMemo(

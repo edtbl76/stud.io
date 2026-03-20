@@ -153,3 +153,29 @@ export interface Tool {
   created_at: string
   updated_at: string
 }
+
+export interface AuditEntry {
+  audit_id: string
+  table_name: string
+  record_id: string
+  operation: string
+  performed_by: string
+  performed_at: string
+  acknowledged_at: string | null
+  acknowledged_by: string | null
+  undone_at: string | null
+  undone_by: string | null
+  record_display_name: string | null
+}
+
+export interface AuditEntryWithData extends AuditEntry {
+  old_data: Record<string, unknown> | null
+  new_data: Record<string, unknown> | null
+}
+
+export interface ChangeReviewResponse {
+  total: number
+  page: number
+  page_size: number
+  entries: AuditEntry[]
+}

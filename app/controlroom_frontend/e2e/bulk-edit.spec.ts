@@ -85,6 +85,8 @@ test('bulk edit: selecting a text field shows a text input', async ({ page }) =>
   // Search to reduce the dataset before selecting
   await page.getByPlaceholder('Search...').fill('Absynth')
   await waitForRows(page)
+  // keepPreviousData shows old count immediately — wait for the Absynth fetch to settle
+  await page.waitForLoadState('networkidle')
 
   await page.getByLabel('Select all').click()
   await expect(page.getByTestId('bulk-edit-bar')).toBeVisible({ timeout: 5_000 })
@@ -98,14 +100,18 @@ test('bulk edit: Apply button is disabled until a value is entered', async ({ pa
   await page.goto('/session/effects')
   await page.getByPlaceholder('Search...').fill('Absynth')
   await waitForRows(page)
+  // keepPreviousData shows old count immediately — wait for the Absynth fetch to settle
+  await page.waitForLoadState('networkidle')
 
-  await page.getByLabel('Select all').click()
+  // Use per-row checkbox (more reliable on paginated tables than Select all)
+  await page.getByRole('checkbox', { name: /^Select row /i }).first().click()
   await expect(page.getByTestId('bulk-edit-bar')).toBeVisible({ timeout: 5_000 })
 
   await page.getByLabel('Select field to bulk edit').selectOption({ label: 'Version' })
 
   // Apply button exists but is disabled before any value
   const applyBtn = page.getByRole('button', { name: /apply/i })
+  await expect(page.getByPlaceholder('Set Version…')).toBeVisible()
   await expect(applyBtn).toBeDisabled()
 
   await page.getByPlaceholder('Set Version…').fill('test-value')
