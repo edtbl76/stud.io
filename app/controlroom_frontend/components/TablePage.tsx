@@ -100,6 +100,136 @@ function getNextPageParam(
   return loaded < lastPage.total ? loaded : undefined
 }
 
+// ── Internal hooks ──
+
+interface PagedTableProps {
+  hasNextPage?: boolean
+  fetchNextPage?: () => void
+  isFetchingNextPage?: boolean
+  manualSorting?: true
+  externalSorting?: SortingState
+  onExternalSortChange?: (s: SortingState) => void
+}
+
+interface UseTableDataResult<T> {
+  data: T[]
+  isLoading: boolean
+  error: Error | null
+  recordCountLabel: string
+  search: string
+  setSearch: (s: string) => void
+  pagedTableProps: PagedTableProps
+}
+
+function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean): UseTableDataResult<T> {
+  const [search, setSearch] = React.useState('')
+  const [debouncedSearch, setDebouncedSearch] = React.useState('')
+  const [externalSorting, setExternalSorting] = React.useState<SortingState>([])
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
+
+  const sortBy = externalSorting[0]?.id
+  const sortDir = externalSorting[0]?.desc ? 'desc' : 'asc'
+
+  const { data: listData = [], isLoading: isListLoading, error: listError } = useQuery({
+    queryKey: [queryKey, debouncedSearch],
+    queryFn: () => api.list<T>(endpoint, debouncedSearch || undefined),
+    enabled: !paginated,
+  })
+
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isInfiniteLoading,
+    error: infiniteError,
+  } = useInfiniteQuery({
+    queryKey: [queryKey, debouncedSearch, sortBy, sortDir],
+    queryFn: ({ pageParam }) =>
+      api.listPaged<T>(endpoint, {
+        q: debouncedSearch || undefined,
+        limit: 100,
+        offset: pageParam,
+        sort_by: sortBy,
+        sort_dir: sortDir,
+      }),
+    initialPageParam: 0,
+    getNextPageParam,
+    enabled: paginated,
+    placeholderData: keepPreviousData,
+  })
+
+  const pagedItems = React.useMemo(
+    () => infiniteData?.pages.flatMap((p) => p.items) ?? [],
+    [infiniteData],
+  )
+
+  const data = paginated ? pagedItems : listData
+  const isLoading = paginated ? isInfiniteLoading : isListLoading
+  const error = paginated ? infiniteError : listError
+  const pagedTotal = infiniteData?.pages.at(-1)?.total
+  const totalRecords = paginated ? pagedTotal : data.length
+  const plural = totalRecords === 1 ? '' : 's'
+  const recordCountLabel =
+    paginated && pagedTotal === undefined
+      ? ''
+      : `${totalRecords} record${plural}`
+
+  const pagedTableProps: PagedTableProps = paginated
+    ? { hasNextPage, fetchNextPage: () => void fetchNextPage?.(), isFetchingNextPage, manualSorting: true, externalSorting, onExternalSortChange: setExternalSorting }
+    : {}
+
+  return { data, isLoading, error, recordCountLabel, search, setSearch, pagedTableProps }
+}
+
+interface UseCheckboxSelectionResult<T> {
+  selectedIds: Set<string>
+  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>
+  selectedRows: T[]
+  effectiveColumns: ColumnDef<T, unknown>[]
+}
+
+function useCheckboxSelection<T>(
+  data: T[],
+  getRowId: (row: T) => string,
+  columns: ColumnDef<T, unknown>[],
+  enabled: boolean,
+): UseCheckboxSelectionResult<T> {
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
+
+  const selectedRows = React.useMemo(
+    () => data.filter((row) => selectedIds.has(getRowId(row))),
+    [data, selectedIds, getRowId],
+  )
+
+  const checkboxColumn = React.useMemo<ColumnDef<T, unknown>>(
+    () => makeCheckboxColumn(
+      getRowId,
+      selectedIds,
+      setSelectedIds,
+      (id) => {
+        setSelectedIds((prev) => {
+          const next = new Set(prev)
+          if (next.has(id)) next.delete(id)
+          else next.add(id)
+          return next
+        })
+      },
+    ),
+    [selectedIds, getRowId],
+  )
+
+  const effectiveColumns = enabled ? [checkboxColumn, ...columns] : columns
+
+  return { selectedIds, setSelectedIds, selectedRows, effectiveColumns }
+}
+
+// ── TablePage ──
+
 interface TablePageProps<T> {
   title: string
   endpoint: string
@@ -128,130 +258,28 @@ export function TablePage<T>({
   const queryClient = useQueryClient()
   const { role } = useAuth()
   const isAdmin = role === 'admin'
-  const [search, setSearch] = React.useState('')
-  const [debouncedSearch, setDebouncedSearch] = React.useState('')
-  const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
-  // undefined = modal closed, null = create mode, T = view/edit mode
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
-  const [externalSorting, setExternalSorting] = React.useState<SortingState>([])
-
   const showBulkEdit = isAdmin && !!bulkEditFields && bulkEditFields.length > 0
+  const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
 
-  const sortBy = externalSorting[0]?.id
-  const sortDir = externalSorting[0]?.desc ? 'desc' : 'asc'
+  const { data, isLoading, error, recordCountLabel, search, setSearch, pagedTableProps } =
+    useTableData<T>(endpoint, queryKey, paginated)
 
-  // Debounce search
-  React.useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(timer)
-  }, [search])
+  const { selectedIds, setSelectedIds, selectedRows, effectiveColumns } =
+    useCheckboxSelection(data, getRowId, columns, showBulkEdit)
 
-  // Non-paginated query
-  const { data: listData = [], isLoading: isListLoading, error: listError } = useQuery({
-    queryKey: [queryKey, debouncedSearch],
-    queryFn: () => api.list<T>(endpoint, debouncedSearch || undefined),
-    enabled: !paginated,
-  })
-
-  // Paginated / infinite-scroll query
-  const {
-    data: infiniteData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isInfiniteLoading,
-    error: infiniteError,
-  } = useInfiniteQuery({
-    queryKey: [queryKey, debouncedSearch, sortBy, sortDir],
-    queryFn: ({ pageParam }) =>
-      api.listPaged<T>(endpoint, {
-        q: debouncedSearch || undefined,
-        limit: 100,
-        offset: pageParam,
-        sort_by: sortBy,
-        sort_dir: sortDir,
-      }),
-    initialPageParam: 0,
-    getNextPageParam,
-    enabled: paginated,
-    placeholderData: keepPreviousData,
-  })
-
-  const pagedItems = React.useMemo(
-    () => infiniteData?.pages.flatMap((p) => p.items) ?? [],
-    [infiniteData],
-  )
-  const pagedTotal = infiniteData?.pages.at(-1)?.total
-
-  const data = paginated ? pagedItems : listData
-  const isLoading = paginated ? isInfiniteLoading : isListLoading
-  const error = paginated ? infiniteError : listError
-
-  const totalRecords = paginated ? pagedTotal : data.length
-  const recordPlural = totalRecords === 1 ? '' : 's'
-  const recordCountLabel =
-      paginated && pagedTotal === undefined
-          ? ''
-          : `${totalRecords} record${recordPlural}`
-
-  const selectedRows = React.useMemo(
-    () => data.filter((row) => selectedIds.has(getRowId(row))),
-    [data, selectedIds, getRowId]
-  )
-
-  // Checkbox column — only built when bulk edit is available
-  const checkboxColumn = React.useMemo<ColumnDef<T, unknown>>(
-    () => makeCheckboxColumn(
-      getRowId,
-      selectedIds,
-      setSelectedIds,
-      (id) => {
-        const next = new Set(selectedIds)
-        if (next.has(id)) next.delete(id)
-        else next.add(id)
-        setSelectedIds(next)
-      },
-    ),
-    [selectedIds, getRowId],
-  )
-
-  const effectiveColumns = showBulkEdit ? [checkboxColumn, ...columns] : columns
-
-  const pagedTableProps = paginated
-    ? { hasNextPage, fetchNextPage, isFetchingNextPage, manualSorting: true as const, externalSorting, onExternalSortChange: setExternalSorting }
-    : {}
-
-  function handleMutate() {
-    void queryClient.invalidateQueries({ queryKey: [queryKey] })
-  }
-
-  function handleRowClick(row: T) {
-    setSelectedRecord(row)
-  }
-
-  function handleClose() {
-    setSelectedRecord(undefined)
-  }
-
-  function handleAdd() {
-    setSelectedRecord(null)
-  }
-
-  function handleBulkApply() {
-    setSelectedIds(new Set())
-    handleMutate()
-  }
+  function handleMutate() { void queryClient.invalidateQueries({ queryKey: [queryKey] }) }
+  function handleRowClick(row: T) { setSelectedRecord(row) }
+  function handleClose() { setSelectedRecord(undefined) }
+  function handleAdd() { setSelectedRecord(null) }
+  function handleBulkApply() { setSelectedIds(new Set()); handleMutate() }
 
   return (
     <div className="flex flex-col h-full">
-      {/* Page header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           {!isLoading && (
-            <p className="text-xs text-muted-foreground mt-0.5">
-                {recordCountLabel}
-            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">{recordCountLabel}</p>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -270,18 +298,16 @@ export function TablePage<T>({
         </div>
       </div>
 
-      {/* Error state */}
       {error && (
         <div className="px-6 py-3 bg-destructive/10 border-b border-destructive/20 text-sm text-destructive">
           Error loading data: {error instanceof Error ? error.message : 'Unknown error'}
         </div>
       )}
 
-      {/* Bulk edit bar */}
-      {isAdmin && bulkEditFields && bulkEditFields.length > 0 && selectedRows.length > 0 && (
+      {showBulkEdit && selectedRows.length > 0 && (
         <BulkEditBar
           selectedRows={selectedRows as unknown as Record<string, unknown>[]}
-          fields={bulkEditFields}
+          fields={bulkEditFields ?? []}
           endpoint={endpoint}
           getRowId={(row) => getRowId(row as unknown as T)}
           onApply={handleBulkApply}
@@ -289,7 +315,6 @@ export function TablePage<T>({
         />
       )}
 
-      {/* Table */}
       <div className="flex-1 overflow-auto">
         <DataTable
           columns={effectiveColumns}
@@ -302,9 +327,7 @@ export function TablePage<T>({
         />
       </div>
 
-      {/* Modal */}
-      {selectedRecord !== undefined &&
-        renderModal(selectedRecord, handleClose, handleMutate)}
+      {selectedRecord !== undefined && renderModal(selectedRecord, handleClose, handleMutate)}
     </div>
   )
 }
