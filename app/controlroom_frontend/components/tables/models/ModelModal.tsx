@@ -1,10 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
 import { Model } from '@/lib/types'
+import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
@@ -93,52 +91,25 @@ function toForm(record: Model | null): FormState {
 }
 
 export function ModelModal({ record, onClose, onMutate }: Readonly<ModelModalProps>) {
-  const { role } = useAuth()
-  const isCreate = record === null
-  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
-  const [form, setForm] = React.useState<FormState>(() => toForm(record))
-  const [error, setError] = React.useState<string | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const body = buildModelPayload(form)
-      if (record) return api.update<Model>(ENDPOINT, record.model_id, body)
-      return api.create<Model>(ENDPOINT, body)
-    },
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => api.delete(ENDPOINT, record!.model_id),
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Delete failed'),
-  })
-
-  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm(prev => ({ ...prev, [key]: value }))
-  }
-
-  const title = getModelTitle(mode, record)
+  const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
+    useRecordModal<Model, FormState>({
+      record,
+      endpoint: ENDPOINT,
+      getRecordId: (r) => r.model_id,
+      getHistoryUrl: (r) => `/models/${r.model_id}/history`,
+      getTitle: getModelTitle,
+      toForm,
+      buildPayload: buildModelPayload,
+      onClose,
+      onMutate,
+    })
 
   return (
-    <RecordModal
-      title={title}
-      isAdmin={role === 'admin'}
-      isEditing={mode === 'edit'}
-      isHistory={mode === 'history'}
-      onEdit={() => setMode('edit')}
-      onHistory={record ? () => setMode('history') : undefined}
-      onSave={() => { setError(null); saveMutation.mutate() }}
-      onDelete={() => deleteMutation.mutate()}
-      onClose={onClose}
-      isSaving={saveMutation.isPending}
-      isDeleting={deleteMutation.isPending}
-    >
+    <RecordModal {...recordModalProps}>
       {mode === 'history' ? (
         <RecordHistoryView
-          historyUrl={`/models/${record!.model_id}/history`}
-          isAdmin={role === 'admin'}
+          historyUrl={historyUrl}
+          isAdmin={isAdmin}
           onUndo={() => { onMutate(); onClose() }}
         />
       ) : (

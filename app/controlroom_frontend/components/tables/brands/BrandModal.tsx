@@ -1,10 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useMutation } from '@tanstack/react-query'
-import { api } from '@/lib/api'
-import { useAuth } from '@/lib/auth'
 import { Brand } from '@/lib/types'
+import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
 import { FieldRow } from '@/components/FieldRow'
@@ -191,70 +189,39 @@ function toForm(record: Brand | null): FormState {
 }
 
 export function BrandModal({ record, onClose, onMutate }: Readonly<BrandModalProps>) {
-  const { role } = useAuth()
-  const isCreate = record === null
-  const [mode, setMode] = React.useState<'view' | 'edit' | 'history'>(isCreate ? 'edit' : 'view')
-  const [form, setForm] = React.useState<FormState>(() => toForm(record))
-  const [error, setError] = React.useState<string | null>(null)
-
-  const saveMutation = useMutation({
-    mutationFn: () => {
-      const body = buildBrandPayload(form)
-      if (record) return api.update<Brand>(ENDPOINT, record.brand_id, body)
-      return api.create<Brand>(ENDPOINT, body)
-    },
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => api.delete(ENDPOINT, record!.brand_id),
-    onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Delete failed'),
-  })
-
-  function set(key: keyof FormState, value: string | string[]) {
-    setForm(prev => ({ ...prev, [key]: value }))
-  }
-
-  const title = getBrandTitle(mode, record)
+  const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
+    useRecordModal<Brand, FormState>({
+      record,
+      endpoint: ENDPOINT,
+      getRecordId: (r) => r.brand_id,
+      getHistoryUrl: (r) => `/brands/${r.brand_id}/history`,
+      getTitle: getBrandTitle,
+      toForm,
+      buildPayload: buildBrandPayload,
+      onClose,
+      onMutate,
+    })
 
   return (
-    <RecordModal
-      title={title}
-      isAdmin={role === 'admin'}
-      isEditing={mode === 'edit'}
-      isHistory={mode === 'history'}
-      onEdit={() => setMode('edit')}
-      onHistory={record ? () => setMode('history') : undefined}
-      onSave={() => {
-        setError(null)
-        saveMutation.mutate()
-      }}
-      onDelete={() => deleteMutation.mutate()}
-      onClose={onClose}
-      isSaving={saveMutation.isPending}
-      isDeleting={deleteMutation.isPending}
-    >
+    <RecordModal {...recordModalProps}>
       {mode === 'history' ? (
         <RecordHistoryView
-          historyUrl={`/brands/${record!.brand_id}/history`}
-          isAdmin={role === 'admin'}
+          historyUrl={historyUrl}
+          isAdmin={isAdmin}
           onUndo={() => { onMutate(); onClose() }}
         />
       ) : (
-      <>
-      {error && (
-        <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">
-          {error}
-        </div>
-      )}
-
-      {mode === 'edit'
-        ? <BrandEditForm form={form} set={set} />
-        : record && <BrandViewDetails record={record} />
-      }
-      </>
+        <>
+          {error && (
+            <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">
+              {error}
+            </div>
+          )}
+          {mode === 'edit'
+            ? <BrandEditForm form={form} set={set} />
+            : record && <BrandViewDetails record={record} />
+          }
+        </>
       )}
     </RecordModal>
   )
