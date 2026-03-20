@@ -1,8 +1,8 @@
 'use client'
 
 import * as React from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ColumnDef } from '@tanstack/react-table'
+import { useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { ColumnDef, SortingState } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -92,6 +92,14 @@ function makeCheckboxColumn<T>(
   }
 }
 
+function getNextPageParam(
+  lastPage: { items: unknown[]; total: number },
+  allPages: { items: unknown[]; total: number }[],
+): number | undefined {
+  const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0)
+  return loaded < lastPage.total ? loaded : undefined
+}
+
 interface TablePageProps<T> {
   title: string
   endpoint: string
@@ -104,6 +112,7 @@ interface TablePageProps<T> {
     onMutate: () => void
   ) => React.ReactNode
   bulkEditFields?: BulkEditField[]
+  paginated?: boolean
 }
 
 export function TablePage<T>({
@@ -114,6 +123,7 @@ export function TablePage<T>({
   getRowId,
   renderModal,
   bulkEditFields,
+  paginated = false,
 }: Readonly<TablePageProps<T>>) {
   const queryClient = useQueryClient()
   const { role } = useAuth()
@@ -123,8 +133,12 @@ export function TablePage<T>({
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
   // undefined = modal closed, null = create mode, T = view/edit mode
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
+  const [externalSorting, setExternalSorting] = React.useState<SortingState>([])
 
   const showBulkEdit = isAdmin && !!bulkEditFields && bulkEditFields.length > 0
+
+  const sortBy = externalSorting[0]?.id
+  const sortDir = externalSorting[0]?.desc ? 'desc' : 'asc'
 
   // Debounce search
   React.useEffect(() => {
@@ -132,10 +146,52 @@ export function TablePage<T>({
     return () => clearTimeout(timer)
   }, [search])
 
-  const { data = [], isLoading, error } = useQuery({
+  // Non-paginated query
+  const { data: listData = [], isLoading: isListLoading, error: listError } = useQuery({
     queryKey: [queryKey, debouncedSearch],
     queryFn: () => api.list<T>(endpoint, debouncedSearch || undefined),
+    enabled: !paginated,
   })
+
+  // Paginated / infinite-scroll query
+  const {
+    data: infiniteData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isInfiniteLoading,
+    error: infiniteError,
+  } = useInfiniteQuery({
+    queryKey: [queryKey, debouncedSearch, sortBy, sortDir],
+    queryFn: ({ pageParam }) =>
+      api.listPaged<T>(endpoint, {
+        q: debouncedSearch || undefined,
+        limit: 100,
+        offset: pageParam,
+        sort_by: sortBy,
+        sort_dir: sortDir,
+      }),
+    initialPageParam: 0,
+    getNextPageParam,
+    enabled: paginated,
+  })
+
+  const pagedItems = React.useMemo(
+    () => infiniteData?.pages.flatMap((p) => p.items) ?? [],
+    [infiniteData],
+  )
+  const pagedTotal = infiniteData?.pages.at(-1)?.total
+
+  const data = paginated ? pagedItems : listData
+  const isLoading = paginated ? isInfiniteLoading : isListLoading
+  const error = paginated ? infiniteError : listError
+
+  const totalRecords = paginated ? pagedTotal : data.length
+  const recordPlural = totalRecords === 1 ? '' : 's'
+  const recordCountLabel =
+      paginated && pagedTotal === undefined
+          ? ''
+          : `${totalRecords} record${recordPlural}`
 
   const selectedRows = React.useMemo(
     () => data.filter((row) => selectedIds.has(getRowId(row))),
@@ -160,8 +216,12 @@ export function TablePage<T>({
 
   const effectiveColumns = showBulkEdit ? [checkboxColumn, ...columns] : columns
 
+  const pagedTableProps = paginated
+    ? { hasNextPage, fetchNextPage, isFetchingNextPage, manualSorting: true as const, externalSorting, onExternalSortChange: setExternalSorting }
+    : {}
+
   function handleMutate() {
-    queryClient.invalidateQueries({ queryKey: [queryKey] })
+    void queryClient.invalidateQueries({ queryKey: [queryKey] })
   }
 
   function handleRowClick(row: T) {
@@ -189,7 +249,7 @@ export function TablePage<T>({
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           {!isLoading && (
             <p className="text-xs text-muted-foreground mt-0.5">
-              {data.length} record{data.length === 1 ? '' : 's'}
+                {recordCountLabel}
             </p>
           )}
         </div>
@@ -237,6 +297,7 @@ export function TablePage<T>({
           isLoading={isLoading}
           selectedIds={showBulkEdit ? selectedIds : undefined}
           getRowId={showBulkEdit ? getRowId : undefined}
+          {...pagedTableProps}
         />
       </div>
 

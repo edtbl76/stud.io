@@ -17,6 +17,7 @@ export default function InstrumentsPage() {
       renderModal={(record, onClose, onMutate) => (
         <InstrumentModal record={record} onClose={onClose} onMutate={onMutate} />
       )}
+      paginated
     />
   )
 }

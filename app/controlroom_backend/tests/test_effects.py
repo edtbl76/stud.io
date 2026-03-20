@@ -8,11 +8,13 @@ from uuid import uuid4
 async def test_list_effects_returns_results(client):
     response = await client.get("/effects")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    data = response.json()
+    assert "items" in data and "total" in data
+    assert len(data["items"]) > 0
 
 
 async def test_list_effects_fields(client):
-    effect = (await client.get("/effects")).json()[0]
+    effect = (await client.get("/effects")).json()["items"][0]
     for field in ("effect_id", "effect_name", "full_effect_name",
                   "effect_types", "tags", "parents", "created_at"):
         assert field in effect
@@ -21,12 +23,31 @@ async def test_list_effects_fields(client):
 async def test_list_effects_search(client):
     response = await client.get("/effects?q=a")
     assert response.status_code == 200
+    assert "items" in response.json()
 
 
 async def test_list_effects_search_no_match(client):
     response = await client.get("/effects?q=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
+
+
+async def test_list_effects_pagination(client):
+    response = await client.get("/effects?limit=2&offset=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) <= 2
+    assert data["total"] >= len(data["items"])
+
+
+async def test_list_effects_sort(client):
+    total = (await client.get("/effects")).json()["total"]
+    asc = (await client.get(f"/effects?limit={total}&sort_by=effect_name&sort_dir=asc")).json()["items"]
+    desc = (await client.get(f"/effects?limit={total}&sort_by=effect_name&sort_dir=desc")).json()["items"]
+    asc_names = [e["effect_name"] for e in asc]
+    desc_names = [e["effect_name"] for e in desc]
+    assert asc_names == list(reversed(desc_names))
 
 
 # ---------------------------------------------------------------------------
