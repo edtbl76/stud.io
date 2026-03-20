@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "sonarqube": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "--init", "-i", "--rm",
+        "--network", "dev_default",
+        "-e", "SONARQUBE_TOKEN",
+        "-e", "SONARQUBE_URL",
+        "mcp/sonarqube"
+      ],
+      "env": {
+        "SONARQUBE_URL": "http://sonarqube:9000"
+      }
+    },
+    "codescene": {
+      "type": "stdio",
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-e", "CS_ACCESS_TOKEN",
+        "-e", "CS_MOUNT_PATH=/home/edwardmangini/Documents/Studio/STUD.io",
+        "--mount", "type=bind,src=/home/edwardmangini/Documents/Studio/STUD.io,dst=/mount/,ro",
+        "codescene/codescene-mcp"
+      ]
+    }
+  }
+}

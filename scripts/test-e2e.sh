@@ -45,13 +45,25 @@ cleanup() {
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
-# Verify test backend is reachable
+# Rebuild and restart test backend so code changes are picked up
 # ---------------------------------------------------------------------------
-if ! curl -sf "http://localhost:$TEST_BACKEND_PORT/health" > /dev/null 2>&1; then
-    echo "[e2e] ERROR: Test backend not reachable on port $TEST_BACKEND_PORT."
-    echo "       Start the dev stack first:  ./scripts/dev.sh up"
-    exit 1
-fi
+echo "[e2e] Rebuilding test backend..."
+docker compose -f "$ROOT/docker-compose.dev.yml" build controlroom_backend_test
+docker compose -f "$ROOT/docker-compose.dev.yml" up -d controlroom_backend_test
+
+# Wait for the test backend to be healthy after restart
+echo "[e2e] Waiting for test backend..."
+for i in $(seq 1 30); do
+    if curl -sf "http://localhost:$TEST_BACKEND_PORT/health" > /dev/null 2>&1; then
+        echo "[e2e] Test backend ready."
+        break
+    fi
+    if [ "$i" -eq 30 ]; then
+        echo "[e2e] ERROR: Test backend did not start in time."
+        exit 1
+    fi
+    sleep 2
+done
 
 # ---------------------------------------------------------------------------
 # Ensure test frontend port is free

@@ -1,7 +1,7 @@
 import uuid
 import pytest
 from datetime import datetime, timezone
-from routers.admin_ops import AuditEntry, ChangeReviewResponse, _TABLE_PK
+from routers._helpers import AuditEntry, ChangeReviewResponse, _TABLE_PK
 
 
 def test_audit_entry_model():

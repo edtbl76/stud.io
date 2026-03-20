@@ -37,9 +37,10 @@ for (const { name, path } of [
     await page.goto(path)
     await waitForRecordCount(page)
 
-    // Click the first sortable column header button (label+sort button)
-    const sortButtons = page.locator('thead button').filter({ hasNotText: '' })
-    const firstSort = sortButtons.nth(1) // skip drag handle, get label button
+    // Click the first sortable column header button — identified by cursor-pointer
+    // class which DataTable applies only to sortable columns (not drag handles,
+    // resize handles, or the non-sortable checkbox __select__ column).
+    const firstSort = page.locator('thead button.cursor-pointer').first()
     await firstSort.click()
 
     // Record count is still visible after sort (data reloaded successfully)
