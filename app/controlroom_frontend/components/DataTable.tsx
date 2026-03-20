@@ -28,6 +28,14 @@ interface DataTableProps<TData, TValue> {
   readonly isLoading?: boolean
   readonly selectedIds?: Set<string>
   readonly getRowId?: (row: TData) => string
+  // Infinite scroll
+  readonly hasNextPage?: boolean
+  readonly fetchNextPage?: () => void
+  readonly isFetchingNextPage?: boolean
+  // Server-side sort (paginated tables)
+  readonly manualSorting?: boolean
+  readonly externalSorting?: SortingState
+  readonly onExternalSortChange?: (sorting: SortingState) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -37,6 +45,12 @@ export function DataTable<TData, TValue>({
   isLoading = false,
   selectedIds,
   getRowId,
+  hasNextPage,
+  fetchNextPage,
+  isFetchingNextPage,
+  manualSorting = false,
+  externalSorting,
+  onExternalSortChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -50,8 +64,19 @@ export function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnFilters, columnVisibility, columnOrder },
-    onSortingChange: setSorting,
+    state: {
+      sorting: manualSorting ? (externalSorting ?? []) : sorting,
+      columnFilters,
+      columnVisibility,
+      columnOrder,
+    },
+    manualSorting,
+    onSortingChange: manualSorting
+      ? (updater) => {
+          const next = typeof updater === 'function' ? updater(externalSorting ?? []) : updater
+          onExternalSortChange?.(next)
+        }
+      : setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
@@ -76,6 +101,14 @@ export function DataTable<TData, TValue>({
   const paddingTop = virtualItems.length > 0 ? virtualItems[0].start : 0
   const paddingBottom =
     virtualItems.length > 0 ? totalSize - virtualItems.at(-1)!.end : 0
+
+  const lastVirtualItem = virtualItems.at(-1)
+  React.useEffect(() => {
+    if (!lastVirtualItem || !hasNextPage || isFetchingNextPage) return
+    if (lastVirtualItem.index >= rows.length - 5) {
+      fetchNextPage?.()
+    }
+  }, [lastVirtualItem?.index, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const activeFilterCount = columnFilters.length
 
@@ -325,6 +358,16 @@ export function DataTable<TData, TValue>({
                 })}
                 {paddingBottom > 0 && (
                   <tr><td style={{ height: paddingBottom }} /></tr>
+                )}
+                {isFetchingNextPage && (
+                  <tr>
+                    <td
+                      colSpan={table.getVisibleLeafColumns().length}
+                      className="py-4 text-center text-xs text-muted-foreground"
+                    >
+                      Loading more…
+                    </td>
+                  </tr>
                 )}
               </>
               )

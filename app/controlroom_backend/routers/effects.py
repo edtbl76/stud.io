@@ -9,6 +9,7 @@ from asyncpg import Connection
 from database import get_conn
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.effects import EffectCreate, EffectUpdate, EffectOut
+from schemas.common import PagedResponse
 from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
@@ -17,17 +18,31 @@ _SELECT = "SELECT * FROM effects_view"
 _SELECT_ONE = "SELECT * FROM effects WHERE effect_id = $1"
 _NOT_FOUND = "Effect not found"
 _PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
+_SORTABLE = frozenset({"effect_name", "brand_name", "version", "collection", "updated_at", "created_at"})
+_DEFAULT_SORT = "effect_name"
 
 
-@router.get("", response_model=list[EffectOut])
-async def list_effects(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
+@router.get("", response_model=PagedResponse[EffectOut])
+async def list_effects(
+    q: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    sort_by: str | None = None,
+    sort_dir: str = "asc",
+    *,
+    conn: Annotated[Connection, Depends(get_conn)],
+):
+    col = sort_by if sort_by in _SORTABLE else _DEFAULT_SORT
+    direction = "DESC" if sort_dir.lower() == "desc" else "ASC"
+    order = f"ORDER BY {col} {direction}"
     if q:
-        rows = await conn.fetch(
-            _SELECT + " WHERE effect_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
-        )
+        where = "WHERE (effect_name ILIKE $1 OR brand_name ILIKE $1)"
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM effects_view {where}", f"%{q}%")
+        rows = await conn.fetch(f"{_SELECT} {where} {order} LIMIT $2 OFFSET $3", f"%{q}%", limit, offset)
     else:
-        rows = await conn.fetch(_SELECT)
-    return [EffectOut(**dict(r)) for r in rows]
+        total = await conn.fetchval("SELECT COUNT(*) FROM effects_view")
+        rows = await conn.fetch(f"{_SELECT} {order} LIMIT $1 OFFSET $2", limit, offset)
+    return PagedResponse(items=[EffectOut(**dict(r)) for r in rows], total=total)
 
 
 @router.get("/{effect_id}", response_model=EffectOut, responses={404: {"description": "Not found"}})

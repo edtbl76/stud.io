@@ -17,6 +17,7 @@ export default function LibrariesPage() {
       renderModal={(record, onClose, onMutate) => (
         <LibraryModal record={record} onClose={onClose} onMutate={onMutate} />
       )}
+      paginated
     />
   )
 }

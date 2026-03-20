@@ -81,13 +81,7 @@ SELECT
 
     -- model_ids → [{id, name}]
     e.model_ids,
-    (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
-                ORDER BY m.model_name
-             ), '[]'::json)
-     FROM   unnest(COALESCE(e.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid
-     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)        AS models,
+    model_agg.models,
 
     -- effect_type_ids → [{id, name}]
     e.effect_type_ids,
@@ -150,6 +144,15 @@ SELECT
     e.updated_at
 FROM  effects e
 LEFT JOIN brands b ON b.brand_id = e.brand_id
+LEFT JOIN LATERAL (
+    SELECT COALESCE(json_agg(
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
+                ORDER BY m.model_name
+             ), '[]'::json) AS models
+    FROM   unnest(COALESCE(e.model_ids, ARRAY[]::UUID[])) uid
+    JOIN   models m ON m.model_id = uid
+    LEFT JOIN brands mb ON mb.brand_id = m.brand_id
+) model_agg ON true
 WHERE e.deleted_at IS NULL;
 
 
@@ -167,13 +170,7 @@ SELECT
 
     -- model_ids → [{id, name}]
     i.model_ids,
-    (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
-                ORDER BY m.model_name
-             ), '[]'::json)
-     FROM   unnest(COALESCE(i.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid
-     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)            AS models,
+    model_agg.models,
 
     -- instrument_type_ids → [{id, name}]
     i.instrument_type_ids,
@@ -235,6 +232,15 @@ SELECT
     i.updated_at
 FROM  instruments i
 LEFT JOIN brands b ON b.brand_id = i.brand_id
+LEFT JOIN LATERAL (
+    SELECT COALESCE(json_agg(
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
+                ORDER BY m.model_name
+             ), '[]'::json) AS models
+    FROM   unnest(COALESCE(i.model_ids, ARRAY[]::UUID[])) uid
+    JOIN   models m ON m.model_id = uid
+    LEFT JOIN brands mb ON mb.brand_id = m.brand_id
+) model_agg ON true
 WHERE i.deleted_at IS NULL;
 
 
@@ -252,13 +258,7 @@ SELECT
 
     -- model_ids → [{id, name}]
     l.model_ids,
-    (SELECT COALESCE(json_agg(
-                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
-                ORDER BY m.model_name
-             ), '[]'::json)
-     FROM   unnest(COALESCE(l.model_ids, ARRAY[]::UUID[])) uid
-     JOIN   models m ON m.model_id = uid
-     LEFT JOIN brands mb ON mb.brand_id = m.brand_id)        AS models,
+    model_agg.models,
 
     -- tag_ids → [{id, name}]
     l.tag_ids,
@@ -293,6 +293,15 @@ SELECT
     l.updated_at
 FROM  libraries l
 LEFT JOIN brands b ON b.brand_id = l.brand_id
+LEFT JOIN LATERAL (
+    SELECT COALESCE(json_agg(
+                json_build_object('id', m.model_id, 'name', TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name))
+                ORDER BY m.model_name
+             ), '[]'::json) AS models
+    FROM   unnest(COALESCE(l.model_ids, ARRAY[]::UUID[])) uid
+    JOIN   models m ON m.model_id = uid
+    LEFT JOIN brands mb ON mb.brand_id = m.brand_id
+) model_agg ON true
 WHERE l.deleted_at IS NULL;
 
 

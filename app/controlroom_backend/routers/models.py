@@ -9,6 +9,7 @@ from asyncpg import Connection
 from database import get_conn
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.models import ModelCreate, ModelUpdate, ModelOut
+from schemas.common import PagedResponse
 from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
@@ -16,6 +17,8 @@ router = APIRouter()
 _SELECT = "SELECT * FROM models_view"
 _SELECT_ONE = "SELECT * FROM models WHERE model_id = $1"
 _NOT_FOUND = "Model not found"
+_SORTABLE = frozenset({"model_name", "brand_name", "updated_at", "created_at"})
+_DEFAULT_SORT = "model_name"
 
 _REF_CHECKS = [
     ("effects",           "model_ids"),
@@ -26,15 +29,27 @@ _REF_CHECKS = [
 ]
 
 
-@router.get("", response_model=list[ModelOut])
-async def list_models(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
+@router.get("", response_model=PagedResponse[ModelOut])
+async def list_models(
+    q: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+    sort_by: str | None = None,
+    sort_dir: str = "asc",
+    *,
+    conn: Annotated[Connection, Depends(get_conn)],
+):
+    col = sort_by if sort_by in _SORTABLE else _DEFAULT_SORT
+    direction = "DESC" if sort_dir.lower() == "desc" else "ASC"
+    order = f"ORDER BY {col} {direction}"
     if q:
-        rows = await conn.fetch(
-            _SELECT + " WHERE model_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%"
-        )
+        where = "WHERE (model_name ILIKE $1 OR brand_name ILIKE $1)"
+        total = await conn.fetchval(f"SELECT COUNT(*) FROM models_view {where}", f"%{q}%")
+        rows = await conn.fetch(f"{_SELECT} {where} {order} LIMIT $2 OFFSET $3", f"%{q}%", limit, offset)
     else:
-        rows = await conn.fetch(_SELECT)
-    return [ModelOut(**dict(r)) for r in rows]
+        total = await conn.fetchval("SELECT COUNT(*) FROM models_view")
+        rows = await conn.fetch(f"{_SELECT} {order} LIMIT $1 OFFSET $2", limit, offset)
+    return PagedResponse(items=[ModelOut(**dict(r)) for r in rows], total=total)
 
 
 @router.get("/{model_id}", response_model=ModelOut, responses={404: {"description": "Not found"}})

@@ -34,10 +34,12 @@ jest.mock('@tanstack/react-virtual', () => ({
 
 const mockApiList = jest.fn()
 const mockApiUpdate = jest.fn()
+const mockApiListPaged = jest.fn()
 
 jest.mock('@/lib/api', () => ({
   api: {
     list: (...args: unknown[]) => mockApiList(...args),
+    listPaged: (...args: unknown[]) => mockApiListPaged(...args),
     update: (...args: unknown[]) => mockApiUpdate(...args),
   },
 }))
@@ -60,6 +62,33 @@ const rows: Row[] = [{ id: '1', name: 'Alpha' }, { id: '2', name: 'Beta' }]
 const bulkEditFields: BulkEditField[] = [
   { key: 'name', label: 'Name', type: 'text' },
 ]
+
+function renderPagedPage(roleOverride?: string) {
+  mockUseAuth = () => ({ role: roleOverride ?? 'admin' })
+
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+
+  return render(
+    <QueryClientProvider client={client}>
+      <TablePage
+        title="Paged Table"
+        endpoint="/test"
+        queryKey="test-paged"
+        columns={columns}
+        getRowId={(r) => r.id}
+        renderModal={(record, onClose) => (
+          <div data-testid="modal">
+            {record === null ? 'create' : record?.name}
+            <button onClick={onClose}>close-modal</button>
+          </div>
+        )}
+        paginated
+      />
+    </QueryClientProvider>
+  )
+}
 
 function renderPage(roleOverride?: string, withBulkEdit = false) {
   if (roleOverride !== undefined) {
@@ -242,5 +271,39 @@ describe('TablePage row interaction', () => {
     fireEvent.click(cells[0])
 
     await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
+  })
+})
+
+describe('TablePage paginated', () => {
+  beforeEach(() => {
+    // total equals items loaded so getNextPageParam returns undefined (no more pages)
+    mockApiListPaged.mockResolvedValue({ items: rows, total: 2 })
+    mockApiListPaged.mockClear()
+    mockApiList.mockClear()
+    mockApiList.mockResolvedValue([])
+  })
+
+  it('calls api.listPaged instead of api.list', async () => {
+    renderPagedPage()
+    await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
+    expect(mockApiList).not.toHaveBeenCalled()
+  })
+
+  it('shows server total record count', async () => {
+    renderPagedPage()
+    await waitFor(() => screen.getByText('2 records'))
+  })
+
+  it('renders rows from paged data', async () => {
+    renderPagedPage()
+    await waitFor(() => screen.getByText('Alpha'))
+    expect(screen.getByText('Beta')).toBeInTheDocument()
+  })
+
+  it('passes sort params to api.listPaged', async () => {
+    renderPagedPage()
+    await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
+    const firstCall = mockApiListPaged.mock.calls[0][1]
+    expect(firstCall).toMatchObject({ limit: 100, offset: 0 })
   })
 })

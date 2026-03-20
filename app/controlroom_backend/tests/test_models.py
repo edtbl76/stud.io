@@ -8,12 +8,13 @@ from uuid import uuid4
 async def test_list_models_returns_results(client):
     response = await client.get("/models")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    data = response.json()
+    assert "items" in data and "total" in data
+    assert len(data["items"]) > 0
 
 
 async def test_list_models_fields(client):
-    model = response = await client.get("/models")
-    model = response.json()[0]
+    model = (await client.get("/models")).json()["items"][0]
     for field in ("model_id", "model_name", "full_model_name", "model_types", "created_at"):
         assert field in model
 
@@ -21,12 +22,22 @@ async def test_list_models_fields(client):
 async def test_list_models_search(client):
     response = await client.get("/models?q=a")
     assert response.status_code == 200
+    assert "items" in response.json()
 
 
 async def test_list_models_search_no_match(client):
     response = await client.get("/models?q=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
+
+
+async def test_list_models_pagination(client):
+    response = await client.get("/models?limit=2&offset=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) <= 2
+    assert data["total"] >= len(data["items"])
 
 
 # ---------------------------------------------------------------------------

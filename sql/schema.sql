@@ -164,6 +164,7 @@ CREATE TABLE models (
 );
 
 CREATE INDEX idx_models_attributes ON models USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_models_name ON models (model_name);
 
 CREATE VIEW models_view AS
     SELECT
@@ -205,6 +206,7 @@ CREATE TABLE effects (
 );
 
 CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_effects_name ON effects (effect_name);
 
 
 -- =============================================================================
@@ -237,6 +239,7 @@ CREATE TABLE instruments (
 );
 
 CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_instruments_name ON instruments (instrument_name);
 
 
 -- =============================================================================
@@ -259,6 +262,7 @@ CREATE TABLE libraries (
 );
 
 CREATE INDEX idx_libraries_attributes ON libraries USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_libraries_name ON libraries (library_name);
 
 
 -- =============================================================================

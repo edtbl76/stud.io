@@ -17,6 +17,7 @@ export default function EffectsPage() {
       renderModal={(record, onClose, onMutate) => (
         <EffectModal record={record} onClose={onClose} onMutate={onMutate} />
       )}
+      paginated
     />
   )
 }

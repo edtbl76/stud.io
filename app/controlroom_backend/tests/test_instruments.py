@@ -9,12 +9,14 @@ async def test_list_instruments_returns_results(client, conn):
     await conn.execute("INSERT INTO instruments (instrument_name) VALUES ('Seed Synth')")
     response = await client.get("/instruments")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    data = response.json()
+    assert "items" in data and "total" in data
+    assert len(data["items"]) > 0
 
 
 async def test_list_instruments_fields(client, conn):
     await conn.execute("INSERT INTO instruments (instrument_name) VALUES ('Fields Synth')")
-    item = (await client.get("/instruments")).json()[0]
+    item = (await client.get("/instruments")).json()["items"][0]
     for field in ("instrument_id", "instrument_name", "full_instrument_name",
                   "instrument_types", "tags", "parents", "created_at"):
         assert field in item
@@ -23,7 +25,17 @@ async def test_list_instruments_fields(client, conn):
 async def test_list_instruments_search_no_match(client):
     response = await client.get("/instruments?q=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
+
+
+async def test_list_instruments_pagination(client, conn):
+    await conn.execute("INSERT INTO instruments (instrument_name) VALUES ('Paged Synth')")
+    response = await client.get("/instruments?limit=1&offset=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
+    assert data["total"] >= 1
 
 
 # ---------------------------------------------------------------------------

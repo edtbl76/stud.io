@@ -12,12 +12,14 @@ Completed work.
 * [x] Record History UI #P0 #data #M (v1.6.4)
 * [x] Bulk Edit Fields in List View #P0 #data #editing #M (v1.6.5)
 
+
 ---
 
 ## In Progress
 
 Work in progress. (Hopefully not blocked)
 
+* [ ] Performance Enhancements for Effects Page #P0 #data #M
 * [ ] Google Sheets Export/Import #P0 #data #interop #M
 
 

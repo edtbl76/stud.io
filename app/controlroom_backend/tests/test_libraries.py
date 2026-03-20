@@ -9,12 +9,14 @@ async def test_list_libraries_returns_results(client, conn):
     await conn.execute("INSERT INTO libraries (library_name) VALUES ('Seed Library')")
     response = await client.get("/libraries")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    data = response.json()
+    assert "items" in data and "total" in data
+    assert len(data["items"]) > 0
 
 
 async def test_list_libraries_fields(client, conn):
     await conn.execute("INSERT INTO libraries (library_name) VALUES ('Fields Library')")
-    item = (await client.get("/libraries")).json()[0]
+    item = (await client.get("/libraries")).json()["items"][0]
     for field in ("library_id", "library_name", "full_library_name",
                   "models", "tags", "parents", "created_at"):
         assert field in item
@@ -23,7 +25,17 @@ async def test_list_libraries_fields(client, conn):
 async def test_list_libraries_search_no_match(client):
     response = await client.get("/libraries?q=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
+
+
+async def test_list_libraries_pagination(client, conn):
+    await conn.execute("INSERT INTO libraries (library_name) VALUES ('Paged Library')")
+    response = await client.get("/libraries?limit=1&offset=0")
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["items"]) == 1
+    assert data["total"] >= 1
 
 
 # ---------------------------------------------------------------------------

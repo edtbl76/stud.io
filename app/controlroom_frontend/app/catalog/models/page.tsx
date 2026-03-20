@@ -17,6 +17,7 @@ export default function ModelsPage() {
       renderModal={(record, onClose, onMutate) => (
         <ModelModal record={record} onClose={onClose} onMutate={onMutate} />
       )}
+      paginated
     />
   )
 }
