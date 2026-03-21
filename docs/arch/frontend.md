@@ -21,8 +21,7 @@ app/controlroom_frontend/
 │   │   │   ├── token/      # POST — username/password login
 │   │   │   ├── google/     # POST — Google SSO login
 │   │   │   ├── logout/     # POST — cookie deletion
-│   │   │   ├── me/         # GET  — session check (proxied to FastAPI /auth/me)
-│   │   │   └── session.ts  # Shared helper: calls /auth/me, sets httpOnly cookie
+│   │   │   └── session.ts  # Shared helper: calls FastAPI /auth/me, sets httpOnly cookie
 │   │   └── [...path]/      # Catch-all proxy — forwards all other requests to FastAPI
 │   ├── login/              # Login page
 │   ├── catalog/            # Brands, Models
@@ -150,8 +149,7 @@ Route protection is handled by a client-side check in `AuthProvider` — unauthe
 | `/api/auth/token` | POST | Username/password login — calls FastAPI `/auth/token`, sets cookie |
 | `/api/auth/google` | POST | Google SSO login — calls FastAPI `/auth/google`, sets cookie |
 | `/api/auth/logout` | POST | Clears the `controlroom_token` cookie |
-| `/api/auth/me` | GET | Session check — proxied to FastAPI `/auth/me` via the catch-all |
-| `/api/[...path]` | GET/POST/PATCH/DELETE | Catch-all proxy — reads cookie, adds Bearer header, forwards to FastAPI |
+| `/api/[...path]` | GET/POST/PATCH/DELETE | Catch-all proxy — reads cookie, adds Bearer header, forwards to FastAPI (handles `/auth/me` and all other API calls) |
 
 The cookie is named `controlroom_token` and is set with `httpOnly: true`, `secure: true`, `sameSite: lax`, and an 8-hour `maxAge`.
 
@@ -176,4 +174,4 @@ Unit tests use [Jest](https://jestjs.io/) + [React Testing Library](https://test
 
 Coverage is collected via `jest --coverage` and reported to SonarQube as LCOV. New code must meet ≥ 80% line coverage to pass the quality gate.
 
-End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. They run against the test stack (frontend on port 3001, backend on port 5151, `controlroomdb_test` database). Auth state is saved to `e2e/.auth/state.json` by the `auth.setup.ts` project and reused across tests. Run via `./scripts/test-e2e.sh`.
+End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. They run against the dev frontend at `https://localhost:2112` with a separate test backend container (`controlroom_backend_test`) on port 5151 pointing at `controlroomdb_test`. Auth state is saved to `e2e/.auth/state.json` by the `auth.setup.ts` project and reused across tests. Run via `./scripts/test-e2e.sh`.

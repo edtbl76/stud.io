@@ -3,14 +3,20 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
+from routers._crud_ops import (
+    EntityConfig,
+    list_entities,
+    get_entity,
+    get_history,
+    delete_entity,
+)
+from routers._helpers import _serializable, log_audit, AuditEntryWithData
 from routers.auth import require_admin, get_current_user, UserOut
+from schemas.common import PagedResponse, ListParams
 from schemas.models import ModelCreate, ModelUpdate, ModelOut
-from schemas.common import PagedResponse
-from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
 
@@ -28,36 +34,36 @@ _REF_CHECKS = [
     ("reference_tools",   "model_ids"),
 ]
 
+# noinspection SqlInjection
+async def _check_model_refs(conn: Connection, model_id: UUID) -> None:
+    for table, col in _REF_CHECKS:
+        if await conn.fetchrow(
+            f"SELECT 1 FROM {table} WHERE $1 = ANY({col}) AND deleted_at IS NULL LIMIT 1", model_id
+        ):
+            raise HTTPException(status_code=409, detail=f"Model is referenced by {table}")
 
+
+_CONFIG = EntityConfig(
+    table_name="models",
+    view_name="models_view",
+    id_column="model_id",
+    not_found_msg=_NOT_FOUND,
+    search_where="model_name ILIKE $1 OR brand_name ILIKE $1",
+    sortable=_SORTABLE,
+    default_sort=_DEFAULT_SORT,
+    ref_check=_check_model_refs
+)
+
+# noinspection SqlInjection
 @router.get("", response_model=PagedResponse[ModelOut])
-async def list_models(
-    q: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
-    sort_by: str | None = None,
-    sort_dir: str = "asc",
-    *,
-    conn: Annotated[Connection, Depends(get_conn)],
-):
-    col = sort_by if sort_by in _SORTABLE else _DEFAULT_SORT
-    direction = "DESC" if sort_dir.lower() == "desc" else "ASC"
-    order = f"ORDER BY {col} {direction}"
-    if q:
-        where = "WHERE (model_name ILIKE $1 OR brand_name ILIKE $1)"
-        total = await conn.fetchval(f"SELECT COUNT(*) FROM models_view {where}", f"%{q}%")
-        rows = await conn.fetch(f"{_SELECT} {where} {order} LIMIT $2 OFFSET $3", f"%{q}%", limit, offset)
-    else:
-        total = await conn.fetchval("SELECT COUNT(*) FROM models_view")
-        rows = await conn.fetch(f"{_SELECT} {order} LIMIT $1 OFFSET $2", limit, offset)
-    return PagedResponse(items=[ModelOut(**dict(r)) for r in rows], total=total)
+async def list_models(params: Annotated[ListParams, Depends()], conn: Annotated[Connection, Depends(get_conn)]):
+    return await list_entities(conn, _CONFIG, params, ModelOut)
 
 
 @router.get("/{model_id}", response_model=ModelOut, responses={404: {"description": "Not found"}})
 async def get_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
-    row = await conn.fetchrow(_SELECT + " WHERE model_id = $1", model_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
-    return ModelOut(**dict(row))
+    return await get_entity(conn, _CONFIG, model_id, ModelOut)
+
 
 
 @router.post("", response_model=ModelOut, status_code=201)
@@ -82,7 +88,7 @@ async def create_model(payload: ModelCreate, conn: Annotated[Connection, Depends
                         performed_by=user.username, new_data=_serializable(dict(new_row)))
     return await get_model(row["model_id"], conn)
 
-
+# noinspection SqlInjection
 @router.patch("/{model_id}", response_model=ModelOut, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def update_model(model_id: UUID, payload: ModelUpdate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     old_row = await conn.fetchrow(_SELECT_ONE, model_id)
@@ -98,6 +104,16 @@ async def update_model(model_id: UUID, payload: ModelUpdate, conn: Annotated[Con
     if "attributes" in updates and updates["attributes"] is not None:
         updates["attributes"] = json.dumps(updates["attributes"])
 
+    """
+    This is line shows a SQL Injection vulnerability. (CWE-89)
+        https://cwe.mitre.org/data/definitions/89.html
+    
+        It's a false positive. `col` is a Pydantic field that comes from payload.model_dump(exclude_unset=True), 
+        which is guaranteed to only contain valid column names defined in ModelUpdate, 
+        and cannot be manipulated by the user to inject SQL. 
+        
+        The values are still passed as parameters, so there's no risk of injection there either.
+    """
     set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates))
     async with conn.transaction():
         await conn.execute(
@@ -115,30 +131,20 @@ async def update_model(model_id: UUID, payload: ModelUpdate, conn: Annotated[Con
 @router.get("/{model_id}/history", responses={401: {"description": "Unauthorized"}})
 async def get_model_history(
     model_id: UUID,
-    current_user: Annotated[UserOut, Depends(get_current_user)],
+    _current_user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[AuditEntryWithData]:
-    return await get_record_history(conn, "models", model_id)
+    return await get_history(conn, _CONFIG, model_id)
 
 
-@router.delete("/{model_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
-async def delete_model(model_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
-    row = await conn.fetchrow(_SELECT_ONE, model_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
-    if row["deleted_at"] is not None:
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
-        )
+@router.delete("/{model_id}",
+               status_code=204,
+               responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
+async def delete_model(
+        model_id: UUID,
+        conn: Annotated[Connection, Depends(get_conn)],
+        user: Annotated[UserOut, Depends(require_admin)]
+):
+    return await delete_entity(conn, _CONFIG, model_id, user)
 
-    for table, col in _REF_CHECKS:
-        if await conn.fetchrow(
-            f"SELECT 1 FROM {table} WHERE $1 = ANY({col}) AND deleted_at IS NULL LIMIT 1", model_id
-        ):
-            raise HTTPException(status_code=409, detail=f"Model is referenced by {table}")
 
-    async with conn.transaction():
-        await conn.execute("UPDATE models SET deleted_at = NOW() WHERE model_id = $1", model_id)
-        await log_audit(conn, "models", model_id, "DELETE",
-                        performed_by=user.username, old_data=_serializable(dict(row)))

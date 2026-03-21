@@ -71,6 +71,22 @@ def _resolve(slug: str) -> str:
     return table
 
 
+# noinspection SqlInjection
+async def _check_config_refs(conn: Connection, table: str, type_id: UUID) -> None:
+    """Raise 409 if type_id is referenced by any dependent table."""
+    for ref_table, col, is_array in _REFS.get(table, []):
+        query = (
+            f"SELECT 1 FROM {ref_table} WHERE $1 = ANY({col}) AND deleted_at IS NULL LIMIT 1"
+            if is_array else
+            f"SELECT 1 FROM {ref_table} WHERE {col} = $1 AND deleted_at IS NULL LIMIT 1"
+        )
+        if await conn.fetchrow(query, type_id):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Type is in use by {ref_table}.{col} and cannot be deleted",
+            )
+
+
 @router.get("/{slug}", response_model=list[LookupOut])
 async def list_lookup(slug: str, conn: Annotated[Connection, Depends(get_conn)]):
     table = _resolve(slug)
@@ -115,6 +131,7 @@ async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: A
     if not updates:
         return await get_lookup(slug, type_id, conn)
 
+    # col is a Pydantic field name from model_dump(), not user input — not a SQL injection risk
     set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates))
     async with conn.transaction():
         await conn.execute(
@@ -133,7 +150,7 @@ async def update_lookup(slug: str, type_id: UUID, payload: LookupUpdate, conn: A
 async def get_config_history(
     slug: str,
     type_id: UUID,
-    current_user: Annotated[UserOut, Depends(get_current_user)],
+    _current_user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[AuditEntryWithData]:
     table = _resolve(slug)
@@ -151,24 +168,7 @@ async def delete_lookup(slug: str, type_id: UUID, conn: Annotated[Connection, De
             status_code=200,
             content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
         )
-
-    for ref_table, col, is_array in _REFS.get(table, []):
-        if is_array:
-            ref = await conn.fetchrow(
-                f"SELECT 1 FROM {ref_table} WHERE $1 = ANY({col}) AND deleted_at IS NULL LIMIT 1",
-                type_id,
-            )
-        else:
-            ref = await conn.fetchrow(
-                f"SELECT 1 FROM {ref_table} WHERE {col} = $1 AND deleted_at IS NULL LIMIT 1",
-                type_id,
-            )
-        if ref:
-            raise HTTPException(
-                status_code=409,
-                detail=f"Type is in use by {ref_table}.{col} and cannot be deleted",
-            )
-
+    await _check_config_refs(conn, table, type_id)
     async with conn.transaction():
         await conn.execute(f"UPDATE {table} SET deleted_at = NOW() WHERE type_id = $1", type_id)
         await log_audit(conn, table, type_id, "DELETE",

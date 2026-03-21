@@ -24,7 +24,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
 | `/config/{slug}` | `routers/config.py` | CRUD for all lookup tables (effect-types, tag-types, etc.) |
 | `/search` | `routers/search.py` | Cross-table full-text search |
-| `/admin` | `routers/admin_ops.py` | Database backup, restore, verification, and catalog row-count stats |
+| `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py` | Database backup, restore, verification, Change Review workflow, and catalog row-count stats |
 | `/users` | `routers/users.py` | User management (admin only) |
 
 ---
@@ -63,7 +63,7 @@ Two roles: `admin` and `user`.
 - `user` — read-only access (GET endpoints only)
 - `admin` — full access (GET, POST, PUT, DELETE, plus the `/admin` and `/users` routers)
 
-Role is embedded in the JWT payload. The `require_admin` dependency in `routers/_helpers.py` enforces this at the router level — it's applied to all write endpoints.
+Role is embedded in the JWT payload. The `require_admin` dependency in `routers/auth.py` enforces this at the router level — it's applied to all write endpoints.
 
 ---
 
@@ -82,8 +82,8 @@ Returns all records from the `effects_view` semantic view. The optional `search`
 ```
 GET    /{resource}/{id}     # Get one record (from view)
 POST   /{resource}          # Create (inserts into base table, returns from view)
-PUT    /{resource}/{id}     # Update (updates base table, returns from view)
-DELETE /{resource}/{id}     # Delete (from base table)
+PATCH  /{resource}/{id}     # Update (updates base table, returns from view)
+DELETE /{resource}/{id}     # Soft-delete (sets deleted_at, does not remove the row)
 ```
 
 After every write, the response re-fetches from the semantic view so the returned record includes all resolved display names.

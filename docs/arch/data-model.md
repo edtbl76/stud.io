@@ -2,7 +2,7 @@
 
 ## Databases
 
-All three databases live in the same PostgreSQL 16 container (`studio_db`).
+All three databases live in the same PostgreSQL 17 container (`studio_db`), using the `pgvector/pgvector:pg17` image which includes the pgvector extension.
 
 | Database | Purpose |
 |---|---|
