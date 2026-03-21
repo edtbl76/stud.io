@@ -48,8 +48,9 @@ trap cleanup EXIT
 # Rebuild and restart test backend so code changes are picked up
 # ---------------------------------------------------------------------------
 echo "[e2e] Rebuilding test backend..."
-docker compose -f "$ROOT/docker-compose.dev.yml" build controlroom_backend_test
-docker compose -f "$ROOT/docker-compose.dev.yml" up -d controlroom_backend_test
+docker rm -f controlroom_backend_test 2>/dev/null || true
+docker compose -f "$ROOT/docker-compose.dev.yml" -p dev build controlroom_backend_test
+docker compose -f "$ROOT/docker-compose.dev.yml" -p dev up -d controlroom_backend_test
 
 # Wait for the test backend to be healthy after restart
 echo "[e2e] Waiting for test backend..."

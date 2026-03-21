@@ -23,6 +23,7 @@ PROJECT_NAME="STUD.io ControlRoom"
 case "${1:-up}" in
   up)
     echo "Starting dev stack (SonarQube)..."
+    docker rm -f controlroom_backend_test 2>/dev/null || true
     docker compose -f "$COMPOSE_FILE" -p dev up -d
 
     echo ""
