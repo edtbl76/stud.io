@@ -6,6 +6,7 @@ import {
   ColumnFiltersState,
   ColumnOrderState,
   ColumnResizeMode,
+  RowSelectionState,
   VisibilityState,
   getCoreRowModel,
   getFilteredRowModel,
@@ -25,7 +26,8 @@ interface DataTableProps<TData, TValue> {
   readonly data: TData[]
   readonly onRowClick?: (row: TData) => void
   readonly isLoading?: boolean
-  readonly selectedIds?: Set<string>
+  readonly rowSelection?: RowSelectionState
+  readonly onRowSelectionChange?: React.Dispatch<React.SetStateAction<RowSelectionState>>
   readonly getRowId?: (row: TData) => string
   // Infinite scroll
   readonly hasNextPage?: boolean
@@ -42,7 +44,8 @@ export function DataTable<TData, TValue>({
   data,
   onRowClick,
   isLoading = false,
-  selectedIds,
+  rowSelection,
+  onRowSelectionChange,
   getRowId,
   hasNextPage,
   fetchNextPage,
@@ -66,7 +69,11 @@ export function DataTable<TData, TValue>({
       columnFilters,
       columnVisibility,
       columnOrder,
+      rowSelection: rowSelection ?? {},
     },
+    getRowId: getRowId ? (row) => getRowId(row) : undefined,
+    enableRowSelection: !!rowSelection,
+    onRowSelectionChange,
     manualSorting,
     onSortingChange: manualSorting
       ? (updater) => {
@@ -151,8 +158,6 @@ export function DataTable<TData, TValue>({
             isLoading={isLoading}
             isFetchingNextPage={isFetchingNextPage}
             onRowClick={onRowClick}
-            selectedIds={selectedIds}
-            getRowId={getRowId}
           />
         </table>
       </div>

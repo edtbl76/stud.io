@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { ColumnDef, SortingState } from '@tanstack/react-table'
+import { ColumnDef, RowSelectionState, SortingState } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -12,83 +12,45 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { BulkEditField } from '@/lib/bulkEdit'
 
-// ── Checkbox sub-components (defined at module level, not inside TablePage) ──
-
-interface SelectAllHeaderProps {
-  visibleIds: string[]
-  selectedIds: Set<string>
-  onSelectAll: (ids: Set<string>) => void
-}
-
-function SelectAllHeader({ visibleIds, selectedIds, onSelectAll }: Readonly<SelectAllHeaderProps>) {
-  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedIds.has(id))
-  const someSelected = visibleIds.some((id) => selectedIds.has(id))
-  return (
-    <div className="flex items-center justify-center">
-      <input
-        type="checkbox"
-        checked={allSelected}
-        ref={(el) => { if (el) el.indeterminate = !allSelected && someSelected }}
-        onChange={() => { onSelectAll(allSelected ? new Set() : new Set(visibleIds)) }}
-        className="accent-primary"
-        aria-label="Select all"
-        onClick={(e) => e.stopPropagation()}
-      />
-    </div>
-  )
-}
-
-interface SelectRowCellProps {
-  rowId: string
-  isSelected: boolean
-  onToggle: (id: string) => void
-}
-
-function SelectRowCell({ rowId, isSelected, onToggle }: Readonly<SelectRowCellProps>) {
-  return (
-    <div className="flex items-center justify-center">
-      <input
-        type="checkbox"
-        checked={isSelected}
-        onChange={() => onToggle(rowId)}
-        className="accent-primary"
-        aria-label={`Select row ${rowId}`}
-        onClick={(e) => e.stopPropagation()}
-      />
-    </div>
-  )
-}
-
-// Factory defined at module level so the header/cell renderers are not
-// treated as nested component definitions inside TablePage.
-function makeCheckboxColumn<T>(
-  getRowId: (row: T) => string,
-  selectedIds: Set<string>,
-  onSelectAll: (ids: Set<string>) => void,
-  onToggle: (id: string) => void,
-): ColumnDef<T, unknown> {
+// Checkbox column defined at module level with no external dependencies.
+// Uses TanStack Table's native row selection API (table/row context) so the
+// column definition is completely stable — selection state changes never
+// recreate it and never trigger a full row-model rebuild.
+function makeCheckboxColumn<T>(): ColumnDef<T, unknown> {
   return {
     id: '__select__',
     size: 40,
     enableSorting: false,
     enableResizing: false,
-    header: ({ table }) => (
-      <SelectAllHeader
-        visibleIds={table.getRowModel().rows.map((r) => getRowId(r.original))}
-        selectedIds={selectedIds}
-        onSelectAll={onSelectAll}
-      />
-    ),
-    cell: ({ row }) => {
-      const rowId = getRowId(row.original)
+    header: ({ table }) => {
+      const allSelected = table.getIsAllRowsSelected()
+      const someSelected = table.getIsSomeRowsSelected()
       return (
-        <SelectRowCell
-          rowId={rowId}
-          isSelected={selectedIds.has(rowId)}
-          onToggle={onToggle}
-        />
+        <div className="flex items-center justify-center">
+          <input
+            type="checkbox"
+            checked={allSelected}
+            ref={(el) => { if (el) el.indeterminate = !allSelected && someSelected }}
+            onChange={table.getToggleAllRowsSelectedHandler()}
+            className="accent-primary"
+            aria-label="Select all"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
       )
     },
+    cell: ({ row }) => (
+      <div className="flex items-center justify-center">
+        <input
+          type="checkbox"
+          checked={row.getIsSelected()}
+          onChange={row.getToggleSelectedHandler()}
+          className="accent-primary"
+          aria-label={`Select row ${row.id}`}
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+    ),
   }
 }
 
@@ -187,8 +149,8 @@ function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean)
 }
 
 interface UseCheckboxSelectionResult<T> {
-  selectedIds: Set<string>
-  setSelectedIds: React.Dispatch<React.SetStateAction<Set<string>>>
+  rowSelection: RowSelectionState
+  setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>
   selectedRows: T[]
   effectiveColumns: ColumnDef<T, unknown>[]
 }
@@ -199,33 +161,23 @@ function useCheckboxSelection<T>(
   columns: ColumnDef<T, unknown>[],
   enabled: boolean,
 ): UseCheckboxSelectionResult<T> {
-  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
 
   const selectedRows = React.useMemo(
-    () => data.filter((row) => selectedIds.has(getRowId(row))),
-    [data, selectedIds, getRowId],
+    () => data.filter((row) => rowSelection[getRowId(row)]),
+    [data, rowSelection, getRowId],
   )
 
+  // Empty dep array: column definition is stable because it reads selection
+  // state from TanStack Table's row/table context, not from closed-over state.
   const checkboxColumn = React.useMemo<ColumnDef<T, unknown>>(
-    () => makeCheckboxColumn(
-      getRowId,
-      selectedIds,
-      setSelectedIds,
-      (id) => {
-        setSelectedIds((prev) => {
-          const next = new Set(prev)
-          if (next.has(id)) next.delete(id)
-          else next.add(id)
-          return next
-        })
-      },
-    ),
-    [selectedIds, getRowId],
+    () => makeCheckboxColumn<T>(),
+    [],
   )
 
   const effectiveColumns = enabled ? [checkboxColumn, ...columns] : columns
 
-  return { selectedIds, setSelectedIds, selectedRows, effectiveColumns }
+  return { rowSelection, setRowSelection, selectedRows, effectiveColumns }
 }
 
 // ── TablePage ──
@@ -264,14 +216,14 @@ export function TablePage<T>({
   const { data, isLoading, error, recordCountLabel, search, setSearch, pagedTableProps } =
     useTableData<T>(endpoint, queryKey, paginated)
 
-  const { selectedIds, setSelectedIds, selectedRows, effectiveColumns } =
+  const { rowSelection, setRowSelection, selectedRows, effectiveColumns } =
     useCheckboxSelection(data, getRowId, columns, showBulkEdit)
 
   function handleMutate() { void queryClient.invalidateQueries({ queryKey: [queryKey] }) }
   function handleRowClick(row: T) { setSelectedRecord(row) }
   function handleClose() { setSelectedRecord(undefined) }
   function handleAdd() { setSelectedRecord(null) }
-  function handleBulkApply() { setSelectedIds(new Set()); handleMutate() }
+  function handleBulkApply() { setRowSelection({}); handleMutate() }
 
   return (
     <div className="flex flex-col h-full">
@@ -311,18 +263,19 @@ export function TablePage<T>({
           endpoint={endpoint}
           getRowId={(row) => getRowId(row as unknown as T)}
           onApply={handleBulkApply}
-          onClear={() => setSelectedIds(new Set())}
+          onClear={() => setRowSelection({})}
         />
       )}
 
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 min-h-0">
         <DataTable
           columns={effectiveColumns}
           data={data}
           onRowClick={handleRowClick}
           isLoading={isLoading}
-          selectedIds={showBulkEdit ? selectedIds : undefined}
-          getRowId={showBulkEdit ? getRowId : undefined}
+          rowSelection={showBulkEdit ? rowSelection : undefined}
+          onRowSelectionChange={showBulkEdit ? setRowSelection : undefined}
+          getRowId={getRowId}
           {...pagedTableProps}
         />
       </div>
