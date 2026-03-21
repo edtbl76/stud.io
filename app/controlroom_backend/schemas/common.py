@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import TypeVar
 from pydantic import BaseModel
 from uuid import UUID
@@ -32,3 +33,11 @@ class ParentRef(ParentRefBase):
 class ParentRefInput(ParentRefBase):
     """Input shape for writing parent_ids — name not required."""
 
+@dataclass
+class ListParams:
+    # Request-time parameters for list endpoints
+    q: str | None = None
+    limit: int = 100
+    offset: int = 0
+    sort_by: str | None = None
+    sort_dir: str = "asc"

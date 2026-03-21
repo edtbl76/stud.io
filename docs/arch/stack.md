@@ -6,10 +6,10 @@ The studio stack (`./build.sh`) runs four containers in a single Docker network:
 
 | Container | Image | Port | Role |
 |---|---|---|---|
-| `studio_db` | `postgres:16` | 5432 | PostgreSQL — all three databases |
+| `studio_db` | `pgvector/pgvector:pg17` | 5432 | PostgreSQL 17 with pgvector — all three databases |
 | `controlroom_backend` | custom (Python 3.12-slim) | 5150 | FastAPI REST API |
 | `controlroom_frontend` | custom (Node 20-alpine) | 2112 | Next.js app (dev server) |
-| `controlroom_nginx` | `nginx:alpine` | 443 | HTTPS reverse proxy |
+| `controlroom_nginx` | `nginx:alpine` | 2112, 5150 | HTTPS reverse proxy |
 
 The SonarQube stack (`./scripts/dev.sh`) runs separately in its own Docker network and does not interact with the studio stack at runtime.
 
@@ -17,15 +17,14 @@ The SonarQube stack (`./scripts/dev.sh`) runs separately in its own Docker netwo
 
 ## Ports
 
-| Port | Service | Protocol |
-|---|---|---|
-| 443 | nginx (proxy to app and API) | HTTPS |
-| 2112 | Next.js dev server | HTTP (internal) |
-| 5150 | FastAPI | HTTP (internal) |
-| 5432 | PostgreSQL | TCP (internal) |
-| 9000 | SonarQube (dev stack only) | HTTP |
+| Port | Service | Exposure | Protocol |
+|---|---|---|---|
+| 2112 | nginx → Next.js (app) | External | HTTPS |
+| 5150 | nginx → FastAPI (API / Swagger) | External | HTTPS |
+| 5432 | PostgreSQL | Internal | TCP |
+| 9000 | SonarQube (dev stack only) | External | HTTP |
 
-All external traffic goes through nginx on port 443. The app and API are not directly exposed — nginx routes `/api/*` to the FastAPI backend and everything else to the Next.js frontend.
+nginx terminates TLS on both external ports. Port 2112 proxies to the Next.js container; port 5150 proxies to the FastAPI container. There is no port 443 — this is a local dev stack using mkcert certificates, and the ports are chosen to avoid requiring root privileges.
 
 ---
 
@@ -35,7 +34,7 @@ All external traffic goes through nginx on port 443. The app and API are not dir
 
 | Variable | Default | Description |
 |---|---|---|
-| `DB_HOST` | `studio_db` | PostgreSQL hostname |
+| `DB_HOST` | `db` | PostgreSQL hostname (Docker service name) |
 | `DB_PORT` | `5432` | PostgreSQL port |
 | `DB_NAME` | `controlroomdb` | Application database name |
 | `DB_USER` | `studio` | Database user |
@@ -74,9 +73,9 @@ All external traffic goes through nginx on port 443. The app and API are not dir
 
 nginx terminates TLS using a mkcert-generated certificate stored in `nginx/certs/` (gitignored). The certificate covers `localhost`, `127.0.0.1`, the machine's local IP/hostname, and the `.sslip.io` alias used for Google OAuth.
 
-The nginx config runs two server blocks:
-- Port **2112** → all traffic to Next.js (`http://frontend:2112`) — the main application entry point
-- Port **5150** → all traffic to FastAPI (`http://controlroom_backend:5150`) — used for direct Swagger UI access only
+nginx runs two server blocks, both with TLS:
+- Port **2112** → proxies to Next.js (`http://frontend:2112`) — the main application entry point; also handles Next.js WebSocket (HMR) via upgrade headers
+- Port **5150** → proxies to FastAPI (`http://controlroom_backend:5150`) — used for direct Swagger UI access only
 
 Browsers only talk to the Next.js server (port 2112). The Next.js BFF routes all `/api/...` calls to FastAPI internally over the Docker network, so FastAPI is never called directly from browser code.
 

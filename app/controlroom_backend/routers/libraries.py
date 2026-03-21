@@ -3,54 +3,47 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
+from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.libraries import LibraryCreate, LibraryUpdate, LibraryOut
-from schemas.common import PagedResponse
-from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit, get_record_history, AuditEntryWithData
+from schemas.common import PagedResponse, ListParams
+from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit, AuditEntryWithData
 
 router = APIRouter()
 
-_SELECT = "SELECT * FROM libraries_view"
 _SELECT_ONE = "SELECT * FROM libraries WHERE library_id = $1"
 _NOT_FOUND = "Library not found"
-_PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 _SORTABLE = frozenset({"library_name", "brand_name", "updated_at", "created_at"})
 _DEFAULT_SORT = "library_name"
 
 
+async def _check_library_refs(conn: Connection, entity_id: UUID) -> None:
+    await check_parent_refs(conn, entity_id, "Library")
+
+
+_CONFIG = EntityConfig(
+    table_name="libraries",
+    view_name="libraries_view",
+    id_column="library_id",
+    not_found_msg=_NOT_FOUND,
+    search_where="library_name ILIKE $1 OR brand_name ILIKE $1",
+    sortable=_SORTABLE,
+    default_sort=_DEFAULT_SORT,
+    ref_check=_check_library_refs,
+)
+
+
 @router.get("", response_model=PagedResponse[LibraryOut])
-async def list_libraries(
-    q: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
-    sort_by: str | None = None,
-    sort_dir: str = "asc",
-    *,
-    conn: Annotated[Connection, Depends(get_conn)],
-):
-    col = sort_by if sort_by in _SORTABLE else _DEFAULT_SORT
-    direction = "DESC" if sort_dir.lower() == "desc" else "ASC"
-    order = f"ORDER BY {col} {direction}"
-    if q:
-        where = "WHERE (library_name ILIKE $1 OR brand_name ILIKE $1)"
-        total = await conn.fetchval(f"SELECT COUNT(*) FROM libraries_view {where}", f"%{q}%")
-        rows = await conn.fetch(f"{_SELECT} {where} {order} LIMIT $2 OFFSET $3", f"%{q}%", limit, offset)
-    else:
-        total = await conn.fetchval("SELECT COUNT(*) FROM libraries_view")
-        rows = await conn.fetch(f"{_SELECT} {order} LIMIT $1 OFFSET $2", limit, offset)
-    return PagedResponse(items=[LibraryOut(**dict(r)) for r in rows], total=total)
+async def list_libraries(params: Annotated[ListParams, Depends()], conn: Annotated[Connection, Depends(get_conn)]):
+    return await list_entities(conn, _CONFIG, params, LibraryOut)
 
 
 @router.get("/{library_id}", response_model=LibraryOut, responses={404: {"description": "Not found"}})
 async def get_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
-    row = await conn.fetchrow(_SELECT + " WHERE library_id = $1", library_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
-    return LibraryOut(**dict(row))
+    return await get_entity(conn, _CONFIG, library_id, LibraryOut)
 
 
 @router.post("", response_model=LibraryOut, status_code=201)
@@ -103,6 +96,7 @@ async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotat
         i += 1
 
     set_parts.append("updated_at = NOW()")
+    # col is a Pydantic field name from model_dump(), not user input — not a SQL injection risk
     async with conn.transaction():
         await conn.execute(
             f"UPDATE libraries SET {', '.join(set_parts)} WHERE library_id = $1",
@@ -119,32 +113,12 @@ async def update_library(library_id: UUID, payload: LibraryUpdate, conn: Annotat
 @router.get("/{library_id}/history", responses={401: {"description": "Unauthorized"}})
 async def get_library_history(
     library_id: UUID,
-    current_user: Annotated[UserOut, Depends(get_current_user)],
+    _current_user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[AuditEntryWithData]:
-    return await get_record_history(conn, "libraries", library_id)
+    return await get_history(conn, _CONFIG, library_id)
 
 
 @router.delete("/{library_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_library(library_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
-    row = await conn.fetchrow(_SELECT_ONE, library_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
-    if row["deleted_at"] is not None:
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
-        )
-
-    for table in _PARENT_REF_TABLES:
-        if await conn.fetchrow(
-            f"SELECT 1 FROM {table} WHERE deleted_at IS NULL AND EXISTS "
-            f"(SELECT 1 FROM unnest(parent_ids) p WHERE (p).id = $1) LIMIT 1",
-            library_id,
-        ):
-            raise HTTPException(status_code=409, detail=f"Library is referenced as a parent in {table}")
-
-    async with conn.transaction():
-        await conn.execute("UPDATE libraries SET deleted_at = NOW() WHERE library_id = $1", library_id)
-        await log_audit(conn, "libraries", library_id, "DELETE",
-                        performed_by=user.username, old_data=_serializable(dict(row)))
+    return await delete_entity(conn, _CONFIG, library_id, user)

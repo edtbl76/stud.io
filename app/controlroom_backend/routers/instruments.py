@@ -3,54 +3,47 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
+from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.instruments import InstrumentCreate, InstrumentUpdate, InstrumentOut
-from schemas.common import PagedResponse
-from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit, get_record_history, AuditEntryWithData
+from schemas.common import PagedResponse, ListParams
+from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit, AuditEntryWithData
 
 router = APIRouter()
 
-_SELECT = "SELECT * FROM instruments_view"
 _SELECT_ONE = "SELECT * FROM instruments WHERE instrument_id = $1"
 _NOT_FOUND = "Instrument not found"
-_PARENT_REF_TABLES = ["effects", "instruments", "libraries"]
 _SORTABLE = frozenset({"instrument_name", "brand_name", "version", "updated_at", "created_at"})
 _DEFAULT_SORT = "instrument_name"
 
 
+async def _check_instrument_refs(conn: Connection, entity_id: UUID) -> None:
+    await check_parent_refs(conn, entity_id, "Instrument")
+
+
+_CONFIG = EntityConfig(
+    table_name="instruments",
+    view_name="instruments_view",
+    id_column="instrument_id",
+    not_found_msg=_NOT_FOUND,
+    search_where="instrument_name ILIKE $1 OR brand_name ILIKE $1",
+    sortable=_SORTABLE,
+    default_sort=_DEFAULT_SORT,
+    ref_check=_check_instrument_refs,
+)
+
+
 @router.get("", response_model=PagedResponse[InstrumentOut])
-async def list_instruments(
-    q: str | None = None,
-    limit: int = 100,
-    offset: int = 0,
-    sort_by: str | None = None,
-    sort_dir: str = "asc",
-    *,
-    conn: Annotated[Connection, Depends(get_conn)],
-):
-    col = sort_by if sort_by in _SORTABLE else _DEFAULT_SORT
-    direction = "DESC" if sort_dir.lower() == "desc" else "ASC"
-    order = f"ORDER BY {col} {direction}"
-    if q:
-        where = "WHERE (instrument_name ILIKE $1 OR brand_name ILIKE $1)"
-        total = await conn.fetchval(f"SELECT COUNT(*) FROM instruments_view {where}", f"%{q}%")
-        rows = await conn.fetch(f"{_SELECT} {where} {order} LIMIT $2 OFFSET $3", f"%{q}%", limit, offset)
-    else:
-        total = await conn.fetchval("SELECT COUNT(*) FROM instruments_view")
-        rows = await conn.fetch(f"{_SELECT} {order} LIMIT $1 OFFSET $2", limit, offset)
-    return PagedResponse(items=[InstrumentOut(**dict(r)) for r in rows], total=total)
+async def list_instruments(params: Annotated[ListParams, Depends()], conn: Annotated[Connection, Depends(get_conn)]):
+    return await list_entities(conn, _CONFIG, params, InstrumentOut)
 
 
 @router.get("/{instrument_id}", response_model=InstrumentOut, responses={404: {"description": "Not found"}})
 async def get_instrument(instrument_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
-    row = await conn.fetchrow(_SELECT + " WHERE instrument_id = $1", instrument_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
-    return InstrumentOut(**dict(row))
+    return await get_entity(conn, _CONFIG, instrument_id, InstrumentOut)
 
 
 @router.post("", response_model=InstrumentOut, status_code=201)
@@ -107,6 +100,7 @@ async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn
         i += 1
 
     set_parts.append("updated_at = NOW()")
+    # col is a Pydantic field name from model_dump(), not user input — not a SQL injection risk
     async with conn.transaction():
         await conn.execute(
             f"UPDATE instruments SET {', '.join(set_parts)} WHERE instrument_id = $1",
@@ -123,32 +117,12 @@ async def update_instrument(instrument_id: UUID, payload: InstrumentUpdate, conn
 @router.get("/{instrument_id}/history", responses={401: {"description": "Unauthorized"}})
 async def get_instrument_history(
     instrument_id: UUID,
-    current_user: Annotated[UserOut, Depends(get_current_user)],
+    _current_user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[AuditEntryWithData]:
-    return await get_record_history(conn, "instruments", instrument_id)
+    return await get_history(conn, _CONFIG, instrument_id)
 
 
 @router.delete("/{instrument_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_instrument(instrument_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
-    row = await conn.fetchrow(_SELECT_ONE, instrument_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
-    if row["deleted_at"] is not None:
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
-        )
-
-    for table in _PARENT_REF_TABLES:
-        if await conn.fetchrow(
-            f"SELECT 1 FROM {table} WHERE deleted_at IS NULL AND EXISTS "
-            f"(SELECT 1 FROM unnest(parent_ids) p WHERE (p).id = $1) LIMIT 1",
-            instrument_id,
-        ):
-            raise HTTPException(status_code=409, detail=f"Instrument is referenced as a parent in {table}")
-
-    async with conn.transaction():
-        await conn.execute("UPDATE instruments SET deleted_at = NOW() WHERE instrument_id = $1", instrument_id)
-        await log_audit(conn, "instruments", instrument_id, "DELETE",
-                        performed_by=user.username, old_data=_serializable(dict(row)))
+    return await delete_entity(conn, _CONFIG, instrument_id, user)
