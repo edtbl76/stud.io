@@ -17,8 +17,6 @@ interface DataTableBodyProps<TData> {
   readonly isLoading: boolean
   readonly isFetchingNextPage?: boolean
   readonly onRowClick?: (row: TData) => void
-  readonly selectedIds?: Set<string>
-  readonly getRowId?: (row: TData) => string
 }
 
 export function DataTableBody<TData>({
@@ -30,8 +28,6 @@ export function DataTableBody<TData>({
   isLoading,
   isFetchingNextPage,
   onRowClick,
-  selectedIds,
-  getRowId,
 }: DataTableBodyProps<TData>) {
   if (isLoading) {
     const skeletonRows = Array.from({ length: 10 }, (_, i) => `skeleton-row-${i}`)
@@ -79,7 +75,7 @@ export function DataTableBody<TData>({
             className={cn(
               'border-b border-border/50 transition-colors',
               onRowClick && 'cursor-pointer hover:bg-muted/60',
-              selectedIds && getRowId && selectedIds.has(getRowId(row.original)) && 'bg-primary/10',
+              row.getIsSelected() && 'bg-primary/10',
             )}
             style={{ height: ROW_HEIGHT }}
             onClick={() => onRowClick?.(row.original)}

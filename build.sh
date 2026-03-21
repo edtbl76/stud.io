@@ -42,6 +42,7 @@ echo "============================================================"
 echo ""
 echo "[1/4] Starting Docker containers..."
 cd "$SCRIPT_DIR"
+rm -rf "$SCRIPT_DIR/app/controlroom_frontend/.next"
 docker compose up -d --build --force-recreate
 
 if $WITH_DEV; then

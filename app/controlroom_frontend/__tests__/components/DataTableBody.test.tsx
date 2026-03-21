@@ -17,11 +17,12 @@ function makeCell(rowId: string, colId: string, value: string): Cell<TestRow, un
   } as unknown as Cell<TestRow, unknown>
 }
 
-function makeRow(id: string, name: string): Row<TestRow> {
+function makeRow(id: string, name: string, isSelected = false): Row<TestRow> {
   return {
     id,
     original: { id, name },
     getVisibleCells: () => [makeCell(id, 'name', name)],
+    getIsSelected: () => isSelected,
   } as unknown as Row<TestRow>
 }
 
@@ -131,8 +132,8 @@ describe('DataTableBody', () => {
     expect(screen.getByText('Loading more…')).toBeInTheDocument()
   })
 
-  it('applies selected row highlight when row id is in selectedIds', () => {
-    const rows = [makeRow('row-1', 'Alpha')]
+  it('applies selected row highlight when row.getIsSelected() is true', () => {
+    const rows = [makeRow('row-1', 'Alpha', true)]
     const virtualItems = [makeVirtualItem(0)]
     const { container } = render(
       <table>
@@ -143,8 +144,6 @@ describe('DataTableBody', () => {
           paddingTop={0}
           paddingBottom={0}
           isLoading={false}
-          selectedIds={new Set(['row-1'])}
-          getRowId={(r) => r.id}
         />
       </table>
     )
