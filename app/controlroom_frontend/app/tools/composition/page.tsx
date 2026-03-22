@@ -1,7 +1,7 @@
 'use client'
 
 import { TablePage } from '@/components/TablePage'
-import { toolColumns, toolBulkEditFields } from '@/components/tables/tools/columns'
+import { toolColumns, toolBulkEditFields, toolSortFields } from '@/components/tables/tools/columns'
 import { ToolModal } from '@/components/tables/tools/ToolModal'
 import { Tool } from '@/lib/types'
 
@@ -13,6 +13,7 @@ export default function CompositionToolsPage() {
       queryKey="/tools/composition"
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}
+      sortFields={toolSortFields}
       getRowId={(row) => row.tool_id}
       renderModal={(record, onClose, onMutate) => (
         <ToolModal record={record} category="composition" onClose={onClose} onMutate={onMutate} />

@@ -11,6 +11,7 @@ import { BulkEditBar } from '@/components/BulkEditBar'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import type { BulkEditField } from '@/lib/bulkEdit'
+import type { SortField } from '@/lib/sort'
 
 // Checkbox column defined at module level with no external dependencies.
 // Uses TanStack Table's native row selection API (table/row context) so the
@@ -83,10 +84,12 @@ interface UseTableDataResult<T> {
   pagedTableProps: PagedTableProps
 }
 
-function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean): UseTableDataResult<T> {
+function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean, defaultSort?: string): UseTableDataResult<T> {
   const [search, setSearch] = React.useState('')
   const [debouncedSearch, setDebouncedSearch] = React.useState('')
-  const [externalSorting, setExternalSorting] = React.useState<SortingState>([])
+  const [externalSorting, setExternalSorting] = React.useState<SortingState>(
+    defaultSort ? [{ id: defaultSort, desc: false }] : [],
+  )
 
   React.useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
@@ -194,6 +197,7 @@ interface TablePageProps<T> {
     onMutate: () => void
   ) => React.ReactNode
   bulkEditFields?: BulkEditField[]
+  sortFields?: SortField[]
   paginated?: boolean
 }
 
@@ -205,6 +209,7 @@ export function TablePage<T>({
   getRowId,
   renderModal,
   bulkEditFields,
+  sortFields,
   paginated = false,
 }: Readonly<TablePageProps<T>>) {
   const queryClient = useQueryClient()
@@ -214,7 +219,7 @@ export function TablePage<T>({
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
 
   const { data, isLoading, error, recordCountLabel, search, setSearch, pagedTableProps } =
-    useTableData<T>(endpoint, queryKey, paginated)
+    useTableData<T>(endpoint, queryKey, paginated, sortFields?.[0]?.key)
 
   const { rowSelection, setRowSelection, selectedRows, effectiveColumns } =
     useCheckboxSelection(data, getRowId, columns, showBulkEdit)
@@ -276,6 +281,7 @@ export function TablePage<T>({
           rowSelection={showBulkEdit ? rowSelection : undefined}
           onRowSelectionChange={showBulkEdit ? setRowSelection : undefined}
           getRowId={getRowId}
+          sortFields={sortFields}
           {...pagedTableProps}
         />
       </div>

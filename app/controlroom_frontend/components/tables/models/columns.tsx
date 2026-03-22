@@ -4,6 +4,13 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Model } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
+import type { SortField } from '@/lib/sort'
+
+export const modelSortFields: SortField[] = [
+  { key: 'model_name', label: 'Model Name' },
+  { key: 'brand_name', label: 'Brand' },
+  { key: 'updated_at', label: 'Recently Updated' },
+]
 
 export const modelBulkEditFields: BulkEditField[] = [
   { key: 'model_type_ids', label: 'Model Types', type: 'multiselect', configSlug: 'model-types' },

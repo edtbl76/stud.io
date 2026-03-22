@@ -4,6 +4,14 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Instrument } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
+import type { SortField } from '@/lib/sort'
+
+export const instrumentSortFields: SortField[] = [
+  { key: 'instrument_name', label: 'Instrument Name' },
+  { key: 'brand_name', label: 'Brand' },
+  { key: 'version', label: 'Version' },
+  { key: 'updated_at', label: 'Recently Updated' },
+]
 
 export const instrumentBulkEditFields: BulkEditField[] = [
   { key: 'instrument_type_ids', label: 'Instrument Types', type: 'multiselect', configSlug: 'instrument-types' },

@@ -59,48 +59,55 @@ export function RecordModal({
     setConfirmDelete(false)
   }, [isEditing, isHistory])
 
+  function renderDeleteControls(disabled: boolean) {
+    if (confirmDelete) {
+      return (
+        <div className="flex items-center gap-2 mr-auto">
+          <span className="text-sm text-destructive">Are you sure?</span>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDelete}
+            disabled={isDeleting}
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Confirm Delete'
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCancelDelete}
+            disabled={isDeleting}
+          >
+            Cancel
+          </Button>
+        </div>
+      )
+    }
+    return (
+      <Button
+        variant="destructive"
+        size="sm"
+        onClick={handleDelete}
+        disabled={disabled}
+        className="mr-auto"
+      >
+        Delete
+      </Button>
+    )
+  }
+
   function renderFooter() {
     if (isEditing) {
       return (
         <>
-          {confirmDelete ? (
-            <div className="flex items-center gap-2 mr-auto">
-              <span className="text-sm text-destructive">Are you sure?</span>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Deleting...
-                  </>
-                ) : (
-                  'Confirm Delete'
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelDelete}
-                disabled={isDeleting}
-              >
-                Cancel
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleDelete}
-              disabled={isSaving}
-              className="mr-auto"
-            >
-              Delete
-            </Button>
-          )}
+          {renderDeleteControls(isSaving)}
           <Button
             variant="ghost"
             size="sm"
@@ -136,6 +143,7 @@ export function RecordModal({
     }
     return (
       <>
+        {isAdmin && renderDeleteControls(false)}
         {isAdmin && (
           <Button variant="outline" size="sm" onClick={onEdit}>
             Edit
