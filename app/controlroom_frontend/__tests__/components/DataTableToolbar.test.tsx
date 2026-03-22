@@ -122,4 +122,85 @@ describe('DataTableToolbar', () => {
     fireEvent.click(screen.getByText('Columns'))
     expect(screen.getByText('custom_col')).toBeInTheDocument()
   })
+
+  it('does not show sort button when sortFields is not provided', () => {
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+      />
+    )
+    expect(screen.queryByText('Sort')).not.toBeInTheDocument()
+  })
+
+  it('shows sort button when sortFields is provided', () => {
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={[{ key: 'name', label: 'Name' }]}
+        currentSort={{ id: 'name', desc: false }}
+        onSortChange={jest.fn()}
+      />
+    )
+    expect(screen.getByText('Name')).toBeInTheDocument()
+  })
+
+  it('shows sort dropdown with field options when clicked', () => {
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={[
+          { key: 'name', label: 'Name' },
+          { key: 'brand', label: 'Brand' },
+        ]}
+        currentSort={{ id: 'name', desc: false }}
+        onSortChange={jest.fn()}
+      />
+    )
+    fireEvent.click(screen.getByText('Name'))
+    expect(screen.getByText('Brand')).toBeInTheDocument()
+  })
+
+  it('calls onSortChange with selected field when a sort field is clicked', () => {
+    const onSortChange = jest.fn()
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={[
+          { key: 'name', label: 'Name' },
+          { key: 'brand', label: 'Brand' },
+        ]}
+        currentSort={{ id: 'name', desc: false }}
+        onSortChange={onSortChange}
+      />
+    )
+    fireEvent.click(screen.getByText('Name'))
+    fireEvent.click(screen.getByText('Brand'))
+    expect(onSortChange).toHaveBeenCalledWith('brand', false)
+  })
+
+  it('calls onSortChange toggling desc when direction button is clicked', () => {
+    const onSortChange = jest.fn()
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={[{ key: 'name', label: 'Name' }]}
+        currentSort={{ id: 'name', desc: false }}
+        onSortChange={onSortChange}
+      />
+    )
+    // Direction toggle has aria-label reflecting current sort direction
+    const directionBtn = screen.getByLabelText('Sort ascending')
+    fireEvent.click(directionBtn)
+    expect(onSortChange).toHaveBeenCalledWith('name', true)
+  })
 })

@@ -10,7 +10,6 @@ import {
   VisibilityState,
   getCoreRowModel,
   getFilteredRowModel,
-  getSortedRowModel,
   SortingState,
   useReactTable,
 } from '@tanstack/react-table'
@@ -18,6 +17,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { DataTableToolbar } from '@/components/DataTableToolbar'
 import { DataTableHeader } from '@/components/DataTableHeader'
 import { DataTableBody } from '@/components/DataTableBody'
+import type { SortField } from '@/lib/sort'
 
 const ROW_HEIGHT = 44
 
@@ -37,6 +37,7 @@ interface DataTableProps<TData, TValue> {
   readonly manualSorting?: boolean
   readonly externalSorting?: SortingState
   readonly onExternalSortChange?: (sorting: SortingState) => void
+  readonly sortFields?: SortField[]
 }
 
 export function DataTable<TData, TValue>({
@@ -53,8 +54,30 @@ export function DataTable<TData, TValue>({
   manualSorting = false,
   externalSorting,
   onExternalSortChange,
+  sortFields,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [sorting, setSorting] = React.useState<SortingState>(
+    !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
+  )
+
+  const sortedData = React.useMemo(() => {
+    if (manualSorting || sorting.length === 0) return data
+    const { id, desc } = sorting[0]
+    return [...data].sort((a, b) => {
+      const aVal = (a as Record<string, unknown>)[id]
+      const bVal = (b as Record<string, unknown>)[id]
+      if (aVal == null && bVal == null) return 0
+      if (aVal == null) return 1
+      if (bVal == null) return -1
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        const cmp = aVal.localeCompare(bVal, undefined, { sensitivity: 'base' })
+        return desc ? -cmp : cmp
+      }
+      if (aVal < bVal) return desc ? 1 : -1
+      if (aVal > bVal) return desc ? -1 : 1
+      return 0
+    })
+  }, [data, sorting, manualSorting])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
@@ -62,7 +85,7 @@ export function DataTable<TData, TValue>({
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
   const table = useReactTable({
-    data,
+    data: sortedData,
     columns,
     state: {
       sorting: manualSorting ? (externalSorting ?? []) : sorting,
@@ -74,6 +97,7 @@ export function DataTable<TData, TValue>({
     getRowId: getRowId ? (row) => getRowId(row) : undefined,
     enableRowSelection: !!rowSelection,
     onRowSelectionChange,
+    enableSorting: false,
     manualSorting,
     onSortingChange: manualSorting
       ? (updater) => {
@@ -85,11 +109,21 @@ export function DataTable<TData, TValue>({
     onColumnVisibilityChange: setColumnVisibility,
     onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     columnResizeMode: 'onChange' as ColumnResizeMode,
     enableColumnResizing: true,
   })
+
+  const currentSortEntry = manualSorting ? (externalSorting?.[0]) : sorting[0]
+
+  function handleSortChange(id: string, desc: boolean) {
+    const next: SortingState = [{ id, desc }]
+    if (manualSorting) {
+      onExternalSortChange?.(next)
+    } else {
+      setSorting(next)
+    }
+  }
 
   const rows = table.getRowModel().rows
 
@@ -137,6 +171,9 @@ export function DataTable<TData, TValue>({
         table={table}
         activeFilterCount={columnFilters.length}
         onClearFilters={() => setColumnFilters([])}
+        sortFields={sortFields}
+        currentSort={currentSortEntry}
+        onSortChange={handleSortChange}
       />
       <div ref={scrollRef} className="flex-1 overflow-auto">
         <table

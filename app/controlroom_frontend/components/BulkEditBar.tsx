@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Loader2, X } from 'lucide-react'
+import { Loader2, Trash2, X } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,6 +29,8 @@ export function BulkEditBar({
   const [value, setValue] = React.useState<string[]>([])
   const [text, setText] = React.useState('')
   const [applying, setApplying] = React.useState(false)
+  const [deleting, setDeleting] = React.useState(false)
+  const [confirmBulkDelete, setConfirmBulkDelete] = React.useState(false)
   const [result, setResult] = React.useState<string | null>(null)
 
   const field = fields.find((f) => f.key === fieldKey) ?? null
@@ -67,6 +69,22 @@ export function BulkEditBar({
 
     if (failed > 0) {
       setResult(`${results.length - failed} updated, ${failed} failed`)
+    } else {
+      onApply()
+    }
+  }
+
+  async function handleBulkDelete() {
+    setDeleting(true)
+    setResult(null)
+    const results = await Promise.allSettled(
+      selectedRows.map((row) => api.delete(endpoint, getRowId(row)))
+    )
+    const failed = results.filter((r) => r.status === 'rejected').length
+    setDeleting(false)
+    setConfirmBulkDelete(false)
+    if (failed > 0) {
+      setResult(`${results.length - failed} deleted, ${failed} failed`)
     } else {
       onApply()
     }
@@ -149,6 +167,48 @@ export function BulkEditBar({
 
       {/* Result error */}
       {result && <span className="text-xs text-destructive">{result}</span>}
+
+      <div className="ml-auto flex items-center gap-2 shrink-0">
+        <div className="w-px h-4 bg-border" />
+        {confirmBulkDelete ? (
+          <>
+            <span className="text-xs text-destructive">
+              Delete {selectedRows.length} record{selectedRows.length === 1 ? '' : 's'}?
+            </span>
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-8 text-xs"
+              disabled={deleting}
+              onClick={handleBulkDelete}
+            >
+              {deleting && <Loader2 className="h-3 w-3 animate-spin mr-1" />}
+              Confirm
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 text-xs"
+              disabled={deleting}
+              onClick={() => setConfirmBulkDelete(false)}
+            >
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-8 text-xs text-destructive hover:text-destructive"
+            disabled={applying}
+            onClick={() => setConfirmBulkDelete(true)}
+            aria-label="Delete selected"
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            Delete
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

@@ -5,10 +5,12 @@ import { BulkEditBar } from '@/components/BulkEditBar'
 import type { BulkEditField } from '@/lib/bulkEdit'
 
 const mockApiUpdate = jest.fn()
+const mockApiDelete = jest.fn()
 
 jest.mock('@/lib/api', () => ({
   api: {
     update: (...args: unknown[]) => mockApiUpdate(...args),
+    delete: (...args: unknown[]) => mockApiDelete(...args),
   },
 }))
 
@@ -78,6 +80,8 @@ describe('BulkEditBar', () => {
   beforeEach(() => {
     mockApiUpdate.mockClear()
     mockApiUpdate.mockResolvedValue({})
+    mockApiDelete.mockClear()
+    mockApiDelete.mockResolvedValue(undefined)
   })
 
   it('shows the selected row count', () => {
@@ -206,6 +210,47 @@ describe('BulkEditBar', () => {
   it('shows no Apply button when no field is selected', () => {
     renderBar([textField])
     expect(screen.queryByRole('button', { name: /apply/i })).not.toBeInTheDocument()
+  })
+
+  it('shows Delete button in the bar', () => {
+    renderBar()
+    expect(screen.getByRole('button', { name: /delete selected/i })).toBeInTheDocument()
+  })
+
+  it('shows confirmation prompt after Delete click', () => {
+    renderBar()
+    fireEvent.click(screen.getByRole('button', { name: /delete selected/i }))
+    expect(screen.getByText(/delete 2 records/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+  })
+
+  it('cancels bulk delete and restores Delete button', () => {
+    renderBar()
+    fireEvent.click(screen.getByRole('button', { name: /delete selected/i }))
+    fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+    expect(screen.queryByText(/delete 2 records/i)).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /delete selected/i })).toBeInTheDocument()
+  })
+
+  it('calls api.delete for each row and invokes onApply on success', async () => {
+    const { onApply } = renderBar()
+    fireEvent.click(screen.getByRole('button', { name: /delete selected/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+    await waitFor(() => expect(mockApiDelete).toHaveBeenCalledTimes(2))
+    expect(mockApiDelete).toHaveBeenCalledWith('/test', '1')
+    expect(mockApiDelete).toHaveBeenCalledWith('/test', '2')
+    await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
+  })
+
+  it('shows error summary when some deletes fail', async () => {
+    mockApiDelete
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error('Server error'))
+    renderBar()
+    fireEvent.click(screen.getByRole('button', { name: /delete selected/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+    await waitFor(() => expect(screen.getByText(/1 deleted, 1 failed/i)).toBeInTheDocument())
   })
 
   it('applies singleselect value to all selected rows via PATCH', async () => {

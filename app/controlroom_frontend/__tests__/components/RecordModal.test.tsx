@@ -28,9 +28,18 @@ describe('RecordModal — view mode', () => {
     expect(screen.getByText('Test Record')).toBeInTheDocument()
   })
 
-  it('shows Edit button for admin in view mode', () => {
+  it('shows Delete, Edit, and Close buttons for admin in view mode', () => {
     renderModal()
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^edit$/i })).toBeInTheDocument()
+    const closeButtons = screen.getAllByRole('button', { name: 'Close' })
+    expect(closeButtons.find(b => b.textContent?.trim() === 'Close')).toBeDefined()
+  })
+
+  it('hides Delete and Edit buttons for non-admin in view mode', () => {
+    renderModal({ isAdmin: false })
+    expect(screen.queryByRole('button', { name: /^delete$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
   })
 
   it('shows Close button in footer for admin in view mode', () => {
@@ -39,11 +48,6 @@ describe('RecordModal — view mode', () => {
     const closeButtons = screen.getAllByRole('button', { name: 'Close' })
     const footerClose = closeButtons.find(b => b.textContent?.trim() === 'Close')
     expect(footerClose).toBeDefined()
-  })
-
-  it('hides Edit button for non-admin in view mode', () => {
-    renderModal({ isAdmin: false })
-    expect(screen.queryByRole('button', { name: /^edit$/i })).not.toBeInTheDocument()
   })
 
   it('calls onEdit when Edit is clicked', () => {
@@ -61,6 +65,33 @@ describe('RecordModal — view mode', () => {
     const footerClose = closeButtons.find(b => b.textContent?.trim() === 'Close')!
     fireEvent.click(footerClose)
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('shows delete confirmation in view mode after Delete click', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    expect(screen.getByText('Are you sure?')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /confirm delete/i })).toBeInTheDocument()
+  })
+
+  it('calls onDelete after confirming in view mode', () => {
+    const onDelete = jest.fn()
+    renderModal({ onDelete })
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
+    expect(onDelete).toHaveBeenCalled()
+  })
+
+  it('cancels view mode delete confirmation and restores Delete button', () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
+    const areYouSure = screen.getByText('Are you sure?').closest('div')!
+    const cancelBtn = Array.from(areYouSure.querySelectorAll('button')).find(
+      b => b.textContent?.trim() === 'Cancel'
+    )!
+    fireEvent.click(cancelBtn)
+    expect(screen.queryByText('Are you sure?')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^delete$/i })).toBeInTheDocument()
   })
 })
 

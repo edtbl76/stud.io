@@ -130,35 +130,4 @@ describe('DataTableHeader', () => {
     fireEvent.drop(th)
     expect(onDrop).toHaveBeenCalledWith(expect.anything(), 'name')
   })
-
-  it('shows sort icon when column is sortable', () => {
-    const headers = [
-      makeHeader({
-        column: {
-          id: 'name',
-          columnDef: { header: 'Name' },
-          getCanSort: () => true,
-          getIsSorted: () => false,
-          getToggleSortingHandler: () => jest.fn(),
-          getCanFilter: () => false,
-          getFilterValue: () => '',
-          setFilterValue: jest.fn(),
-          getCanResize: () => false,
-          getIsResizing: () => false,
-        } as unknown as Column<Row, unknown>,
-      }),
-    ]
-    const { container } = render(
-      <table>
-        <DataTableHeader
-          table={makeTable(headers)}
-          draggingId={null}
-          onDragStart={jest.fn()}
-          onDrop={jest.fn()}
-        />
-      </table>
-    )
-    // Sort icon SVG is rendered inside a span when sortable
-    expect(container.querySelector('span svg')).toBeInTheDocument()
-  })
 })

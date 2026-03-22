@@ -33,15 +33,12 @@ for (const { name, path } of [
     await expect(rows.first()).toBeVisible()
   })
 
-  test(`${name}: sort column header triggers server-side re-fetch`, async ({ page }) => {
+  test(`${name}: sort direction toggle triggers server-side re-fetch`, async ({ page }) => {
     await page.goto(path)
     await waitForRecordCount(page)
 
-    // Click the first sortable column header button — identified by cursor-pointer
-    // class which DataTable applies only to sortable columns (not drag handles,
-    // resize handles, or the non-sortable checkbox __select__ column).
-    const firstSort = page.locator('thead button.cursor-pointer').first()
-    await firstSort.click()
+    // The sort direction toggle button is in the toolbar (replaced column-header sort)
+    await page.getByRole('button', { name: /Sort (ascending|descending)/ }).click()
 
     // Record count is still visible after sort (data reloaded successfully)
     await waitForRecordCount(page)

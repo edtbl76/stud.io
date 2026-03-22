@@ -4,6 +4,13 @@ import { ColumnDef } from '@tanstack/react-table'
 import { ExternalLink } from 'lucide-react'
 import { Brand } from '@/lib/types'
 import type { BulkEditField } from '@/lib/bulkEdit'
+import type { SortField } from '@/lib/sort'
+
+export const brandSortFields: SortField[] = [
+  { key: 'brand_name', label: 'Brand Name' },
+  { key: 'legal_name', label: 'Legal Name' },
+  { key: 'entity_type_name', label: 'Type' },
+]
 
 export const brandBulkEditFields: BulkEditField[] = [
   { key: 'entity_type_id', label: 'Entity Type', type: 'singleselect', configSlug: 'entity-types' },

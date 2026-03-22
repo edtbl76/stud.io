@@ -33,12 +33,22 @@ Your username and a sign-out button appear at the top of the sidebar.
 Each table opens as a full-page data table with:
 
 - **Search bar** — filters rows in real time (debounced)
-- **Sortable columns** — click any column header to sort ascending/descending
+- **Sort controls** — a sort dropdown and direction toggle in the toolbar (see below)
 - **Resizable columns** — drag column borders to resize
+- **Column picker** — the **Columns** button toggles individual columns on/off
 - **Row virtualization** — large tables (Effects, Instruments, Libraries, Models) render only visible rows for performance
 - **Record count** — shown below the table title
 
 Click any row to open the record in a modal.
+
+### Sorting
+
+The toolbar contains two sort controls:
+
+- **Direction toggle** — the arrow button (↑/↓) switches between ascending and descending order. The arrow reflects the current direction.
+- **Sort field dropdown** — the button showing the current field name opens a menu of available sort fields. Select any field to sort by it. You can sort by fields that are not displayed as columns (for example, sort instruments by brand name even though only the full instrument name appears in the table).
+
+Non-paginated tables (Brands, Workstations, and all Tools tables) sort client-side. Paginated tables (Effects, Instruments, Libraries, Models) re-fetch from the server whenever the sort changes.
 
 ### Add button
 
@@ -60,9 +70,13 @@ For **single-select fields** (entity type, model type, etc.), the selected value
 
 For **text fields** (version, collection, etc.), the typed value replaces the existing value.
 
+### Bulk delete (admin only)
+
+A **Delete N** button appears on the right side of the bulk edit bar. Clicking it shows an "Are you sure?" confirmation — click **Confirm Delete N** to proceed. Records are deleted concurrently; if any individual delete fails (e.g. the record is still referenced elsewhere), the rest continue and a summary of failures is shown.
+
 Click the **×** next to the count to clear the selection without applying changes.
 
-CONFIG tables do not have a checkbox column — bulk edit is not available there.
+CONFIG tables do not have a checkbox column — bulk edit and bulk delete are not available there.
 
 ---
 
@@ -89,7 +103,7 @@ Click **Save** to apply changes. Click **Cancel** to discard.
 
 ### Deleting (admin only)
 
-In edit mode, a **Delete** button appears in the bottom-left of the footer. Clicking it once shows an "Are you sure?" confirmation — click **Confirm Delete** to proceed. This prevents accidental deletions.
+A **Delete** button appears in the bottom-left of the modal footer in both view mode and edit mode. Clicking it once shows an "Are you sure?" confirmation — click **Confirm Delete** to proceed. This prevents accidental deletions.
 
 If the record is referenced by other records in the database, the delete will be rejected with an explanatory error message.
 

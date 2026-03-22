@@ -4,6 +4,15 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Effect } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
+import type { SortField } from '@/lib/sort'
+
+export const effectSortFields: SortField[] = [
+  { key: 'effect_name', label: 'Effect Name' },
+  { key: 'brand_name', label: 'Brand' },
+  { key: 'collection', label: 'Collection' },
+  { key: 'version', label: 'Version' },
+  { key: 'updated_at', label: 'Recently Updated' },
+]
 
 export const effectBulkEditFields: BulkEditField[] = [
   { key: 'effect_type_ids', label: 'Effect Types', type: 'multiselect', configSlug: 'effect-types' },

@@ -1,7 +1,7 @@
 'use client'
 
 import { TablePage } from '@/components/TablePage'
-import { modelColumns, modelBulkEditFields } from '@/components/tables/models/columns'
+import { modelColumns, modelBulkEditFields, modelSortFields } from '@/components/tables/models/columns'
 import { ModelModal } from '@/components/tables/models/ModelModal'
 import { Model } from '@/lib/types'
 
@@ -13,6 +13,7 @@ export default function ModelsPage() {
       queryKey="/catalog/models"
       columns={modelColumns}
       bulkEditFields={modelBulkEditFields}
+      sortFields={modelSortFields}
       getRowId={(row) => row.model_id}
       renderModal={(record, onClose, onMutate) => (
         <ModelModal record={record} onClose={onClose} onMutate={onMutate} />

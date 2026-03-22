@@ -87,6 +87,9 @@ bash "$ROOT/scripts/reset-test-db.sh"
 # ---------------------------------------------------------------------------
 echo "[e2e] Starting test frontend (port $TEST_FRONTEND_PORT)..."
 pushd "$FRONTEND_DIR" > /dev/null
+# Use a separate build directory (.next-e2e) so the Docker container's .next
+# (built with container-internal paths) never conflicts with this host process.
+NEXT_DIST_DIR=.next-e2e \
 BACKEND_URL="http://localhost:$TEST_BACKEND_PORT" \
     npx next dev \
         -p "$TEST_FRONTEND_PORT" \

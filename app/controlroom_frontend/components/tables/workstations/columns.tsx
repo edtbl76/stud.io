@@ -4,6 +4,13 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Workstation } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
+import type { SortField } from '@/lib/sort'
+
+export const workstationSortFields: SortField[] = [
+  { key: 'full_tool_name', label: 'Name' },
+  { key: 'brand_name', label: 'Brand' },
+  { key: 'version', label: 'Version' },
+]
 
 export const workstationBulkEditFields: BulkEditField[] = [
   { key: 'tool_type_ids', label: 'Tool Types', type: 'multiselect', configSlug: 'tool-types' },
