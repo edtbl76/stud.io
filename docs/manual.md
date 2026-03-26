@@ -20,7 +20,7 @@ The sidebar on the left organizes the app into five sections. Each section is co
 | **SESSION** | Effects, Instruments, Libraries, Workstations |
 | **TOOLS** | Admin, Composition, Measurement, Reference, Workflow |
 | **CONFIG** | Effect Types, Entity Types, Instrument Types, Model Types, Plugin Formats, Tag Types, Tool Types |
-| **ADMIN** | Stats, Change Review, Backup & Restore, Users *(admin role only)* |
+| **ADMIN** | Stats, Change Review, Import / Export, Backup & Restore, Users *(admin role only)* |
 
 The ADMIN section is hidden for users with the `user` role.
 
@@ -145,6 +145,29 @@ A paginated audit log of all changes made through the app. Shows each create, up
 - **Acknowledge** — mark an entry as reviewed. Does not reverse the change.
 - **Undo** — reverses the original operation: hard-deletes a created record, restores the previous state for an update, or un-deletes a soft-deleted record.
 - **Permanent Delete** (DELETE entries only) — hard-deletes the soft-deleted record. Irreversible.
+
+### Import / Export
+
+Bulk data movement via `.xlsx` files. All three operations are admin-only.
+
+#### Export Data
+
+Select the tables you want and click **Export Data**. The file downloads immediately with one sheet per table. Each sheet contains a header row followed by all non-deleted records. ID columns are included so exported records can be round-tripped back in as updates.
+
+#### Download Template
+
+Same table selector, click **Download Template**. The file has headers but no data rows. Lookup fields (Brand, Effect Types, Tags, etc.) include Excel dropdown validation populated from the current live values — this helps avoid typos that would fail import validation.
+
+#### Import
+
+Upload a filled template (or a previously exported file) and click **Import**.
+
+- Rows **without** an ID column create new records.
+- Rows **with** an ID column update the matching existing record.
+- Lookup fields are matched by name (case-insensitive). If a name doesn't match exactly, the import fails with a validation error that includes a "did you mean?" suggestion for close matches.
+- **Nothing is imported if any row has a validation error** — fix all errors first, then re-upload.
+- On success, a summary table shows how many records were created and updated per sheet.
+- `attributes` fields are imported/exported as raw JSON strings.
 
 ### Backup & Restore
 

@@ -49,6 +49,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: 'Backup & Restore', href: '/admin/backup' },
       { label: 'Change Review',    href: '/admin/change-review' },
+      { label: 'Import / Export',  href: '/admin/import-export' },
       { label: 'Stats',            href: '/admin/stats' },
       { label: 'Users',            href: '/admin/users' },
     ],

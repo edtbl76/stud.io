@@ -6,7 +6,7 @@ from config import settings
 from database import init_pool, close_pool
 from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, users
-from routers import backup_ops, change_review, admin_stats
+from routers import backup_ops, change_review, admin_stats, import_export
 from routers.auth import seed_default_admin
 
 
@@ -43,7 +43,8 @@ app.include_router(config_router.router, prefix="/config",       tags=["config"]
 ADMIN_PREFIX = "/admin"
 app.include_router(backup_ops.router,    prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(change_review.router, prefix=ADMIN_PREFIX, tags=["admin"])
-app.include_router(admin_stats.router,   prefix=ADMIN_PREFIX, tags=["admin"])
+app.include_router(admin_stats.router,     prefix=ADMIN_PREFIX, tags=["admin"])
+app.include_router(import_export.router,  prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(users.router,        prefix="/users",         tags=["users"])
 
 

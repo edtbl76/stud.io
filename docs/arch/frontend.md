@@ -28,7 +28,7 @@ app/controlroom_frontend/
 │   ├── session/            # Effects, Instruments, Libraries, Workstations
 │   ├── tools/              # Admin, Composition, Measurement, Reference, Workflow tools
 │   ├── config/             # Lookup table editors (7 tables)
-│   └── admin/              # Stats, Change Review, Backup/Restore, Users
+│   └── admin/              # Stats, Change Review, Import/Export, Backup/Restore, Users
 ├── components/
 │   ├── DataTable.tsx        # Virtualized TanStack Table wrapper
 │   ├── TablePage.tsx        # Generic page: search + table + modal

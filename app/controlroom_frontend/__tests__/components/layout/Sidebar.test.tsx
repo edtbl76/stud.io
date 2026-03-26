@@ -103,6 +103,6 @@ describe('Sidebar', () => {
       .getAllByRole('link')
       .filter((l) => (l.getAttribute('href') ?? '').startsWith('/admin/'))
     const labels = adminLinks.map((l) => l.textContent)
-    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Stats', 'Users'])
+    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Import / Export', 'Stats', 'Users'])
   })
 })

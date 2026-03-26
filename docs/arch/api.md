@@ -24,7 +24,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
 | `/config/{slug}` | `routers/config.py` | CRUD for all lookup tables (effect-types, tag-types, etc.) |
 | `/search` | `routers/search.py` | Cross-table full-text search |
-| `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py` | Database backup, restore, verification, Change Review workflow, and catalog row-count stats |
+| `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/users` | `routers/users.py` | User management (admin only) |
 
 ---
@@ -151,6 +151,28 @@ Tests use a separate `controlroomdb_test` database. Each test wraps its operatio
 ### Verify
 
 `POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary `controlroomdb_verify` database, computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
+
+### Import / Export
+
+Three endpoints in `routers/import_export.py`. All require admin. xlsx files are built and parsed with **openpyxl**.
+
+`GET /admin/export/xlsx?tables=<comma-separated>` — exports current (non-deleted) records. One sheet per table, one row per record. ID columns are included for round-trip updates. Column schema is defined in `routers/_xlsx_schema.py` (`TABLE_CONFIGS`). Lookup display names are resolved from the semantic views. A hidden `_Lookups` sheet is included with all valid lookup values per column (used by template dropdowns).
+
+`GET /admin/export/template?tables=<comma-separated>` — same structure but no data rows and no ID column. Lookup fields have Excel `DataValidation` dropdowns referencing the `_Lookups` sheet.
+
+`POST /admin/import/xlsx` — accepts a multipart `.xlsx` upload (max 10 MB). Parses sheet names against `SHEET_TO_KEY` (e.g. "Brands" → `brands`). Unknown sheets and empty sheets are ignored. For each recognized sheet:
+
+- Rows **without** an "ID" cell → `INSERT`
+- Rows **with** an "ID" cell → `UPDATE … WHERE deleted_at IS NULL`
+- Lookup fields are resolved by name (case-insensitive) to their UUID. Multi-value fields accept comma-separated names.
+- If a lookup name doesn't match, a `did you mean?` suggestion is generated via `difflib.get_close_matches`.
+
+Validation runs across all rows before any writes. If any row has an error the endpoint returns `422` with `{"errors": [{sheet, row, column, value, message}, ...]}`. On success returns `{summary: [{sheet, creates, updates}], total_creates, total_updates}`.
+
+The xlxs logic is split across three internal modules:
+- `routers/_xlsx_schema.py` — `ColDef` / `TableConfig` named tuples and all column/table definitions
+- `routers/_xlsx_build.py` — workbook construction (`fetch_lookup_data`, `fetch_table_rows`, `build_workbook`)
+- `routers/_xlsx_import.py` — parsing, validation, and DB writes (`parse_workbook`, `validate_import`, `execute_import`)
 
 ### Stats
 
