@@ -33,6 +33,25 @@ async def test_list_effects_search_no_match(client):
     assert response.json()["total"] == 0
 
 
+async def test_filter_effects_by_model_brand_name(client, conn):
+    """filter_models should match on the model's brand name, not just model_name."""
+    brand_row = await conn.fetchrow(
+        "INSERT INTO brands (brand_name, legal_name) VALUES ('BrandFilter_Eff', 'BrandFilter_Eff') RETURNING brand_id"
+    )
+    model_row = await conn.fetchrow(
+        "INSERT INTO models (model_name, brand_id) VALUES ('E001', $1) RETURNING model_id",
+        brand_row["brand_id"],
+    )
+    await conn.execute(
+        "INSERT INTO effects (effect_name, model_ids) VALUES ('FilterEffect', $1)",
+        [model_row["model_id"]],
+    )
+    response = await client.get("/effects?filter_models=BrandFilter_Eff")
+    assert response.status_code == 200
+    names = [i["effect_name"] for i in response.json()["items"]]
+    assert "FilterEffect" in names
+
+
 async def test_list_effects_pagination(client):
     response = await client.get("/effects?limit=2&offset=0")
     assert response.status_code == 200

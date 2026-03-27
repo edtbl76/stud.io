@@ -23,7 +23,9 @@ _FILTERABLE = {
     "brand": "brand_name ILIKE {val}",
     "models": (
         "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"
-        " JOIN models m ON m.model_id = uid WHERE m.model_name ILIKE {val})"
+        " JOIN models m ON m.model_id = uid"
+        " LEFT JOIN brands mb ON mb.brand_id = m.brand_id"
+        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})"
     ),
     "tags": (
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"

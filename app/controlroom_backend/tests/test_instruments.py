@@ -29,6 +29,25 @@ async def test_list_instruments_search_no_match(client):
     assert response.json()["total"] == 0
 
 
+async def test_filter_instruments_by_model_brand_name(client, conn):
+    """filter_models should match on the model's brand name, not just model_name."""
+    brand_row = await conn.fetchrow(
+        "INSERT INTO brands (brand_name, legal_name) VALUES ('BrandFilter_Inst', 'BrandFilter_Inst') RETURNING brand_id"
+    )
+    model_row = await conn.fetchrow(
+        "INSERT INTO models (model_name, brand_id) VALUES ('M001', $1) RETURNING model_id",
+        brand_row["brand_id"],
+    )
+    await conn.execute(
+        "INSERT INTO instruments (instrument_name, model_ids) VALUES ('FilterInst', $1)",
+        [model_row["model_id"]],
+    )
+    response = await client.get("/instruments?filter_models=BrandFilter_Inst")
+    assert response.status_code == 200
+    names = [i["instrument_name"] for i in response.json()["items"]]
+    assert "FilterInst" in names
+
+
 async def test_list_instruments_pagination(client, conn):
     await conn.execute("INSERT INTO instruments (instrument_name) VALUES ('Paged Synth')")
     response = await client.get("/instruments?limit=1&offset=0")
