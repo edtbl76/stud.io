@@ -33,6 +33,21 @@ async def test_list_effects_search_no_match(client):
     assert response.json()["total"] == 0
 
 
+async def test_filter_effects_by_brand_prefix_in_name(client, conn):
+    """filter_name should match the full display name (brand + effect_name)."""
+    brand_row = await conn.fetchrow(
+        "INSERT INTO brands (brand_name, legal_name) VALUES ('NameBrand_Eff', 'NameBrand_Eff') RETURNING brand_id"
+    )
+    await conn.execute(
+        "INSERT INTO effects (effect_name, brand_id) VALUES ('Compressor99', $1)",
+        brand_row["brand_id"],
+    )
+    response = await client.get("/effects?filter_name=NameBrand_Eff")
+    assert response.status_code == 200
+    names = [i["full_effect_name"] for i in response.json()["items"]]
+    assert any("NameBrand_Eff" in n for n in names)
+
+
 async def test_filter_effects_by_model_brand_name(client, conn):
     """filter_models should match on the model's brand name, not just model_name."""
     brand_row = await conn.fetchrow(

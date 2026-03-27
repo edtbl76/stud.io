@@ -25,7 +25,7 @@ _NOT_FOUND = "Tool not found"
 _SORTABLE = frozenset({"full_tool_name", "brand_name", "version", "created_at", "updated_at"})
 _DEFAULT_SORT = "full_tool_name"
 _FILTERABLE = {
-    "name":    "tool_name ILIKE {val}",
+    "name":    "full_tool_name ILIKE {val}",
     "brand":   "brand_name ILIKE {val}",
     "version": "version ILIKE {val}",
     "types": (

@@ -19,7 +19,7 @@ _NOT_FOUND = "Instrument not found"
 _SORTABLE = frozenset({"instrument_name", "brand_name", "version", "updated_at", "created_at"})
 _DEFAULT_SORT = "instrument_name"
 _FILTERABLE = {
-    "name":    "instrument_name ILIKE {val}",
+    "name":    "full_instrument_name ILIKE {val}",
     "brand":   "brand_name ILIKE {val}",
     "version": "version ILIKE {val}",
     "types": (

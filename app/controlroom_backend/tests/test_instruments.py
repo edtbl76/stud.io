@@ -29,6 +29,21 @@ async def test_list_instruments_search_no_match(client):
     assert response.json()["total"] == 0
 
 
+async def test_filter_instruments_by_brand_prefix_in_name(client, conn):
+    """filter_name should match the full display name (brand + instrument_name)."""
+    brand_row = await conn.fetchrow(
+        "INSERT INTO brands (brand_name, legal_name) VALUES ('NameBrand_Inst', 'NameBrand_Inst') RETURNING brand_id"
+    )
+    await conn.execute(
+        "INSERT INTO instruments (instrument_name, brand_id) VALUES ('KeyboardX', $1)",
+        brand_row["brand_id"],
+    )
+    response = await client.get("/instruments?filter_name=NameBrand_Inst")
+    assert response.status_code == 200
+    names = [i["full_instrument_name"] for i in response.json()["items"]]
+    assert any("NameBrand_Inst" in n for n in names)
+
+
 async def test_filter_instruments_by_model_brand_name(client, conn):
     """filter_models should match on the model's brand name, not just model_name."""
     brand_row = await conn.fetchrow(

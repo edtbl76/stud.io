@@ -19,7 +19,7 @@ _NOT_FOUND = "Library not found"
 _SORTABLE = frozenset({"library_name", "brand_name", "updated_at", "created_at"})
 _DEFAULT_SORT = "library_name"
 _FILTERABLE = {
-    "name":  "library_name ILIKE {val}",
+    "name":  "full_library_name ILIKE {val}",
     "brand": "brand_name ILIKE {val}",
     "models": (
         "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"

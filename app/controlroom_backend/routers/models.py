@@ -27,7 +27,7 @@ _NOT_FOUND = "Model not found"
 _SORTABLE = frozenset({"model_name", "brand_name", "updated_at", "created_at"})
 _DEFAULT_SORT = "model_name"
 _FILTERABLE = {
-    "name":  "model_name ILIKE {val}",
+    "name":  "full_model_name ILIKE {val}",
     "brand": "brand_name ILIKE {val}",
     "types": (
         "EXISTS (SELECT 1 FROM unnest(COALESCE(model_type_ids, ARRAY[]::UUID[])) uid"

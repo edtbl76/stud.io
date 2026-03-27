@@ -19,7 +19,7 @@ _NOT_FOUND = "Effect not found"
 _SORTABLE = frozenset({"effect_name", "brand_name", "version", "collection", "updated_at", "created_at"})
 _DEFAULT_SORT = "effect_name"
 _FILTERABLE = {
-    "name":       "effect_name ILIKE {val}",
+    "name":       "full_effect_name ILIKE {val}",
     "brand":      "brand_name ILIKE {val}",
     "version":    "version ILIKE {val}",
     "collection": "collection ILIKE {val}",

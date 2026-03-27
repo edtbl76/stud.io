@@ -32,6 +32,21 @@ async def test_list_models_search_no_match(client):
     assert response.json()["total"] == 0
 
 
+async def test_filter_models_by_brand_prefix_in_name(client, conn):
+    """filter_name should match the full display name (brand + model_name), not just model_name."""
+    brand_row = await conn.fetchrow(
+        "INSERT INTO brands (brand_name, legal_name) VALUES ('NameBrand_Mod', 'NameBrand_Mod') RETURNING brand_id"
+    )
+    await conn.execute(
+        "INSERT INTO models (model_name, brand_id) VALUES ('X100', $1)",
+        brand_row["brand_id"],
+    )
+    response = await client.get("/models?filter_name=NameBrand_Mod")
+    assert response.status_code == 200
+    names = [i["full_model_name"] for i in response.json()["items"]]
+    assert any("NameBrand_Mod" in n for n in names)
+
+
 async def test_list_models_pagination(client):
     response = await client.get("/models?limit=2&offset=0")
     assert response.status_code == 200
