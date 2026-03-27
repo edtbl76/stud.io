@@ -99,6 +99,7 @@ CONFIG tables do not have a checkbox column — bulk edit and bulk delete are no
 Clicking a row opens a read-only modal showing all fields for that record.
 
 - **Lookup fields** (types, formats, tags) display as labeled badges
+- **Models** (Effects, Instruments, Libraries) — associated hardware models display as clickable chips. Click any chip to open that model's full detail modal as an overlay — no page navigation.
 - **Parent references** show the table name and record name
 - **Dates** are formatted to local time
 
@@ -109,8 +110,8 @@ Admins see an **Edit** button in the modal footer. Click it to switch to edit mo
 In edit mode:
 - Text fields become inputs
 - **Brand** — typeahead search field: start typing to search existing brands and select one. If the brand doesn't exist yet, a **Create "..."** option appears. Clicking it opens an inline form to create the brand on the spot.
+- **Models** (Effects, Instruments, Libraries) — typeahead multi-select: start typing a model name (or brand prefix, e.g. "Universal Audio") to search. Click a result to add it; click again to remove it. Selected models appear as removable badges below the search field. To create a new model, use the Models table first.
 - Lookup fields (types, formats, tags) become multi-select dropdowns populated from the CONFIG tables
-- `model_ids` and `parent_ids` are searchable multi-selects resolved by name
 - `attributes` is a freeform JSON field
 
 Click **Save** to apply changes. Click **Cancel** to discard.

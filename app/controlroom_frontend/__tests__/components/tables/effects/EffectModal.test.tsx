@@ -28,6 +28,14 @@ jest.mock('@/components/ui/BrandSelect', () => ({
   BrandSelect: () => null,
 }))
 
+jest.mock('@/components/ui/ModelSelect', () => ({
+  ModelSelect: () => null,
+}))
+
+jest.mock('@/components/ModelLinks', () => ({
+  ModelLinks: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -152,6 +160,20 @@ describe('EffectModal — edit mode', () => {
 
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/effects', 'effect-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('includes model_ids in update payload even when empty', async () => {
+    mockUpdate.mockResolvedValue(mockEffect)
+    renderWithClient(<EffectModal record={mockEffect} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByDisplayValue('Reverb One'), { target: { value: 'Reverb Two' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/effects', 'effect-1',
+      expect.objectContaining({ model_ids: [] }),
+    ))
   })
 
   it('shows error when save fails', async () => {

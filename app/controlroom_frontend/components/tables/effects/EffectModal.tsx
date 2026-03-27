@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Effect } from '@/lib/types'
+import { Effect, ModelRef } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
+import { ModelSelect } from '@/components/ui/ModelSelect'
+import { ModelLinks } from '@/components/ModelLinks'
 
 const ENDPOINT = '/effects'
 
@@ -28,6 +30,8 @@ interface FormState {
   brand_name: string
   version: string
   collection: string
+  model_ids: string[]
+  model_refs: ModelRef[]
   effect_type_ids: string[]
   tool_type_ids: string[]
   plugin_format_ids: string[]
@@ -52,6 +56,7 @@ function buildEffectPayload(form: FormState): Record<string, unknown> {
   if (form.brand_id) body.brand_id = form.brand_id
   if (form.version) body.version = form.version
   if (form.collection) body.collection = form.collection
+  body.model_ids = form.model_ids
   if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
@@ -68,6 +73,7 @@ function toForm(record: Effect | null): FormState {
   if (!record) {
     return {
       effect_name: '', brand_id: '', brand_name: '', version: '', collection: '',
+      model_ids: [], model_refs: [],
       effect_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
       description: '', workflow_notes: '', recording_notes: '', artist_reference: '',
       attributes: '',
@@ -79,6 +85,8 @@ function toForm(record: Effect | null): FormState {
     brand_name: record.brand_name ?? '',
     version: record.version ?? '',
     collection: record.collection ?? '',
+    model_ids: record.model_ids ?? [],
+    model_refs: record.models ?? [],
     effect_type_ids: record.effect_type_ids ?? [],
     tool_type_ids: record.tool_type_ids ?? [],
     plugin_format_ids: record.plugin_format_ids ?? [],
@@ -138,6 +146,14 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
             <Input id="collection" value={form.collection} onChange={(e) => set('collection', e.target.value)} placeholder="Collection" />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Models</Label>
+            <ModelSelect
+              value={form.model_ids}
+              selectedModels={form.model_refs}
+              onChange={(ids, models) => { set('model_ids', ids); set('model_refs', models) }}
+            />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Effect Types</Label>
             <MultiSelect configSlug="effect-types" value={form.effect_type_ids} onChange={(v) => set('effect_type_ids', v)} placeholder="Select effect types..." />
           </div>
@@ -185,6 +201,7 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
           <FieldRow label="Brand" value={record?.brand_name} />
           <FieldRow label="Version" value={record?.version} />
           <FieldRow label="Collection" value={record?.collection} />
+          <div className="col-span-2"><FieldRow label="Models" value={<ModelLinks models={record?.models} />} /></div>
           <div className="col-span-2"><FieldRow label="Effect Types" value={<TypeBadges types={record?.effect_types} />} /></div>
           <div className="col-span-2"><FieldRow label="Tool Types" value={<TypeBadges types={record?.tool_types} />} /></div>
           <div className="col-span-2"><FieldRow label="Plugin Formats" value={<TypeBadges types={record?.plugin_formats} />} /></div>

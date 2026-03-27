@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Library } from '@/lib/types'
+import { Library, ModelRef } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
+import { ModelSelect } from '@/components/ui/ModelSelect'
+import { ModelLinks } from '@/components/ModelLinks'
 
 const ENDPOINT = '/libraries'
 
@@ -26,6 +28,8 @@ interface FormState {
   library_name: string
   brand_id: string
   brand_name: string
+  model_ids: string[]
+  model_refs: ModelRef[]
   tag_ids: string[]
   description: string
   instrument_notes: string
@@ -44,6 +48,7 @@ function buildLibraryPayload(form: FormState): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (form.library_name) body.library_name = form.library_name
   if (form.brand_id) body.brand_id = form.brand_id
+  body.model_ids = form.model_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
   if (form.description) body.description = form.description
   if (form.instrument_notes) body.instrument_notes = form.instrument_notes
@@ -55,7 +60,8 @@ function buildLibraryPayload(form: FormState): Record<string, unknown> {
 function toForm(record: Library | null): FormState {
   if (!record) {
     return {
-      library_name: '', brand_id: '', brand_name: '', tag_ids: [],
+      library_name: '', brand_id: '', brand_name: '',
+      model_ids: [], model_refs: [], tag_ids: [],
       description: '', instrument_notes: '', recording_notes: '', attributes: '',
     }
   }
@@ -63,6 +69,8 @@ function toForm(record: Library | null): FormState {
     library_name: record.library_name ?? '',
     brand_id: record.brand_id ?? '',
     brand_name: record.brand_name ?? '',
+    model_ids: record.model_ids ?? [],
+    model_refs: record.models ?? [],
     tag_ids: record.tag_ids ?? [],
     description: record.description ?? '',
     instrument_notes: record.instrument_notes ?? '',
@@ -110,6 +118,14 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
             <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Models</Label>
+            <ModelSelect
+              value={form.model_ids}
+              selectedModels={form.model_refs}
+              onChange={(ids, models) => { set('model_ids', ids); set('model_refs', models) }}
+            />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Tags</Label>
             <MultiSelect configSlug="tag-types" value={form.tag_ids} onChange={(v) => set('tag_ids', v)} placeholder="Select tags..." />
           </div>
@@ -139,6 +155,7 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
         <div className="grid grid-cols-2 gap-4">
           <FieldRow label="Library Name" value={record?.library_name} />
           <FieldRow label="Brand" value={record?.brand_name} />
+          <div className="col-span-2"><FieldRow label="Models" value={<ModelLinks models={record?.models} />} /></div>
           <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record?.tags} />} /></div>
           <div className="col-span-2"><FieldRow label="Parents" value={<ParentLinks parents={record?.parents} />} /></div>
           <div className="col-span-2"><FieldRow label="Description" value={record?.description} /></div>

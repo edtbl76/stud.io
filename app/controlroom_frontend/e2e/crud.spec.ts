@@ -34,8 +34,8 @@ for (const table of ALL_TABLES) {
     const firstRow = page.locator('table tbody tr').first()
     await expect(firstRow).toBeVisible({ timeout: 8000 })
 
-    // Click a data cell (skip td:nth-child(1) which may be a checkbox with stopPropagation)
-    await firstRow.locator('td').nth(1).click()
+    // Click the last cell — always a data column, never the checkbox (which is always first)
+    await firstRow.locator('td').last().click()
     await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 })
 
     // Close the modal

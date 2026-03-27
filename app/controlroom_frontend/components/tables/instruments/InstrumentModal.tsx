@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Instrument } from '@/lib/types'
+import { Instrument, ModelRef } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -13,6 +13,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
+import { ModelSelect } from '@/components/ui/ModelSelect'
+import { ModelLinks } from '@/components/ModelLinks'
 
 const ENDPOINT = '/instruments'
 
@@ -27,6 +29,8 @@ interface FormState {
   brand_id: string
   brand_name: string
   version: string
+  model_ids: string[]
+  model_refs: ModelRef[]
   instrument_type_ids: string[]
   tool_type_ids: string[]
   plugin_format_ids: string[]
@@ -49,6 +53,7 @@ function buildInstrumentPayload(form: FormState): Record<string, unknown> {
   if (form.instrument_name) body.instrument_name = form.instrument_name
   if (form.brand_id) body.brand_id = form.brand_id
   if (form.version) body.version = form.version
+  body.model_ids = form.model_ids
   if (form.instrument_type_ids.length) body.instrument_type_ids = form.instrument_type_ids
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
@@ -64,6 +69,7 @@ function toForm(record: Instrument | null): FormState {
   if (!record) {
     return {
       instrument_name: '', brand_id: '', brand_name: '', version: '',
+      model_ids: [], model_refs: [],
       instrument_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
       description: '', instrument_notes: '', recording_notes: '', attributes: '',
     }
@@ -73,6 +79,8 @@ function toForm(record: Instrument | null): FormState {
     brand_id: record.brand_id ?? '',
     brand_name: record.brand_name ?? '',
     version: record.version ?? '',
+    model_ids: record.model_ids ?? [],
+    model_refs: record.models ?? [],
     instrument_type_ids: record.instrument_type_ids ?? [],
     tool_type_ids: record.tool_type_ids ?? [],
     plugin_format_ids: record.plugin_format_ids ?? [],
@@ -127,6 +135,14 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
             <Input id="version" value={form.version} onChange={(e) => set('version', e.target.value)} placeholder="Version" />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Models</Label>
+            <ModelSelect
+              value={form.model_ids}
+              selectedModels={form.model_refs}
+              onChange={(ids, models) => { set('model_ids', ids); set('model_refs', models) }}
+            />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Instrument Types</Label>
             <MultiSelect configSlug="instrument-types" value={form.instrument_type_ids} onChange={(v) => set('instrument_type_ids', v)} placeholder="Select instrument types..." />
           </div>
@@ -169,6 +185,7 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
           <FieldRow label="Instrument Name" value={record?.instrument_name} />
           <FieldRow label="Brand" value={record?.brand_name} />
           <FieldRow label="Version" value={record?.version} />
+          <div className="col-span-2"><FieldRow label="Models" value={<ModelLinks models={record?.models} />} /></div>
           <div className="col-span-2"><FieldRow label="Instrument Types" value={<TypeBadges types={record?.instrument_types} />} /></div>
           <div className="col-span-2"><FieldRow label="Tool Types" value={<TypeBadges types={record?.tool_types} />} /></div>
           <div className="col-span-2"><FieldRow label="Plugin Formats" value={<TypeBadges types={record?.plugin_formats} />} /></div>

@@ -37,6 +37,7 @@ app/controlroom_frontend/
 │   ├── RecordHistoryView.tsx # Audit history view: operation badges, diff table, undo
 │   ├── FieldRow.tsx         # Label + value display row (handles empty states)
 │   ├── TypeBadges.tsx       # Renders [{id, name}] arrays as badge pills
+│   ├── ModelLinks.tsx       # Renders ModelRef[] as clickable chips; click fetches and opens ModelModal inline
 │   ├── ParentLinks.tsx      # Renders parent_ref arrays
 │   ├── layout/             # LayoutShell, Sidebar, TopBar
 │   ├── tables/             # Per-table modal and column definitions
@@ -101,12 +102,26 @@ Renders the full audit trail for a single record. Fetches from `/{resource}/{id}
 Each modal composes `RecordModal` and owns:
 - Form state (`useState` initialized from the record or empty defaults)
 - `saveMutation` and `deleteMutation` via `useMutation` (TanStack Query)
-- View-mode field layout using `FieldRow`, `TypeBadges`, `ParentLinks`
-- Edit-mode form with `Input`, `Textarea`, and `MultiSelect` fields
+- View-mode field layout using `FieldRow`, `TypeBadges`, `ModelLinks`, `ParentLinks`
+- Edit-mode form with `Input`, `Textarea`, `BrandSelect`, `ModelSelect`, and `MultiSelect` fields
+
+`EffectModal`, `InstrumentModal`, and `LibraryModal` include a **Models** field: `ModelSelect` in edit mode (stores `model_ids: string[]` in form state, always sent to the API even when empty to allow clearing) and `ModelLinks` in view mode.
+
+### `ModelLinks`
+
+Renders a `ModelRef[]` array as clickable badge chips. Clicking a chip fetches the full model record via `api.get('/models', id)` and opens a `ModelModal` as an overlay — no page navigation occurs. Closing the modal returns the user to their current context. If the fetch fails the click is silently ignored.
+
+Props: `models: ModelRef[] | null | undefined`. Renders a `—` dash when the array is empty or absent.
 
 ### `MultiSelect`
 
 A dropdown component for selecting multiple values from a lookup table. Fetches its options from `/config/{slug}` at render time. Used for all type/tag/format fields in edit mode.
+
+### `ModelSelect`
+
+A multi-value typeahead component for associating hardware models with an effect, instrument, or library. Debounces search input (300 ms) and calls `GET /models?filter_name=<query>` via `api.listPaged`. Results display with a checkbox indicator for already-selected items. Clicking a result toggles it; selected models appear as removable badges below the input. No inline creation — models must be created via the Models table first.
+
+Props: `value: string[]` (selected `model_id`s), `selectedModels: ModelRef[]` (display names), `onChange: (ids, models) => void`.
 
 ### Search page (`app/search/page.tsx`)
 
@@ -197,6 +212,6 @@ End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. T
 
 E2E spec files:
 - `crud.spec.ts` — row click opens and closes modal for all 18 tables
-- `brands.spec.ts` — brand typeahead shows Create option for unknown brand names
+- `brands.spec.ts` — brand typeahead returns results in create modal; shows Create option for unknown brand names
 - `bulk-edit.spec.ts` — bulk selection and apply flow
 - `search.spec.ts` — global search: TopBar query navigation, results page, tab filtering, deep-link to record modal
