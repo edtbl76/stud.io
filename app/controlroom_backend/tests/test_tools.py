@@ -12,14 +12,15 @@ SEEDED_CATEGORIES = CATEGORIES
 async def test_list_tools_returns_results(client, category):
     response = await client.get(f"/tools/{category}")
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
+    data = response.json()
+    assert "items" in data and "total" in data
 
 
 @pytest.mark.parametrize("category", SEEDED_CATEGORIES)
 async def test_list_tools_fields(client, category):
     response = await client.get(f"/tools/{category}")
     assert response.status_code == 200
-    items = response.json()
+    items = response.json()["items"]
     if not items:
         return
     item = items[0]
@@ -28,9 +29,10 @@ async def test_list_tools_fields(client, category):
 
 
 async def test_list_tools_search_no_match(client):
-    response = await client.get("/tools/workflow?q=zzznomatchzzz")
+    response = await client.get("/tools/workflow?filter_name=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
 
 
 async def test_list_tools_unknown_category(client):

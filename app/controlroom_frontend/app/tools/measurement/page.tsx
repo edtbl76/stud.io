@@ -14,6 +14,7 @@ export default function MeasurementToolsPage() {
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}
       sortFields={toolSortFields}
+      paginated
       getRowId={(row) => row.tool_id}
       renderModal={(record, onClose, onMutate) => (
         <ToolModal record={record} category="measurement" onClose={onClose} onMutate={onMutate} />

@@ -13,13 +13,30 @@ from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
+from routers._crud_ops import build_filter_clause, parse_filters
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
+from schemas.common import PagedResponse, ListParams
 from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
 
 _NOT_FOUND = "Tool not found"
+_SORTABLE = frozenset({"full_tool_name", "brand_name", "version", "created_at", "updated_at"})
+_DEFAULT_SORT = "full_tool_name"
+_FILTERABLE = {
+    "name":    "tool_name ILIKE {val}",
+    "brand":   "brand_name ILIKE {val}",
+    "version": "version ILIKE {val}",
+    "types": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(tool_type_ids, ARRAY[]::UUID[])) uid"
+        " JOIN tool_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+    "formats": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(plugin_format_ids, ARRAY[]::UUID[])) uid"
+        " JOIN plugin_formats t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -76,15 +93,28 @@ def _cfg(category: str) -> dict:
 # Routes
 # ---------------------------------------------------------------------------
 
-@router.get("/{category}", response_model=list[ToolOut])
-async def list_tools(category: str, q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
+# noinspection SqlInjection
+@router.get("/{category}", response_model=PagedResponse[ToolOut])
+async def list_tools(
+    category: str,
+    params: Annotated[ListParams, Depends()],
+    conn: Annotated[Connection, Depends(get_conn)],
+    filters: Annotated[dict[str, str], Depends(parse_filters)],
+):
     cfg = _cfg(category)
-    sel = f"SELECT * FROM {cfg['view']}"
-    if q:
-        rows = await conn.fetch(sel + " WHERE tool_name ILIKE $1 OR brand_name ILIKE $1", f"%{q}%")
-    else:
-        rows = await conn.fetch(sel)
-    return [_row_to_out(r, cfg["id_col"]) for r in rows]
+    col = params.sort_by if params.sort_by in _SORTABLE else _DEFAULT_SORT
+    direction = "DESC" if params.sort_dir.lower() == "desc" else "ASC"
+    order = f"ORDER BY {col} {direction}"
+    where, bind_vals = build_filter_clause(_FILTERABLE, filters)
+    n = len(bind_vals)
+    total = await conn.fetchval(
+        f"SELECT COUNT(*) FROM {cfg['view']} {where}", *bind_vals
+    )
+    rows = await conn.fetch(
+        f"SELECT * FROM {cfg['view']} {where} {order} LIMIT ${n + 1} OFFSET ${n + 2}",
+        *bind_vals, params.limit, params.offset,
+    )
+    return PagedResponse(items=[_row_to_out(r, cfg["id_col"]) for r in rows], total=total)
 
 
 @router.get("/{category}/{tool_id}", response_model=ToolOut, responses={404: {"description": "Not found"}})

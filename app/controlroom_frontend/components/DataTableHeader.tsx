@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { Table, flexRender } from '@tanstack/react-table'
-import { GripVertical } from 'lucide-react'
+import { GripVertical, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface DataTableHeaderProps<TData> {
@@ -10,6 +10,9 @@ interface DataTableHeaderProps<TData> {
   readonly draggingId: string | null
   readonly onDragStart: (e: React.DragEvent, colId: string) => void
   readonly onDrop: (e: React.DragEvent, targetId: string) => void
+  readonly manualFiltering?: boolean
+  readonly externalFilters?: Record<string, string>
+  readonly onExternalFiltersChange?: (filters: Record<string, string>) => void
 }
 
 export function DataTableHeader<TData>({
@@ -17,7 +20,26 @@ export function DataTableHeader<TData>({
   draggingId,
   onDragStart,
   onDrop,
+  manualFiltering,
+  externalFilters,
+  onExternalFiltersChange,
 }: DataTableHeaderProps<TData>) {
+  function handleExternalChange(colId: string, value: string) {
+    const next = { ...externalFilters }
+    if (value) {
+      next[colId] = value
+    } else {
+      delete next[colId]
+    }
+    onExternalFiltersChange?.(next)
+  }
+
+  function handleExternalClear(colId: string) {
+    const next = { ...externalFilters }
+    delete next[colId]
+    onExternalFiltersChange?.(next)
+  }
+
   return (
     <thead className="sticky top-0 z-10" style={{ backgroundColor: 'hsl(var(--card))' }}>
       {table.getHeaderGroups().map((headerGroup) => (
@@ -74,22 +96,57 @@ export function DataTableHeader<TData>({
             ))}
           </tr>
           <tr className="border-b border-border/60" style={{ backgroundColor: 'hsl(var(--muted) / 0.1)' }}>
-            {headerGroup.headers.map((header) => (
-              <th
-                key={`filter-${header.id}`}
-                className="px-3 py-1.5"
-                style={{ width: header.getSize() }}
-              >
-                {header.column.getCanFilter() ? (
-                  <input
-                    value={(header.column.getFilterValue() as string) ?? ''}
-                    onChange={(e) => header.column.setFilterValue(e.target.value || undefined)}
-                    placeholder="Filter…"
-                    className="w-full bg-transparent border border-border/60 rounded px-2 py-0.5 text-xs text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/60 transition-colors"
-                  />
-                ) : null}
-              </th>
-            ))}
+            {headerGroup.headers.map((header) => {
+              if (manualFiltering) {
+                const colId = header.column.id
+                const value = externalFilters?.[colId] ?? ''
+                const canFilter = header.column.getCanFilter()
+                return (
+                  <th
+                    key={`filter-${header.id}`}
+                    className="px-3 py-1.5"
+                    style={{ width: header.getSize() }}
+                  >
+                    {canFilter ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          value={value}
+                          onChange={(e) => handleExternalChange(colId, e.target.value)}
+                          placeholder="Filter…"
+                          className="flex-1 min-w-0 bg-transparent border border-border/60 rounded px-2 py-0.5 text-xs text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/60 transition-colors"
+                        />
+                        {value && (
+                          <button
+                            type="button"
+                            aria-label="Clear filter"
+                            onClick={() => handleExternalClear(colId)}
+                            className="flex-shrink-0 text-muted-foreground/50 hover:text-muted-foreground bg-transparent border-0 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    ) : null}
+                  </th>
+                )
+              }
+              return (
+                <th
+                  key={`filter-${header.id}`}
+                  className="px-3 py-1.5"
+                  style={{ width: header.getSize() }}
+                >
+                  {header.column.getCanFilter() ? (
+                    <input
+                      value={(header.column.getFilterValue() as string) ?? ''}
+                      onChange={(e) => header.column.setFilterValue(e.target.value || undefined)}
+                      placeholder="Filter…"
+                      className="w-full bg-transparent border border-border/60 rounded px-2 py-0.5 text-xs text-foreground placeholder:text-muted-foreground/30 focus:outline-none focus:border-primary/60 transition-colors"
+                    />
+                  ) : null}
+                </th>
+              )
+            })}
           </tr>
         </React.Fragment>
       ))}

@@ -14,6 +14,7 @@ export default function WorkstationsPage() {
       columns={workstationColumns}
       bulkEditFields={workstationBulkEditFields}
       sortFields={workstationSortFields}
+      paginated
       getRowId={(row) => row.workstation_id}
       renderModal={(record, onClose, onMutate) => (
         <WorkstationModal record={record} onClose={onClose} onMutate={onMutate} />

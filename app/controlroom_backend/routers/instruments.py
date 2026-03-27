@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
-from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs
+from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs, parse_filters
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.instruments import InstrumentCreate, InstrumentUpdate, InstrumentOut
 from schemas.common import PagedResponse, ListParams
@@ -18,6 +18,23 @@ _SELECT_ONE = "SELECT * FROM instruments WHERE instrument_id = $1"
 _NOT_FOUND = "Instrument not found"
 _SORTABLE = frozenset({"instrument_name", "brand_name", "version", "updated_at", "created_at"})
 _DEFAULT_SORT = "instrument_name"
+_FILTERABLE = {
+    "name":    "instrument_name ILIKE {val}",
+    "brand":   "brand_name ILIKE {val}",
+    "version": "version ILIKE {val}",
+    "types": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(instrument_type_ids, ARRAY[]::UUID[])) uid"
+        " JOIN instrument_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+    "models": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"
+        " JOIN models m ON m.model_id = uid WHERE m.model_name ILIKE {val})"
+    ),
+    "tags": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"
+        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+}
 
 
 async def _check_instrument_refs(conn: Connection, entity_id: UUID) -> None:
@@ -33,12 +50,17 @@ _CONFIG = EntityConfig(
     sortable=_SORTABLE,
     default_sort=_DEFAULT_SORT,
     ref_check=_check_instrument_refs,
+    filterable=_FILTERABLE,
 )
 
 
 @router.get("", response_model=PagedResponse[InstrumentOut])
-async def list_instruments(params: Annotated[ListParams, Depends()], conn: Annotated[Connection, Depends(get_conn)]):
-    return await list_entities(conn, _CONFIG, params, InstrumentOut)
+async def list_instruments(
+    params: Annotated[ListParams, Depends()],
+    conn: Annotated[Connection, Depends(get_conn)],
+    filters: Annotated[dict[str, str], Depends(parse_filters)],
+):
+    return await list_entities(conn, _CONFIG, params, InstrumentOut, filters)
 
 
 @router.get("/{instrument_id}", response_model=InstrumentOut, responses={404: {"description": "Not found"}})

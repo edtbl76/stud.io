@@ -14,6 +14,7 @@ export default function ReferenceToolsPage() {
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}
       sortFields={toolSortFields}
+      paginated
       getRowId={(row) => row.tool_id}
       renderModal={(record, onClose, onMutate) => (
         <ToolModal record={record} category="reference" onClose={onClose} onMutate={onMutate} />

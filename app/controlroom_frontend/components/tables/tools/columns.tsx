@@ -5,6 +5,7 @@ import { Tool } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
+import '@/lib/columnMeta'
 
 export const toolSortFields: SortField[] = [
   { key: 'full_tool_name', label: 'Name' },
@@ -24,6 +25,7 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     accessorKey: 'full_tool_name',
     header: 'Name',
     size: 260,
+    meta: { filterParam: 'name' },
     cell: ({ getValue }) => (
       <span className="font-medium text-foreground">{getValue() as string}</span>
     ),
@@ -32,6 +34,7 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     accessorKey: 'version',
     header: 'Version',
     size: 100,
+    meta: { filterParam: 'version' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -47,6 +50,7 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     header: 'Types',
     size: 200,
     enableSorting: false,
+    meta: { filterParam: 'types' },
     cell: ({ row }) => <TypeBadges types={row.original.tool_types} />,
   },
   {
@@ -55,6 +59,7 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     header: 'Formats',
     size: 200,
     enableSorting: false,
+    meta: { filterParam: 'formats' },
     cell: ({ row }) => <TypeBadges types={row.original.plugin_formats} />,
   },
 ]

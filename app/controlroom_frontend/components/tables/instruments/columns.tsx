@@ -2,6 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import { Instrument } from '@/lib/types'
+import '@/lib/columnMeta'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
@@ -25,6 +26,7 @@ export const instrumentColumns: ColumnDef<Instrument, unknown>[] = [
     accessorKey: 'full_instrument_name',
     header: 'Name',
     size: 300,
+    meta: { filterParam: 'name' },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
@@ -36,12 +38,14 @@ export const instrumentColumns: ColumnDef<Instrument, unknown>[] = [
     header: 'Types',
     size: 220,
     enableSorting: false,
+    meta: { filterParam: 'types' },
     cell: ({ row }) => <TypeBadges types={row.original.instrument_types} />,
   },
   {
     accessorKey: 'version',
     header: 'Version',
     size: 100,
+    meta: { filterParam: 'version' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -57,6 +61,7 @@ export const instrumentColumns: ColumnDef<Instrument, unknown>[] = [
     header: 'Models',
     size: 200,
     enableSorting: false,
+    meta: { filterParam: 'models' },
     cell: ({ row }) => <TypeBadges types={row.original.models} />,
   },
   {
@@ -65,6 +70,7 @@ export const instrumentColumns: ColumnDef<Instrument, unknown>[] = [
     header: 'Tags',
     size: 220,
     enableSorting: false,
+    meta: { filterParam: 'tags' },
     cell: ({ row }) => <TypeBadges types={row.original.tags} limit={3} />,
   },
 ]

@@ -1,17 +1,17 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { ColumnDef, RowSelectionState, SortingState } from '@tanstack/react-table'
-import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
 import { DataTable } from '@/components/DataTable'
 import { BulkEditBar } from '@/components/BulkEditBar'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
+import { useTableFilters } from '@/lib/useTableFilters'
+import '@/lib/columnMeta'
 
 // Checkbox column defined at module level with no external dependencies.
 // Uses TanStack Table's native row selection API (table/row context) so the
@@ -23,6 +23,7 @@ function makeCheckboxColumn<T>(): ColumnDef<T, unknown> {
     size: 40,
     enableSorting: false,
     enableResizing: false,
+    enableColumnFilter: false,
     header: ({ table }) => {
       const allSelected = table.getIsAllRowsSelected()
       const someSelected = table.getIsSomeRowsSelected()
@@ -72,6 +73,9 @@ interface PagedTableProps {
   manualSorting?: true
   externalSorting?: SortingState
   onExternalSortChange?: (s: SortingState) => void
+  manualFiltering?: true
+  externalFilters?: Record<string, string>
+  onExternalFiltersChange?: (f: Record<string, string>) => void
 }
 
 interface UseTableDataResult<T> {
@@ -79,29 +83,50 @@ interface UseTableDataResult<T> {
   isLoading: boolean
   error: Error | null
   recordCountLabel: string
-  search: string
-  setSearch: (s: string) => void
   pagedTableProps: PagedTableProps
 }
 
-function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean, defaultSort?: string): UseTableDataResult<T> {
-  const [search, setSearch] = React.useState('')
-  const [debouncedSearch, setDebouncedSearch] = React.useState('')
+function resolveFilterParams<T>(
+  columns: ColumnDef<T, unknown>[],
+  inputFilters: Record<string, string>,
+): Record<string, string> {
+  const paramMap = new Map<string, string>()
+  for (const col of columns) {
+    const id = col.id ?? (col as { accessorKey?: string }).accessorKey
+    if (!id) continue
+    const filterParam = col.meta?.filterParam ?? id
+    paramMap.set(id, filterParam)
+  }
+  const resolved: Record<string, string> = {}
+  for (const [colId, val] of Object.entries(inputFilters)) {
+    const param = paramMap.get(colId) ?? colId
+    resolved[param] = val
+  }
+  return resolved
+}
+
+function useTableData<T>(
+  endpoint: string,
+  queryKey: string,
+  paginated: boolean,
+  columns: ColumnDef<T, unknown>[],
+  defaultSort?: string,
+): UseTableDataResult<T> {
   const [externalSorting, setExternalSorting] = React.useState<SortingState>(
     defaultSort ? [{ id: defaultSort, desc: false }] : [],
   )
-
-  React.useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(timer)
-  }, [search])
+  const { inputFilters, activeFilters, setInputFilters } = useTableFilters()
 
   const sortBy = externalSorting[0]?.id
   const sortDir = externalSorting[0]?.desc ? 'desc' : 'asc'
+  const resolvedFilters = React.useMemo(
+    () => resolveFilterParams(columns, activeFilters),
+    [columns, activeFilters],
+  )
 
   const { data: listData = [], isLoading: isListLoading, error: listError } = useQuery({
-    queryKey: [queryKey, debouncedSearch],
-    queryFn: () => api.list<T>(endpoint, debouncedSearch || undefined),
+    queryKey: [queryKey],
+    queryFn: () => api.list<T>(endpoint),
     enabled: !paginated,
   })
 
@@ -113,14 +138,14 @@ function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean,
     isLoading: isInfiniteLoading,
     error: infiniteError,
   } = useInfiniteQuery({
-    queryKey: [queryKey, debouncedSearch, sortBy, sortDir],
+    queryKey: [queryKey, sortBy, sortDir, resolvedFilters],
     queryFn: ({ pageParam }) =>
       api.listPaged<T>(endpoint, {
-        q: debouncedSearch || undefined,
         limit: 100,
         offset: pageParam,
         sort_by: sortBy,
         sort_dir: sortDir,
+        filters: Object.keys(resolvedFilters).length > 0 ? resolvedFilters : undefined,
       }),
     initialPageParam: 0,
     getNextPageParam,
@@ -145,10 +170,20 @@ function useTableData<T>(endpoint: string, queryKey: string, paginated: boolean,
       : `${totalRecords} record${plural}`
 
   const pagedTableProps: PagedTableProps = paginated
-    ? { hasNextPage, fetchNextPage: () => void fetchNextPage?.(), isFetchingNextPage, manualSorting: true, externalSorting, onExternalSortChange: setExternalSorting }
+    ? {
+        hasNextPage,
+        fetchNextPage: () => void fetchNextPage?.(),
+        isFetchingNextPage,
+        manualSorting: true,
+        externalSorting,
+        onExternalSortChange: setExternalSorting,
+        manualFiltering: true,
+        externalFilters: inputFilters,
+        onExternalFiltersChange: setInputFilters,
+      }
     : {}
 
-  return { data, isLoading, error, recordCountLabel, search, setSearch, pagedTableProps }
+  return { data, isLoading, error, recordCountLabel, pagedTableProps }
 }
 
 interface UseCheckboxSelectionResult<T> {
@@ -181,6 +216,31 @@ function useCheckboxSelection<T>(
   const effectiveColumns = enabled ? [checkboxColumn, ...columns] : columns
 
   return { rowSelection, setRowSelection, selectedRows, effectiveColumns }
+}
+
+// ── OpenIdHandler ──
+// Null-rendering component that reads the ?open=<id> search param and
+// calls onOpen(id) once, then clears the param from the URL. Kept
+// separate so useSearchParams is inside a <Suspense> boundary.
+
+function OpenIdHandler({
+  endpoint,
+  onOpen,
+}: Readonly<{ endpoint: string; onOpen: (id: string, cleanup: () => void) => void }>) {
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const router = useRouter()
+  const openId = searchParams.get('open')
+  // Guard against React Strict Mode double-invocation: track which id was already handled.
+  const processedRef = React.useRef<string | null>(null)
+
+  React.useEffect(() => {
+    if (!openId || processedRef.current === openId) return
+    processedRef.current = openId
+    onOpen(openId, () => router.replace(pathname, { scroll: false }))
+  }, [openId, onOpen, router, pathname])
+
+  return null
 }
 
 // ── TablePage ──
@@ -218,39 +278,36 @@ export function TablePage<T>({
   const showBulkEdit = isAdmin && !!bulkEditFields && bulkEditFields.length > 0
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
 
-  const { data, isLoading, error, recordCountLabel, search, setSearch, pagedTableProps } =
-    useTableData<T>(endpoint, queryKey, paginated, sortFields?.[0]?.key)
+  const { data, isLoading, error, recordCountLabel, pagedTableProps } =
+    useTableData<T>(endpoint, queryKey, paginated, columns, sortFields?.[0]?.key)
 
   const { rowSelection, setRowSelection, selectedRows, effectiveColumns } =
     useCheckboxSelection(data, getRowId, columns, showBulkEdit)
 
+  const handleOpenById = React.useCallback((id: string, cleanup: () => void) => {
+    void api.get<T>(endpoint, id).then((record) => {
+      setSelectedRecord(record)
+      // Defer URL cleanup so React commits the state update before router.replace
+      // triggers any re-render that could unmount the modal.
+      setTimeout(cleanup, 0)
+    }).catch(() => {})
+  }, [endpoint, setSelectedRecord])
+
   function handleMutate() { void queryClient.invalidateQueries({ queryKey: [queryKey] }) }
   function handleRowClick(row: T) { setSelectedRecord(row) }
   function handleClose() { setSelectedRecord(undefined) }
-  function handleAdd() { setSelectedRecord(null) }
   function handleBulkApply() { setRowSelection({}); handleMutate() }
 
   return (
     <div className="flex flex-col h-full">
+      <React.Suspense fallback={null}>
+        <OpenIdHandler endpoint={endpoint} onOpen={handleOpenById} />
+      </React.Suspense>
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div>
           <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           {!isLoading && (
             <p className="text-xs text-muted-foreground mt-0.5">{recordCountLabel}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search..."
-            className="w-56 h-8 text-xs"
-          />
-          {isAdmin && (
-            <Button size="sm" onClick={handleAdd} className="gap-1.5">
-              <Plus className="h-3.5 w-3.5" />
-              Add
-            </Button>
           )}
         </div>
       </div>
@@ -282,7 +339,7 @@ export function TablePage<T>({
           onRowSelectionChange={showBulkEdit ? setRowSelection : undefined}
           getRowId={getRowId}
           sortFields={sortFields}
-          {...pagedTableProps}
+            {...pagedTableProps}
         />
       </div>
 

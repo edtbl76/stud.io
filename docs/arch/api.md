@@ -23,7 +23,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/workstations` | `routers/workstations.py` | CRUD for workstations |
 | `/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
 | `/config/{slug}` | `routers/config.py` | CRUD for all lookup tables (effect-types, tag-types, etc.) |
-| `/search` | `routers/search.py` | Cross-table full-text search |
+| `/search` | `routers/search.py` | Cross-table full-text search (PostgreSQL FTS) |
 | `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/users` | `routers/users.py` | User management (admin only) |
 
@@ -69,13 +69,27 @@ Role is embedded in the JWT payload. The `require_admin` dependency in `routers/
 
 ## Common patterns
 
-### List endpoint
+### List endpoint (paginated)
+
+All content table list endpoints use server-side pagination with sorting and optional per-column filtering:
 
 ```
-GET /effects?search=reverb
+GET /effects?limit=100&offset=0&sort_by=effect_name&sort_dir=asc&filter_name=reverb&filter_brand=moog
 ```
 
-Returns all records from the `effects_view` semantic view. The optional `search` parameter filters by `full_effect_name` (case-insensitive `ILIKE`).
+Query parameters:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `limit` | 100 | Number of records to return (max 100) |
+| `offset` | 0 | Number of records to skip |
+| `sort_by` | table-specific | Column to sort by (must be in the router's `sortable` set) |
+| `sort_dir` | `asc` | `asc` or `desc` |
+| `filter_<key>` | — | Per-column filter; key is the `filterParam` suffix defined per router. Values use `ILIKE %value%`. Wrap in double quotes for exact match (`"value"` → `= value`). Multiple `filter_*` params are AND-combined. |
+
+Response model: `{ items: [...], total: <int> }` (`PagedResponse`).
+
+Each router defines a `filterable` mapping of key → SQL expression template. Unknown filter keys are silently ignored. Filter keys must match `[a-z_]+`.
 
 ### CRUD endpoints
 
@@ -101,6 +115,26 @@ GET /config/{slug}/{id}/history       # config router (resolves table from slug)
 Accessible by any authenticated user. Returns all `audit_log` entries for the given record sorted `performed_at DESC`, with `old_data` and `new_data` fully included (unlike the Change Review list endpoint). No pagination — a single record's history is bounded.
 
 Response model: `list[AuditEntryWithData]` (defined in `routers/_helpers.py`).
+
+### Search endpoint
+
+```
+GET /search?q=<query>[&notes=false][&limit=100]
+```
+
+Cross-table full-text search using PostgreSQL `to_tsvector` / `websearch_to_tsquery`. Searches across all 11 content tables (brands, models, effects, instruments, libraries, workstations, and all five tool tables).
+
+Query parameters:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `q` | required | Search query — minimum 2 characters; returns 422 if shorter |
+| `notes` | `false` | When `true`, extends search to description, notes, and reference fields |
+| `limit` | 100 | Max results (capped at 200) |
+
+Response model: `{ results: [{ table, id, name, brand_name, rank }], total }`.
+
+Results are ranked by `ts_rank` descending. `total` reflects the full match count before the limit is applied. `brand_name` is `null` for tables that have no brand relationship (brands itself).
 
 ### Dynamic router: tools
 
