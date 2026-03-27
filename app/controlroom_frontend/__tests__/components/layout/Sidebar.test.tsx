@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { Sidebar } from '@/components/layout/Sidebar'
 
 const mockLogout = jest.fn()
+const mockPush = jest.fn()
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -10,6 +11,7 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
+  useRouter: () => ({ push: mockPush }),
 }))
 
 let mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
@@ -20,6 +22,7 @@ describe('Sidebar', () => {
     jest.clearAllMocks()
     mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
     mockPathname = '/'
+    mockPush.mockClear()
   })
 
   it('renders the app name', () => {
@@ -93,6 +96,27 @@ describe('Sidebar', () => {
     render(<Sidebar />)
     fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
     expect(screen.getByRole('link', { name: /^change review$/i })).toBeInTheDocument()
+  })
+
+  it('renders the global search input', () => {
+    render(<Sidebar />)
+    expect(screen.getByPlaceholderText('Global search...')).toBeInTheDocument()
+  })
+
+  it('navigates to /search when a query of 2+ chars is submitted', () => {
+    render(<Sidebar />)
+    const input = screen.getByPlaceholderText('Global search...')
+    fireEvent.change(input, { target: { value: 'reverb' } })
+    fireEvent.submit(input.closest('form')!)
+    expect(mockPush).toHaveBeenCalledWith('/search?q=reverb')
+  })
+
+  it('does not navigate when query is shorter than 2 characters', () => {
+    render(<Sidebar />)
+    const input = screen.getByPlaceholderText('Global search...')
+    fireEvent.change(input, { target: { value: 'x' } })
+    fireEvent.submit(input.closest('form')!)
+    expect(mockPush).not.toHaveBeenCalled()
   })
 
   it('renders ADMIN group items in alphabetical order', () => {

@@ -2,6 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import { Effect } from '@/lib/types'
+import '@/lib/columnMeta'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
@@ -26,6 +27,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     accessorKey: 'full_effect_name',
     header: 'Name',
     size: 300,
+    meta: { filterParam: 'name' },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
@@ -37,12 +39,14 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     header: 'Types',
     size: 220,
     enableSorting: false,
+    meta: { filterParam: 'types' },
     cell: ({ row }) => <TypeBadges types={row.original.effect_types} />,
   },
   {
     accessorKey: 'collection',
     header: 'Collection',
     size: 180,
+    meta: { filterParam: 'collection' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -56,6 +60,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     accessorKey: 'version',
     header: 'Version',
     size: 100,
+    meta: { filterParam: 'version' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -71,6 +76,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     header: 'Models',
     size: 200,
     enableSorting: false,
+    meta: { filterParam: 'models' },
     cell: ({ row }) => <TypeBadges types={row.original.models} />,
   },
   {
@@ -79,6 +85,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     header: 'Tags',
     size: 220,
     enableSorting: false,
+    meta: { filterParam: 'tags' },
     cell: ({ row }) => <TypeBadges types={row.original.tags} limit={3} />,
   },
 ]

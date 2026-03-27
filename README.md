@@ -4,6 +4,7 @@ A local web application for managing studio gear, plugins, instruments, and samp
 
 ---
 
+
 ## Quick start
 
 ```bash

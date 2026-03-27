@@ -21,6 +21,29 @@ import type { SortField } from '@/lib/sort'
 
 const ROW_HEIGHT = 44
 
+function makeSortingChangeHandler(
+  externalSorting: SortingState | undefined,
+  onExternalSortChange: ((s: SortingState) => void) | undefined,
+): (updater: SortingState | ((prev: SortingState) => SortingState)) => void {
+  return (updater) => {
+    const next = typeof updater === 'function' ? updater(externalSorting ?? []) : updater
+    onExternalSortChange?.(next)
+  }
+}
+
+function compareValues(aVal: unknown, bVal: unknown, desc: boolean): number {
+  if (aVal == null && bVal == null) return 0
+  if (aVal == null) return 1
+  if (bVal == null) return -1
+  if (typeof aVal === 'string' && typeof bVal === 'string') {
+    const cmp = aVal.localeCompare(bVal, undefined, { sensitivity: 'base' })
+    return desc ? -cmp : cmp
+  }
+  if (aVal < bVal) return desc ? 1 : -1
+  if (aVal > bVal) return desc ? -1 : 1
+  return 0
+}
+
 interface DataTableProps<TData, TValue> {
   readonly columns: ColumnDef<TData, TValue>[]
   readonly data: TData[]
@@ -38,6 +61,10 @@ interface DataTableProps<TData, TValue> {
   readonly externalSorting?: SortingState
   readonly onExternalSortChange?: (sorting: SortingState) => void
   readonly sortFields?: SortField[]
+  // Server-side column filters (paginated tables)
+  readonly manualFiltering?: boolean
+  readonly externalFilters?: Record<string, string>
+  readonly onExternalFiltersChange?: (filters: Record<string, string>) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -55,6 +82,9 @@ export function DataTable<TData, TValue>({
   externalSorting,
   onExternalSortChange,
   sortFields,
+  manualFiltering = false,
+  externalFilters,
+  onExternalFiltersChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>(
     !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
@@ -63,20 +93,9 @@ export function DataTable<TData, TValue>({
   const sortedData = React.useMemo(() => {
     if (manualSorting || sorting.length === 0) return data
     const { id, desc } = sorting[0]
-    return [...data].sort((a, b) => {
-      const aVal = (a as Record<string, unknown>)[id]
-      const bVal = (b as Record<string, unknown>)[id]
-      if (aVal == null && bVal == null) return 0
-      if (aVal == null) return 1
-      if (bVal == null) return -1
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        const cmp = aVal.localeCompare(bVal, undefined, { sensitivity: 'base' })
-        return desc ? -cmp : cmp
-      }
-      if (aVal < bVal) return desc ? 1 : -1
-      if (aVal > bVal) return desc ? -1 : 1
-      return 0
-    })
+    return [...data].sort((a, b) =>
+      compareValues((a as Record<string, unknown>)[id], (b as Record<string, unknown>)[id], desc)
+    )
   }, [data, sorting, manualSorting])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -100,10 +119,7 @@ export function DataTable<TData, TValue>({
     enableSorting: false,
     manualSorting,
     onSortingChange: manualSorting
-      ? (updater) => {
-          const next = typeof updater === 'function' ? updater(externalSorting ?? []) : updater
-          onExternalSortChange?.(next)
-        }
+      ? makeSortingChangeHandler(externalSorting, onExternalSortChange)
       : setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
@@ -118,11 +134,8 @@ export function DataTable<TData, TValue>({
 
   function handleSortChange(id: string, desc: boolean) {
     const next: SortingState = [{ id, desc }]
-    if (manualSorting) {
-      onExternalSortChange?.(next)
-    } else {
-      setSorting(next)
-    }
+    onExternalSortChange?.(next)
+    setSorting(next)
   }
 
   const rows = table.getRowModel().rows
@@ -165,12 +178,21 @@ export function DataTable<TData, TValue>({
     setDraggingId(null)
   }
 
+  const activeFilterCount = manualFiltering
+    ? Object.keys(externalFilters ?? {}).length
+    : columnFilters.length
+
+  function handleClearFilters() {
+    onExternalFiltersChange?.({})
+    setColumnFilters([])
+  }
+
   return (
     <div className="flex flex-col h-full">
       <DataTableToolbar
         table={table}
-        activeFilterCount={columnFilters.length}
-        onClearFilters={() => setColumnFilters([])}
+        activeFilterCount={activeFilterCount}
+        onClearFilters={handleClearFilters}
         sortFields={sortFields}
         currentSort={currentSortEntry}
         onSortChange={handleSortChange}
@@ -185,6 +207,9 @@ export function DataTable<TData, TValue>({
             draggingId={draggingId}
             onDragStart={handleDragStart}
             onDrop={handleDrop}
+            manualFiltering={manualFiltering}
+            externalFilters={externalFilters}
+            onExternalFiltersChange={onExternalFiltersChange}
           />
           <DataTableBody
             table={table}

@@ -83,7 +83,7 @@ test('bulk edit: field picker shows correct fields for brands', async ({ page })
 test('bulk edit: selecting a text field shows a text input', async ({ page }) => {
   await page.goto('/session/effects')
   // Search to reduce the dataset before selecting
-  await page.getByPlaceholder('Search...').fill('Absynth')
+  await page.getByPlaceholder('Filter…').first().fill('Absynth')
   await waitForRows(page)
   // keepPreviousData shows old count immediately — wait for the Absynth fetch to settle
   await page.waitForLoadState('networkidle')
@@ -98,7 +98,7 @@ test('bulk edit: selecting a text field shows a text input', async ({ page }) =>
 
 test('bulk edit: Apply button is disabled until a value is entered', async ({ page }) => {
   await page.goto('/session/effects')
-  await page.getByPlaceholder('Search...').fill('Absynth')
+  await page.getByPlaceholder('Filter…').first().fill('Absynth')
   await waitForRows(page)
   // keepPreviousData shows old count immediately — wait for the Absynth fetch to settle
   await page.waitForLoadState('networkidle')

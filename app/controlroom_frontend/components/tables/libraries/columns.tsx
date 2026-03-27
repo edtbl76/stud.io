@@ -2,6 +2,7 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import { Library } from '@/lib/types'
+import '@/lib/columnMeta'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
@@ -21,6 +22,7 @@ export const libraryColumns: ColumnDef<Library, unknown>[] = [
     accessorKey: 'full_library_name',
     header: 'Name',
     size: 320,
+    meta: { filterParam: 'name' },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
@@ -30,6 +32,7 @@ export const libraryColumns: ColumnDef<Library, unknown>[] = [
     accessorKey: 'brand_name',
     header: 'Brand',
     size: 180,
+    meta: { filterParam: 'brand' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -45,6 +48,7 @@ export const libraryColumns: ColumnDef<Library, unknown>[] = [
     header: 'Models',
     size: 200,
     enableSorting: false,
+    meta: { filterParam: 'models' },
     cell: ({ row }) => <TypeBadges types={row.original.models} />,
   },
   {
@@ -53,6 +57,7 @@ export const libraryColumns: ColumnDef<Library, unknown>[] = [
     header: 'Tags',
     size: 220,
     enableSorting: false,
+    meta: { filterParam: 'tags' },
     cell: ({ row }) => <TypeBadges types={row.original.tags} limit={3} />,
   },
 ]

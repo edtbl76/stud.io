@@ -12,6 +12,7 @@ from routers._crud_ops import (
     get_entity,
     get_history,
     delete_entity,
+    parse_filters,
 )
 from routers._helpers import _serializable, log_audit, AuditEntryWithData
 from routers.auth import require_admin, get_current_user, UserOut
@@ -25,6 +26,14 @@ _SELECT_ONE = "SELECT * FROM models WHERE model_id = $1"
 _NOT_FOUND = "Model not found"
 _SORTABLE = frozenset({"model_name", "brand_name", "updated_at", "created_at"})
 _DEFAULT_SORT = "model_name"
+_FILTERABLE = {
+    "name":  "model_name ILIKE {val}",
+    "brand": "brand_name ILIKE {val}",
+    "types": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(model_type_ids, ARRAY[]::UUID[])) uid"
+        " JOIN model_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+}
 
 _REF_CHECKS = [
     ("effects",           "model_ids"),
@@ -51,13 +60,18 @@ _CONFIG = EntityConfig(
     search_where="model_name ILIKE $1 OR brand_name ILIKE $1",
     sortable=_SORTABLE,
     default_sort=_DEFAULT_SORT,
-    ref_check=_check_model_refs
+    ref_check=_check_model_refs,
+    filterable=_FILTERABLE,
 )
 
 # noinspection SqlInjection
 @router.get("", response_model=PagedResponse[ModelOut])
-async def list_models(params: Annotated[ListParams, Depends()], conn: Annotated[Connection, Depends(get_conn)]):
-    return await list_entities(conn, _CONFIG, params, ModelOut)
+async def list_models(
+    params: Annotated[ListParams, Depends()],
+    conn: Annotated[Connection, Depends(get_conn)],
+    filters: Annotated[dict[str, str], Depends(parse_filters)],
+):
+    return await list_entities(conn, _CONFIG, params, ModelOut, filters)
 
 
 @router.get("/{model_id}", response_model=ModelOut, responses={404: {"description": "Not found"}})

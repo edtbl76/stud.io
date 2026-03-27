@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { ChevronDown, LogOut } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import { ChevronDown, LogOut, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 
@@ -70,10 +70,18 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { username, role, logout } = useAuth()
 
-  // Default all groups collapsed
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set())
+  const [searchQuery, setSearchQuery] = React.useState('')
+
+  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    const q = searchQuery.trim()
+    if (q.length < 2) return
+    router.push(`/search?q=${encodeURIComponent(q)}`)
+  }
 
   function toggleGroup(title: string) {
     setOpenGroups((prev) => {
@@ -115,6 +123,22 @@ export function Sidebar() {
         >
           <LogOut className="h-3.5 w-3.5" />
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="px-3 py-2.5 border-b border-sidebar-border">
+        <form onSubmit={handleSearch}>
+          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-muted/40 border border-border/50">
+            <Search className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Global search..."
+              className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
+            />
+          </div>
+        </form>
       </div>
 
       {/* Nav groups */}

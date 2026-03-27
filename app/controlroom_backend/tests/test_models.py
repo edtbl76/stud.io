@@ -20,13 +20,13 @@ async def test_list_models_fields(client):
 
 
 async def test_list_models_search(client):
-    response = await client.get("/models?q=a")
+    response = await client.get("/models?filter_name=a")
     assert response.status_code == 200
     assert "items" in response.json()
 
 
 async def test_list_models_search_no_match(client):
-    response = await client.get("/models?q=zzznomatchzzz")
+    response = await client.get("/models?filter_name=zzznomatchzzz")
     assert response.status_code == 200
     assert response.json()["items"] == []
     assert response.json()["total"] == 0

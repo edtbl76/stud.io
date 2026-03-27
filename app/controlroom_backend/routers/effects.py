@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from asyncpg import Connection
 
 from database import get_conn
-from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs
+from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs, parse_filters
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.effects import EffectCreate, EffectUpdate, EffectOut
 from schemas.common import PagedResponse, ListParams
@@ -18,6 +18,24 @@ _SELECT_ONE = "SELECT * FROM effects WHERE effect_id = $1"
 _NOT_FOUND = "Effect not found"
 _SORTABLE = frozenset({"effect_name", "brand_name", "version", "collection", "updated_at", "created_at"})
 _DEFAULT_SORT = "effect_name"
+_FILTERABLE = {
+    "name":       "effect_name ILIKE {val}",
+    "brand":      "brand_name ILIKE {val}",
+    "version":    "version ILIKE {val}",
+    "collection": "collection ILIKE {val}",
+    "types": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(effect_type_ids, ARRAY[]::UUID[])) uid"
+        " JOIN effect_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+    "models": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"
+        " JOIN models m ON m.model_id = uid WHERE m.model_name ILIKE {val})"
+    ),
+    "tags": (
+        "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"
+        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+    ),
+}
 
 
 async def _check_effect_refs(conn: Connection, entity_id: UUID) -> None:
@@ -33,12 +51,17 @@ _CONFIG = EntityConfig(
     sortable=_SORTABLE,
     default_sort=_DEFAULT_SORT,
     ref_check=_check_effect_refs,
+    filterable=_FILTERABLE,
 )
 
 
 @router.get("", response_model=PagedResponse[EffectOut])
-async def list_effects(params: Annotated[ListParams, Depends()], conn: Annotated[Connection, Depends(get_conn)]):
-    return await list_entities(conn, _CONFIG, params, EffectOut)
+async def list_effects(
+    params: Annotated[ListParams, Depends()],
+    conn: Annotated[Connection, Depends(get_conn)],
+    filters: Annotated[dict[str, str], Depends(parse_filters)],
+):
+    return await list_entities(conn, _CONFIG, params, EffectOut, filters)
 
 
 @router.get("/{effect_id}", response_model=EffectOut, responses={404: {"description": "Not found"}})

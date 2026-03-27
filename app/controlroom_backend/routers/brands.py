@@ -2,43 +2,66 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
+from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, parse_filters
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.brands import BrandCreate, BrandUpdate, BrandOut
-from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
+from schemas.common import PagedResponse, ListParams
+from routers._helpers import _serializable, log_audit, AuditEntryWithData
 
 router = APIRouter()
 
-_SELECT = "SELECT * FROM brands_view"
 _SELECT_ONE = "SELECT * FROM brands WHERE brand_id = $1"
 _NOT_FOUND = "Brand not found"
 _REF_TABLES = ["models"]
+_SORTABLE = frozenset({"brand_name", "legal_name", "entity_type_name", "created_at", "updated_at"})
+_DEFAULT_SORT = "brand_name"
+_FILTERABLE = {
+    "name":        "brand_name ILIKE {val} OR legal_name ILIKE {val}",
+    "brand_name":  "brand_name ILIKE {val}",
+    "legal_name":  "legal_name ILIKE {val}",
+    "entity_type": "entity_type_name ILIKE {val}",
+}
 
 
-def _row_to_out(row) -> BrandOut:
-    return BrandOut(**dict(row))
+async def _check_brand_refs(conn: Connection, brand_id: UUID) -> None:
+    for table in _REF_TABLES:
+        if await conn.fetchrow(
+            f"SELECT 1 FROM {table} WHERE brand_id = $1 AND deleted_at IS NULL LIMIT 1", brand_id
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Brand is referenced by {table} and cannot be deleted",
+            )
 
 
-@router.get("", response_model=list[BrandOut])
-async def list_brands(q: str | None = None, *, conn: Annotated[Connection, Depends(get_conn)]):
-    if q:
-        rows = await conn.fetch(
-            _SELECT + " WHERE brand_name ILIKE $1 OR legal_name ILIKE $1", f"%{q}%"
-        )
-    else:
-        rows = await conn.fetch(_SELECT)
-    return [_row_to_out(r) for r in rows]
+_CONFIG = EntityConfig(
+    table_name="brands",
+    view_name="brands_view",
+    id_column="brand_id",
+    not_found_msg=_NOT_FOUND,
+    search_where="",  # deprecated
+    sortable=_SORTABLE,
+    default_sort=_DEFAULT_SORT,
+    ref_check=_check_brand_refs,
+    filterable=_FILTERABLE,
+)
+
+
+@router.get("", response_model=PagedResponse[BrandOut])
+async def list_brands(
+    params: Annotated[ListParams, Depends()],
+    conn: Annotated[Connection, Depends(get_conn)],
+    filters: Annotated[dict[str, str], Depends(parse_filters)],
+):
+    return await list_entities(conn, _CONFIG, params, BrandOut, filters)
 
 
 @router.get("/{brand_id}", response_model=BrandOut, responses={404: {"description": "Not found"}})
 async def get_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)]):
-    row = await conn.fetchrow(_SELECT + " WHERE brand_id = $1", brand_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)  # NOSONAR
-    return _row_to_out(row)
+    return await get_entity(conn, _CONFIG, brand_id, BrandOut)
 
 
 @router.post("", response_model=BrandOut, status_code=201)
@@ -93,30 +116,9 @@ async def get_brand_history(
     current_user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[AuditEntryWithData]:
-    return await get_record_history(conn, "brands", brand_id)
+    return await get_history(conn, _CONFIG, brand_id)
 
 
 @router.delete("/{brand_id}", status_code=204, responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}})
 async def delete_brand(brand_id: UUID, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
-    row = await conn.fetchrow(_SELECT_ONE, brand_id)
-    if not row:
-        raise HTTPException(status_code=404, detail=_NOT_FOUND)
-    if row["deleted_at"] is not None:
-        return JSONResponse(
-            status_code=200,
-            content={"detail": "Record is already deleted. To permanently remove it, use Change Review."}
-        )
-
-    for table in _REF_TABLES:
-        if await conn.fetchrow(
-            f"SELECT 1 FROM {table} WHERE brand_id = $1 AND deleted_at IS NULL LIMIT 1", brand_id
-        ):
-            raise HTTPException(
-                status_code=409,
-                detail=f"Brand is referenced by {table} and cannot be deleted",
-            )
-
-    async with conn.transaction():
-        await conn.execute("UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id)
-        await log_audit(conn, "brands", brand_id, "DELETE",
-                        performed_by=user.username, old_data=_serializable(dict(row)))
+    return await delete_entity(conn, _CONFIG, brand_id, user)

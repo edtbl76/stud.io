@@ -179,3 +179,16 @@ export interface ChangeReviewResponse {
   page_size: number
   entries: AuditEntry[]
 }
+
+export interface SearchResult {
+  table: string
+  id: string
+  name: string
+  brand_name: string | null
+  rank: number
+}
+
+export interface SearchResponse {
+  results: SearchResult[]
+  total: number
+}

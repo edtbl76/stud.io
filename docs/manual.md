@@ -24,7 +24,21 @@ The sidebar on the left organizes the app into five sections. Each section is co
 
 The ADMIN section is hidden for users with the `user` role.
 
+A **Global search** input sits at the top of the sidebar, above the navigation sections. Type a query and press Enter to navigate to the search results page.
+
 Your username and a sign-out button appear at the top of the sidebar.
+
+---
+
+## Global search
+
+Type any query (minimum 2 characters) into the search box in the sidebar and press Enter. The app navigates to `/search?q=<query>` and shows matching records from all 11 content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and all five Tool tables).
+
+Results are ranked by relevance. Each result shows the record name, brand (where applicable), and the source table. Click any result to navigate to that table and open the record in a modal.
+
+**Tabs** — the results page shows an **All** tab and one tab per table that has matches. Click a tab to narrow results to that table only.
+
+**Include notes & descriptions** — a toggle at the top of the results page extends the search to include description, notes, and reference fields. Off by default to keep results focused on names.
 
 ---
 
@@ -32,11 +46,11 @@ Your username and a sign-out button appear at the top of the sidebar.
 
 Each table opens as a full-page data table with:
 
-- **Search bar** — filters rows in real time (debounced)
+- **Per-column filters** — a filter input appears beneath each column header. Type at least 2 characters to filter (debounced 350 ms). Wrap a value in double quotes (e.g. `"ab"`) to bypass the 2-character minimum. Click the **×** inside a filter input to clear that column. The **Clear filters** button in the toolbar removes all active filters at once.
 - **Sort controls** — a sort dropdown and direction toggle in the toolbar (see below)
 - **Resizable columns** — drag column borders to resize
 - **Column picker** — the **Columns** button toggles individual columns on/off
-- **Row virtualization** — large tables (Effects, Instruments, Libraries, Models) render only visible rows for performance
+- **Row virtualization** — all content tables render only visible rows for performance
 - **Record count** — shown below the table title
 
 Click any row to open the record in a modal.
@@ -48,11 +62,7 @@ The toolbar contains two sort controls:
 - **Direction toggle** — the arrow button (↑/↓) switches between ascending and descending order. The arrow reflects the current direction.
 - **Sort field dropdown** — the button showing the current field name opens a menu of available sort fields. Select any field to sort by it. You can sort by fields that are not displayed as columns (for example, sort instruments by brand name even though only the full instrument name appears in the table).
 
-Non-paginated tables (Brands, Workstations, and all Tools tables) sort client-side. Paginated tables (Effects, Instruments, Libraries, Models) re-fetch from the server whenever the sort changes.
-
-### Add button
-
-Admins see an **Add** button in the top-right corner of every table. Click it to open a blank create form.
+All content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) fetch data from the server and re-fetch whenever sort or filter values change. CONFIG lookup tables sort and filter client-side.
 
 ### Bulk edit (admin only)
 
@@ -127,7 +137,7 @@ Close returns to the read-only view of the record.
 
 The CONFIG section manages the lookup values used throughout the app — effect types, tag types, plugin formats, etc. These are the values that appear in multi-select dropdowns when editing records.
 
-Each config table works the same way as a regular table: browse, add, edit, delete. Changes take effect immediately in all dropdowns across the app.
+Each config table works the same way as a regular table: browse, edit, delete. Changes take effect immediately in all dropdowns across the app.
 
 ---
 
@@ -199,7 +209,7 @@ You cannot delete or change the role of your own account (the row is disabled to
 
 | Role | Capabilities |
 |---|---|
-| `admin` | Full read/write access — can create, edit, and delete all records; access to ADMIN section |
-| `user` | Read-only — can browse and search all tables; no Add/Edit/Delete controls; no ADMIN section |
+| `admin` | Full read/write access — can edit, delete, and bulk-import records; access to ADMIN section |
+| `user` | Read-only — can browse, filter, and search all tables; no Edit/Delete controls; no ADMIN section |
 
 Role enforcement happens at both the API layer and the UI layer.

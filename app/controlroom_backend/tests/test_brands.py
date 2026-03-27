@@ -9,22 +9,22 @@ async def test_list_brands_returns_results(client):
     response = await client.get("/brands")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) > 0
+    assert "items" in data and "total" in data
+    assert len(data["items"]) > 0
 
 
 async def test_list_brands_fields(client):
     response = await client.get("/brands")
-    brand = response.json()[0]
+    brand = response.json()["items"][0]
     for field in ("brand_id", "legal_name", "brand_name", "entity_type_name",
                   "website", "description", "created_at"):
         assert field in brand
 
 
 async def test_list_brands_search(client):
-    response = await client.get("/brands?q=ssl")
+    response = await client.get("/brands?filter_name=ssl")
     assert response.status_code == 200
-    results = response.json()
+    results = response.json()["items"]
     assert len(results) > 0
     for b in results:
         combined = ((b.get("brand_name") or "") + " " + (b.get("legal_name") or "")).lower()
@@ -32,9 +32,10 @@ async def test_list_brands_search(client):
 
 
 async def test_list_brands_search_no_match(client):
-    response = await client.get("/brands?q=zzznomatchzzz")
+    response = await client.get("/brands?filter_name=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
 
 
 # ---------------------------------------------------------------------------

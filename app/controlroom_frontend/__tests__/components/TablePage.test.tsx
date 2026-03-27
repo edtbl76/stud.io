@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ColumnDef } from '@tanstack/react-table'
 import { TablePage } from '@/components/TablePage'
@@ -35,12 +35,22 @@ jest.mock('@tanstack/react-virtual', () => ({
 const mockApiList = jest.fn()
 const mockApiUpdate = jest.fn()
 const mockApiListPaged = jest.fn()
+const mockApiGet = jest.fn()
+const mockRouterReplace = jest.fn()
+let mockGetSearchParam = (_key: string): string | null => null
+
+jest.mock('next/navigation', () => ({
+  useSearchParams: () => ({ get: (key: string) => mockGetSearchParam(key) }),
+  usePathname: () => '/test',
+  useRouter: () => ({ replace: mockRouterReplace }),
+}))
 
 jest.mock('@/lib/api', () => ({
   api: {
     list: (...args: unknown[]) => mockApiList(...args),
     listPaged: (...args: unknown[]) => mockApiListPaged(...args),
     update: (...args: unknown[]) => mockApiUpdate(...args),
+    get: (...args: unknown[]) => mockApiGet(...args),
   },
 }))
 
@@ -132,31 +142,12 @@ describe('TablePage', () => {
     await waitFor(() => screen.getByText('2 records'))
   })
 
-  it('renders Add button for admin', async () => {
-    renderPage('admin')
-    await waitFor(() => screen.getByText('2 records'))
-    expect(screen.getByRole('button', { name: /add/i })).toBeInTheDocument()
-  })
-
-  it('hides Add button for non-admin', async () => {
-    renderPage('user')
-    await waitFor(() => screen.getByText('2 records'))
-    expect(screen.queryByRole('button', { name: /add/i })).not.toBeInTheDocument()
-  })
-
-  it('opens create modal when Add is clicked', async () => {
-    renderPage('admin')
-    await waitFor(() => screen.getByText('2 records'))
-    fireEvent.click(screen.getByRole('button', { name: /add/i }))
-    expect(screen.getByTestId('modal')).toBeInTheDocument()
-    expect(screen.getByText('create')).toBeInTheDocument()
-  })
-
   it('closes modal when onClose is called', async () => {
     renderPage('admin')
     await waitFor(() => screen.getByText('2 records'))
-    fireEvent.click(screen.getByRole('button', { name: /add/i }))
-    expect(screen.getByTestId('modal')).toBeInTheDocument()
+    const cells = screen.getAllByRole('cell')
+    fireEvent.click(cells[0])
+    await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
     fireEvent.click(screen.getByText('close-modal'))
     expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
   })
@@ -174,10 +165,6 @@ describe('TablePage', () => {
     )
   })
 
-  it('renders search input', async () => {
-    renderPage()
-    expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument()
-  })
 })
 
 describe('TablePage bulk edit', () => {
@@ -274,6 +261,32 @@ describe('TablePage row interaction', () => {
   })
 })
 
+describe('TablePage ?open deep-link', () => {
+  beforeEach(() => {
+    mockApiList.mockResolvedValue(rows)
+    mockRouterReplace.mockClear()
+  })
+
+  afterEach(() => {
+    mockGetSearchParam = (_key: string) => null
+  })
+
+  it('fetches and opens the record when ?open=<id> is present', async () => {
+    mockGetSearchParam = (key) => (key === 'open' ? '1' : null)
+    mockApiGet.mockResolvedValue({ id: '1', name: 'Alpha' })
+    renderPage('admin')
+    await waitFor(() => expect(mockApiGet).toHaveBeenCalledWith('/test', '1'))
+    await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
+  })
+
+  it('clears the ?open param after opening', async () => {
+    mockGetSearchParam = (key) => (key === 'open' ? '1' : null)
+    mockApiGet.mockResolvedValue({ id: '1', name: 'Alpha' })
+    renderPage('admin')
+    await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith('/test', { scroll: false }))
+  })
+})
+
 describe('TablePage paginated', () => {
   beforeEach(() => {
     // total equals items loaded so getNextPageParam returns undefined (no more pages)
@@ -305,5 +318,57 @@ describe('TablePage paginated', () => {
     await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
     const firstCall = mockApiListPaged.mock.calls[0][1]
     expect(firstCall).toMatchObject({ limit: 100, offset: 0 })
+  })
+})
+
+describe('TablePage paginated filter integration', () => {
+  beforeEach(() => {
+    jest.useFakeTimers()
+    mockApiListPaged.mockResolvedValue({ items: rows, total: 2 })
+    mockApiListPaged.mockClear()
+    mockApiList.mockClear()
+    mockApiList.mockResolvedValue([])
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
+  it('passes filter params to api.listPaged after debounce', async () => {
+    renderPagedPage()
+    // Flush initial load
+    await act(async () => { jest.advanceTimersByTime(0) })
+    await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
+    mockApiListPaged.mockClear()
+
+    const inputs = screen.getAllByPlaceholderText('Filter…')
+    // 'name' column is the second column (after 'id')
+    const nameInput = inputs.find(
+      (el) => el.closest('th')?.style.width === '150px' || inputs.indexOf(el) === 1
+    ) ?? inputs[0]
+
+    fireEvent.change(nameInput, { target: { value: 'al' } })
+    // Before debounce: no new call
+    expect(mockApiListPaged).not.toHaveBeenCalled()
+
+    await act(async () => { jest.advanceTimersByTime(350) })
+    await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
+
+    const lastCall = mockApiListPaged.mock.calls.at(-1)![1]
+    expect(lastCall.filters).toBeDefined()
+  })
+
+  it('does not refetch when input is shorter than 2 chars', async () => {
+    renderPagedPage()
+    await act(async () => { jest.advanceTimersByTime(0) })
+    await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
+    const initialCallCount = mockApiListPaged.mock.calls.length
+
+    const inputs = screen.getAllByPlaceholderText('Filter…')
+    fireEvent.change(inputs[0], { target: { value: 'a' } })
+    await act(async () => { jest.advanceTimersByTime(350) })
+
+    // activeFilters stays empty so resolvedFilters doesn't change — no new fetch
+    expect(mockApiListPaged.mock.calls.length).toBe(initialCallCount)
   })
 })

@@ -3,6 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { ExternalLink } from 'lucide-react'
 import { Brand } from '@/lib/types'
+import '@/lib/columnMeta'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 
@@ -22,6 +23,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorFn: (row) => row.brand_name ?? row.legal_name,
     header: 'Name',
     size: 200,
+    meta: { filterParam: 'name' },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
@@ -41,6 +43,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorKey: 'entity_type_name',
     header: 'Type',
     size: 140,
+    meta: { filterParam: 'entity_type' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (

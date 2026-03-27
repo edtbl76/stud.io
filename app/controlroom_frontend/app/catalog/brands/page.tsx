@@ -15,6 +15,7 @@ export default function BrandsPage() {
       getRowId={(row) => row.brand_id}
       bulkEditFields={brandBulkEditFields}
       sortFields={brandSortFields}
+      paginated
       renderModal={(record, onClose, onMutate) => (
         <BrandModal record={record} onClose={onClose} onMutate={onMutate} />
       )}

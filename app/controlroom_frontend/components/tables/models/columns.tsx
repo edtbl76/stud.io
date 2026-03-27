@@ -5,6 +5,7 @@ import { Model } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
+import '@/lib/columnMeta'
 
 export const modelSortFields: SortField[] = [
   { key: 'model_name', label: 'Model Name' },
@@ -21,6 +22,7 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
     accessorKey: 'full_model_name',
     header: 'Name',
     size: 340,
+    meta: { filterParam: 'name' },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
@@ -32,6 +34,7 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
     header: 'Types',
     size: 200,
     enableSorting: false,
+    meta: { filterParam: 'types' },
     cell: ({ row }) => <TypeBadges types={row.original.model_types} />,
   },
   {

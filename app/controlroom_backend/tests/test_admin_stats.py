@@ -104,12 +104,15 @@ async def test_stats_table_stat_has_pending_fields(client, admin_headers):
 
 
 async def test_stats_pending_creates_excluded_from_count(client, admin_headers, conn):
-    """A pending CREATE entry causes the displayed count to be one less than active rows."""
-    # Insert a brand so there is an active row
+    """A pending CREATE entry does not increase the displayed count."""
+    before = await client.get("/admin/stats", headers=admin_headers)
+    before_stat = next(
+        t for g in before.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
+    )
+
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__pending_test__') RETURNING brand_id"
     )
-    # Simulate a pending CREATE audit entry for that brand
     await conn.execute(
         """INSERT INTO audit_log
                (table_name, record_id, operation, performed_by, new_data)
@@ -117,38 +120,28 @@ async def test_stats_pending_creates_excluded_from_count(client, admin_headers, 
         brand_id,
     )
 
-    before_active = await conn.fetchval(
-        "SELECT COUNT(*)::int FROM brands WHERE deleted_at IS NULL"
+    after = await client.get("/admin/stats", headers=admin_headers)
+    after_stat = next(
+        t for g in after.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
-
-    response = await client.get("/admin/stats", headers=admin_headers)
-    data = response.json()
-    brands_stat = next(
-        t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
-    )
-    # displayed count = active - pending_creates + pending_deletes
-    assert brands_stat["count"] == before_active - 1
-    # pending_creates should have increased by exactly 1 from the baseline
-    baseline = await conn.fetchval(
-        """SELECT COUNT(*)::int FROM audit_log
-           WHERE table_name = 'brands' AND operation = 'CREATE'
-             AND acknowledged_at IS NULL AND undone_at IS NULL
-             AND record_id != $1""",
-        brand_id,
-    )
-    assert brands_stat["pending_creates"] == baseline + 1
+    # The new row is pending — displayed count should not change
+    assert after_stat["count"] == before_stat["count"]
+    assert after_stat["pending_creates"] == before_stat["pending_creates"] + 1
 
 
 async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn):
-    """A pending DELETE entry causes the displayed count to be one more than active rows."""
-    # Insert and soft-delete a brand
+    """A pending DELETE entry increases the displayed count by 1 above the baseline."""
+    before = await client.get("/admin/stats", headers=admin_headers)
+    before_stat = next(
+        t for g in before.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
+    )
+
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__del_test__') RETURNING brand_id"
     )
     await conn.execute(
         "UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id
     )
-    # Simulate a pending DELETE audit entry
     await conn.execute(
         """INSERT INTO audit_log
                (table_name, record_id, operation, performed_by, old_data)
@@ -156,28 +149,22 @@ async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn)
         brand_id,
     )
 
-    active_count = await conn.fetchval(
-        "SELECT COUNT(*)::int FROM brands WHERE deleted_at IS NULL"
+    after = await client.get("/admin/stats", headers=admin_headers)
+    after_stat = next(
+        t for g in after.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
-
-    response = await client.get("/admin/stats", headers=admin_headers)
-    data = response.json()
-    brands_stat = next(
-        t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
-    )
-    assert brands_stat["count"] == active_count + 1
-    baseline = await conn.fetchval(
-        """SELECT COUNT(*)::int FROM audit_log
-           WHERE table_name = 'brands' AND operation = 'DELETE'
-             AND acknowledged_at IS NULL AND undone_at IS NULL
-             AND record_id != $1""",
-        brand_id,
-    )
-    assert brands_stat["pending_deletes"] == baseline + 1
+    # The soft-deleted row has a pending delete — displayed count increases by 1
+    assert after_stat["count"] == before_stat["count"] + 1
+    assert after_stat["pending_deletes"] == before_stat["pending_deletes"] + 1
 
 
 async def test_stats_pending_updates_no_count_change(client, admin_headers, conn):
-    """A pending UPDATE entry does not change the displayed count."""
+    """A pending UPDATE entry does not change the displayed count relative to inserting the row."""
+    before = await client.get("/admin/stats", headers=admin_headers)
+    before_stat = next(
+        t for g in before.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
+    )
+
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__upd_test__') RETURNING brand_id"
     )
@@ -188,21 +175,10 @@ async def test_stats_pending_updates_no_count_change(client, admin_headers, conn
         brand_id,
     )
 
-    active_count = await conn.fetchval(
-        "SELECT COUNT(*)::int FROM brands WHERE deleted_at IS NULL"
+    after = await client.get("/admin/stats", headers=admin_headers)
+    after_stat = next(
+        t for g in after.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
-
-    response = await client.get("/admin/stats", headers=admin_headers)
-    data = response.json()
-    brands_stat = next(
-        t for g in data["groups"] for t in g["tables"] if t["name"] == "Brands"
-    )
-    assert brands_stat["count"] == active_count
-    baseline = await conn.fetchval(
-        """SELECT COUNT(*)::int FROM audit_log
-           WHERE table_name = 'brands' AND operation = 'UPDATE'
-             AND acknowledged_at IS NULL AND undone_at IS NULL
-             AND record_id != $1""",
-        brand_id,
-    )
-    assert brands_stat["pending_updates"] == baseline + 1
+    # Active row + no pending create/delete adjustment → count increases by 1
+    assert after_stat["count"] == before_stat["count"] + 1
+    assert after_stat["pending_updates"] == before_stat["pending_updates"] + 1

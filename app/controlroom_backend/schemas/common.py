@@ -36,7 +36,6 @@ class ParentRefInput(ParentRefBase):
 @dataclass
 class ListParams:
     # Request-time parameters for list endpoints
-    q: str | None = None
     limit: int = 100
     offset: int = 0
     sort_by: str | None = None

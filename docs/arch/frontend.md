@@ -28,6 +28,7 @@ app/controlroom_frontend/
 │   ├── session/            # Effects, Instruments, Libraries, Workstations
 │   ├── tools/              # Admin, Composition, Measurement, Reference, Workflow tools
 │   ├── config/             # Lookup table editors (7 tables)
+│   ├── search/             # Global search results page (/search?q=...)
 │   └── admin/              # Stats, Change Review, Import/Export, Backup/Restore, Users
 ├── components/
 │   ├── DataTable.tsx        # Virtualized TanStack Table wrapper
@@ -51,8 +52,10 @@ app/controlroom_frontend/
 ├── lib/
 │   ├── api.ts              # Typed fetch wrapper — calls relative /api/... paths
 │   ├── auth.tsx            # AuthContext, useAuth hook, session management
+│   ├── columnMeta.ts       # TypeScript module augmentation — adds filterParam to TanStack ColumnMeta
 │   ├── computeDiff.ts      # Field-level diff between two JSON snapshots (for history view)
 │   ├── types.ts            # TypeScript interfaces for all API response shapes
+│   ├── useTableFilters.ts  # Hook: per-column filter state with 350 ms debounce and 2-char minimum
 │   └── utils.ts            # Tailwind class merge utility (cn)
 ├── __tests__/              # Jest + React Testing Library unit tests
 └── e2e/                    # Playwright end-to-end tests (run against test stack on port 3001)
@@ -66,11 +69,15 @@ app/controlroom_frontend/
 
 The generic page component used by every catalog/session/tools/config page. Accepts:
 - `title`, `endpoint`, `queryKey` — page identity
-- `columns` — TanStack Table column definitions
+- `columns` — TanStack Table column definitions with optional `meta.filterParam` for server-side filtering
 - `getRowId` — extracts the primary key from a row
 - `renderModal` — callback that renders the appropriate modal for the table
+- `paginated` — enables server-side pagination, sorting, and per-column filtering (all content tables use this)
+- `bulkEditFields` — enables the checkbox column and bulk edit bar (admin only)
 
-Handles: data fetching via `useQuery`, search with 300ms debounce, Add button (admin only), row click → modal open, modal close + query invalidation on mutation.
+Handles: data fetching via `useInfiniteQuery` (paginated) or `useQuery` (non-paginated), per-column filtering via `useTableFilters` (350 ms debounce, 2-char minimum), row click → modal open, modal close + query invalidation on mutation.
+
+Per-column filter state is lifted from `DataTableHeader` through `DataTable` to `TablePage`. Filter values are mapped to backend `filter_*` query params using `resolveFilterParams`, which reads `col.meta?.filterParam` to translate column ids to the correct param suffix.
 
 ### `RecordModal`
 
@@ -100,6 +107,15 @@ Each modal composes `RecordModal` and owns:
 ### `MultiSelect`
 
 A dropdown component for selecting multiple values from a lookup table. Fetches its options from `/config/{slug}` at render time. Used for all type/tag/format fields in edit mode.
+
+### Search page (`app/search/page.tsx`)
+
+The global search results page at `/search?q=<query>`. Calls `GET /search` via `api.searchGlobal`. Displays results grouped by table with:
+- **Tab bar** — an All tab plus one tab per table with matches; clicking a tab filters the list
+- **Notes toggle** — extends the search to description/notes fields when enabled
+- Each result is a link to the source table page with `?open=<id>`, which causes `TablePage` to auto-open the record's modal on arrival
+
+The search input lives in `Sidebar` (not in a per-page toolbar). Submitting the form navigates to `/search?q=...`.
 
 ---
 
@@ -170,8 +186,17 @@ Unit tests use [Jest](https://jestjs.io/) + [React Testing Library](https://test
 - Tests live in `__tests__/` mirroring the `app/` and `components/` structure
 - `@tanstack/react-query` mutations are tested by mocking `lib/api` and wrapping renders in a `QueryClientProvider`
 - `lib/auth` is mocked globally in all component tests
+- `useTableFilters` is unit-tested in `__tests__/lib/useTableFilters.test.ts` using `jest.useFakeTimers()` to verify debounce and 2-char minimum behavior
+- `DataTableHeader` manual filtering is tested in `__tests__/components/DataTableHeader.manualFilter.test.tsx`
+- The search page is tested in `__tests__/app/search/page.test.tsx`
 - Google SSO paths are not tested — they require mocking the Google Identity Services API and a module-level env var that requires `jest.resetModules()`. Documented with a `NOTE:` comment in the relevant test files.
 
 Coverage is collected via `jest --coverage` and reported to SonarQube as LCOV. New code must meet ≥ 80% line coverage to pass the quality gate.
 
 End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. They run against the dev frontend at `https://localhost:2112` with a separate test backend container (`controlroom_backend_test`) on port 5151 pointing at `controlroomdb_test`. Auth state is saved to `e2e/.auth/state.json` by the `auth.setup.ts` project and reused across tests. Run via `./scripts/test-e2e.sh`.
+
+E2E spec files:
+- `crud.spec.ts` — row click opens and closes modal for all 18 tables
+- `brands.spec.ts` — brand typeahead shows Create option for unknown brand names
+- `bulk-edit.spec.ts` — bulk selection and apply flow
+- `search.spec.ts` — global search: TopBar query navigation, results page, tab filtering, deep-link to record modal

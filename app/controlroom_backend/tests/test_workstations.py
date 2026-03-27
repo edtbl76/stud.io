@@ -4,20 +4,23 @@ from uuid import uuid4
 async def test_list_workstations_returns_results(client):
     response = await client.get("/workstations")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    data = response.json()
+    assert "items" in data and "total" in data
+    assert len(data["items"]) > 0
 
 
 async def test_list_workstations_fields(client):
-    item = (await client.get("/workstations")).json()[0]
+    item = (await client.get("/workstations")).json()["items"][0]
     for field in ("workstation_id", "tool_name", "full_tool_name",
                   "tool_types", "plugin_formats", "tags", "created_at"):
         assert field in item
 
 
 async def test_list_workstations_search_no_match(client):
-    response = await client.get("/workstations?q=zzznomatchzzz")
+    response = await client.get("/workstations?filter_name=zzznomatchzzz")
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json()["items"] == []
+    assert response.json()["total"] == 0
 
 
 async def test_get_workstation(client, conn):

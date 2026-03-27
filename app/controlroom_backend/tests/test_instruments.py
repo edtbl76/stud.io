@@ -23,7 +23,7 @@ async def test_list_instruments_fields(client, conn):
 
 
 async def test_list_instruments_search_no_match(client):
-    response = await client.get("/instruments?q=zzznomatchzzz")
+    response = await client.get("/instruments?filter_name=zzznomatchzzz")
     assert response.status_code == 200
     assert response.json()["items"] == []
     assert response.json()["total"] == 0

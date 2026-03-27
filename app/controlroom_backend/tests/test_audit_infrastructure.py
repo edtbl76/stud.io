@@ -73,7 +73,7 @@ async def test_soft_deleted_brand_excluded_from_list(client, conn, admin_headers
     await conn.execute("UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id)
 
     r = await client.get("/brands")
-    ids = [b["brand_id"] for b in r.json()]
+    ids = [b["brand_id"] for b in r.json()["items"]]
     assert brand_id not in ids, "Soft-deleted brand should not appear in list"
 
 
