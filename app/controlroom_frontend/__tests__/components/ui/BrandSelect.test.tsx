@@ -4,12 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 import type { Brand } from '@/lib/types'
 
-const mockList = jest.fn()
+const mockListPaged = jest.fn()
 const mockCreate = jest.fn()
 
 jest.mock('@/lib/api', () => ({
   api: {
-    list: (...args: unknown[]) => mockList(...args),
+    listPaged: (...args: unknown[]) => mockListPaged(...args),
     create: (...args: unknown[]) => mockCreate(...args),
   },
 }))
@@ -62,14 +62,14 @@ describe('BrandSelect', () => {
   })
 
   it('shows results after debounce when query is typed', async () => {
-    mockList.mockResolvedValue([mockBrand])
+    mockListPaged.mockResolvedValue({ items: [mockBrand], total: 1 })
     renderWithClient(<BrandSelect value="" displayName="" onChange={() => {}} />)
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Stein' } })
     act(() => { jest.advanceTimersByTime(300) })
 
     await waitFor(() => expect(screen.getByText('Steinway')).toBeInTheDocument())
-    expect(mockList).toHaveBeenCalledWith('/brands', 'Stein')
+    expect(mockListPaged).toHaveBeenCalledWith('/brands', expect.objectContaining({ filters: { name: 'Stein' } }))
   })
 
   it('does not search when query is empty', async () => {
@@ -78,11 +78,11 @@ describe('BrandSelect', () => {
     fireEvent.focus(screen.getByRole('textbox'))
     act(() => { jest.advanceTimersByTime(300) })
 
-    await waitFor(() => expect(mockList).not.toHaveBeenCalled())
+    await waitFor(() => expect(mockListPaged).not.toHaveBeenCalled())
   })
 
   it('calls onChange when a result is selected', async () => {
-    mockList.mockResolvedValue([mockBrand])
+    mockListPaged.mockResolvedValue({ items: [mockBrand], total: 1 })
     const onChange = jest.fn()
     renderWithClient(<BrandSelect value="" displayName="" onChange={onChange} />)
 
@@ -96,7 +96,7 @@ describe('BrandSelect', () => {
   })
 
   it('shows Create option when no exact match', async () => {
-    mockList.mockResolvedValue([])
+    mockListPaged.mockResolvedValue({ items: [], total: 0 })
     renderWithClient(<BrandSelect value="" displayName="" onChange={() => {}} />)
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'NewBrand' } })
@@ -106,7 +106,7 @@ describe('BrandSelect', () => {
   })
 
   it('does not show Create option when exact match exists', async () => {
-    mockList.mockResolvedValue([mockBrand])
+    mockListPaged.mockResolvedValue({ items: [mockBrand], total: 1 })
     renderWithClient(<BrandSelect value="" displayName="" onChange={() => {}} />)
 
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Steinway' } })
@@ -117,7 +117,7 @@ describe('BrandSelect', () => {
   })
 
   it('calls api.create and onChange when create is submitted', async () => {
-    mockList.mockResolvedValue([])
+    mockListPaged.mockResolvedValue({ items: [], total: 0 })
     mockCreate.mockResolvedValue({ ...mockBrand, brand_id: 'new-brand', brand_name: 'NewBrand' })
     const onChange = jest.fn()
     renderWithClient(<BrandSelect value="" displayName="" onChange={onChange} />)
@@ -135,7 +135,7 @@ describe('BrandSelect', () => {
   })
 
   it('shows error message when create fails', async () => {
-    mockList.mockResolvedValue([])
+    mockListPaged.mockResolvedValue({ items: [], total: 0 })
     mockCreate.mockRejectedValue(new Error('Brand already exists'))
     renderWithClient(<BrandSelect value="" displayName="" onChange={() => {}} />)
 

@@ -142,11 +142,30 @@ describe('TablePage', () => {
     await waitFor(() => screen.getByText('2 records'))
   })
 
+  it('renders Add button for admin', async () => {
+    renderPage('admin')
+    await waitFor(() => screen.getByText('2 records'))
+    expect(screen.getByRole('button', { name: /add/i })).toBeInTheDocument()
+  })
+
+  it('hides Add button for non-admin', async () => {
+    renderPage('user')
+    await waitFor(() => screen.getByText('2 records'))
+    expect(screen.queryByRole('button', { name: /add/i })).not.toBeInTheDocument()
+  })
+
+  it('opens create modal when Add is clicked', async () => {
+    renderPage('admin')
+    await waitFor(() => screen.getByText('2 records'))
+    fireEvent.click(screen.getByRole('button', { name: /add/i }))
+    await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
+    expect(screen.getByText('create')).toBeInTheDocument()
+  })
+
   it('closes modal when onClose is called', async () => {
     renderPage('admin')
     await waitFor(() => screen.getByText('2 records'))
-    const cells = screen.getAllByRole('cell')
-    fireEvent.click(cells[0])
+    fireEvent.click(screen.getByRole('button', { name: /add/i }))
     await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
     fireEvent.click(screen.getByText('close-modal'))
     expect(screen.queryByTestId('modal')).not.toBeInTheDocument()

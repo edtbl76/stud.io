@@ -1,5 +1,21 @@
 import { test, expect } from '@playwright/test'
 
+test('brand typeahead returns results in create modal', async ({ page }) => {
+  // Instruments have a BrandSelect field — use the Add button to open a create modal
+  await page.goto('/session/instruments')
+  await page.getByRole('button', { name: /^add$/i }).click()
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 })
+
+  const brandInput = page.getByPlaceholder(/search brands/i)
+  await expect(brandInput).toBeVisible({ timeout: 5000 })
+  await brandInput.fill('a')
+
+  // Dropdown should show at least one brand result
+  await expect(
+    page.locator('[role="dialog"]').getByRole('button', { name: /\S/ }).first()
+  ).toBeVisible({ timeout: 5000 })
+})
+
 test('brand typeahead shows create option for unknown brand', async ({ page }) => {
   await page.goto('/session/instruments')
 

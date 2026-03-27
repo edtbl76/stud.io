@@ -64,6 +64,10 @@ The toolbar contains two sort controls:
 
 All content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) fetch data from the server and re-fetch whenever sort or filter values change. CONFIG lookup tables sort and filter client-side.
 
+### Add button (admin only)
+
+An **Add** button appears to the right of the table title and record count. Click it to open a blank create form for that table.
+
 ### Bulk edit (admin only)
 
 Content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) show a checkbox column. Select one or more rows to open the bulk edit bar at the top of the table.
@@ -137,7 +141,7 @@ Close returns to the read-only view of the record.
 
 The CONFIG section manages the lookup values used throughout the app — effect types, tag types, plugin formats, etc. These are the values that appear in multi-select dropdowns when editing records.
 
-Each config table works the same way as a regular table: browse, edit, delete. Changes take effect immediately in all dropdowns across the app.
+Each config table works the same way as a regular table: browse, add, edit, delete. Changes take effect immediately in all dropdowns across the app.
 
 ---
 
@@ -209,7 +213,7 @@ You cannot delete or change the role of your own account (the row is disabled to
 
 | Role | Capabilities |
 |---|---|
-| `admin` | Full read/write access — can edit, delete, and bulk-import records; access to ADMIN section |
-| `user` | Read-only — can browse, filter, and search all tables; no Edit/Delete controls; no ADMIN section |
+| `admin` | Full read/write access — can create, edit, and delete all records; access to ADMIN section |
+| `user` | Read-only — can browse, filter, and search all tables; no Add/Edit/Delete controls; no ADMIN section |
 
 Role enforcement happens at both the API layer and the UI layer.

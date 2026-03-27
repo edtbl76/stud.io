@@ -4,8 +4,10 @@ import * as React from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { ColumnDef, RowSelectionState, SortingState } from '@tanstack/react-table'
+import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
+import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/DataTable'
 import { BulkEditBar } from '@/components/BulkEditBar'
 import type { BulkEditField } from '@/lib/bulkEdit'
@@ -294,6 +296,7 @@ export function TablePage<T>({
   }, [endpoint, setSelectedRecord])
 
   function handleMutate() { void queryClient.invalidateQueries({ queryKey: [queryKey] }) }
+  function handleAdd() { setSelectedRecord(null) }
   function handleRowClick(row: T) { setSelectedRecord(row) }
   function handleClose() { setSelectedRecord(undefined) }
   function handleBulkApply() { setRowSelection({}); handleMutate() }
@@ -303,11 +306,17 @@ export function TablePage<T>({
       <React.Suspense fallback={null}>
         <OpenIdHandler endpoint={endpoint} onOpen={handleOpenById} />
       </React.Suspense>
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <div className="px-6 py-4 border-b border-border">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <div className="flex items-center gap-3 mt-0.5">
           {!isLoading && (
-            <p className="text-xs text-muted-foreground mt-0.5">{recordCountLabel}</p>
+            <p className="text-xs text-muted-foreground">{recordCountLabel}</p>
+          )}
+          {isAdmin && (
+            <Button size="sm" onClick={handleAdd} className="gap-1.5 h-6 text-xs px-2">
+              <Plus className="h-3 w-3" />
+              Add
+            </Button>
           )}
         </div>
       </div>
