@@ -369,3 +369,25 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_performed_at
 CREATE INDEX IF NOT EXISTS idx_audit_log_pending
     ON audit_log (performed_at DESC)
     WHERE acknowledged_at IS NULL AND undone_at IS NULL;
+
+-- =============================================================================
+-- TRIGRAM INDEXES (pg_trgm) — powers fuzzy-search column filters
+-- =============================================================================
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_brands_brand_name_trgm     ON brands       USING gin (brand_name      gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_brands_legal_name_trgm     ON brands       USING gin (legal_name       gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_effects_name_trgm          ON effects      USING gin (effect_name      gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_effects_version_trgm       ON effects      USING gin (version          gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_effects_collection_trgm    ON effects      USING gin (collection       gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_instruments_name_trgm      ON instruments  USING gin (instrument_name  gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_instruments_version_trgm   ON instruments  USING gin (version          gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_libraries_name_trgm        ON libraries    USING gin (library_name     gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_models_name_trgm           ON models       USING gin (model_name       gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_workstations_name_trgm     ON workstations USING gin (tool_name        gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_workstations_version_trgm  ON workstations USING gin (version          gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_workflow_tools_name_trgm      ON workflow_tools      USING gin (tool_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_measurement_tools_name_trgm   ON measurement_tools   USING gin (tool_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_reference_tools_name_trgm     ON reference_tools     USING gin (tool_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_composition_tools_name_trgm   ON composition_tools   USING gin (tool_name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_admin_tools_name_trgm         ON admin_tools         USING gin (tool_name gin_trgm_ops);

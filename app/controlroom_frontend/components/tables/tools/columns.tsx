@@ -3,6 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Tool } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
+import { ARRAY_FILTER_OPERATORS, DATE_FILTER_OPERATORS } from '@/lib/filterOperators'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import '@/lib/columnMeta'
@@ -53,7 +54,7 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     header: 'Types',
     size: 200,
     enableSorting: false,
-    meta: { filterParam: 'types' },
+    meta: { filterParam: 'types', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.tool_types} />,
   },
   {
@@ -62,14 +63,14 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     header: 'Formats',
     size: 200,
     enableSorting: false,
-    meta: { filterParam: 'formats' },
+    meta: { filterParam: 'formats', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.plugin_formats} />,
   },
   {
     accessorKey: 'created_at',
     header: 'Added',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}
@@ -80,7 +81,7 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     accessorKey: 'updated_at',
     header: 'Updated',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}

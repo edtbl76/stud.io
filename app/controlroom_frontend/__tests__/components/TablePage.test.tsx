@@ -360,7 +360,7 @@ describe('TablePage paginated filter integration', () => {
     await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
     mockApiListPaged.mockClear()
 
-    const inputs = screen.getAllByPlaceholderText('Filter…')
+    const inputs = screen.getAllByPlaceholderText('2+ chars…')
     // 'name' column is the second column (after 'id')
     const nameInput = inputs.find(
       (el) => el.closest('th')?.style.width === '150px' || inputs.indexOf(el) === 1
@@ -383,7 +383,7 @@ describe('TablePage paginated filter integration', () => {
     await waitFor(() => expect(mockApiListPaged).toHaveBeenCalled())
     const initialCallCount = mockApiListPaged.mock.calls.length
 
-    const inputs = screen.getAllByPlaceholderText('Filter…')
+    const inputs = screen.getAllByPlaceholderText('2+ chars…')
     fireEvent.change(inputs[0], { target: { value: 'a' } })
     await act(async () => { jest.advanceTimersByTime(350) })
 

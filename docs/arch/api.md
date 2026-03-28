@@ -85,11 +85,31 @@ Query parameters:
 | `offset` | 0 | Number of records to skip |
 | `sort_by` | table-specific | Repeated param — one per sort level. Each must be in the router's `sortable` set; invalid values are skipped. Falls back to the default sort if all are invalid or absent. |
 | `sort_dir` | `asc` | Repeated param — parallel to `sort_by`. Each value is `asc` or `desc`. Defaults to `asc` for any level whose `sort_dir` entry is missing. |
-| `filter_<key>` | — | Per-column filter; key is the `filterParam` suffix defined per router. Values use `ILIKE %value%`. Wrap in double quotes for exact match (`"value"` → `= value`). Multiple `filter_*` params are AND-combined. |
+| `filter_<key>` | — | Per-column filter value. Key is the `filterParam` defined per column. Default operator is `contains` (ILIKE `%value%`). |
+| `filter_<key>_op` | `contains` | Operator override for the corresponding filter key. See operator table below. Value-free operators (`is_empty`, `is_not_empty`) send only this param with no value. |
+| `filter_<key>_end` | — | Range end for `date_between` — ISO date string (`YYYY-MM-DD`). |
+
+**Filter operators:**
+
+| Operator | Applies to | SQL produced |
+|---|---|---|
+| `contains` | text, array/EXISTS fields | `col ILIKE '%value%'` |
+| `equals` | text fields with `col_expr` | `col = value` |
+| `fuzzy` | text fields with `col_expr` | `similarity(col, value) > 0.3` (requires pg_trgm) |
+| `is_empty` | any field with `col_expr` or `empty_expr` | `(col IS NULL OR col = '')` or custom `empty_expr` |
+| `is_not_empty` | any field with `col_expr` or `empty_expr` | `(col IS NOT NULL AND col <> '')` or negated `empty_expr` |
+| `date_on` | date columns | `DATE(col) = value` |
+| `date_before` | date columns | `DATE(col) < value` |
+| `date_after` | date columns | `DATE(col) > value` |
+| `date_between` | date columns | `DATE(col) BETWEEN value AND filter_<key>_end` |
+
+Multiple `filter_*` params are AND-combined. Unknown filter keys are silently ignored. Filter keys must match `[a-z_]+`.
+
+Array/relational columns (types, tags, models, formats) use `empty_expr` (e.g. `cardinality(col) = 0`) to support `is_empty`/`is_not_empty`. EXISTS subquery fields only support `contains`.
 
 Response model: `{ items: [...], total: <int> }` (`PagedResponse`).
 
-Each router defines a `filterable` mapping of key → SQL expression template. Unknown filter keys are silently ignored. Filter keys must match `[a-z_]+`.
+Each router defines a `filterable` mapping of key → `FilterableField` (`routers/filter_operators.py`). `FilterableField` has three optional fields: `contains_expr` (ILIKE template), `col_expr` (bare column for scalar/date ops), and `empty_expr` (custom SQL for empty check).
 
 ### CRUD endpoints
 

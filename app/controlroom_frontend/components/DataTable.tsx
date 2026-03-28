@@ -18,6 +18,7 @@ import { DataTableToolbar } from '@/components/DataTableToolbar'
 import { DataTableHeader } from '@/components/DataTableHeader'
 import { DataTableBody } from '@/components/DataTableBody'
 import type { SortField } from '@/lib/sort'
+import type { FilterState, FilterEntry } from '@/lib/filterOperators'
 
 const ROW_HEIGHT = 44
 const MAX_SORT_LEVELS = 3
@@ -64,8 +65,9 @@ interface DataTableProps<TData, TValue> {
   readonly sortFields?: SortField[]
   // Server-side column filters (paginated tables)
   readonly manualFiltering?: boolean
-  readonly externalFilters?: Record<string, string>
-  readonly onExternalFiltersChange?: (filters: Record<string, string>) => void
+  readonly externalFilters?: FilterState
+  readonly onFilterEntryChange?: (colId: string, entry: FilterEntry | null) => void
+  readonly onClearFilters?: () => void
 }
 
 export function DataTable<TData, TValue>({
@@ -85,7 +87,8 @@ export function DataTable<TData, TValue>({
   sortFields,
   manualFiltering = false,
   externalFilters,
-  onExternalFiltersChange,
+  onFilterEntryChange,
+  onClearFilters,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>(
     !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
@@ -205,7 +208,7 @@ export function DataTable<TData, TValue>({
     : columnFilters.length
 
   function handleClearFilters() {
-    onExternalFiltersChange?.({})
+    onClearFilters?.()
     setColumnFilters([])
   }
 
@@ -233,7 +236,7 @@ export function DataTable<TData, TValue>({
             onDrop={handleDrop}
             manualFiltering={manualFiltering}
             externalFilters={externalFilters}
-            onExternalFiltersChange={onExternalFiltersChange}
+            onFilterEntryChange={onFilterEntryChange}
           />
           <DataTableBody
             table={table}

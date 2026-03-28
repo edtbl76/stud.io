@@ -6,6 +6,7 @@ from asyncpg import Connection
 
 from database import get_conn
 from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, parse_filters
+from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.workstations import WorkstationCreate, WorkstationUpdate, WorkstationOut
 from schemas.common import PagedResponse, ListParams
@@ -17,22 +18,27 @@ _SELECT_ONE = "SELECT * FROM workstations WHERE workstation_id = $1"
 _NOT_FOUND = "Workstation not found"
 _SORTABLE = frozenset({"full_tool_name", "brand_name", "version", "created_at", "updated_at"})
 _DEFAULT_SORT = "full_tool_name"
-_FILTERABLE = {
-    "name":    "full_tool_name ILIKE {val}",
-    "brand":   "brand_name ILIKE {val}",
-    "version": "version ILIKE {val}",
-    "types": (
+_FILTERABLE: dict[str, FilterableField] = {
+    "name":    FilterableField("full_tool_name ILIKE {val}", col_expr="full_tool_name"),
+    "brand":   FilterableField("brand_name ILIKE {val}",    col_expr="brand_name"),
+    "version": FilterableField("version ILIKE {val}",       col_expr="version"),
+    "types": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tool_type_ids, ARRAY[]::UUID[])) uid"
-        " JOIN tool_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN tool_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(tool_type_ids IS NULL OR cardinality(tool_type_ids) = 0)",
     ),
-    "formats": (
+    "formats": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(plugin_format_ids, ARRAY[]::UUID[])) uid"
-        " JOIN plugin_formats t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN plugin_formats t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(plugin_format_ids IS NULL OR cardinality(plugin_format_ids) = 0)",
     ),
-    "tags": (
+    "tags": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"
-        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(tag_ids IS NULL OR cardinality(tag_ids) = 0)",
     ),
+    "created_at": FilterableField(col_expr="created_at"),
+    "updated_at": FilterableField(col_expr="updated_at"),
 }
 
 _CONFIG = EntityConfig(
@@ -51,7 +57,7 @@ _CONFIG = EntityConfig(
 async def list_workstations(
     params: Annotated[ListParams, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
-    filters: Annotated[dict[str, str], Depends(parse_filters)],
+    filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     return await list_entities(conn, _CONFIG, params, WorkstationOut, filters)
 

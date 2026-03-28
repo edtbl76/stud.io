@@ -1,5 +1,6 @@
 import re
 from dataclasses import dataclass, field
+from datetime import date as Date
 from typing import Callable, Awaitable, Any
 from uuid import UUID
 
@@ -14,10 +15,23 @@ from routers._helpers import (
     log_audit,
 )
 from routers.auth import UserOut
+from routers.filter_operators import (
+    FilterEntry,
+    FilterableField,
+    DEFAULT_OPERATOR,
+    VALUE_FREE_OPERATORS,
+    DATE_OPERATORS,
+    DATE_RANGE_OPERATORS,
+    VALID_OPERATORS,
+    OPERATOR_BUILDERS,
+    build_value_free_sql,
+)
 
 from schemas.common import ListParams, PagedResponse
 
 _FILTER_PREFIX = "filter_"
+_FILTER_OP_SUFFIX = "_op"
+_FILTER_END_SUFFIX = "_end"
 _FILTER_KEY_RE = re.compile(r'^[a-z_]+$')
 
 
@@ -32,49 +46,113 @@ class EntityConfig:
     default_sort: str
     not_found_msg: str
     ref_check: Callable[[Connection, UUID], Awaitable[None]] | None = None
-    filterable: dict[str, str] = field(default_factory=dict)
+    filterable: dict[str, FilterableField] = field(default_factory=dict)
 
 
-def parse_filters(request: Request) -> dict[str, str]:
-    """Extract filter_* query params from the request, validating key names."""
-    result: dict[str, str] = {}
+def _extract_raw_and_ops(
+    request: Request,
+) -> tuple[dict[str, str], dict[str, str], dict[str, str]]:
+    """Split filter_* query params into raw values, operator overrides, and range ends."""
+    raw: dict[str, str] = {}
+    ops: dict[str, str] = {}
+    ends: dict[str, str] = {}
     for k, v in request.query_params.items():
         if not k.startswith(_FILTER_PREFIX):
             continue
-        if not v:
-            continue
         key = k[len(_FILTER_PREFIX):]
-        if _FILTER_KEY_RE.match(key):
-            result[key] = v
+        if key.endswith(_FILTER_OP_SUFFIX):
+            col_key = key[: -len(_FILTER_OP_SUFFIX)]
+            if _FILTER_KEY_RE.match(col_key) and v in VALID_OPERATORS:
+                ops[col_key] = v
+        elif key.endswith(_FILTER_END_SUFFIX):
+            col_key = key[: -len(_FILTER_END_SUFFIX)]
+            if _FILTER_KEY_RE.match(col_key):
+                ends[col_key] = v
+        elif _FILTER_KEY_RE.match(key):
+            raw[key] = v
+    return raw, ops, ends
+
+
+def parse_filters(request: Request) -> dict[str, FilterEntry]:
+    """Extract filter_* query params from the request, returning FilterEntry per key.
+
+    Wire format: filter_<key>=value         (operator defaults to 'contains')
+                 filter_<key>_op=operator   (explicit operator override)
+                 filter_<key>_end=value     (range end for date_between)
+    Value-free operators send only _op with no value.
+    """
+    raw, ops, ends = _extract_raw_and_ops(request)
+    result: dict[str, FilterEntry] = {}
+    for key, value in raw.items():
+        operator = ops.get(key, DEFAULT_OPERATOR)
+        if not value and operator not in VALUE_FREE_OPERATORS:
+            continue
+        value_end = ends.get(key) if operator in DATE_RANGE_OPERATORS else None
+        result[key] = FilterEntry(value=value, operator=operator, value_end=value_end)  # type: ignore[arg-type]
+
+    for key, operator in ops.items():
+        if key not in result and operator in VALUE_FREE_OPERATORS:
+            result[key] = FilterEntry(value="", operator=operator)  # type: ignore[arg-type]
+
     return result
 
 
+def _parse_date(value: str) -> Date | str:
+    """Parse an ISO date string to datetime.date; return original string on failure."""
+    try:
+        return Date.fromisoformat(value)
+    except ValueError:
+        return value
+
+
+def _append_filter(
+    parts: list[str],
+    values: list[Any],
+    idx: int,
+    field_def: FilterableField,
+    entry: FilterEntry,
+) -> int:
+    """Append one filter expression to parts/values. Returns updated bind-param index."""
+    operator = entry.operator
+    if operator == "contains":
+        if not field_def.contains_expr:
+            return idx
+        parts.append(f"({field_def.contains_expr.replace('{val}', f'${idx}')})")
+        values.append(f"%{entry.value}%")
+        return idx + 1
+    if operator in VALUE_FREE_OPERATORS:
+        sql = build_value_free_sql(field_def, operator)
+        if sql:
+            parts.append(f"({sql})")
+        return idx
+    if not field_def.col_expr:
+        return idx
+    sql_frag, _ = OPERATOR_BUILDERS[operator](field_def.col_expr, idx)
+    parts.append(f"({sql_frag})")
+    if operator in DATE_RANGE_OPERATORS:
+        end = entry.value_end or entry.value
+        values.extend([_parse_date(entry.value), _parse_date(end)])
+        return idx + 2
+    bind_val = _parse_date(entry.value) if operator in DATE_OPERATORS else entry.value
+    values.append(bind_val)
+    return idx + 1
+
+
 def build_filter_clause(
-    filterable: dict[str, str],
-    filters: dict[str, str],
+    filterable: dict[str, FilterableField],
+    filters: dict[str, FilterEntry],
 ) -> tuple[str, list[Any]]:
     """Build a parameterized WHERE clause from active column filters.
 
     Returns (where_sql, bind_values). Unknown filter keys are silently ignored.
-    Values wrapped in double quotes use exact-match (=) instead of ILIKE.
     """
     parts: list[str] = []
     values: list[Any] = []
     idx = 1
-    for key, raw_value in filters.items():
-        expr_template = filterable.get(key)
-        if not expr_template:
-            continue
-        is_exact = raw_value.startswith('"') and raw_value.endswith('"') and len(raw_value) >= 2
-        if is_exact:
-            stripped = raw_value[1:-1]
-            expr = expr_template.replace("ILIKE {val}", f"= ${idx}").replace("{val}", f"${idx}")
-            values.append(stripped)
-        else:
-            expr = expr_template.replace("{val}", f"${idx}")
-            values.append(f"%{raw_value}%")
-        parts.append(f"({expr})")
-        idx += 1
+    for key, entry in filters.items():
+        field_def = filterable.get(key)
+        if field_def:
+            idx = _append_filter(parts, values, idx, field_def, entry)
     if not parts:
         return "", []
     return "WHERE " + " AND ".join(parts), values
@@ -104,7 +182,7 @@ async def list_entities(
     config: EntityConfig,
     params: ListParams,
     model_cls: type,
-    filters: dict[str, str] | None = None,
+    filters: dict[str, FilterEntry] | None = None,
 ):
     """ List entities from a database, with optional per-column filtering and sorting """
     order = _build_order_clause(params.sort_by, params.sort_dir, config.sortable, config.default_sort)

@@ -3,6 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Model } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
+import { ARRAY_FILTER_OPERATORS, DATE_FILTER_OPERATORS } from '@/lib/filterOperators'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import '@/lib/columnMeta'
@@ -36,13 +37,14 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
     header: 'Types',
     size: 200,
     enableSorting: false,
-    meta: { filterParam: 'types' },
+    meta: { filterParam: 'types', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.model_types} />,
   },
   {
     accessorKey: 'years_active',
     header: 'Years Active',
     size: 130,
+    meta: { filterParam: 'years_active' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -56,6 +58,7 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
     accessorKey: 'creator',
     header: 'Creator',
     size: 160,
+    meta: { filterParam: 'creator' },
     cell: ({ getValue }) => {
       const val = getValue() as string | null
       return val ? (
@@ -69,7 +72,7 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
     accessorKey: 'created_at',
     header: 'Added',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}
@@ -80,7 +83,7 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
     accessorKey: 'updated_at',
     header: 'Updated',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}

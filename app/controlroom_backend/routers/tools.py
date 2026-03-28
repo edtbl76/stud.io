@@ -14,6 +14,7 @@ from asyncpg import Connection
 
 from database import get_conn
 from routers._crud_ops import build_filter_clause, parse_filters, _build_order_clause
+from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
 from schemas.common import PagedResponse, ListParams
@@ -24,18 +25,22 @@ router = APIRouter()
 _NOT_FOUND = "Tool not found"
 _SORTABLE = frozenset({"full_tool_name", "brand_name", "version", "created_at", "updated_at"})
 _DEFAULT_SORT = "full_tool_name"
-_FILTERABLE = {
-    "name":    "full_tool_name ILIKE {val}",
-    "brand":   "brand_name ILIKE {val}",
-    "version": "version ILIKE {val}",
-    "types": (
+_FILTERABLE: dict[str, FilterableField] = {
+    "name":    FilterableField("full_tool_name ILIKE {val}", col_expr="full_tool_name"),
+    "brand":   FilterableField("brand_name ILIKE {val}",    col_expr="brand_name"),
+    "version": FilterableField("version ILIKE {val}",       col_expr="version"),
+    "types": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tool_type_ids, ARRAY[]::UUID[])) uid"
-        " JOIN tool_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN tool_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(tool_type_ids IS NULL OR cardinality(tool_type_ids) = 0)",
     ),
-    "formats": (
+    "formats": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(plugin_format_ids, ARRAY[]::UUID[])) uid"
-        " JOIN plugin_formats t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN plugin_formats t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(plugin_format_ids IS NULL OR cardinality(plugin_format_ids) = 0)",
     ),
+    "created_at": FilterableField(col_expr="created_at"),
+    "updated_at": FilterableField(col_expr="updated_at"),
 }
 
 
@@ -99,7 +104,7 @@ async def list_tools(
     category: str,
     params: Annotated[ListParams, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
-    filters: Annotated[dict[str, str], Depends(parse_filters)],
+    filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     cfg = _cfg(category)
     order = _build_order_clause(params.sort_by, params.sort_dir, _SORTABLE, _DEFAULT_SORT)

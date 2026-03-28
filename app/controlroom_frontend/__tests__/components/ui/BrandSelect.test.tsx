@@ -69,7 +69,7 @@ describe('BrandSelect', () => {
     act(() => { jest.advanceTimersByTime(300) })
 
     await waitFor(() => expect(screen.getByText('Steinway')).toBeInTheDocument())
-    expect(mockListPaged).toHaveBeenCalledWith('/brands', expect.objectContaining({ filters: { name: 'Stein' } }))
+    expect(mockListPaged).toHaveBeenCalledWith('/brands', expect.objectContaining({ filters: { name: { value: 'Stein', operator: 'contains' } } }))
   })
 
   it('does not search when query is empty', async () => {

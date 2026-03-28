@@ -36,7 +36,7 @@ export function BrandSelect({
     const timer = setTimeout(async () => {
       if (!query.trim()) { setResults([]); return }
       try {
-        const data = await api.listPaged<Brand>('/brands', { limit: 50, filters: { name: query } })
+        const data = await api.listPaged<Brand>('/brands', { limit: 50, filters: { name: { value: query, operator: 'contains' } } })
         setResults(data.items)
       } catch {
         setResults([])

@@ -3,6 +3,7 @@
 import { ColumnDef } from '@tanstack/react-table'
 import { Effect } from '@/lib/types'
 import '@/lib/columnMeta'
+import { ARRAY_FILTER_OPERATORS, DATE_FILTER_OPERATORS } from '@/lib/filterOperators'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
@@ -41,7 +42,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     header: 'Types',
     size: 220,
     enableSorting: false,
-    meta: { filterParam: 'types' },
+    meta: { filterParam: 'types', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.effect_types} />,
   },
   {
@@ -78,14 +79,14 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     header: 'Models',
     size: 200,
     enableSorting: false,
-    meta: { filterParam: 'models' },
+    meta: { filterParam: 'models', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.models} />,
   },
   {
     accessorKey: 'created_at',
     header: 'Added',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}
@@ -96,7 +97,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     accessorKey: 'updated_at',
     header: 'Updated',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}
@@ -109,7 +110,7 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     header: 'Tags',
     size: 220,
     enableSorting: false,
-    meta: { filterParam: 'tags' },
+    meta: { filterParam: 'tags', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.tags} limit={3} />,
   },
 ]

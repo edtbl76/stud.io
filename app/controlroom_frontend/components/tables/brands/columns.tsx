@@ -4,6 +4,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { ExternalLink } from 'lucide-react'
 import { Brand } from '@/lib/types'
 import '@/lib/columnMeta'
+import { DATE_FILTER_OPERATORS, type FilterOperator } from '@/lib/filterOperators'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import { formatDate } from '@/lib/utils'
@@ -26,7 +27,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorFn: (row) => row.brand_name ?? row.legal_name,
     header: 'Name',
     size: 200,
-    meta: { filterParam: 'name' },
+    meta: { filterParam: 'name', filterOperators: ['contains'] as FilterOperator[] },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
@@ -107,7 +108,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorKey: 'created_at',
     header: 'Added',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}
@@ -118,7 +119,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorKey: 'updated_at',
     header: 'Updated',
     size: 120,
-
+    meta: { filterOperators: DATE_FILTER_OPERATORS },
     cell: ({ getValue }) => (
       <span className="text-muted-foreground text-xs" title={getValue() as string}>
         {formatDate(getValue() as string)}

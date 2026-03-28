@@ -13,6 +13,7 @@ import { BulkEditBar } from '@/components/BulkEditBar'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import { useTableFilters } from '@/lib/useTableFilters'
+import type { FilterState, FilterEntry } from '@/lib/filterOperators'
 import '@/lib/columnMeta'
 
 // Checkbox column defined at module level with no external dependencies.
@@ -76,8 +77,9 @@ interface PagedTableProps {
   externalSorting?: SortingState
   onExternalSortChange?: (s: SortingState) => void
   manualFiltering?: true
-  externalFilters?: Record<string, string>
-  onExternalFiltersChange?: (f: Record<string, string>) => void
+  externalFilters?: FilterState
+  onFilterEntryChange?: (colId: string, entry: FilterEntry | null) => void
+  onClearFilters?: () => void
 }
 
 interface UseTableDataResult<T> {
@@ -90,8 +92,8 @@ interface UseTableDataResult<T> {
 
 function resolveFilterParams<T>(
   columns: ColumnDef<T, unknown>[],
-  inputFilters: Record<string, string>,
-): Record<string, string> {
+  inputFilters: FilterState,
+): FilterState {
   const paramMap = new Map<string, string>()
   for (const col of columns) {
     const id = col.id ?? (col as { accessorKey?: string }).accessorKey
@@ -99,10 +101,10 @@ function resolveFilterParams<T>(
     const filterParam = col.meta?.filterParam ?? id
     paramMap.set(id, filterParam)
   }
-  const resolved: Record<string, string> = {}
-  for (const [colId, val] of Object.entries(inputFilters)) {
+  const resolved: FilterState = {}
+  for (const [colId, entry] of Object.entries(inputFilters)) {
     const param = paramMap.get(colId) ?? colId
-    resolved[param] = val
+    resolved[param] = entry
   }
   return resolved
 }
@@ -117,7 +119,7 @@ function useTableData<T>(
   const [externalSorting, setExternalSorting] = React.useState<SortingState>(
     defaultSort ? [{ id: defaultSort, desc: false }] : [],
   )
-  const { inputFilters, activeFilters, setInputFilters } = useTableFilters()
+  const { inputFilters, activeFilters, setFilterEntry, clearFilters } = useTableFilters()
 
   const sortBy = externalSorting.map((s) => s.id)
   const sortDir = externalSorting.map((s) => (s.desc ? 'desc' : 'asc'))
@@ -181,7 +183,8 @@ function useTableData<T>(
         onExternalSortChange: setExternalSorting,
         manualFiltering: true,
         externalFilters: inputFilters,
-        onExternalFiltersChange: setInputFilters,
+        onFilterEntryChange: setFilterEntry,
+        onClearFilters: clearFilters,
       }
     : {}
 

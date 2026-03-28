@@ -82,7 +82,7 @@ describe('DataTableHeader', () => {
         />
       </table>
     )
-    expect(screen.getByPlaceholderText('Filter…')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('2+ chars…')).toBeInTheDocument()
   })
 
   it('does not render a filter input when column cannot filter', () => {
@@ -96,7 +96,7 @@ describe('DataTableHeader', () => {
         />
       </table>
     )
-    expect(screen.queryByPlaceholderText('Filter…')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('2+ chars…')).not.toBeInTheDocument()
   })
 
   it('applies opacity class to dragging column', () => {

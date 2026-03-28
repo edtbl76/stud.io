@@ -7,6 +7,7 @@ from asyncpg import Connection
 
 from database import get_conn
 from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs, parse_filters
+from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.libraries import LibraryCreate, LibraryUpdate, LibraryOut
 from schemas.common import PagedResponse, ListParams
@@ -18,19 +19,23 @@ _SELECT_ONE = "SELECT * FROM libraries WHERE library_id = $1"
 _NOT_FOUND = "Library not found"
 _SORTABLE = frozenset({"library_name", "brand_name", "updated_at", "created_at"})
 _DEFAULT_SORT = "library_name"
-_FILTERABLE = {
-    "name":  "full_library_name ILIKE {val}",
-    "brand": "brand_name ILIKE {val}",
-    "models": (
+_FILTERABLE: dict[str, FilterableField] = {
+    "name":  FilterableField("full_library_name ILIKE {val}", col_expr="full_library_name"),
+    "brand": FilterableField("brand_name ILIKE {val}",        col_expr="brand_name"),
+    "models": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"
         " JOIN models m ON m.model_id = uid"
         " LEFT JOIN brands mb ON mb.brand_id = m.brand_id"
-        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})"
+        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})",
+        empty_expr="(model_ids IS NULL OR cardinality(model_ids) = 0)",
     ),
-    "tags": (
+    "tags": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"
-        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(tag_ids IS NULL OR cardinality(tag_ids) = 0)",
     ),
+    "created_at": FilterableField(col_expr="created_at"),
+    "updated_at": FilterableField(col_expr="updated_at"),
 }
 
 
@@ -55,7 +60,7 @@ _CONFIG = EntityConfig(
 async def list_libraries(
     params: Annotated[ListParams, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
-    filters: Annotated[dict[str, str], Depends(parse_filters)],
+    filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     return await list_entities(conn, _CONFIG, params, LibraryOut, filters)
 

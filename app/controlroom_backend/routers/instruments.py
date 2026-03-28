@@ -7,6 +7,7 @@ from asyncpg import Connection
 
 from database import get_conn
 from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs, parse_filters
+from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.instruments import InstrumentCreate, InstrumentUpdate, InstrumentOut
 from schemas.common import PagedResponse, ListParams
@@ -18,24 +19,29 @@ _SELECT_ONE = "SELECT * FROM instruments WHERE instrument_id = $1"
 _NOT_FOUND = "Instrument not found"
 _SORTABLE = frozenset({"instrument_name", "brand_name", "version", "updated_at", "created_at"})
 _DEFAULT_SORT = "instrument_name"
-_FILTERABLE = {
-    "name":    "full_instrument_name ILIKE {val}",
-    "brand":   "brand_name ILIKE {val}",
-    "version": "version ILIKE {val}",
-    "types": (
+_FILTERABLE: dict[str, FilterableField] = {
+    "name":    FilterableField("full_instrument_name ILIKE {val}", col_expr="full_instrument_name"),
+    "brand":   FilterableField("brand_name ILIKE {val}",           col_expr="brand_name"),
+    "version": FilterableField("version ILIKE {val}",              col_expr="version"),
+    "types": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(instrument_type_ids, ARRAY[]::UUID[])) uid"
-        " JOIN instrument_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN instrument_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(instrument_type_ids IS NULL OR cardinality(instrument_type_ids) = 0)",
     ),
-    "models": (
+    "models": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"
         " JOIN models m ON m.model_id = uid"
         " LEFT JOIN brands mb ON mb.brand_id = m.brand_id"
-        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})"
+        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})",
+        empty_expr="(model_ids IS NULL OR cardinality(model_ids) = 0)",
     ),
-    "tags": (
+    "tags": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"
-        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(tag_ids IS NULL OR cardinality(tag_ids) = 0)",
     ),
+    "created_at": FilterableField(col_expr="created_at"),
+    "updated_at": FilterableField(col_expr="updated_at"),
 }
 
 
@@ -60,7 +66,7 @@ _CONFIG = EntityConfig(
 async def list_instruments(
     params: Annotated[ListParams, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
-    filters: Annotated[dict[str, str], Depends(parse_filters)],
+    filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     return await list_entities(conn, _CONFIG, params, InstrumentOut, filters)
 

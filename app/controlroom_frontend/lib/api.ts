@@ -1,4 +1,5 @@
 import type { SearchResponse } from '@/lib/types'
+import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api${path}`, {
@@ -16,19 +17,29 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json()
 }
 
+function appendFilters(p: URLSearchParams, filters: FilterState) {
+  for (const [key, entry] of Object.entries(filters)) {
+    const { value, operator, value_end } = entry
+    if (VALUE_FREE_OPERATORS.has(operator)) {
+      p.set(`filter_${key}_op`, operator)
+    } else {
+      if (!value) continue
+      p.set(`filter_${key}`, value)
+      if (operator !== DEFAULT_OPERATOR) p.set(`filter_${key}_op`, operator)
+      if (DATE_RANGE_OPERATORS.has(operator) && value_end) p.set(`filter_${key}_end`, value_end)
+    }
+  }
+}
+
 export const api = {
   list:   <T>(ep: string, q?: string) => req<T[]>(q ? `${ep}?q=${encodeURIComponent(q)}` : ep),
-  listPaged: <T>(ep: string, params: { limit?: number; offset?: number; sort_by?: string[]; sort_dir?: string[]; filters?: Record<string, string> }) => {
+  listPaged: <T>(ep: string, params: { limit?: number; offset?: number; sort_by?: string[]; sort_dir?: string[]; filters?: FilterState }) => {
     const p = new URLSearchParams()
     if (params.limit !== undefined) p.set('limit', String(params.limit))
     if (params.offset !== undefined) p.set('offset', String(params.offset))
     params.sort_by?.forEach((k) => p.append('sort_by', k))
     params.sort_dir?.forEach((d) => p.append('sort_dir', d))
-    if (params.filters) {
-      for (const [key, val] of Object.entries(params.filters)) {
-        if (val) p.set(`filter_${key}`, val)
-      }
-    }
+    if (params.filters) appendFilters(p, params.filters)
     const qs = p.toString()
     return req<{ items: T[]; total: number }>(qs ? `${ep}?${qs}` : ep)
   },

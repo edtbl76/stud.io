@@ -7,6 +7,7 @@ from asyncpg import Connection
 
 from database import get_conn
 from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, check_parent_refs, parse_filters
+from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.effects import EffectCreate, EffectUpdate, EffectOut
 from schemas.common import PagedResponse, ListParams
@@ -18,25 +19,30 @@ _SELECT_ONE = "SELECT * FROM effects WHERE effect_id = $1"
 _NOT_FOUND = "Effect not found"
 _SORTABLE = frozenset({"effect_name", "brand_name", "version", "collection", "updated_at", "created_at"})
 _DEFAULT_SORT = "effect_name"
-_FILTERABLE = {
-    "name":       "full_effect_name ILIKE {val}",
-    "brand":      "brand_name ILIKE {val}",
-    "version":    "version ILIKE {val}",
-    "collection": "collection ILIKE {val}",
-    "types": (
+_FILTERABLE: dict[str, FilterableField] = {
+    "name":       FilterableField("full_effect_name ILIKE {val}", col_expr="full_effect_name"),
+    "brand":      FilterableField("brand_name ILIKE {val}",       col_expr="brand_name"),
+    "version":    FilterableField("version ILIKE {val}",          col_expr="version"),
+    "collection": FilterableField("collection ILIKE {val}",       col_expr="collection"),
+    "types": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(effect_type_ids, ARRAY[]::UUID[])) uid"
-        " JOIN effect_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN effect_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(effect_type_ids IS NULL OR cardinality(effect_type_ids) = 0)",
     ),
-    "models": (
+    "models": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(model_ids, ARRAY[]::UUID[])) uid"
         " JOIN models m ON m.model_id = uid"
         " LEFT JOIN brands mb ON mb.brand_id = m.brand_id"
-        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})"
+        " WHERE m.model_name ILIKE {val} OR mb.brand_name ILIKE {val})",
+        empty_expr="(model_ids IS NULL OR cardinality(model_ids) = 0)",
     ),
-    "tags": (
+    "tags": FilterableField(
         "EXISTS (SELECT 1 FROM unnest(COALESCE(tag_ids, ARRAY[]::UUID[])) uid"
-        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})"
+        " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
+        empty_expr="(tag_ids IS NULL OR cardinality(tag_ids) = 0)",
     ),
+    "created_at": FilterableField(col_expr="created_at"),
+    "updated_at": FilterableField(col_expr="updated_at"),
 }
 
 
@@ -61,7 +67,7 @@ _CONFIG = EntityConfig(
 async def list_effects(
     params: Annotated[ListParams, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
-    filters: Annotated[dict[str, str], Depends(parse_filters)],
+    filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     return await list_entities(conn, _CONFIG, params, EffectOut, filters)
 

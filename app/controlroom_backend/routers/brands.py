@@ -6,6 +6,7 @@ from asyncpg import Connection
 
 from database import get_conn
 from routers._crud_ops import EntityConfig, list_entities, get_entity, get_history, delete_entity, parse_filters
+from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.brands import BrandCreate, BrandUpdate, BrandOut
 from schemas.common import PagedResponse, ListParams
@@ -18,11 +19,13 @@ _NOT_FOUND = "Brand not found"
 _REF_TABLES = ["models"]
 _SORTABLE = frozenset({"brand_name", "legal_name", "entity_type_name", "created_at", "updated_at"})
 _DEFAULT_SORT = "brand_name"
-_FILTERABLE = {
-    "name":        "brand_name ILIKE {val} OR legal_name ILIKE {val}",
-    "brand_name":  "brand_name ILIKE {val}",
-    "legal_name":  "legal_name ILIKE {val}",
-    "entity_type": "entity_type_name ILIKE {val}",
+_FILTERABLE: dict[str, FilterableField] = {
+    "name":        FilterableField("brand_name ILIKE {val} OR legal_name ILIKE {val}"),
+    "brand_name":  FilterableField("brand_name ILIKE {val}",       col_expr="brand_name"),
+    "legal_name":  FilterableField("legal_name ILIKE {val}",       col_expr="legal_name"),
+    "entity_type": FilterableField("entity_type_name ILIKE {val}", col_expr="entity_type_name"),
+    "created_at":  FilterableField(col_expr="created_at"),
+    "updated_at":  FilterableField(col_expr="updated_at"),
 }
 
 
@@ -54,7 +57,7 @@ _CONFIG = EntityConfig(
 async def list_brands(
     params: Annotated[ListParams, Depends()],
     conn: Annotated[Connection, Depends(get_conn)],
-    filters: Annotated[dict[str, str], Depends(parse_filters)],
+    filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     return await list_entities(conn, _CONFIG, params, BrandOut, filters)
 
