@@ -6,11 +6,14 @@ import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import '@/lib/columnMeta'
+import { formatDate } from '@/lib/utils'
 
 export const toolSortFields: SortField[] = [
   { key: 'full_tool_name', label: 'Name' },
   { key: 'brand_name', label: 'Brand' },
   { key: 'version', label: 'Version' },
+  { key: 'updated_at', label: 'Updated' },
+  { key: 'created_at', label: 'Added' },
 ]
 
 export const toolBulkEditFields: BulkEditField[] = [
@@ -61,5 +64,27 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     enableSorting: false,
     meta: { filterParam: 'formats' },
     cell: ({ row }) => <TypeBadges types={row.original.plugin_formats} />,
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Added',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'updated_at',
+    header: 'Updated',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
   },
 ]

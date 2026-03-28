@@ -53,11 +53,11 @@ app/controlroom_frontend/
 ├── lib/
 │   ├── api.ts              # Typed fetch wrapper — calls relative /api/... paths
 │   ├── auth.tsx            # AuthContext, useAuth hook, session management
-│   ├── columnMeta.ts       # TypeScript module augmentation — adds filterParam to TanStack ColumnMeta
+│   ├── columnMeta.ts       # TypeScript module augmentation — adds filterParam and defaultHidden to TanStack ColumnMeta
 │   ├── computeDiff.ts      # Field-level diff between two JSON snapshots (for history view)
 │   ├── types.ts            # TypeScript interfaces for all API response shapes
 │   ├── useTableFilters.ts  # Hook: per-column filter state with 350 ms debounce and 2-char minimum
-│   └── utils.ts            # Tailwind class merge utility (cn)
+│   └── utils.ts            # Tailwind class merge utility (cn), formatSlug, formatDate
 ├── __tests__/              # Jest + React Testing Library unit tests
 └── e2e/                    # Playwright end-to-end tests (run against test stack on port 3001)
 ```
@@ -70,7 +70,7 @@ app/controlroom_frontend/
 
 The generic page component used by every catalog/session/tools/config page. Accepts:
 - `title`, `endpoint`, `queryKey` — page identity
-- `columns` — TanStack Table column definitions with optional `meta.filterParam` for server-side filtering
+- `columns` — TanStack Table column definitions with optional `meta.filterParam` for server-side filtering and `meta.defaultHidden` to hide a column by default while keeping it available in the column picker
 - `getRowId` — extracts the primary key from a row
 - `renderModal` — callback that renders the appropriate modal for the table
 - `paginated` — enables server-side pagination, sorting, and per-column filtering (all content tables use this)

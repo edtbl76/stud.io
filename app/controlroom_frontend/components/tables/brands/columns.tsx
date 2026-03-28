@@ -6,11 +6,14 @@ import { Brand } from '@/lib/types'
 import '@/lib/columnMeta'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
+import { formatDate } from '@/lib/utils'
 
 export const brandSortFields: SortField[] = [
   { key: 'brand_name', label: 'Brand Name' },
   { key: 'legal_name', label: 'Legal Name' },
   { key: 'entity_type_name', label: 'Type' },
+  { key: 'updated_at', label: 'Updated' },
+  { key: 'created_at', label: 'Added' },
 ]
 
 export const brandBulkEditFields: BulkEditField[] = [
@@ -99,5 +102,27 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
         <span className="text-muted-foreground/40">—</span>
       )
     },
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Added',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'updated_at',
+    header: 'Updated',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
   },
 ]

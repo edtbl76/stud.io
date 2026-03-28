@@ -6,13 +6,15 @@ import '@/lib/columnMeta'
 import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
+import { formatDate } from '@/lib/utils'
 
 export const effectSortFields: SortField[] = [
   { key: 'effect_name', label: 'Effect Name' },
   { key: 'brand_name', label: 'Brand' },
   { key: 'collection', label: 'Collection' },
   { key: 'version', label: 'Version' },
-  { key: 'updated_at', label: 'Recently Updated' },
+  { key: 'updated_at', label: 'Updated' },
+  { key: 'created_at', label: 'Added' },
 ]
 
 export const effectBulkEditFields: BulkEditField[] = [
@@ -78,6 +80,28 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     enableSorting: false,
     meta: { filterParam: 'models' },
     cell: ({ row }) => <TypeBadges types={row.original.models} />,
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Added',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'updated_at',
+    header: 'Updated',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
   },
   {
     id: 'tags',

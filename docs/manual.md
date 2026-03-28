@@ -64,6 +64,8 @@ The toolbar contains two sort controls:
 
 All content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) fetch data from the server and re-fetch whenever sort or filter values change. CONFIG lookup tables sort and filter client-side.
 
+Every content table supports **Recently Updated** (sort by last edit date) and **Recently Added** (sort by creation date) as sort options. Use these to quickly surface records that were recently changed or imported.
+
 ### Add button (admin only)
 
 An **Add** button appears to the right of the table title and record count. Click it to open a blank create form for that table.

@@ -11,3 +11,11 @@ export function formatSlug(slug: string): string {
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ')
 }
+
+export function formatDate(isoString: string): string {
+  return new Date(isoString).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  })
+}

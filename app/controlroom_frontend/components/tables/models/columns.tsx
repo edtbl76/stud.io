@@ -6,11 +6,13 @@ import { TypeBadges } from '@/components/TypeBadges'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import '@/lib/columnMeta'
+import { formatDate } from '@/lib/utils'
 
 export const modelSortFields: SortField[] = [
   { key: 'model_name', label: 'Model Name' },
   { key: 'brand_name', label: 'Brand' },
-  { key: 'updated_at', label: 'Recently Updated' },
+  { key: 'updated_at', label: 'Updated' },
+  { key: 'created_at', label: 'Added' },
 ]
 
 export const modelBulkEditFields: BulkEditField[] = [
@@ -62,5 +64,27 @@ export const modelColumns: ColumnDef<Model, unknown>[] = [
         <span className="text-muted-foreground/40">—</span>
       )
     },
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Added',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
+  },
+  {
+    accessorKey: 'updated_at',
+    header: 'Updated',
+    size: 120,
+
+    cell: ({ getValue }) => (
+      <span className="text-muted-foreground text-xs" title={getValue() as string}>
+        {formatDate(getValue() as string)}
+      </span>
+    ),
   },
 ]
