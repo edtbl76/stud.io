@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import TypeVar
+from typing import TypeVar, Annotated
+from fastapi import Query
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -33,10 +33,22 @@ class ParentRef(ParentRefBase):
 class ParentRefInput(ParentRefBase):
     """Input shape for writing parent_ids — name not required."""
 
-@dataclass
 class ListParams:
-    # Request-time parameters for list endpoints
-    limit: int = 100
-    offset: int = 0
-    sort_by: str | None = None
-    sort_dir: str = "asc"
+    """Request-time parameters for list endpoints.
+
+    sort_by and sort_dir are parallel lists collected from repeated query params
+    (?sort_by=a&sort_by=b&sort_dir=asc&sort_dir=desc).  A single value becomes
+    a one-element list, keeping backwards compatibility.
+    """
+
+    def __init__(
+        self,
+        limit: int = 100,
+        offset: int = 0,
+        sort_by: Annotated[list[str], Query()] = (),   # type: ignore[assignment]
+        sort_dir: Annotated[list[str], Query()] = (),  # type: ignore[assignment]
+    ) -> None:
+        self.limit = limit
+        self.offset = offset
+        self.sort_by: list[str] = list(sort_by)
+        self.sort_dir: list[str] = list(sort_dir)

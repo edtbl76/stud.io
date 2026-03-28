@@ -10,14 +10,16 @@ test('sort: toolbar shows sort button when sortFields are configured', async ({ 
   await page.goto('/catalog/brands')
   await waitForRows(page)
 
-  await expect(page.getByRole('button', { name: 'Sort by' })).toBeVisible()
+  // The default sort pill and + button are both visible on page load
+  await expect(page.getByRole('button', { name: 'Add sort level' })).toBeVisible()
 })
 
 test('sort: direction toggle button is visible when sortFields are configured', async ({ page }) => {
   await page.goto('/catalog/brands')
   await waitForRows(page)
 
-  await expect(page.getByRole('button', { name: /Sort (ascending|descending)/ })).toBeVisible()
+  // Direction arrow is inside the first (default) sort pill
+  await expect(page.getByRole('button', { name: /Sort (ascending|descending)/ }).first()).toBeVisible()
 })
 
 test('sort: column headers have no clickable sort interaction', async ({ page }) => {
@@ -28,43 +30,44 @@ test('sort: column headers have no clickable sort interaction', async ({ page })
   await expect(page.locator('thead button.cursor-pointer')).toHaveCount(0)
 })
 
-test('sort: clicking sort button opens dropdown with field options', async ({ page }) => {
+test('sort: clicking + button opens dropdown with field options', async ({ page }) => {
   await page.goto('/catalog/brands')
   await waitForRows(page)
 
-  await page.getByRole('button', { name: 'Sort by' }).click()
+  await page.getByRole('button', { name: 'Add sort level' }).click()
 
-  // Brand sort fields
-  await expect(page.getByRole('button', { name: 'Brand Name' })).toBeVisible()
+  // Fields not already active should appear in the dropdown
   await expect(page.getByRole('button', { name: 'Legal Name' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Type' })).toBeVisible()
 })
 
-test('sort: selecting a field updates the sort button label', async ({ page }) => {
+test('sort: selecting a field from + dropdown adds a new sort pill', async ({ page }) => {
   await page.goto('/catalog/brands')
   await waitForRows(page)
 
-  await page.getByRole('button', { name: 'Sort by' }).click()
+  await page.getByRole('button', { name: 'Add sort level' }).click()
   await page.getByRole('button', { name: 'Legal Name' }).click()
 
-  await expect(page.getByRole('button', { name: 'Sort by' })).toContainText('Legal Name')
+  // Two direction-toggle buttons = two active sort pills
+  await expect(page.getByRole('button', { name: /Sort (ascending|descending)/ })).toHaveCount(2)
 })
 
 test('sort: dropdown closes after selecting a field', async ({ page }) => {
   await page.goto('/catalog/brands')
   await waitForRows(page)
 
-  await page.getByRole('button', { name: 'Sort by' }).click()
+  await page.getByRole('button', { name: 'Add sort level' }).click()
   await page.getByRole('button', { name: 'Legal Name' }).click()
 
-  await expect(page.getByRole('button', { name: 'Brand Name' })).not.toBeVisible()
+  // The dropdown option "Type" should no longer be visible
+  await expect(page.getByRole('button', { name: 'Type' })).not.toBeVisible()
 })
 
 test('sort: direction toggle flips between ascending and descending', async ({ page }) => {
   await page.goto('/catalog/brands')
   await waitForRows(page)
 
-  const dirBtn = page.getByRole('button', { name: /Sort (ascending|descending)/ })
+  const dirBtn = page.getByRole('button', { name: /Sort (ascending|descending)/ }).first()
   await expect(dirBtn).toHaveAccessibleName('Sort ascending')
 
   await dirBtn.click()
@@ -81,7 +84,7 @@ test('sort: non-paginated table reorders rows when direction is toggled', async 
   const firstCell = page.locator('tbody tr:first-child td:nth-child(2)')
   const firstBefore = await firstCell.textContent()
 
-  await page.getByRole('button', { name: 'Sort ascending' }).click()
+  await page.getByRole('button', { name: 'Sort ascending' }).first().click()
   await page.waitForTimeout(300)
 
   const firstAfter = await firstCell.textContent()
@@ -100,7 +103,7 @@ for (const { name, path } of [
     await page.goto(path)
     await waitForRows(page)
 
-    await page.getByRole('button', { name: /Sort (ascending|descending)/ }).click()
+    await page.getByRole('button', { name: /Sort (ascending|descending)/ }).first().click()
 
     await waitForRows(page)
     await expect(page.getByRole('table')).toBeVisible()
@@ -110,8 +113,8 @@ for (const { name, path } of [
     await page.goto(path)
     await waitForRows(page)
 
-    // All paginated tables have "Brand" as a sort field
-    await page.getByRole('button', { name: 'Sort by' }).click()
+    // Add "Brand" as a secondary sort level
+    await page.getByRole('button', { name: 'Add sort level' }).click()
     await page.getByRole('button', { name: 'Brand' }).click()
 
     await waitForRows(page)

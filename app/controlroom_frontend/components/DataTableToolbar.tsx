@@ -1,18 +1,22 @@
 'use client'
 
 import * as React from 'react'
-import { Table } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, ArrowUpDown, SlidersHorizontal } from 'lucide-react'
+import { Table, SortingState } from '@tanstack/react-table'
+import { ArrowDown, ArrowUp, Plus, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SortField } from '@/lib/sort'
+
+const MAX_SORT_LEVELS = 3
 
 interface DataTableToolbarProps<TData> {
   readonly table: Table<TData>
   readonly activeFilterCount: number
   readonly onClearFilters: () => void
   readonly sortFields?: SortField[]
-  readonly currentSort?: { id: string; desc: boolean }
-  readonly onSortChange?: (id: string, desc: boolean) => void
+  readonly sorting?: SortingState
+  readonly onSortAdd?: (id: string) => void
+  readonly onSortRemove?: (index: number) => void
+  readonly onSortToggleDir?: (index: number) => void
 }
 
 export function DataTableToolbar<TData>({
@@ -20,13 +24,15 @@ export function DataTableToolbar<TData>({
   activeFilterCount,
   onClearFilters,
   sortFields,
-  currentSort,
-  onSortChange,
+  sorting = [],
+  onSortAdd,
+  onSortRemove,
+  onSortToggleDir,
 }: Readonly<DataTableToolbarProps<TData>>) {
   const [showColMenu, setShowColMenu] = React.useState(false)
-  const [showSortMenu, setShowSortMenu] = React.useState(false)
+  const [showAddMenu, setShowAddMenu] = React.useState(false)
   const colMenuRef = React.useRef<HTMLDivElement>(null)
-  const sortMenuRef = React.useRef<HTMLDivElement>(null)
+  const addMenuRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (!showColMenu) return
@@ -40,26 +46,22 @@ export function DataTableToolbar<TData>({
   }, [showColMenu])
 
   React.useEffect(() => {
-    if (!showSortMenu) return
+    if (!showAddMenu) return
     function handleClick(e: MouseEvent) {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
-        setShowSortMenu(false)
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setShowAddMenu(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [showSortMenu])
+  }, [showAddMenu])
 
-  const currentField = sortFields?.find((f) => f.key === currentSort?.id)
+  const availableFields = sortFields?.filter((f) => !sorting.some((s) => s.id === f.key)) ?? []
+  const canAddMore = sortFields && sortFields.length > 0 && sorting.length < MAX_SORT_LEVELS && availableFields.length > 0
 
-  function handleSortFieldSelect(key: string) {
-    onSortChange?.(key, currentSort?.desc ?? false)
-    setShowSortMenu(false)
-  }
-
-  function handleDirectionToggle() {
-    if (!currentSort) return
-    onSortChange?.(currentSort.id, !currentSort.desc)
+  function handleAddField(key: string) {
+    onSortAdd?.(key)
+    setShowAddMenu(false)
   }
 
   return (
@@ -77,47 +79,66 @@ export function DataTableToolbar<TData>({
 
       <div className="flex items-center gap-2">
         {sortFields && sortFields.length > 0 && (
-          <div className="flex items-center gap-1">
-            {currentSort && (
-              <button
-                type="button"
-                onClick={handleDirectionToggle}
-                aria-label={currentSort.desc ? 'Sort descending' : 'Sort ascending'}
-                className="flex items-center justify-center h-[26px] w-[26px] text-muted-foreground hover:text-foreground rounded border border-border hover:border-muted-foreground transition-colors"
-              >
-                {currentSort.desc
-                  ? <ArrowDown className="h-3.5 w-3.5" />
-                  : <ArrowUp className="h-3.5 w-3.5" />}
-              </button>
-            )}
-            <div className="relative" ref={sortMenuRef}>
-              <button
-                type="button"
-                onClick={() => setShowSortMenu((v) => !v)}
-                aria-label="Sort by"
-                className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground rounded border border-border hover:border-muted-foreground transition-colors"
-              >
-                <ArrowUpDown className="h-3.5 w-3.5" />
-                {currentField?.label ?? 'Sort'}
-              </button>
-              {showSortMenu && (
-                <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded border border-border bg-card shadow-lg py-1">
-                  {sortFields.map((f) => (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => handleSortFieldSelect(f.key)}
-                      className={cn(
-                        'w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors',
-                        currentSort?.id === f.key && 'text-primary font-medium',
-                      )}
-                    >
-                      {f.label}
-                    </button>
-                  ))}
+          <div className="flex items-center gap-1 flex-wrap">
+            {sorting.map((entry, i) => {
+              const field = sortFields.find((f) => f.key === entry.id)
+              return (
+                <div
+                  key={`${entry.id}-${i}`}
+                  className="flex items-center gap-0.5 px-2 py-0.5 text-xs rounded border border-border bg-muted/30"
+                >
+                  <span className="text-foreground pr-0.5">{field?.label ?? entry.id}</span>
+                  <button
+                    type="button"
+                    onClick={() => onSortToggleDir?.(i)}
+                    aria-label={entry.desc ? 'Sort descending' : 'Sort ascending'}
+                    className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {entry.desc
+                      ? <ArrowDown className="h-3 w-3" />
+                      : <ArrowUp className="h-3 w-3" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onSortRemove?.(i)}
+                    aria-label={`Remove ${field?.label ?? entry.id} sort`}
+                    className="flex items-center text-muted-foreground hover:text-destructive transition-colors ml-0.5"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
-              )}
-            </div>
+              )
+            })}
+
+            {canAddMore && (
+              <div className="relative" ref={addMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowAddMenu((v) => !v)}
+                  aria-label="Add sort level"
+                  className={cn(
+                    'flex items-center justify-center h-[22px] w-[22px] text-muted-foreground hover:text-foreground',
+                    'rounded border border-border hover:border-muted-foreground transition-colors',
+                  )}
+                >
+                  <Plus className="h-3 w-3" />
+                </button>
+                {showAddMenu && (
+                  <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded border border-border bg-card shadow-lg py-1">
+                    {availableFields.map((f) => (
+                      <button
+                        key={f.key}
+                        type="button"
+                        onClick={() => handleAddField(f.key)}
+                        className="w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 transition-colors"
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

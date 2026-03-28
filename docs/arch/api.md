@@ -74,7 +74,7 @@ Role is embedded in the JWT payload. The `require_admin` dependency in `routers/
 All content table list endpoints use server-side pagination with sorting and optional per-column filtering:
 
 ```
-GET /effects?limit=100&offset=0&sort_by=effect_name&sort_dir=asc&filter_name=reverb&filter_brand=moog
+GET /effects?limit=100&offset=0&sort_by=effect_name&sort_by=brand_name&sort_dir=asc&sort_dir=asc&filter_name=reverb
 ```
 
 Query parameters:
@@ -83,8 +83,8 @@ Query parameters:
 |---|---|---|
 | `limit` | 100 | Number of records to return (max 100) |
 | `offset` | 0 | Number of records to skip |
-| `sort_by` | table-specific | Column to sort by (must be in the router's `sortable` set) |
-| `sort_dir` | `asc` | `asc` or `desc` |
+| `sort_by` | table-specific | Repeated param — one per sort level. Each must be in the router's `sortable` set; invalid values are skipped. Falls back to the default sort if all are invalid or absent. |
+| `sort_dir` | `asc` | Repeated param — parallel to `sort_by`. Each value is `asc` or `desc`. Defaults to `asc` for any level whose `sort_dir` entry is missing. |
 | `filter_<key>` | — | Per-column filter; key is the `filterParam` suffix defined per router. Values use `ILIKE %value%`. Wrap in double quotes for exact match (`"value"` → `= value`). Multiple `filter_*` params are AND-combined. |
 
 Response model: `{ items: [...], total: <int> }` (`PagedResponse`).

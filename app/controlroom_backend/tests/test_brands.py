@@ -81,9 +81,14 @@ async def test_create_brand(client, admin_headers):
 
 
 async def test_create_brand_minimal(client, admin_headers):
-    response = await client.post("/brands", json={"legal_name": "Minimal Brand"}, headers=admin_headers)
+    response = await client.post("/brands", json={"brand_name": "Minimal Brand"}, headers=admin_headers)
     assert response.status_code == 201
-    assert response.json()["legal_name"] == "Minimal Brand"
+    assert response.json()["brand_name"] == "Minimal Brand"
+
+
+async def test_create_brand_without_brand_name_rejected(client, admin_headers):
+    response = await client.post("/brands", json={"legal_name": "No Brand Name"}, headers=admin_headers)
+    assert response.status_code == 422
 
 
 async def test_create_brand_brand_name_only(client, admin_headers):
@@ -121,7 +126,7 @@ async def test_update_brand_not_found(client, admin_headers):
 
 async def test_delete_brand(client, conn, admin_headers):
     row = await conn.fetchrow(
-        "INSERT INTO brands (legal_name) VALUES ('Delete Me Inc.') RETURNING brand_id"
+        "INSERT INTO brands (legal_name, brand_name) VALUES ('Delete Me Inc.', 'Delete Me') RETURNING brand_id"
     )
     brand_id = str(row["brand_id"])
     response = await client.delete(f"/brands/{brand_id}", headers=admin_headers)
@@ -132,6 +137,34 @@ async def test_delete_brand_not_found(client, admin_headers):
     response = await client.delete(f"/brands/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
 
+
+# ---------------------------------------------------------------------------
+# MULTI-SORT
+# ---------------------------------------------------------------------------
+
+async def test_list_brands_multi_sort_two_columns(client):
+    response = await client.get("/brands?sort_by=brand_name&sort_by=created_at&sort_dir=asc&sort_dir=desc")
+    assert response.status_code == 200
+    data = response.json()
+    assert "items" in data and "total" in data
+
+
+async def test_list_brands_multi_sort_invalid_column_falls_back(client):
+    # An invalid secondary column is silently ignored; the primary still sorts.
+    response = await client.get("/brands?sort_by=brand_name&sort_by=__invalid__&sort_dir=asc&sort_dir=asc")
+    assert response.status_code == 200
+    assert response.json()["items"]
+
+
+async def test_list_brands_multi_sort_all_invalid_uses_default(client):
+    response = await client.get("/brands?sort_by=__bad__&sort_dir=asc")
+    assert response.status_code == 200
+    assert response.json()["items"]
+
+
+# ---------------------------------------------------------------------------
+# DELETE (existing)
+# ---------------------------------------------------------------------------
 
 async def test_delete_brand_blocked_when_referenced(client, conn, admin_headers):
     row = await conn.fetchrow(

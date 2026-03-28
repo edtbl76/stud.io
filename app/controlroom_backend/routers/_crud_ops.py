@@ -39,10 +39,13 @@ def parse_filters(request: Request) -> dict[str, str]:
     """Extract filter_* query params from the request, validating key names."""
     result: dict[str, str] = {}
     for k, v in request.query_params.items():
-        if k.startswith(_FILTER_PREFIX) and v:
-            key = k[len(_FILTER_PREFIX):]
-            if _FILTER_KEY_RE.match(key):
-                result[key] = v
+        if not k.startswith(_FILTER_PREFIX):
+            continue
+        if not v:
+            continue
+        key = k[len(_FILTER_PREFIX):]
+        if _FILTER_KEY_RE.match(key):
+            result[key] = v
     return result
 
 
@@ -77,6 +80,24 @@ def build_filter_clause(
     return "WHERE " + " AND ".join(parts), values
 
 
+def _build_order_clause(
+    sort_by: list[str],
+    sort_dir: list[str],
+    sortable: frozenset[str],
+    default_sort: str,
+) -> str:
+    """Build a multi-column ORDER BY clause, validating each column against sortable."""
+    terms: list[str] = []
+    for i, key in enumerate(sort_by):
+        if key not in sortable:
+            continue
+        direction = "DESC" if i < len(sort_dir) and sort_dir[i].lower() == "desc" else "ASC"
+        terms.append(f"{key} {direction}")
+    if not terms:
+        terms.append(f"{default_sort} ASC")
+    return "ORDER BY " + ", ".join(terms)
+
+
 # noinspection SqlInjection
 async def list_entities(
     conn: Connection,
@@ -86,9 +107,7 @@ async def list_entities(
     filters: dict[str, str] | None = None,
 ):
     """ List entities from a database, with optional per-column filtering and sorting """
-    col = params.sort_by if params.sort_by in config.sortable else config.default_sort
-    direction = "DESC" if params.sort_dir.lower() == "desc" else "ASC"
-    order = f"ORDER BY {col} {direction}"
+    order = _build_order_clause(params.sort_by, params.sort_dir, config.sortable, config.default_sort)
     where, bind_vals = build_filter_clause(config.filterable, filters or {})
     n = len(bind_vals)
     total = await conn.fetchval(

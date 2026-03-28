@@ -18,12 +18,12 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   list:   <T>(ep: string, q?: string) => req<T[]>(q ? `${ep}?q=${encodeURIComponent(q)}` : ep),
-  listPaged: <T>(ep: string, params: { limit?: number; offset?: number; sort_by?: string; sort_dir?: string; filters?: Record<string, string> }) => {
+  listPaged: <T>(ep: string, params: { limit?: number; offset?: number; sort_by?: string[]; sort_dir?: string[]; filters?: Record<string, string> }) => {
     const p = new URLSearchParams()
     if (params.limit !== undefined) p.set('limit', String(params.limit))
     if (params.offset !== undefined) p.set('offset', String(params.offset))
-    if (params.sort_by) p.set('sort_by', params.sort_by)
-    if (params.sort_dir) p.set('sort_dir', params.sort_dir)
+    params.sort_by?.forEach((k) => p.append('sort_by', k))
+    params.sort_dir?.forEach((d) => p.append('sort_dir', d))
     if (params.filters) {
       for (const [key, val] of Object.entries(params.filters)) {
         if (val) p.set(`filter_${key}`, val)

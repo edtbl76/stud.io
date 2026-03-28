@@ -43,7 +43,7 @@ async def test_user_can_list_libraries(client, auth_headers):
 async def test_admin_can_create_brand(client, admin_headers):
     response = await client.post(
         "/brands",
-        json={"legal_name": "RBAC Test Brand"},
+        json={"legal_name": "RBAC Test Brand", "brand_name": "RBAC Test Brand"},
         headers=admin_headers,
     )
     assert response.status_code == 201

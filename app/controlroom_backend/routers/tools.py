@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from asyncpg import Connection
 
 from database import get_conn
-from routers._crud_ops import build_filter_clause, parse_filters
+from routers._crud_ops import build_filter_clause, parse_filters, _build_order_clause
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
 from schemas.common import PagedResponse, ListParams
@@ -102,9 +102,7 @@ async def list_tools(
     filters: Annotated[dict[str, str], Depends(parse_filters)],
 ):
     cfg = _cfg(category)
-    col = params.sort_by if params.sort_by in _SORTABLE else _DEFAULT_SORT
-    direction = "DESC" if params.sort_dir.lower() == "desc" else "ASC"
-    order = f"ORDER BY {col} {direction}"
+    order = _build_order_clause(params.sort_by, params.sort_dir, _SORTABLE, _DEFAULT_SORT)
     where, bind_vals = build_filter_clause(_FILTERABLE, filters)
     n = len(bind_vals)
     total = await conn.fetchval(

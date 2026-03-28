@@ -11,7 +11,7 @@ export interface LookupOut {
 export interface Brand {
   brand_id: string
   legal_name: string | null
-  brand_name: string | null
+  brand_name: string
   entity_type_id: string | null
   entity_type_name: string | null
   website: string | null

@@ -21,6 +21,12 @@ function makeTable(cols: Column<Row, unknown>[] = [makeCol()]): Table<Row> {
   } as unknown as Table<Row>
 }
 
+const SORT_FIELDS = [
+  { key: 'name', label: 'Name' },
+  { key: 'brand', label: 'Brand' },
+  { key: 'created_at', label: 'Added' },
+]
+
 describe('DataTableToolbar', () => {
   it('renders the Columns button', () => {
     render(
@@ -123,7 +129,7 @@ describe('DataTableToolbar', () => {
     expect(screen.getByText('custom_col')).toBeInTheDocument()
   })
 
-  it('does not show sort button when sortFields is not provided', () => {
+  it('does not show sort pills or add button when sortFields is not provided', () => {
     render(
       <DataTableToolbar
         table={makeTable()}
@@ -131,76 +137,147 @@ describe('DataTableToolbar', () => {
         onClearFilters={jest.fn()}
       />
     )
-    expect(screen.queryByText('Sort')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Add sort level')).not.toBeInTheDocument()
   })
 
-  it('shows sort button when sortFields is provided', () => {
+  it('shows a sort pill for each active sort entry', () => {
     render(
       <DataTableToolbar
         table={makeTable()}
         activeFilterCount={0}
         onClearFilters={jest.fn()}
-        sortFields={[{ key: 'name', label: 'Name' }]}
-        currentSort={{ id: 'name', desc: false }}
-        onSortChange={jest.fn()}
+        sortFields={SORT_FIELDS}
+        sorting={[
+          { id: 'name', desc: false },
+          { id: 'brand', desc: true },
+        ]}
+        onSortAdd={jest.fn()}
+        onSortRemove={jest.fn()}
+        onSortToggleDir={jest.fn()}
       />
     )
     expect(screen.getByText('Name')).toBeInTheDocument()
-  })
-
-  it('shows sort dropdown with field options when clicked', () => {
-    render(
-      <DataTableToolbar
-        table={makeTable()}
-        activeFilterCount={0}
-        onClearFilters={jest.fn()}
-        sortFields={[
-          { key: 'name', label: 'Name' },
-          { key: 'brand', label: 'Brand' },
-        ]}
-        currentSort={{ id: 'name', desc: false }}
-        onSortChange={jest.fn()}
-      />
-    )
-    fireEvent.click(screen.getByText('Name'))
     expect(screen.getByText('Brand')).toBeInTheDocument()
   })
 
-  it('calls onSortChange with selected field when a sort field is clicked', () => {
-    const onSortChange = jest.fn()
+  it('shows + button when fewer than 3 sort levels active', () => {
     render(
       <DataTableToolbar
         table={makeTable()}
         activeFilterCount={0}
         onClearFilters={jest.fn()}
-        sortFields={[
-          { key: 'name', label: 'Name' },
-          { key: 'brand', label: 'Brand' },
-        ]}
-        currentSort={{ id: 'name', desc: false }}
-        onSortChange={onSortChange}
+        sortFields={SORT_FIELDS}
+        sorting={[{ id: 'name', desc: false }]}
+        onSortAdd={jest.fn()}
+        onSortRemove={jest.fn()}
+        onSortToggleDir={jest.fn()}
       />
     )
-    fireEvent.click(screen.getByText('Name'))
-    fireEvent.click(screen.getByText('Brand'))
-    expect(onSortChange).toHaveBeenCalledWith('brand', false)
+    expect(screen.getByLabelText('Add sort level')).toBeInTheDocument()
   })
 
-  it('calls onSortChange toggling desc when direction button is clicked', () => {
-    const onSortChange = jest.fn()
+  it('hides + button when 3 sort levels are active', () => {
     render(
       <DataTableToolbar
         table={makeTable()}
         activeFilterCount={0}
         onClearFilters={jest.fn()}
-        sortFields={[{ key: 'name', label: 'Name' }]}
-        currentSort={{ id: 'name', desc: false }}
-        onSortChange={onSortChange}
+        sortFields={SORT_FIELDS}
+        sorting={[
+          { id: 'name', desc: false },
+          { id: 'brand', desc: false },
+          { id: 'created_at', desc: false },
+        ]}
+        onSortAdd={jest.fn()}
+        onSortRemove={jest.fn()}
+        onSortToggleDir={jest.fn()}
       />
     )
-    // Direction toggle has aria-label reflecting current sort direction
-    const directionBtn = screen.getByLabelText('Sort ascending')
-    fireEvent.click(directionBtn)
-    expect(onSortChange).toHaveBeenCalledWith('name', true)
+    expect(screen.queryByLabelText('Add sort level')).not.toBeInTheDocument()
+  })
+
+  it('opens add-field dropdown when + is clicked and shows only unused fields', () => {
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={SORT_FIELDS}
+        sorting={[{ id: 'name', desc: false }]}
+        onSortAdd={jest.fn()}
+        onSortRemove={jest.fn()}
+        onSortToggleDir={jest.fn()}
+      />
+    )
+    fireEvent.click(screen.getByLabelText('Add sort level'))
+    expect(screen.getByText('Brand')).toBeInTheDocument()
+    expect(screen.getByText('Added')).toBeInTheDocument()
+    // 'Name' is already active — should not appear in the dropdown
+    // (it appears as a pill label outside the dropdown, so query inside the dropdown)
+    const dropdown = screen.getByText('Brand').closest('div')!.parentElement!
+    expect(dropdown).not.toHaveTextContent('Name')
+  })
+
+  it('calls onSortAdd with selected field key when a dropdown item is clicked', () => {
+    const onSortAdd = jest.fn()
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={SORT_FIELDS}
+        sorting={[{ id: 'name', desc: false }]}
+        onSortAdd={onSortAdd}
+        onSortRemove={jest.fn()}
+        onSortToggleDir={jest.fn()}
+      />
+    )
+    fireEvent.click(screen.getByLabelText('Add sort level'))
+    fireEvent.click(screen.getByText('Brand'))
+    expect(onSortAdd).toHaveBeenCalledWith('brand')
+  })
+
+  it('calls onSortRemove with correct index when × is clicked', () => {
+    const onSortRemove = jest.fn()
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={SORT_FIELDS}
+        sorting={[
+          { id: 'name', desc: false },
+          { id: 'brand', desc: false },
+        ]}
+        onSortAdd={jest.fn()}
+        onSortRemove={onSortRemove}
+        onSortToggleDir={jest.fn()}
+      />
+    )
+    const removeButtons = screen.getAllByLabelText(/Remove .* sort/)
+    fireEvent.click(removeButtons[1]) // remove Brand (index 1)
+    expect(onSortRemove).toHaveBeenCalledWith(1)
+  })
+
+  it('calls onSortToggleDir with correct index when direction button is clicked', () => {
+    const onSortToggleDir = jest.fn()
+    render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        sortFields={SORT_FIELDS}
+        sorting={[
+          { id: 'name', desc: false },
+          { id: 'brand', desc: true },
+        ]}
+        onSortAdd={jest.fn()}
+        onSortRemove={jest.fn()}
+        onSortToggleDir={onSortToggleDir}
+      />
+    )
+    const dirButtons = screen.getAllByLabelText(/Sort (ascending|descending)/)
+    fireEvent.click(dirButtons[0]) // toggle Name (index 0)
+    expect(onSortToggleDir).toHaveBeenCalledWith(0)
   })
 })

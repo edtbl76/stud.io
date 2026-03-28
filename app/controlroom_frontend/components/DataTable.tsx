@@ -20,6 +20,7 @@ import { DataTableBody } from '@/components/DataTableBody'
 import type { SortField } from '@/lib/sort'
 
 const ROW_HEIGHT = 44
+const MAX_SORT_LEVELS = 3
 
 function makeSortingChangeHandler(
   externalSorting: SortingState | undefined,
@@ -92,10 +93,17 @@ export function DataTable<TData, TValue>({
 
   const sortedData = React.useMemo(() => {
     if (manualSorting || sorting.length === 0) return data
-    const { id, desc } = sorting[0]
-    return [...data].sort((a, b) =>
-      compareValues((a as Record<string, unknown>)[id], (b as Record<string, unknown>)[id], desc)
-    )
+    return [...data].sort((a, b) => {
+      for (const { id, desc } of sorting) {
+        const cmp = compareValues(
+          (a as Record<string, unknown>)[id],
+          (b as Record<string, unknown>)[id],
+          desc,
+        )
+        if (cmp !== 0) return cmp
+      }
+      return 0
+    })
   }, [data, sorting, manualSorting])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -130,10 +138,24 @@ export function DataTable<TData, TValue>({
     enableColumnResizing: true,
   })
 
-  const currentSortEntry = manualSorting ? (externalSorting?.[0]) : sorting[0]
+  const activeSorting = manualSorting ? (externalSorting ?? []) : sorting
 
-  function handleSortChange(id: string, desc: boolean) {
-    const next: SortingState = [{ id, desc }]
+  function handleSortAdd(id: string) {
+    if (activeSorting.length >= MAX_SORT_LEVELS) return
+    if (activeSorting.some((s) => s.id === id)) return
+    const next: SortingState = [...activeSorting, { id, desc: false }]
+    onExternalSortChange?.(next)
+    setSorting(next)
+  }
+
+  function handleSortRemove(index: number) {
+    const next = activeSorting.filter((_, i) => i !== index)
+    onExternalSortChange?.(next)
+    setSorting(next)
+  }
+
+  function handleSortToggleDir(index: number) {
+    const next = activeSorting.map((s, i) => (i === index ? { ...s, desc: !s.desc } : s))
     onExternalSortChange?.(next)
     setSorting(next)
   }
@@ -194,8 +216,10 @@ export function DataTable<TData, TValue>({
         activeFilterCount={activeFilterCount}
         onClearFilters={handleClearFilters}
         sortFields={sortFields}
-        currentSort={currentSortEntry}
-        onSortChange={handleSortChange}
+        sorting={activeSorting}
+        onSortAdd={handleSortAdd}
+        onSortRemove={handleSortRemove}
+        onSortToggleDir={handleSortToggleDir}
       />
       <div ref={scrollRef} className="flex-1 overflow-auto">
         <table

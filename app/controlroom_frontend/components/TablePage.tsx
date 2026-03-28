@@ -119,8 +119,8 @@ function useTableData<T>(
   )
   const { inputFilters, activeFilters, setInputFilters } = useTableFilters()
 
-  const sortBy = externalSorting[0]?.id
-  const sortDir = externalSorting[0]?.desc ? 'desc' : 'asc'
+  const sortBy = externalSorting.map((s) => s.id)
+  const sortDir = externalSorting.map((s) => (s.desc ? 'desc' : 'asc'))
   const resolvedFilters = React.useMemo(
     () => resolveFilterParams(columns, activeFilters),
     [columns, activeFilters],
@@ -140,13 +140,13 @@ function useTableData<T>(
     isLoading: isInfiniteLoading,
     error: infiniteError,
   } = useInfiniteQuery({
-    queryKey: [queryKey, sortBy, sortDir, resolvedFilters],
+    queryKey: [queryKey, externalSorting, resolvedFilters],
     queryFn: ({ pageParam }) =>
       api.listPaged<T>(endpoint, {
         limit: 100,
         offset: pageParam,
-        sort_by: sortBy,
-        sort_dir: sortDir,
+        sort_by: sortBy.length > 0 ? sortBy : undefined,
+        sort_dir: sortDir.length > 0 ? sortDir : undefined,
         filters: Object.keys(resolvedFilters).length > 0 ? resolvedFilters : undefined,
       }),
     initialPageParam: 0,

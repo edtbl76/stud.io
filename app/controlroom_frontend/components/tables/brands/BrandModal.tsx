@@ -39,7 +39,7 @@ function getBrandTitle(mode: 'view' | 'edit' | 'history', record: Brand | null):
 function buildBrandPayload(form: FormState): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (form.legal_name) body.legal_name = form.legal_name
-  if (form.brand_name) body.brand_name = form.brand_name
+  body.brand_name = form.brand_name
   if (form.entity_type_id.length > 0) body.entity_type_id = form.entity_type_id[0]
   if (form.website) body.website = form.website
   if (form.description) body.description = form.description
@@ -57,22 +57,22 @@ function BrandEditForm({ form, set }: Readonly<BrandEditProps>) {
   return (
     <div className="grid grid-cols-2 gap-4">
       <div className="col-span-2 flex flex-col gap-1.5">
-        <Label htmlFor="legal_name">Legal Name *</Label>
+        <Label htmlFor="legal_name">Legal Name</Label>
         <Input
           id="legal_name"
           value={form.legal_name}
           onChange={(e) => set('legal_name', e.target.value)}
           placeholder="Legal Name"
-          required
         />
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="brand_name">Brand Name</Label>
+        <Label htmlFor="brand_name">Brand Name *</Label>
         <Input
           id="brand_name"
           value={form.brand_name}
           onChange={(e) => set('brand_name', e.target.value)}
           placeholder="Brand Name"
+          required
         />
       </div>
       <div className="flex flex-col gap-1.5">

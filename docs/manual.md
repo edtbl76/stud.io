@@ -57,14 +57,15 @@ Click any row to open the record in a modal.
 
 ### Sorting
 
-The toolbar contains two sort controls:
+The toolbar displays active sort levels as **sort pills**. Each pill shows the field name and a direction arrow (↑/↓).
 
-- **Direction toggle** — the arrow button (↑/↓) switches between ascending and descending order. The arrow reflects the current direction.
-- **Sort field dropdown** — the button showing the current field name opens a menu of available sort fields. Select any field to sort by it. You can sort by fields that are not displayed as columns (for example, sort instruments by brand name even though only the full instrument name appears in the table).
+- **Direction toggle** — click the arrow on any pill to flip it between ascending and descending.
+- **Remove** — click the **×** on a pill to remove that sort level.
+- **Add sort level** — click the **+** button to open a dropdown of available fields and add a secondary (or tertiary) sort level. Up to 3 sort levels are supported. The dropdown only shows fields not already active.
 
-All content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) fetch data from the server and re-fetch whenever sort or filter values change. CONFIG lookup tables sort and filter client-side.
+All content tables (Brands, Models, Effects, Instruments, Libraries, Workstations, and the five Tool tables) fetch data from the server and re-fetch whenever sort values change. CONFIG lookup tables sort client-side.
 
-Every content table supports **Recently Updated** (sort by last edit date) and **Recently Added** (sort by creation date) as sort options. Use these to quickly surface records that were recently changed or imported.
+Every content table supports **Updated** (sort by last edit date) and **Added** (sort by creation date) as sort options. Use these to quickly surface records that were recently changed or imported.
 
 ### Add button (admin only)
 

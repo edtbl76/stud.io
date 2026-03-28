@@ -35,7 +35,7 @@ CREATE TABLE tag_types (
 CREATE TABLE brands (
     brand_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     legal_name       TEXT,
-    brand_name       TEXT,
+    brand_name       TEXT NOT NULL,
     entity_type_id   UUID REFERENCES entity_types(type_id),
     website          TEXT,
     description      TEXT,
