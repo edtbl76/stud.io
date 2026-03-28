@@ -4,7 +4,7 @@ import { ColumnDef } from '@tanstack/react-table'
 import { ExternalLink } from 'lucide-react'
 import { Brand } from '@/lib/types'
 import '@/lib/columnMeta'
-import { DATE_FILTER_OPERATORS, type FilterOperator } from '@/lib/filterOperators'
+import { DATE_FILTER_OPERATORS, TEXT_FILTER_OPERATORS } from '@/lib/filterOperators'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import { formatDate } from '@/lib/utils'
@@ -27,7 +27,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorFn: (row) => row.brand_name ?? row.legal_name,
     header: 'Name',
     size: 200,
-    meta: { filterParam: 'name', filterOperators: ['contains'] as FilterOperator[] },
+    meta: { filterParam: 'name', filterOperators: TEXT_FILTER_OPERATORS },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>

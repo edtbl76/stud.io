@@ -20,7 +20,7 @@ _REF_TABLES = ["models"]
 _SORTABLE = frozenset({"brand_name", "legal_name", "entity_type_name", "created_at", "updated_at"})
 _DEFAULT_SORT = "brand_name"
 _FILTERABLE: dict[str, FilterableField] = {
-    "name":        FilterableField("brand_name ILIKE {val} OR legal_name ILIKE {val}"),
+    "name":        FilterableField("brand_name ILIKE {val} OR legal_name ILIKE {val}", col_expr="brand_name"),
     "brand_name":  FilterableField("brand_name ILIKE {val}",       col_expr="brand_name"),
     "legal_name":  FilterableField("legal_name ILIKE {val}",       col_expr="legal_name"),
     "entity_type": FilterableField("entity_type_name ILIKE {val}", col_expr="entity_type_name"),
