@@ -461,6 +461,23 @@ async def test_permanent_returns_409_if_already_undone(client, admin_headers, co
     assert "already undone" in response.json()["detail"]
 
 
+async def test_permanent_fk_violation_returns_409(client, admin_headers, conn):
+    """Permanent delete returns 409 when the record is still referenced by other records."""
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name, deleted_at) VALUES ('__perm_fk__', NOW()) RETURNING brand_id"
+    )
+    await conn.execute(
+        "INSERT INTO models (model_name, brand_id) VALUES ('__perm_fk_model__', $1)", brand_id
+    )
+    audit_id, _ = await _insert_audit(conn, table="brands", operation="DELETE",
+                                       brand_id=brand_id)
+    response = await client.delete(
+        f"/admin/change-review/{audit_id}/permanent", headers=admin_headers
+    )
+    assert response.status_code == 409
+    assert "referenced" in response.json()["detail"]
+
+
 # ---------------------------------------------------------------------------
 # GET /admin/change-review/{audit_id}
 # ---------------------------------------------------------------------------

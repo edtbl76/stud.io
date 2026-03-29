@@ -65,7 +65,7 @@ Every write operation (CREATE, UPDATE, DELETE) on content and config tables is r
 | `operation` | `CREATE`, `UPDATE`, or `DELETE` |
 | `performed_by` | Username of the user who made the change |
 | `performed_at` | Timestamp of the change |
-| `old_data` | JSON snapshot of the row before the change (null for CREATE) |
+| `old_data` | JSON snapshot of the row before the change (null for CREATE). All values are serialized to JSON-safe types (UUIDs and datetimes become strings). On undo, `apply_old_data()` coerces them back to native Python types before binding to the database. |
 | `new_data` | JSON snapshot of the row after the change (null for DELETE) |
 | `acknowledged_at` / `acknowledged_by` | Set when an admin reviews the entry via Change Review |
 | `undone_at` / `undone_by` | Set when an admin reverses the change via Change Review |

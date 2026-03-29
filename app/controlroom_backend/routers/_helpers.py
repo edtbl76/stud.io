@@ -1,7 +1,8 @@
 """Shared router utilities."""
 import json
+import re
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import UUID
 
 import asyncpg
@@ -130,7 +131,11 @@ async def fetch_mutable_entry(
     conn: asyncpg.Connection,
     audit_id: UUID,
 ) -> asyncpg.Record:
-    """Fetch an audit entry and raise if not found, acknowledged, or already undone."""
+    """Fetch an audit entry and raise if not found, acknowledged, or already undone.
+
+    The DB enforces acknowledged and undone as mutually exclusive states via
+    audit_log_state_exclusive, so both flags must be checked before any write.
+    """
     row = await conn.fetchrow(_AUDIT_SELECT, audit_id)
     if not row:
         raise HTTPException(status_code=404, detail=_NOT_FOUND)
@@ -141,6 +146,33 @@ async def fetch_mutable_entry(
     return row
 
 
+_UUID_RE = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+    re.IGNORECASE,
+)
+_ISO_DT_RE = re.compile(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}")
+
+
+def _coerce_value(val: object) -> object:
+    """Convert JSON-deserialized strings back to asyncpg-compatible Python types.
+
+    JSONB round-trip strips type information: UUIDs and datetimes become plain
+    strings.  asyncpg needs the original Python types to bind them correctly to
+    typed PostgreSQL columns (uuid, timestamptz, uuid[], …).
+    """
+    if isinstance(val, str):
+        if _UUID_RE.match(val):
+            return uuid.UUID(val)
+        if _ISO_DT_RE.match(val):
+            dt = datetime.fromisoformat(val)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt
+    if isinstance(val, list):
+        return [_coerce_value(item) for item in val]
+    return val
+
+
 async def apply_old_data(
     conn: asyncpg.Connection,
     table: str,
@@ -148,8 +180,8 @@ async def apply_old_data(
     record_id: UUID,
     old_data: dict,
 ) -> None:
-    """Restore a row to its old_data snapshot, excluding PK and created_at."""
-    skip = {pk_col, "created_at"}
+    """Restore a row to its old_data snapshot, excluding PK, created_at, and updated_at."""
+    skip = {pk_col, "created_at", "updated_at"}
     set_parts, values, i = [], [], 1
     for col, val in old_data.items():
         if col in skip:
@@ -159,7 +191,7 @@ async def apply_old_data(
             values.append(json.dumps(val))
         else:
             set_parts.append(f"{col} = ${i}")
-            values.append(val)
+            values.append(_coerce_value(val))
         i += 1
     if not set_parts:
         return

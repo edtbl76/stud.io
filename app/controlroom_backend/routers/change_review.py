@@ -181,8 +181,8 @@ async def undo_change(
         raise HTTPException(status_code=500, detail="Unrecognized table in audit log")
     pk_col = _TABLE_PK[table]
 
-    async with conn.transaction():
-        try:
+    try:
+        async with conn.transaction():
             if operation == "CREATE":
                 await conn.execute(
                     f"DELETE FROM {table} WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
@@ -198,21 +198,20 @@ async def undo_change(
                 )
             else:
                 raise HTTPException(status_code=500, detail="Unrecognized operation in audit log")
-        except asyncpg.ForeignKeyViolationError:
-            raise HTTPException(status_code=409, detail="Cannot undo: record is referenced by other records")
 
-        updated = await conn.fetchrow(
-            """UPDATE audit_log
-               SET undone_at = NOW(), undone_by = $2
-               WHERE audit_id = $1
-               RETURNING audit_id, table_name, record_id, operation,
-                         performed_by, performed_at,
-                         acknowledged_at, acknowledged_by,
-                         undone_at, undone_by""",
-            audit_id, user.username,
-        )
-
-    return AuditEntry(**dict(updated), record_display_name=None)
+            updated = await conn.fetchrow(
+                """UPDATE audit_log
+                   SET undone_at = NOW(), undone_by = $2
+                   WHERE audit_id = $1
+                   RETURNING audit_id, table_name, record_id, operation,
+                             performed_by, performed_at,
+                             acknowledged_at, acknowledged_by,
+                             undone_at, undone_by""",
+                audit_id, user.username,
+            )
+        return AuditEntry(**dict(updated), record_display_name=None)
+    except asyncpg.ForeignKeyViolationError:
+        raise HTTPException(status_code=409, detail="Cannot undo: record is referenced by other records")
 
 
 @router.delete(
@@ -241,11 +240,14 @@ async def permanent_delete(
         raise HTTPException(status_code=500, detail="Unrecognized table in audit log")
     pk_col = _TABLE_PK[table]
 
-    async with conn.transaction():
-        await conn.execute(
-            f"DELETE FROM {table} WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
-        )
-        await conn.execute(
-            "UPDATE audit_log SET undone_at = NOW(), undone_by = $2 WHERE audit_id = $1",
-            audit_id, user.username,
-        )
+    try:
+        async with conn.transaction():
+            await conn.execute(
+                f"DELETE FROM {table} WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
+            )
+            await conn.execute(
+                "UPDATE audit_log SET undone_at = NOW(), undone_by = $2 WHERE audit_id = $1",
+                audit_id, user.username,
+            )
+    except asyncpg.ForeignKeyViolationError:
+        raise HTTPException(status_code=409, detail="Cannot permanently delete: record is referenced by other records")

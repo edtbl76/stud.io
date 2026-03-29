@@ -238,6 +238,6 @@ The xlxs logic is split across three internal modules:
 
 `POST /admin/change-review/{audit_id}/acknowledge` — admin only. Marks the audit entry as acknowledged (`acknowledged_at`, `acknowledged_by`). Returns the updated entry. Returns 409 if already resolved.
 
-`POST /admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents undo-CREATE.
+`POST /admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents the undo. UPDATE restoration skips `created_at` and `updated_at` (both are auto-managed columns); all other fields are restored, with UUID and datetime strings in `old_data` coerced back to their native types before binding to the database.
 
 `DELETE /admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.
