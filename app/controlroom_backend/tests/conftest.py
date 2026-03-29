@@ -1,6 +1,5 @@
 import os
-os.environ.setdefault("DB_NAME", "controlroomdb_test")
-os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
+import re
 
 import json
 import bcrypt
@@ -12,8 +11,17 @@ from main import app
 from database import get_conn
 from routers.auth import _create_token
 
-TEST_DSN = "postgresql://studio:studio@localhost:5432/controlroomdb_test"
+_worker = os.environ.get("PYTEST_XDIST_WORKER", "")
+if _worker:
+    _m = re.match(r"gw(\d+)", _worker)
+    _db_name = f"controlroomdb_test_{_m.group(1)}" if _m else f"controlroomdb_test_{_worker}"
+else:
+    _db_name = "controlroomdb_test"
 
+os.environ.setdefault("DB_NAME", _db_name)
+os.environ.setdefault("GOOGLE_CLIENT_ID", "test-client-id")
+
+TEST_DSN = f"postgresql://studio:studio@localhost:5432/{_db_name}"
 
 @pytest_asyncio.fixture()
 async def conn():

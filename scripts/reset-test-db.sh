@@ -2,19 +2,23 @@
 # =============================================================================
 # STUD.io ControlRoom — Reset test database
 #
-# Clones the current state of controlroomdb into controlroomdb_test so that
-# e2e tests always run against a mirror of production.
+# Clones the current state of controlroomdb into a target test database so
+# that tests always run against a mirror of production.
 #
 # Usage:
-#   ./scripts/reset-test-db.sh
+#   ./scripts/reset-test-db.sh [target_db]
+# Default target: controlroomdb_test
 # =============================================================================
 set -e
 
-DB_CONTAINER="${DB_CONTAINER:-studio_db}"
-DB_USER="${DB_USER:-studio}"
-DB_PASS="${DB_PASS:-studio}"
+ROOT="$(git rev-parse --show-toplevel)"
+source "$ROOT/scripts/cfg.sh"
+
+DB_CONTAINER="$(cfg db_container)"
+DB_USER="$(cfg db_user)"
+DB_PASS="$(cfg db_password)"
 SRC_DB="controlroomdb"
-TEST_DB="controlroomdb_test"
+TEST_DB="${1:-controlroomdb_test}"
 
 export PGPASSWORD="$DB_PASS"
 

@@ -1,0 +1,13 @@
+# Test parallelization config
+pytest_workers: 4
+playwright_shards: 4
+db_container: studio_db
+db_user: studio
+db_password: studio
+test_db_source: controlroomdb_test
+backend_compose_file: docker-compose.dev.yml
+backend_compose_project: dev
+backend_service: controlroom_backend_test
+backend_internal_port: 5150
+backend_base_port: 5151
+frontend_base_port: 3001

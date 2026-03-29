@@ -1,7 +1,7 @@
 ### Node / Next.js
 node_modules/
 .next/
-.next-e2e/
+.next-e2e*/
 .env.local
 .env*.local
 
@@ -360,3 +360,4 @@ app/controlroom_frontend/test-results/
 /test-results/.last-run.json
 /client_secret_684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com.json
 /backups/**
+app/controlroom_frontend/.next-e2e*/
