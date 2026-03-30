@@ -8,16 +8,17 @@ All scripts live in `scripts/` (dev tooling and hook runners) or `util/` (legacy
 
 ### `build.sh` *(project root)*
 
-Main entry point. Starts the full Docker stack, runs tests, and optionally runs a SonarQube quality gate.
+Main entry point. Starts the full Docker stack, runs tests, and optionally runs a SonarQube quality gate or full release gate.
 
 ```bash
 ./build.sh              # stack + unit tests + E2E tests
 ./build.sh --skip-tests # stack only
 ./build.sh --skip-e2e   # stack + unit tests only
 ./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
+./build.sh --release    # full release gate: --dev + Trivy + secrets + headers + perf
 ```
 
-Flags can be combined (e.g. `./build.sh --dev --skip-e2e`). With `--dev`, E2E is blocked if the SonarQube quality gate fails.
+Flags can be combined (e.g. `./build.sh --dev --skip-e2e`). With `--dev` or `--release`, E2E is blocked if the SonarQube quality gate fails.
 
 On startup it:
 1. Builds and starts all containers
@@ -25,7 +26,9 @@ On startup it:
 3. Applies `sql/schema.sql` and `sql/views.sql` to `controlroomdb` and `controlroomdb_test`
 4. Runs backend (`pytest`) and frontend (`jest`) unit tests
 5. (With `--dev`) Runs the SonarQube scanner and checks the quality gate — aborts if it fails
-6. Runs the Playwright E2E test suite
+6. (With `--release`) Runs the full security scan (`test-scan.sh`) — aborts if any check fails
+7. Runs the Playwright E2E test suite
+8. (With `--release`) Runs the performance suite (`test-perf.sh`)
 
 ---
 
@@ -118,9 +121,31 @@ Manages the SonarQube Docker stack (separate from the studio stack).
 
 ---
 
+### `scripts/test-scan.sh`
+
+Runs the full security suite. Flags can be combined or used independently.
+
+```bash
+./scripts/test-scan.sh            # all four checks
+./scripts/test-scan.sh --sonar    # SonarQube scan + quality gate only
+./scripts/test-scan.sh --trivy    # Trivy container image scan only
+./scripts/test-scan.sh --secrets  # detect-secrets audit only
+./scripts/test-scan.sh --headers  # HTTP security header assertions only
+```
+
+Requires the production stack to be running (`docker compose up -d`). `--sonar` additionally requires the dev stack (`./scripts/dev.sh up`).
+
+Steps performed (full run):
+1. **SonarQube** — coverage reports + scanner upload (delegates to `sonar-scan.sh`)
+2. **Trivy** — scans both container images for HIGH + CRITICAL CVEs across OS packages and app dependencies (`run-trivy.sh`)
+3. **detect-secrets** — audits the working tree against `.secrets.baseline`; fails if new secrets are found
+4. **Headers** — `pytest tests/security/test_security_headers.py` asserts `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy` on all user-facing pages
+
+---
+
 ### `scripts/sonar-scan.sh`
 
-Runs coverage reports for both backend and frontend, then uploads to SonarQube.
+Runs coverage reports for both backend and frontend, then uploads to SonarQube. Called internally by `test-scan.sh --sonar`; can also be run directly.
 
 ```bash
 ./scripts/sonar-scan.sh
@@ -148,6 +173,7 @@ These are called by the pre-commit framework. You can also run them manually dur
 | `scripts/run-bandit.sh` | `bandit -r app/controlroom_backend` | Python SAST scan; skips B104, B608 (see [setup.md](setup.md)) |
 | `scripts/run-pip-audit.sh` | `pip-audit` | Checks Python dependencies for known CVEs |
 | `scripts/run-npm-audit.sh` | `npm audit --audit-level=critical` | Checks Node dependencies at critical severity only |
+| `scripts/run-trivy.sh` | `trivy image` (via Docker) | Scans both container images for HIGH + CRITICAL CVEs |
 
 ---
 

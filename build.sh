@@ -8,9 +8,10 @@
 #   ./build.sh --skip-tests # Start stack only
 #   ./build.sh --skip-e2e   # Start stack + unit tests only
 #   ./build.sh --dev        # Include SonarQube: scan + quality gate check before E2E
+#   ./build.sh --release    # Full release gate: --dev + Trivy + secrets + header scans
 #
 # Flags can be combined, e.g.: ./build.sh --dev --skip-e2e
-# With --dev, E2E is blocked if the SonarQube quality gate fails.
+# With --dev or --release, E2E is blocked if the SonarQube quality gate fails.
 # =============================================================================
 
 set -e
@@ -19,12 +20,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Parse flags
 WITH_DEV=false
+WITH_RELEASE=false
 SKIP_TESTS=false
 SKIP_E2E=false
 
 for arg in "$@"; do
   case "$arg" in
     --dev)        WITH_DEV=true ;;
+    --release)    WITH_RELEASE=true; WITH_DEV=true ;;
     --skip-tests) SKIP_TESTS=true ;;
     --skip-e2e)   SKIP_E2E=true ;;
     *) echo "Unknown flag: $arg"; exit 1 ;;
@@ -33,7 +36,8 @@ done
 
 echo "============================================================"
 echo "  STUD.io ControlRoom"
-if $WITH_DEV; then echo "  (+ dev stack)"; fi
+if $WITH_RELEASE; then echo "  (release gate)";
+elif $WITH_DEV;   then echo "  (+ dev stack)"; fi
 echo "============================================================"
 
 # ---------------------------------------------------------------------------
@@ -97,15 +101,19 @@ else
   bash "$SCRIPT_DIR/scripts/test-unit.sh"
 
   # -------------------------------------------------------------------------
-  # 5. SonarQube scan + quality gate (dev only)
+  # 5. Security scans (dev/release only)
   # -------------------------------------------------------------------------
   echo ""
-  echo "[5/5] SonarQube..."
+  echo "[5/5] Security scans..."
 
   if ! $WITH_DEV; then
-    echo "  Skipping (--dev not set)."
+    echo "  Skipping (--dev or --release not set)."
   else
-    bash "$SCRIPT_DIR/scripts/sonar-scan.sh"
+    if $WITH_RELEASE; then
+      bash "$SCRIPT_DIR/scripts/test-scan.sh"
+    else
+      bash "$SCRIPT_DIR/scripts/test-scan.sh" --sonar
+    fi
 
     TOKEN_FILE="$SCRIPT_DIR/.sonar-token"
     if [ ! -f "$TOKEN_FILE" ]; then
@@ -114,7 +122,7 @@ else
       TOKEN=$(cat "$TOKEN_FILE")
       SONAR_URL="http://localhost:9000"
 
-      echo -n "  Waiting for analysis "
+      echo -n "  Waiting for SonarQube analysis "
       for i in $(seq 1 30); do
         gate=$(curl -sf -H "Authorization: Bearer $TOKEN" \
           "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
@@ -138,6 +146,12 @@ else
   else
     bash "$SCRIPT_DIR/scripts/test-e2e.sh"
   fi
+
+  if $WITH_RELEASE; then
+    echo ""
+    echo "[6/6] Performance tests..."
+    bash "$SCRIPT_DIR/scripts/test-perf.sh"
+  fi
 fi
 
 echo ""
@@ -150,5 +164,9 @@ echo "  Docs: https://localhost:5150/docs"
 if $WITH_DEV; then
   echo ""
   echo "  SonarQube: http://localhost:9000"
+fi
+if $WITH_RELEASE; then
+  echo ""
+  echo "  Release gate passed: Sonar + Trivy + secrets + headers + perf"
 fi
 echo "============================================================"

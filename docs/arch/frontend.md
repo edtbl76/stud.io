@@ -186,6 +186,21 @@ The cookie is named `controlroom_token` and is set with `httpOnly: true`, `secur
 
 ---
 
+## Security headers
+
+`next.config.mjs` applies four security headers to every response via the `headers()` config:
+
+| Header | Value | Purpose |
+|---|---|---|
+| `X-Frame-Options` | `DENY` | Prevents clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Stops MIME-type sniffing |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits referrer leakage across origins |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Disables unused browser APIs |
+
+These are asserted by `tests/security/test_security_headers.py` against the running stack, run via `./scripts/test-scan.sh --headers`.
+
+---
+
 ## Styling
 
 Tailwind CSS with a dark theme. CSS variables for colors are defined in `app/globals.css` and referenced via Tailwind utility classes. The sidebar uses `--sidebar-bg` and `--sidebar-border` variables for its distinct background.

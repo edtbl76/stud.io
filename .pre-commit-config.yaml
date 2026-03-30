@@ -35,3 +35,10 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+      - id: detect-secrets
+        name: detect-secrets
+        entry: detect-secrets-hook
+        language: system
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock\.json|\.secrets\.baseline

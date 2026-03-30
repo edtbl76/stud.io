@@ -49,6 +49,7 @@ Every change requires tests. Run the full suite before marking work done:
 ./scripts/test-unit.sh    # tsc + jest + pytest (parallel, 4 workers)
 ./scripts/test-e2e.sh     # Playwright E2E (sharded)
 ./scripts/test-perf.sh    # performance suite (on demand — not required for every change)
+./scripts/test-scan.sh    # security suite (on demand — Sonar, Trivy, secrets, headers)
 ```
 
 Coverage target is 100% on new code; 80% is the hard floor. Do not game coverage with meaningless assertions.
@@ -83,12 +84,30 @@ What it covers:
 - **k6**: API load tests for catalog, search, and change-review endpoints (`p95 < 500ms`, `error_rate < 1%`)
 - **pytest-benchmark**: 14 function benchmarks covering hot paths (list queries, search, xlsx build/parse, audit log)
 - **EXPLAIN plan assertions**: verify GIN trgm indexes exist; verify PK lookups use Index Scan
-- **Lighthouse**: Core Web Vitals for all 25 pages (`LCP < 2.5s`, `TBT < 200ms`, `CLS < 0.1`)
+- **Lighthouse**: Core Web Vitals for all 24 pages (`LCP < 2.5s`, `TBT < 200ms`, `CLS < 0.1`)
 - **Bundle analyzer**: `@next/bundle-analyzer` report generated during the production build
 
 When to run it: before a release, after a schema change that touches indexed columns, or after adding a significant new feature.
 
 When to update the perf suite: see the "Performance tests" section of `CLAUDE.md`.
+
+### Security scans
+
+The security suite is run on demand — automatically included in `./build.sh --release`:
+
+```bash
+./scripts/test-scan.sh
+```
+
+What it covers:
+- **SonarQube**: SAST, code quality, and coverage gate
+- **Trivy**: container image scan for OS-level and app dependency CVEs (HIGH + CRITICAL)
+- **detect-secrets**: working tree audit against `.secrets.baseline`
+- **HTTP headers**: asserts `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy` on all user-facing pages
+
+When to run it: before a release, after updating base Docker images, or after adding new dependencies.
+
+When to update the security suite: see the "Security scans" section of `CLAUDE.md`.
 
 ---
 
@@ -105,7 +124,17 @@ Gate thresholds:
 - ≥ 80% line coverage on new/changed code
 - < 3% duplicated lines on new/changed code
 
-Pre-commit hooks (enforced on every commit): `ruff`, `pytest`, `tsc`, `jest`, `bandit`, `pip-audit`, `npm-audit`. Never bypass with `--no-verify`.
+Pre-commit hooks (enforced on every commit): `ruff`, `pytest`, `tsc`, `jest`, `bandit`, `pip-audit`, `npm-audit`, `detect-secrets`. Never bypass with `--no-verify`.
+
+### Release gate
+
+Before tagging a release, run the full gate:
+
+```bash
+./build.sh --release
+```
+
+This runs unit tests, all four security scans (Sonar + Trivy + secrets + headers), the SonarQube quality gate, E2E tests, and the performance suite — in that order. Each stage must pass before the next runs.
 
 ---
 

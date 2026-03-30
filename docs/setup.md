@@ -14,7 +14,7 @@
 ### 1. Install Python hook dependencies
 
 ```bash
-pip install pre-commit bandit pip-audit pytest pytest-cov
+pip install pre-commit bandit pip-audit pytest pytest-cov detect-secrets
 ```
 
 ### 2. Install git hooks
@@ -23,7 +23,7 @@ pip install pre-commit bandit pip-audit pytest pytest-cov
 ./scripts/install-hooks.sh
 ```
 
-This wires up the [pre-commit framework](https://pre-commit.com) to run seven checks before every commit:
+This wires up the [pre-commit framework](https://pre-commit.com) to run eight checks before every commit:
 
 | Hook | What it checks |
 |---|---|
@@ -34,6 +34,7 @@ This wires up the [pre-commit framework](https://pre-commit.com) to run seven ch
 | `bandit` | Python security scan (SAST) |
 | `pip-audit` | Python dependency CVEs |
 | `npm-audit` | Node dependency CVEs |
+| `detect-secrets` | Secrets and credentials in staged files |
 
 The commit is aborted if any check fails. Hook configuration lives in `.pre-commit-config.yaml`.
 
@@ -41,6 +42,7 @@ The commit is aborted if any check fails. Hook configuration lives in `.pre-comm
 - `bandit` skips B104 (intentional `0.0.0.0` Docker binding) and B608 (asyncpg queries use f-strings for hardcoded table names only — all values are parameterized). Config in `.bandit`.
 - `pip-audit` ignores CVE-2024-23342 (Minerva timing attack on ECDSA keys in the `ecdsa` package — irrelevant because HS256/HMAC JWTs are used, not EC keys).
 - `npm-audit` runs at `--audit-level=critical` only. Two high-severity Next.js 14.x CVEs (GHSA-9g9p-9gw9-jx7f, GHSA-h25m-26qc-wcjf) have no 14.x fix — they require a breaking upgrade to Next.js 16. Neither applies to this app (no `remotePatterns` configured, no insecure RSC).
+- `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). If you add a new legitimate non-secret that triggers a false positive, update the baseline: `detect-secrets scan --baseline .secrets.baseline`.
 
 ### 3. Generate HTTPS certificates
 
@@ -67,6 +69,7 @@ The `nginx/certs/` directory is git-ignored — certs must be generated locally 
 ./build.sh --skip-tests # stack only
 ./build.sh --skip-e2e   # stack + unit tests only
 ./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
+./build.sh --release    # full release gate: --dev + Trivy + secrets + headers + perf
 ```
 
 This builds and starts four containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`, `controlroom_nginx`), waits for each to be healthy, applies the schema and semantic views to both databases, and runs the test suite.
@@ -136,7 +139,13 @@ SonarQube is at `http://localhost:9000`. Login: `admin` / `My@mpGoesTo11`.
 ### Running a scan
 
 ```bash
-./scripts/sonar-scan.sh
+./scripts/test-scan.sh --sonar
+```
+
+Or to run the full security suite (Sonar + Trivy + secrets + headers):
+
+```bash
+./scripts/test-scan.sh
 ```
 
 The scan script:
