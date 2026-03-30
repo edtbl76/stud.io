@@ -45,17 +45,51 @@ Steps performed:
 3. Starts `next start` (production server)
 4. `pytest tests/test_query_plans.py tests/test_benchmarks.py` — EXPLAIN plan assertions and 14 function benchmarks
 5. k6 load tests (`tests/perf/k6/*.js`) — skipped with a warning if k6 is not installed
-6. Playwright + Lighthouse Core Web Vitals audits on all 25 pages
+6. Playwright + Lighthouse audits on all 25 pages — Core Web Vitals (enforced), accessibility score (informational), best-practices score (sustainability proxy)
+7. CO₂ per-page report via Website Carbon API — skipped unless `carbon_base_url` is set in `test.config.yaml`
 
 Outputs:
 - `/tmp/perf-benchmarks.json` — pytest-benchmark results (timing, min/max/mean per function)
 - `/tmp/perf-k6-<script>.log` — k6 output per script
-- `app/controlroom_frontend/perf-reports/lighthouse/` — Lighthouse HTML reports per page
+- `app/controlroom_frontend/perf-reports/lighthouse/` — Lighthouse HTML reports per page (includes accessibility and best-practices detail)
 - `app/controlroom_frontend/.next-perf/analyze/` — bundle size reports
 
 k6 SLOs: `p95 < 500ms`, `error_rate < 1%`. Lighthouse thresholds: `LCP < 2.5s`, `TBT < 200ms`, `CLS < 0.1`.
 
 To install k6: https://k6.io/docs/get-started/installation/
+
+---
+
+### `scripts/reset-docker.sh`
+
+Stops and removes all project containers. Volumes are preserved.
+
+```bash
+./scripts/reset-docker.sh
+```
+
+Stops the main stack, dev stack (SonarQube), and any leftover perf/test containers. Run `./build.sh` afterward to bring everything back up.
+
+---
+
+### `scripts/carbon-report.sh`
+
+Calls the [Website Carbon API](https://api.websitecarbon.com) for each of the 25 user-facing pages and prints a CO₂-per-pageview table.
+
+> **Requires a public deployment.** The Website Carbon API fetches each page from their servers and cannot reach localhost or a private network. Until the app is publicly deployed, use the local CO₂ estimates built into `test-perf.sh` instead (see `co2_estimate` annotation in Lighthouse results).
+
+```bash
+CARBON_BASE_URL=https://your-app.example.com ./scripts/carbon-report.sh
+```
+
+Or set `carbon_base_url` in `test.config.yaml` — it will then run automatically as step 7 of `test-perf.sh`.
+
+Output columns: `Page | Rating (A–F) | CO₂ (g) | Greener than % | Green hosting`
+
+Requirements:
+- The base URL must be publicly accessible (the API fetches the page itself; localhost is rejected gracefully)
+- `curl` and `python3` must be available
+- Pages are fetched sequentially with a 1-second pause to respect the API's rate limit
 
 ---
 

@@ -33,6 +33,8 @@ _FILTER_PREFIX = "filter_"
 _FILTER_OP_SUFFIX = "_op"
 _FILTER_END_SUFFIX = "_end"
 _FILTER_KEY_RE = re.compile(r'^[a-z_]+$')
+_ILIKE_COL_RE = re.compile(r'([a-z_][a-z0-9_]*) ILIKE \{val\}')
+_EMPTY_SENTINEL = '""'
 
 
 @dataclass
@@ -84,6 +86,9 @@ def parse_filters(request: Request) -> dict[str, FilterEntry]:
     raw, ops, ends = _extract_raw_and_ops(request)
     result: dict[str, FilterEntry] = {}
     for key, value in raw.items():
+        if value == _EMPTY_SENTINEL:
+            result[key] = FilterEntry(value="", operator="is_empty")  # type: ignore[arg-type]
+            continue
         operator = ops.get(key, DEFAULT_OPERATOR)
         if not value and operator not in VALUE_FREE_OPERATORS:
             continue
@@ -156,6 +161,19 @@ def build_filter_clause(
     if not parts:
         return "", []
     return "WHERE " + " AND ".join(parts), values
+
+
+def _build_null_expr(contains_expr: str) -> str:
+    """Derive an is_empty SQL expression from a contains_expr template.
+
+    Extracts each column name from ILIKE {val} patterns and returns
+    the corresponding (col IS NULL OR col = '') fragments joined by OR.
+    Returns an empty string if no ILIKE patterns are found.
+    """
+    cols = _ILIKE_COL_RE.findall(contains_expr)
+    if not cols:
+        return ""
+    return " OR ".join(f"({col} IS NULL OR {col} = '')" for col in cols)
 
 
 def _build_order_clause(

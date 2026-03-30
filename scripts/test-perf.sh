@@ -8,7 +8,8 @@
 #   3. Start Next.js production server
 #   4. pytest: EXPLAIN plan assertions + benchmarks
 #   5. k6: API load tests (skipped with a warning if k6 is not installed)
-#   6. Playwright + Lighthouse: Core Web Vitals for all pages
+#   6. Playwright + Lighthouse: Core Web Vitals, accessibility, best-practices
+#   7. CO₂ per-page report via Website Carbon API (skipped unless carbon_base_url is set)
 #
 # Prerequisites:
 #   - Production stack running:  docker compose up -d
@@ -159,7 +160,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 6. Playwright + Lighthouse: Core Web Vitals
+# 6. Playwright + Lighthouse: Core Web Vitals, accessibility, best-practices
 # ---------------------------------------------------------------------------
 echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
 (
@@ -170,6 +171,17 @@ echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
             --config playwright.perf.config.ts \
         2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'
 ) || FAILED=1
+
+# ---------------------------------------------------------------------------
+# 7. CO₂ per-page report (skipped unless carbon_base_url is configured)
+# ---------------------------------------------------------------------------
+CARBON_BASE_URL="$(cfg carbon_base_url 2>/dev/null || true)"
+if [ -n "$CARBON_BASE_URL" ]; then
+    echo "[perf] Running CO₂ report against $CARBON_BASE_URL..."
+    "$ROOT/scripts/carbon-report.sh" 2>&1 | sed -u 's/^/[carbon] /' || true
+else
+    echo "[perf] Skipping CO₂ report (carbon_base_url not set in test.config.yaml)."
+fi
 
 # ---------------------------------------------------------------------------
 # Summary

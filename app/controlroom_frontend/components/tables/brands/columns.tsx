@@ -37,6 +37,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
     accessorKey: 'legal_name',
     header: 'Legal Name',
     size: 240,
+    meta: { filterParam: 'legal_name', filterOperators: TEXT_FILTER_OPERATORS },
     cell: ({ getValue }) => {
       const val = getValue() as string
       return <span className="text-muted-foreground" title={val}>{val}</span>
