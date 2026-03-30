@@ -210,6 +210,8 @@ Coverage is collected via `jest --coverage` and reported to SonarQube as LCOV. N
 
 End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. They run against the dev frontend at `https://localhost:2112` with a separate test backend container (`controlroom_backend_test`) on port 5151 pointing at `controlroomdb_test`. Auth state is saved to `e2e/.auth/state.json` by the `auth.setup.ts` project and reused across tests. Run via `./scripts/test-e2e.sh`.
 
+A separate Lighthouse performance suite lives in `e2e/perf.spec.ts` and runs against a production build pointed at `controlroomdb_test`. It asserts Core Web Vitals (LCP < 2500ms, TBT < 200ms, CLS < 0.1) and captures accessibility score, best-practices score, and a local CO₂ estimate as informational annotations. Auth cookies are restored before each audit because Lighthouse's error-path cleanup clears browser storage. Run via `./scripts/test-perf.sh`.
+
 E2E spec files:
 - `crud.spec.ts` — row click opens and closes modal for all 18 tables
 - `brands.spec.ts` — brand typeahead returns results in create modal; shows Create option for unknown brand names

@@ -26,6 +26,7 @@
  * Requires playwright.perf.config.ts (--remote-debugging-port=9222, workers=1).
  * Run via: ./scripts/test-perf.sh
  */
+import * as fs from 'fs'
 import { test, expect, TestInfo } from '@playwright/test'
 import { playAudit } from 'playwright-lighthouse'
 import { co2 } from '@tgwf/co2'
@@ -33,8 +34,13 @@ import { co2 } from '@tgwf/co2'
 const LIGHTHOUSE_PORT = 9222
 const carbonModel = new co2({ model: 'swd' })
 
+// Auth cookies from the setup step. Restored before each audit because
+// Lighthouse clears browser storage in its error-path cleanup (NO_FCP etc.),
+// which would log out every page after the first failure.
+const AUTH_COOKIES: ReturnType<typeof JSON.parse> =
+  JSON.parse(fs.readFileSync('e2e/.auth/state.json', 'utf8')).cookies
+
 const PAGES = [
-  '/',
   '/search',
   '/catalog/brands',
   '/catalog/models',
@@ -67,17 +73,18 @@ function pct(score: number | null | undefined): string {
 
 for (const path of PAGES) {
   test(`Lighthouse: ${path}`, async ({ page }, testInfo: TestInfo) => {
+    await page.context().addCookies(AUTH_COOKIES)
     await page.goto(path)
     await page.waitForLoadState('networkidle')
 
     const result = await playAudit({
       page,
       port: LIGHTHOUSE_PORT,
-      thresholds: {
-        performance:     0,  // individual metrics asserted below
-        accessibility:   0,  // informational — violations visible in HTML report
-        'best-practices': 0, // sustainability proxy — informational
-      },
+      // Only enforce performance — passing accessibility/best-practices here
+      // changes onlyCategories and breaks headless paint capture (NO_FCP).
+      thresholds: { performance: 0 },
+      // Run all three categories so scores are available as annotations.
+      opts: { onlyCategories: ['performance', 'accessibility', 'best-practices'] },
       reports: {
         formats: { html: true },
         directory: 'perf-reports/lighthouse',

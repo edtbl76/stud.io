@@ -11,6 +11,17 @@
 #   6. Playwright + Lighthouse: Core Web Vitals, accessibility, best-practices
 #   7. CO₂ per-page report via Website Carbon API (skipped unless carbon_base_url is set)
 #
+# Usage:
+#   ./scripts/test-perf.sh [flags]
+#
+# Flags:
+#   -h, --help        Show this help message
+#   --bundle          Run bundle analysis only (steps 1-3)
+#   --benchmarks      Run pytest benchmarks only (steps 1-4)
+#   --k6              Run k6 load tests only (steps 1-3, 5)
+#   --lighthouse      Run Lighthouse audits only (steps 1-3, 6)
+#   --no-bundle       Skip the production Next.js build (reuse existing .next-perf)
+#
 # Prerequisites:
 #   - Production stack running:  docker compose up -d
 #   - Dev stack running:         ./scripts/dev.sh up
@@ -23,6 +34,33 @@
 #   <frontend>/.next-perf/analyze/     bundle analyzer reports
 # =============================================================================
 set -e
+
+# ---------------------------------------------------------------------------
+# Flags
+# ---------------------------------------------------------------------------
+RUN_BUNDLE=true
+RUN_BENCHMARKS=true
+RUN_K6=true
+RUN_LIGHTHOUSE=true
+SKIP_BUILD=false
+ONLY_MODE=false
+
+usage() {
+    sed -n '/^# Usage:/,/^# ======/{ /^# ======/d; s/^# \{0,1\}//; p }' "$0"
+    exit 0
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        -h|--help)        usage ;;
+        --bundle)         ONLY_MODE=true; RUN_BENCHMARKS=false; RUN_K6=false; RUN_LIGHTHOUSE=false ;;
+        --benchmarks)     ONLY_MODE=true; RUN_BUNDLE=false; RUN_K6=false; RUN_LIGHTHOUSE=false ;;
+        --k6)             ONLY_MODE=true; RUN_BUNDLE=false; RUN_BENCHMARKS=false; RUN_LIGHTHOUSE=false ;;
+        --lighthouse)     ONLY_MODE=true; RUN_BUNDLE=false; RUN_BENCHMARKS=false; RUN_K6=false ;;
+        --no-bundle)      SKIP_BUILD=true ;;
+        *) echo "[perf] Unknown flag: $arg"; echo "Run with -h for help."; exit 1 ;;
+    esac
+done
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
@@ -56,7 +94,9 @@ cleanup() {
     echo "[perf] Tearing down..."
     [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null || true
     docker rm -f "$PERF_CONTAINER" 2>/dev/null || true
-    rm -rf "$FRONTEND_DIR/.next-perf"
+    if [ "$SKIP_BUILD" = false ]; then
+        rm -rf "$FRONTEND_DIR/.next-perf"
+    fi
     echo "[perf] Done."
 }
 trap cleanup EXIT
@@ -87,17 +127,25 @@ done
 # ---------------------------------------------------------------------------
 # 2. Production Next.js build (+ bundle analysis report)
 # ---------------------------------------------------------------------------
-echo "[perf] Building frontend (production + bundle analysis)..."
-echo "[perf] Bundle reports will be written to $FRONTEND_DIR/.next-perf/analyze/"
-pushd "$FRONTEND_DIR" > /dev/null
-(
-    set -o pipefail
-    NEXT_DIST_DIR=".next-perf" \
-    ANALYZE=true \
-    BACKEND_URL="http://localhost:${BACKEND_PORT}" \
-        npx next build 2>&1 | tee /tmp/perf-nextbuild.log | sed -u 's/^/[next-build] /'
-)
-popd > /dev/null
+if [ "$SKIP_BUILD" = true ]; then
+    echo "[perf] Skipping build (--no-bundle), reusing existing .next-perf."
+    if [ ! -d "$FRONTEND_DIR/.next-perf" ]; then
+        echo "[perf] ERROR: .next-perf not found. Run without --no-bundle first."
+        exit 1
+    fi
+else
+    echo "[perf] Building frontend (production + bundle analysis)..."
+    echo "[perf] Bundle reports will be written to $FRONTEND_DIR/.next-perf/analyze/"
+    pushd "$FRONTEND_DIR" > /dev/null
+    (
+        set -o pipefail
+        NEXT_DIST_DIR=".next-perf" \
+        ANALYZE=true \
+        BACKEND_URL="http://localhost:${BACKEND_PORT}" \
+            npx next build 2>&1 | tee /tmp/perf-nextbuild.log | sed -u 's/^/[next-build] /'
+    )
+    popd > /dev/null
+fi
 
 # ---------------------------------------------------------------------------
 # 3. Start Next.js production server
@@ -127,50 +175,62 @@ done
 # ---------------------------------------------------------------------------
 # 4. pytest: EXPLAIN plan assertions + benchmarks
 # ---------------------------------------------------------------------------
-echo "[perf] Running EXPLAIN plan assertions and benchmarks..."
-(
-    set -o pipefail
-    cd "$BACKEND_DIR"
-    python -m pytest \
-        tests/test_query_plans.py \
-        tests/test_benchmarks.py \
-        -v \
-        --benchmark-json=/tmp/perf-benchmarks.json \
-        2>&1 | tee /tmp/perf-pytest.log | sed -u 's/^/[pytest] /'
-) || FAILED=1
+if [ "$RUN_BENCHMARKS" = true ]; then
+    echo "[perf] Running EXPLAIN plan assertions and benchmarks..."
+    (
+        set -o pipefail
+        cd "$BACKEND_DIR"
+        python -m pytest \
+            tests/test_query_plans.py \
+            tests/test_benchmarks.py \
+            -v \
+            --benchmark-json=/tmp/perf-benchmarks.json \
+            2>&1 | tee /tmp/perf-pytest.log | sed -u 's/^/[pytest] /'
+    ) || FAILED=1
+else
+    echo "[perf] Skipping benchmarks."
+fi
 
 # ---------------------------------------------------------------------------
 # 5. k6 load tests (skipped if k6 is not installed)
 # ---------------------------------------------------------------------------
-if ! command -v k6 > /dev/null 2>&1; then
-    echo "[perf] WARNING: k6 not installed — skipping load tests."
-    echo "[perf]          Install: https://k6.io/docs/get-started/installation/"
+if [ "$RUN_K6" = true ]; then
+    if ! command -v k6 > /dev/null 2>&1; then
+        echo "[perf] WARNING: k6 not installed — skipping load tests."
+        echo "[perf]          Install: https://k6.io/docs/get-started/installation/"
+    else
+        for SCRIPT in "$ROOT/tests/perf/k6/"*.js; do
+            [ "$(basename "$SCRIPT")" = "thresholds.js" ] && continue
+            NAME="$(basename "$SCRIPT" .js)"
+            echo "[perf] Running k6: $NAME..."
+            (
+                set -o pipefail
+                BACKEND_URL="http://localhost:${BACKEND_PORT}" \
+                    k6 run "$SCRIPT" \
+                    2>&1 | tee "/tmp/perf-k6-${NAME}.log" | sed -u "s/^/[k6:${NAME}] /"
+            ) || FAILED=1
+        done
+    fi
 else
-    for SCRIPT in "$ROOT/tests/perf/k6/"*.js; do
-        [ "$(basename "$SCRIPT")" = "thresholds.js" ] && continue
-        NAME="$(basename "$SCRIPT" .js)"
-        echo "[perf] Running k6: $NAME..."
-        (
-            set -o pipefail
-            BACKEND_URL="http://localhost:${BACKEND_PORT}" \
-                k6 run "$SCRIPT" \
-                2>&1 | tee "/tmp/perf-k6-${NAME}.log" | sed -u "s/^/[k6:${NAME}] /"
-        ) || FAILED=1
-    done
+    echo "[perf] Skipping k6 load tests."
 fi
 
 # ---------------------------------------------------------------------------
 # 6. Playwright + Lighthouse: Core Web Vitals, accessibility, best-practices
 # ---------------------------------------------------------------------------
-echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
-(
-    set -o pipefail
-    cd "$FRONTEND_DIR"
-    BASE_URL="http://localhost:${FRONTEND_PORT}" \
-        npx playwright test \
-            --config playwright.perf.config.ts \
-        2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'
-) || FAILED=1
+if [ "$RUN_LIGHTHOUSE" = true ]; then
+    echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
+    (
+        set -o pipefail
+        cd "$FRONTEND_DIR"
+        BASE_URL="http://localhost:${FRONTEND_PORT}" \
+            npx playwright test \
+                --config playwright.perf.config.ts \
+            2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'
+    ) || FAILED=1
+else
+    echo "[perf] Skipping Lighthouse audits."
+fi
 
 # ---------------------------------------------------------------------------
 # 7. CO₂ per-page report (skipped unless carbon_base_url is configured)

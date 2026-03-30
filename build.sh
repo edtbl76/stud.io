@@ -116,16 +116,14 @@ else
 
       echo -n "  Waiting for analysis "
       for i in $(seq 1 30); do
-        pending=$(curl -sf -u "$TOKEN:" "$SONAR_URL/api/ce/activity?status=IN_PROGRESS,PENDING" \
-          | python3 -c "import sys,json; print(json.load(sys.stdin)['total'])" 2>/dev/null || echo "1")
-        if [ "$pending" = "0" ]; then break; fi
+        gate=$(curl -sf -H "Authorization: Bearer $TOKEN" \
+          "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
+          | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null || echo "IN_PROGRESS")
+        [ "$gate" != "IN_PROGRESS" ] && break
         echo -n "."
         sleep 2
       done
       echo " done"
-
-      gate=$(curl -sf -u "$TOKEN:" "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
-        | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null || echo "ERROR")
 
       if [ "$gate" != "OK" ]; then
         echo "  ERROR: SonarQube quality gate failed ($gate). Fix violations before running E2E."

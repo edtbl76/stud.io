@@ -3,6 +3,7 @@
 import * as React from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
+
 interface AuthContextValue {
   username: string | null
   role: string | null
@@ -91,7 +92,6 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
     [username, role],
   )
 
-  // Don't render children until we've checked for an existing session
   if (!checked) return null
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
