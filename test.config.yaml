@@ -11,3 +11,5 @@ backend_service: controlroom_backend_test
 backend_internal_port: 5150
 backend_base_port: 5151
 frontend_base_port: 3001
+perf_backend_port: 5160
+perf_frontend_port: 3010

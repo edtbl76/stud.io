@@ -46,10 +46,9 @@ Format: MAJOR.MINOR.PATCH
 Every change requires tests. Run the full suite before marking work done:
 
 ```bash
-cd app/controlroom_backend && python -m pytest                        # backend unit tests
-cd app/controlroom_frontend && npm test -- --no-coverage              # frontend unit tests
-cd app/controlroom_frontend && npx tsc --noEmit                       # TypeScript type check
-cd app/controlroom_frontend && npx playwright test                    # E2E tests
+./scripts/test-unit.sh    # tsc + jest + pytest (parallel, 4 workers)
+./scripts/test-e2e.sh     # Playwright E2E (sharded)
+./scripts/test-perf.sh    # performance suite (on demand — not required for every change)
 ```
 
 Coverage target is 100% on new code; 80% is the hard floor. Do not game coverage with meaningless assertions.
@@ -71,6 +70,27 @@ Tests **never** touch `controlroomdb`. Isolation is enforced at two levels:
 **E2E tests (Playwright)** use a separate `controlroom_backend_test` Docker container (port 5151) whose `DB_NAME` is set to `controlroomdb_test`. Playwright hits this container instead of the production backend. The container is removed and recreated fresh on each run.
 
 The production backend (`controlroom_backend`, port 5150) always points at `controlroomdb` and is never contacted by any test.
+
+### Performance tests
+
+The perf suite is run on demand — not part of the standard build:
+
+```bash
+./scripts/test-perf.sh
+```
+
+What it covers:
+- **k6**: API load tests for catalog, search, and change-review endpoints (`p95 < 500ms`, `error_rate < 1%`)
+- **pytest-benchmark**: 14 function benchmarks covering hot paths (list queries, search, xlsx build/parse, audit log)
+- **EXPLAIN plan assertions**: verify GIN trgm indexes exist; verify PK lookups use Index Scan
+- **Lighthouse**: Core Web Vitals for all 25 pages (`LCP < 2.5s`, `TBT < 200ms`, `CLS < 0.1`)
+- **Bundle analyzer**: `@next/bundle-analyzer` report generated during the production build
+
+When to run it: before a release, after a schema change that touches indexed columns, or after adding a significant new feature.
+
+When to update the perf suite: see the "Performance tests" section of `CLAUDE.md`.
+
+---
 
 ### Quality gate
 

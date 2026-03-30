@@ -33,6 +33,6 @@ bash "$ROOT/scripts/provision-test-dbs.sh" "$WORKERS"
 
 echo "[unit] pytest ($WORKERS workers)..."
 cd "$ROOT/app/controlroom_backend"
-python -m pytest tests/ -v -n "$WORKERS" --dist=load
+python -m pytest tests/ -v -n "$WORKERS" --dist=load --benchmark-skip
 
 echo "[unit] All unit checks passed."

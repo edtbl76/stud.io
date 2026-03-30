@@ -29,6 +29,36 @@ On startup it:
 
 ---
 
+### `scripts/test-perf.sh`
+
+Runs the full performance test suite. Not part of the standard build — run on demand when you want to measure performance or validate SLOs.
+
+```bash
+./scripts/test-perf.sh
+```
+
+Prerequisites: production stack running (`docker compose up -d`), dev stack running (`./scripts/dev.sh up`), `controlroomdb_test` provisioned (`./scripts/reset-test-db.sh`).
+
+Steps performed:
+1. Starts a single backend container pointing at `controlroomdb_test` (read-only — no clone)
+2. Runs `next build` (production build) with `ANALYZE=true` — bundle reports written to `.next-perf/analyze/`
+3. Starts `next start` (production server)
+4. `pytest tests/test_query_plans.py tests/test_benchmarks.py` — EXPLAIN plan assertions and 14 function benchmarks
+5. k6 load tests (`tests/perf/k6/*.js`) — skipped with a warning if k6 is not installed
+6. Playwright + Lighthouse Core Web Vitals audits on all 25 pages
+
+Outputs:
+- `/tmp/perf-benchmarks.json` — pytest-benchmark results (timing, min/max/mean per function)
+- `/tmp/perf-k6-<script>.log` — k6 output per script
+- `app/controlroom_frontend/perf-reports/lighthouse/` — Lighthouse HTML reports per page
+- `app/controlroom_frontend/.next-perf/analyze/` — bundle size reports
+
+k6 SLOs: `p95 < 500ms`, `error_rate < 1%`. Lighthouse thresholds: `LCP < 2.5s`, `TBT < 200ms`, `CLS < 0.1`.
+
+To install k6: https://k6.io/docs/get-started/installation/
+
+---
+
 ### `scripts/install-hooks.sh`
 
 Installs git pre-commit hooks via the [pre-commit framework](https://pre-commit.com). Run once after cloning. Requires `pre-commit` to be installed (`pip install pre-commit`).
