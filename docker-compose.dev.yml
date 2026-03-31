@@ -26,13 +26,23 @@ services:
       - sonarqube_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  structurizr:
+    image: structurizr/structurizr
+    container_name: structurizr
+    command: local
+    ports:
+      - "1967:8080"
+    volumes:
+      - ./structurizr:/usr/local/structurizr
+    restart: unless-stopped
+
   sonarqube:
     image: sonarqube:community
     container_name: sonarqube
     depends_on:
       - sonarqube_db
     ports:
-      - "9000:9000"
+      - "1969:9000"
     environment:
       SONAR_JDBC_URL: jdbc:postgresql://sonarqube_db:5432/sonarqube
       SONAR_JDBC_USERNAME: sonarqube

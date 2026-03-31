@@ -42,7 +42,7 @@ The commit is aborted if any check fails. Hook configuration lives in `.pre-comm
 - `bandit` skips B104 (intentional `0.0.0.0` Docker binding) and B608 (asyncpg queries use f-strings for hardcoded table names only — all values are parameterized). Config in `.bandit`.
 - `pip-audit` ignores CVE-2024-23342 (Minerva timing attack on ECDSA keys in the `ecdsa` package — irrelevant because HS256/HMAC JWTs are used, not EC keys).
 - `npm-audit` runs at `--audit-level=critical` only. Two high-severity Next.js 14.x CVEs (GHSA-9g9p-9gw9-jx7f, GHSA-h25m-26qc-wcjf) have no 14.x fix — they require a breaking upgrade to Next.js 16. Neither applies to this app (no `remotePatterns` configured, no insecure RSC).
-- `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). If you add a new legitimate non-secret that triggers a false positive, update the baseline: `detect-secrets scan --baseline .secrets.baseline`.
+- `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). `package-lock.json`, `.secrets.baseline` itself, and `structurizr/workspace.json` (generated file with Base64 layout data) are excluded from scanning. If you add a new legitimate non-secret that triggers a false positive, update the baseline (see `docs/arch/security.md` — Baseline management).
 
 ### 3. Generate HTTPS certificates
 
@@ -112,9 +112,9 @@ Standard username/password login works on any URL (localhost, IP, or sslip.io ho
 
 ---
 
-## SonarQube (dev tooling)
+## Dev tooling stack (SonarQube + Structurizr)
 
-A separate Docker project (`dev`) runs SonarQube for static analysis, completely isolated from the studio stack.
+A separate Docker project (`dev`) runs SonarQube and Structurizr, completely isolated from the studio stack.
 
 ```bash
 ./scripts/dev.sh up      # Start (safe to run every time — idempotent)
@@ -134,7 +134,10 @@ Or start it alongside the main stack:
 2. Project created (once)
 3. Analysis token generated and saved to `.sonar-token` (once, gitignored)
 
-SonarQube is at `http://localhost:9000`. Login: `admin` / `My@mpGoesTo11`.
+| Service | URL | Notes |
+|---|---|---|
+| SonarQube | `http://localhost:1969` | Login: `admin` / `My@mpGoesTo11` |
+| Structurizr | `http://localhost:1967` | No login required |
 
 ### Running a scan
 
@@ -154,7 +157,7 @@ The scan script:
 3. Rewrites lcov `SF:` paths to be relative to the project root (Jest emits paths relative to the frontend directory; SonarQube resolves from the project root)
 4. Uploads everything to SonarQube
 
-Results: `http://localhost:9000/dashboard?id=controlroom`
+Results: `http://localhost:1969/dashboard?id=controlroom`
 
 > The scanner also prints a URL with `sonarqube` as the hostname — that's the internal container name. Use the link above instead.
 

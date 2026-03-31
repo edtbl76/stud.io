@@ -1,0 +1,1141 @@
+{
+  "configuration" : { },
+  "description" : "C4 architecture model for the ControlRoom music production catalog application.",
+  "documentation" : { },
+  "id" : 1,
+  "lastModifiedDate" : "2026-03-31T03:18:46Z",
+  "model" : {
+    "people" : [ {
+      "description" : "Manages the full catalog: creates, edits, and deletes brands, models, effects, instruments, libraries, and tools. Runs backups, imports, and reviews audit changes. Has admin role.",
+      "id" : "1",
+      "name" : "Studio Owner",
+      "properties" : {
+        "structurizr.dsl.identifier" : "admin"
+      },
+      "relationships" : [ {
+        "description" : "Manages catalog and admin operations",
+        "destinationId" : "4",
+        "id" : "30",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      }, {
+        "description" : "HTTPS — ports 2112 (app) and 5150 (API/Swagger)",
+        "destinationId" : "5",
+        "id" : "33",
+        "sourceId" : "1",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Person,Admin"
+    }, {
+      "description" : "Browses and searches the catalog. Can view records and audit history. Cannot modify data.",
+      "id" : "2",
+      "name" : "User",
+      "properties" : {
+        "structurizr.dsl.identifier" : "viewer"
+      },
+      "relationships" : [ {
+        "description" : "Browses and searches catalog",
+        "destinationId" : "4",
+        "id" : "31",
+        "sourceId" : "2",
+        "tags" : "Relationship"
+      }, {
+        "description" : "HTTPS — port 2112",
+        "destinationId" : "5",
+        "id" : "34",
+        "sourceId" : "2",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Person,User"
+    } ],
+    "softwareSystems" : [ {
+      "description" : "Provides user identity for Google Sign-In. The backend validates ID tokens via the google-auth library; the frontend displays the sign-in button via the Google Identity Services SDK.",
+      "documentation" : { },
+      "id" : "3",
+      "name" : "Google OAuth 2.0",
+      "properties" : {
+        "structurizr.dsl.identifier" : "google"
+      },
+      "tags" : "Element,Software System,External"
+    }, {
+      "containers" : [ {
+        "description" : "TLS termination and reverse proxy. Routes HTTPS traffic on port 2112 to the Next.js frontend and on port 5150 to the FastAPI backend. Passes WebSocket upgrade headers for Next.js HMR. Serves mkcert-generated certificates.",
+        "documentation" : { },
+        "id" : "5",
+        "name" : "Nginx",
+        "properties" : {
+          "structurizr.dsl.identifier" : "nginx"
+        },
+        "relationships" : [ {
+          "description" : "Proxies HTTPS :2112 → HTTP :2112 (with WebSocket passthrough)",
+          "destinationId" : "6",
+          "id" : "35",
+          "sourceId" : "5",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Proxies HTTPS :5150 → HTTP :5150",
+          "destinationId" : "14",
+          "id" : "36",
+          "sourceId" : "5",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container,Infrastructure",
+        "technology" : "nginx:alpine"
+      }, {
+        "components" : [ {
+          "description" : "Intercepts every /api/* request from client code. Reads the controlroom_token httpOnly cookie and attaches Authorization: Bearer {token} before forwarding to FastAPI. This is the only place the JWT enters an HTTP header — the browser itself never sees the token.",
+          "documentation" : { },
+          "id" : "7",
+          "name" : "BFF Catch-All Proxy",
+          "properties" : {
+            "structurizr.dsl.identifier" : "bffProxy"
+          },
+          "relationships" : [ {
+            "description" : "Forwards request with Authorization: Bearer {token read from httpOnly cookie}",
+            "destinationId" : "14",
+            "id" : "47",
+            "sourceId" : "7",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,BFF",
+          "technology" : "app/api/[...path]/route.ts"
+        }, {
+          "description" : "Handles username/password login (POST /api/auth/token), Google SSO login (POST /api/auth/google), and logout (POST /api/auth/logout). On login, exchanges credentials with FastAPI then sets the controlroom_token httpOnly cookie (httpOnly, secure, sameSite=lax, 8-hour maxAge). On logout, deletes the cookie.",
+          "documentation" : { },
+          "id" : "8",
+          "name" : "Auth API Routes",
+          "properties" : {
+            "structurizr.dsl.identifier" : "authRoutes"
+          },
+          "relationships" : [ {
+            "description" : "Calls /auth/token, /auth/google, /auth/me",
+            "destinationId" : "14",
+            "id" : "48",
+            "sourceId" : "8",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,BFF",
+          "technology" : "app/api/auth/"
+        }, {
+          "description" : "Provides username and role to all client components via React context. On mount, checks for an existing session via GET /api/auth/me. Redirects unauthenticated users to /login; redirects authenticated users away from /login.",
+          "documentation" : { },
+          "id" : "9",
+          "name" : "Auth Context",
+          "properties" : {
+            "structurizr.dsl.identifier" : "authContext"
+          },
+          "relationships" : [ {
+            "description" : "Calls login, loginGoogle, logout, and session check (/api/auth/me)",
+            "destinationId" : "8",
+            "id" : "45",
+            "sourceId" : "9",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Library",
+          "technology" : "lib/auth.tsx"
+        }, {
+          "description" : "Typed fetch wrapper with methods for list, listPaged, get, create, update, delete, and searchGlobal. All calls target relative /api/... paths — no Authorization header is set by client code. The browser sends the httpOnly cookie automatically.",
+          "documentation" : { },
+          "id" : "10",
+          "name" : "API Client",
+          "properties" : {
+            "structurizr.dsl.identifier" : "apiClient"
+          },
+          "relationships" : [ {
+            "description" : "Every fetch('/api/...') call is intercepted here",
+            "destinationId" : "7",
+            "id" : "46",
+            "sourceId" : "10",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Library",
+          "technology" : "lib/api.ts"
+        }, {
+          "description" : "Generic CRUD page container used by all 18 data tables. Manages server-side pagination via useInfiniteQuery, per-column filtering (350ms debounce, 2-char minimum), sorting, bulk edit bar (admin only), and modal dispatch on row click. Query invalidation on mutation triggers automatic refetch.",
+          "documentation" : { },
+          "id" : "11",
+          "name" : "TablePage Framework",
+          "properties" : {
+            "structurizr.dsl.identifier" : "tablePageFramework"
+          },
+          "relationships" : [ {
+            "description" : "Fetches paginated data and submits create/update/delete mutations",
+            "destinationId" : "10",
+            "id" : "42",
+            "sourceId" : "11",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Opens on row click; invalidates query cache on save or delete",
+            "destinationId" : "12",
+            "id" : "43",
+            "sourceId" : "11",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,UI",
+          "technology" : "components/TablePage.tsx + DataTable.tsx"
+        }, {
+          "description" : "RecordModal shell supporting view, edit, history, and two-stage delete modes. Eight domain-specific modals (BrandModal, ModelModal, EffectModal, InstrumentModal, LibraryModal, WorkstationModal, ToolModal, ConfigModal) each compose RecordModal and own their form state. RecordHistoryView renders the full audit trail with field-level diffs and undo.",
+          "documentation" : { },
+          "id" : "12",
+          "name" : "Modal System",
+          "properties" : {
+            "structurizr.dsl.identifier" : "modalSystem"
+          },
+          "relationships" : [ {
+            "description" : "Saves and deletes records",
+            "destinationId" : "10",
+            "id" : "44",
+            "sourceId" : "12",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,UI",
+          "technology" : "components/RecordModal.tsx + components/tables/"
+        }, {
+          "description" : "25 page files across 6 domains: login, catalog (brands, models), session (effects, instruments, libraries, workstations), tools (workflow, measurement, reference, composition, admin), config (7 lookup tables), search, and admin (stats, change-review, backup, import/export, users).",
+          "documentation" : { },
+          "id" : "13",
+          "name" : "Pages",
+          "properties" : {
+            "structurizr.dsl.identifier" : "pages"
+          },
+          "relationships" : [ {
+            "description" : "Reads username and role to gate UI and show/hide admin controls",
+            "destinationId" : "9",
+            "id" : "40",
+            "sourceId" : "13",
+            "tags" : "Relationship"
+          }, {
+            "description" : "All catalog, session, tools, and config pages use this",
+            "destinationId" : "11",
+            "id" : "41",
+            "sourceId" : "13",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,UI",
+          "technology" : "app/"
+        } ],
+        "description" : "Server-rendered React application using the App Router. Implements the BFF (Backend for Frontend) pattern — the browser communicates only with Next.js. JWTs are stored in httpOnly cookies and never exposed to JavaScript.",
+        "documentation" : { },
+        "id" : "6",
+        "name" : "Next.js Frontend",
+        "properties" : {
+          "structurizr.dsl.identifier" : "frontend"
+        },
+        "relationships" : [ {
+          "description" : "REST API over internal Docker network — JWT attached by BFF proxy",
+          "destinationId" : "14",
+          "id" : "37",
+          "sourceId" : "6",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container,Frontend",
+        "technology" : "Node 20 / Next.js 14 / TypeScript / React 18"
+      }, {
+        "components" : [ {
+          "description" : "FastAPI application entry point. Registers CORSMiddleware (allowed origin: https://localhost:2112), manages asyncpg pool lifecycle via lifespan context, seeds the default admin account on startup, and mounts 14 routers.",
+          "documentation" : { },
+          "id" : "15",
+          "name" : "App Core",
+          "properties" : {
+            "structurizr.dsl.identifier" : "appCore"
+          },
+          "relationships" : [ {
+            "description" : "Initialises connection pool on startup; closes on shutdown",
+            "destinationId" : "17",
+            "id" : "50",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /auth",
+            "destinationId" : "18",
+            "id" : "51",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /users",
+            "destinationId" : "19",
+            "id" : "52",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /search",
+            "destinationId" : "20",
+            "id" : "53",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /brands, /models, /effects, /instruments, /libraries, /workstations",
+            "destinationId" : "21",
+            "id" : "54",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /tools/{category}",
+            "destinationId" : "22",
+            "id" : "55",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /config/{slug}",
+            "destinationId" : "23",
+            "id" : "56",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Mounts at /admin/change-review, /admin/stats, /admin/backup, /admin/restore, /admin/export, /admin/import",
+            "destinationId" : "24",
+            "id" : "57",
+            "sourceId" : "15",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Application",
+          "technology" : "main.py"
+        }, {
+          "description" : "Pydantic Settings loaded from environment variables: DB credentials, JWT secret and algorithm (HS256), token expiry (480 min), Google OAuth client ID, and server bind address. Exposes db_dsn computed property.",
+          "documentation" : { },
+          "id" : "16",
+          "name" : "Configuration",
+          "properties" : {
+            "structurizr.dsl.identifier" : "configModule"
+          },
+          "relationships" : [ {
+            "description" : "Supplies DB DSN, JWT config, and Google client ID on startup",
+            "destinationId" : "15",
+            "id" : "49",
+            "sourceId" : "16",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,InfrastructureComponent",
+          "technology" : "config.py"
+        }, {
+          "description" : "asyncpg connection pool (min=2, max=10) with JSON/JSONB codec registration for automatic dict serialisation. Exposes get_conn() as a FastAPI dependency injected into every route that needs database access.",
+          "documentation" : { },
+          "id" : "17",
+          "name" : "Database Pool",
+          "properties" : {
+            "structurizr.dsl.identifier" : "dbPool"
+          },
+          "relationships" : [ {
+            "description" : "Maintains asyncpg connection pool",
+            "destinationId" : "27",
+            "id" : "77",
+            "sourceId" : "17",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,InfrastructureComponent",
+          "technology" : "database.py"
+        }, {
+          "description" : "JWT authentication via HS256 and Google OAuth ID token validation. Exposes /auth/token, /auth/me, and /auth/google. Provides two reusable FastAPI dependencies: get_current_user (validates and decodes JWT) and require_admin (additionally checks role=admin). All protected routes declare one of these as a Depends parameter.",
+          "documentation" : { },
+          "id" : "18",
+          "name" : "Auth Router",
+          "properties" : {
+            "structurizr.dsl.identifier" : "authRouter"
+          },
+          "relationships" : [ {
+            "description" : "Reads users table; bcrypt verify on login",
+            "destinationId" : "17",
+            "id" : "69",
+            "sourceId" : "18",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Validates Google ID tokens on /auth/google",
+            "destinationId" : "3",
+            "id" : "78",
+            "sourceId" : "18",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/auth.py"
+        }, {
+          "description" : "User account management: list all users, create (admin), change own password, change role (admin), link/unlink Google account, delete (admin). Enforces last-admin protection and email uniqueness.",
+          "documentation" : { },
+          "id" : "19",
+          "name" : "Users Router",
+          "properties" : {
+            "structurizr.dsl.identifier" : "usersRouter"
+          },
+          "relationships" : [ {
+            "description" : "Depends(get_current_user) and Depends(require_admin) on write routes",
+            "destinationId" : "18",
+            "id" : "62",
+            "sourceId" : "19",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Reads and writes users table",
+            "destinationId" : "17",
+            "id" : "70",
+            "sourceId" : "19",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/users.py"
+        }, {
+          "description" : "Global full-text search via PostgreSQL websearch_to_tsquery across 11 catalog views (brands, models, effects, instruments, libraries, workstations, and 5 tool categories). Optional notes field search. Returns rank-sorted results grouped by table.",
+          "documentation" : { },
+          "id" : "20",
+          "name" : "Search Router",
+          "properties" : {
+            "structurizr.dsl.identifier" : "searchRouter"
+          },
+          "relationships" : [ {
+            "description" : "Depends(get_current_user)",
+            "destinationId" : "18",
+            "id" : "63",
+            "sourceId" : "20",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Queries all 11 catalog views",
+            "destinationId" : "17",
+            "id" : "71",
+            "sourceId" : "20",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/search.py"
+        }, {
+          "description" : "Six routers managing content entities: brands, models, effects, instruments, libraries, workstations. All expose paginated list (with per-column filtering and sorting), single get, create/update/soft-delete (admin only), and audit history. Effects, instruments, and libraries support parent_ref hierarchical relationships and model associations.",
+          "documentation" : { },
+          "id" : "21",
+          "name" : "Catalog Routers",
+          "properties" : {
+            "structurizr.dsl.identifier" : "catalogRouters"
+          },
+          "relationships" : [ {
+            "description" : "Depends(require_admin) on all write routes",
+            "destinationId" : "18",
+            "id" : "58",
+            "sourceId" : "21",
+            "tags" : "Relationship"
+          }, {
+            "description" : "list_entities, get_entity, delete_entity, get_history",
+            "destinationId" : "25",
+            "id" : "64",
+            "sourceId" : "21",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Reads/writes catalog tables and audit_log",
+            "destinationId" : "17",
+            "id" : "72",
+            "sourceId" : "21",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/brands|models|effects|instruments|libraries|workstations.py"
+        }, {
+          "description" : "Unified CRUD interface for 5 tool categories: workflow, measurement, reference, composition, admin. Normalises per-table primary keys to a common tool_id for a consistent API surface. Measurement and reference tools can be associated with hardware models.",
+          "documentation" : { },
+          "id" : "22",
+          "name" : "Tools Router",
+          "properties" : {
+            "structurizr.dsl.identifier" : "toolsRouter"
+          },
+          "relationships" : [ {
+            "description" : "Depends(require_admin) on all write routes",
+            "destinationId" : "18",
+            "id" : "59",
+            "sourceId" : "22",
+            "tags" : "Relationship"
+          }, {
+            "description" : "list_entities, get_entity, delete_entity, get_history",
+            "destinationId" : "25",
+            "id" : "65",
+            "sourceId" : "22",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Reads/writes tool tables and audit_log",
+            "destinationId" : "17",
+            "id" : "73",
+            "sourceId" : "22",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/tools.py"
+        }, {
+          "description" : "CRUD for 7 lookup/enumeration tables (entity_types, tag_types, plugin_formats, model_types, effect_types, instrument_types, tool_types). Maps URL slugs (e.g. entity-types) to table names. Enforces referential integrity before deletes.",
+          "documentation" : { },
+          "id" : "23",
+          "name" : "Config Router",
+          "properties" : {
+            "structurizr.dsl.identifier" : "configRouter"
+          },
+          "relationships" : [ {
+            "description" : "Depends(require_admin) on all write routes",
+            "destinationId" : "18",
+            "id" : "60",
+            "sourceId" : "23",
+            "tags" : "Relationship"
+          }, {
+            "description" : "list_entities, get_entity, delete_entity, get_history",
+            "destinationId" : "25",
+            "id" : "66",
+            "sourceId" : "23",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Reads/writes lookup tables and audit_log",
+            "destinationId" : "17",
+            "id" : "74",
+            "sourceId" : "23",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/config.py"
+        }, {
+          "description" : "Four admin-only routers mounted under /admin: change_review (audit log browser with acknowledge and undo to old_data snapshot), admin_stats (row counts per table and pending audit counts), backup_ops (pg_dump streaming response with manifest checksums and psql restore), import_export (XLSX bulk import/export up to 10MB).",
+          "documentation" : { },
+          "id" : "24",
+          "name" : "Admin Routers",
+          "properties" : {
+            "structurizr.dsl.identifier" : "adminRouters"
+          },
+          "relationships" : [ {
+            "description" : "Depends(require_admin) on all routes",
+            "destinationId" : "18",
+            "id" : "61",
+            "sourceId" : "24",
+            "tags" : "Relationship"
+          }, {
+            "description" : "log_audit, apply_old_data, fetch_mutable_entry",
+            "destinationId" : "25",
+            "id" : "67",
+            "sourceId" : "24",
+            "tags" : "Relationship"
+          }, {
+            "description" : "build_workbook, parse_workbook, validate_import, execute_import",
+            "destinationId" : "26",
+            "id" : "68",
+            "sourceId" : "24",
+            "tags" : "Relationship"
+          }, {
+            "description" : "Reads/writes audit_log; reads all catalog tables",
+            "destinationId" : "17",
+            "id" : "75",
+            "sourceId" : "24",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Router",
+          "technology" : "routers/change_review|admin_stats|backup_ops|import_export.py"
+        }, {
+          "description" : "Shared abstractions used by all catalog and config routers: list_entities (paginated with filter/sort DSL), get_entity (404 on miss), delete_entity (soft-delete with audit snapshot), get_history (audit trail for a record). Filter DSL supports contains (ILIKE), equals, fuzzy (pg_trgm similarity), is_empty, and date operators. log_audit writes old_data/new_data JSON snapshots to audit_log.",
+          "documentation" : { },
+          "id" : "25",
+          "name" : "CRUD & Audit Library",
+          "properties" : {
+            "structurizr.dsl.identifier" : "crudLibrary"
+          },
+          "relationships" : [ {
+            "description" : "Executes parameterised SQL for list, get, delete, and audit",
+            "destinationId" : "17",
+            "id" : "76",
+            "sourceId" : "25",
+            "tags" : "Relationship"
+          } ],
+          "tags" : "Element,Component,Library",
+          "technology" : "routers/_crud_ops.py + _helpers.py + filter_operators.py"
+        }, {
+          "description" : "Generates and parses XLSX workbooks for the import/export router. TABLE_CONFIGS defines per-table schema (columns, validators, lookup references). fetch_lookup_data and build_workbook produce export files; parse_workbook, validate_import, and execute_import handle bulk ingest with audit logging.",
+          "documentation" : { },
+          "id" : "26",
+          "name" : "XLSX Library",
+          "properties" : {
+            "structurizr.dsl.identifier" : "xlsxLibrary"
+          },
+          "tags" : "Element,Component,Library",
+          "technology" : "routers/_xlsx_schema|_build|_import.py"
+        } ],
+        "description" : "REST API providing CRUD for all catalog entities, global full-text search, audit logging, and admin operations. All mutations require admin role. All database access is asynchronous via asyncpg.",
+        "documentation" : { },
+        "id" : "14",
+        "name" : "FastAPI Backend",
+        "properties" : {
+          "structurizr.dsl.identifier" : "backend"
+        },
+        "relationships" : [ {
+          "description" : "asyncpg connection pool — parameterised SQL only",
+          "destinationId" : "27",
+          "id" : "38",
+          "sourceId" : "14",
+          "tags" : "Relationship"
+        }, {
+          "description" : "Validates Google ID tokens via google-auth library",
+          "destinationId" : "3",
+          "id" : "39",
+          "sourceId" : "14",
+          "tags" : "Relationship"
+        } ],
+        "tags" : "Element,Container,Backend",
+        "technology" : "Python 3.12 / FastAPI / asyncpg / Uvicorn"
+      }, {
+        "description" : "Primary data store. Three logical databases: controlroomdb (production app), controlroomdb_test (automated test suite — each test runs in a rolled-back transaction), studio (legacy CSV pipeline). pgvector extension installed for future vector similarity. Semantic views (brands_view, models_view, etc.) used for reads; base tables for writes. audit_log table records every CREATE, UPDATE, and DELETE with old_data/new_data JSON snapshots.",
+        "documentation" : { },
+        "id" : "27",
+        "name" : "PostgreSQL",
+        "properties" : {
+          "structurizr.dsl.identifier" : "database"
+        },
+        "tags" : "Element,Container,Database",
+        "technology" : "pgvector/pgvector:pg17"
+      }, {
+        "description" : "SAST, code quality metrics, and coverage gate. Runs as a separate Docker project (not part of the production stack). Quality gate thresholds: zero new violations, ≥80% line coverage, <3% duplication on new/changed code.",
+        "documentation" : { },
+        "id" : "28",
+        "name" : "SonarQube",
+        "properties" : {
+          "structurizr.dsl.identifier" : "sonarqube"
+        },
+        "tags" : "Element,Container,DevOnly",
+        "technology" : "sonarqube:community"
+      }, {
+        "description" : "Architecture documentation server. Reads workspace.dsl from the repository and serves the C4 model as an interactive web application. Dev tooling only.",
+        "documentation" : { },
+        "id" : "29",
+        "name" : "Structurizr Lite",
+        "properties" : {
+          "structurizr.dsl.identifier" : "structurizrLite"
+        },
+        "tags" : "Element,Container,DevOnly",
+        "technology" : "structurizr/lite"
+      } ],
+      "description" : "A private catalog for managing music production hardware, software, and tools. Supports browsing, search, CRUD, audit logging, and admin operations.",
+      "documentation" : { },
+      "id" : "4",
+      "name" : "STUD.io ControlRoom",
+      "properties" : {
+        "structurizr.dsl.identifier" : "controlRoom"
+      },
+      "relationships" : [ {
+        "description" : "Validates Google ID tokens for sign-in",
+        "destinationId" : "3",
+        "id" : "32",
+        "sourceId" : "4",
+        "tags" : "Relationship"
+      } ],
+      "tags" : "Element,Software System"
+    } ]
+  },
+  "name" : "STUD.io ControlRoom",
+  "properties" : {
+    "structurizr.inspection.error" : "54",
+    "structurizr.dsl" : "d29ya3NwYWNlICJTVFVELmlvIENvbnRyb2xSb29tIiAiQzQgYXJjaGl0ZWN0dXJlIG1vZGVsIGZvciB0aGUgQ29udHJvbFJvb20gbXVzaWMgcHJvZHVjdGlvbiBjYXRhbG9nIGFwcGxpY2F0aW9uLiIgewoKICAgIG1vZGVsIHsKCiAgICAgICAgIyDilIDilIAgUGVyc29ucyDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCiAgICAgICAgYWRtaW4gPSBwZXJzb24gIlN0dWRpbyBPd25lciIgewogICAgICAgICAgICBkZXNjcmlwdGlvbiAiTWFuYWdlcyB0aGUgZnVsbCBjYXRhbG9nOiBjcmVhdGVzLCBlZGl0cywgYW5kIGRlbGV0ZXMgYnJhbmRzLCBtb2RlbHMsIGVmZmVjdHMsIGluc3RydW1lbnRzLCBsaWJyYXJpZXMsIGFuZCB0b29scy4gUnVucyBiYWNrdXBzLCBpbXBvcnRzLCBhbmQgcmV2aWV3cyBhdWRpdCBjaGFuZ2VzLiBIYXMgYWRtaW4gcm9sZS4iCiAgICAgICAgICAgIHRhZ3MgIkFkbWluIgogICAgICAgIH0KCiAgICAgICAgdmlld2VyID0gcGVyc29uICJVc2VyIiB7CiAgICAgICAgICAgIGRlc2NyaXB0aW9uICJCcm93c2VzIGFuZCBzZWFyY2hlcyB0aGUgY2F0YWxvZy4gQ2FuIHZpZXcgcmVjb3JkcyBhbmQgYXVkaXQgaGlzdG9yeS4gQ2Fubm90IG1vZGlmeSBkYXRhLiIKICAgICAgICAgICAgdGFncyAiVXNlciIKICAgICAgICB9CgogICAgICAgICMg4pSA4pSAIEV4dGVybmFsIFN5c3RlbXMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgIGdvb2dsZSA9IHNvZnR3YXJlU3lzdGVtICJHb29nbGUgT0F1dGggMi4wIiB7CiAgICAgICAgICAgIGRlc2NyaXB0aW9uICJQcm92aWRlcyB1c2VyIGlkZW50aXR5IGZvciBHb29nbGUgU2lnbi1Jbi4gVGhlIGJhY2tlbmQgdmFsaWRhdGVzIElEIHRva2VucyB2aWEgdGhlIGdvb2dsZS1hdXRoIGxpYnJhcnk7IHRoZSBmcm9udGVuZCBkaXNwbGF5cyB0aGUgc2lnbi1pbiBidXR0b24gdmlhIHRoZSBHb29nbGUgSWRlbnRpdHkgU2VydmljZXMgU0RLLiIKICAgICAgICAgICAgdGFncyAiRXh0ZXJuYWwiCiAgICAgICAgfQoKICAgICAgICAjIOKUgOKUgCBTb2Z0d2FyZSBTeXN0ZW0g4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgIGNvbnRyb2xSb29tID0gc29mdHdhcmVTeXN0ZW0gIlNUVUQuaW8gQ29udHJvbFJvb20iIHsKICAgICAgICAgICAgZGVzY3JpcHRpb24gIkEgcHJpdmF0ZSBjYXRhbG9nIGZvciBtYW5hZ2luZyBtdXNpYyBwcm9kdWN0aW9uIGhhcmR3YXJlLCBzb2Z0d2FyZSwgYW5kIHRvb2xzLiBTdXBwb3J0cyBicm93c2luZywgc2VhcmNoLCBDUlVELCBhdWRpdCBsb2dnaW5nLCBhbmQgYWRtaW4gb3BlcmF0aW9ucy4iCgogICAgICAgICAgICAjIOKUgOKUgCBOZ2lueCDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCiAgICAgICAgICAgIG5naW54ID0gY29udGFpbmVyICJOZ2lueCIgewogICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIlRMUyB0ZXJtaW5hdGlvbiBhbmQgcmV2ZXJzZSBwcm94eS4gUm91dGVzIEhUVFBTIHRyYWZmaWMgb24gcG9ydCAyMTEyIHRvIHRoZSBOZXh0LmpzIGZyb250ZW5kIGFuZCBvbiBwb3J0IDUxNTAgdG8gdGhlIEZhc3RBUEkgYmFja2VuZC4gUGFzc2VzIFdlYlNvY2tldCB1cGdyYWRlIGhlYWRlcnMgZm9yIE5leHQuanMgSE1SLiBTZXJ2ZXMgbWtjZXJ0LWdlbmVyYXRlZCBjZXJ0aWZpY2F0ZXMuIgogICAgICAgICAgICAgICAgdGVjaG5vbG9neSAibmdpbng6YWxwaW5lIgogICAgICAgICAgICAgICAgdGFncyAiSW5mcmFzdHJ1Y3R1cmUiCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgICMg4pSA4pSAIEZyb250ZW5kIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICAgICAgZnJvbnRlbmQgPSBjb250YWluZXIgIk5leHQuanMgRnJvbnRlbmQiIHsKICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJTZXJ2ZXItcmVuZGVyZWQgUmVhY3QgYXBwbGljYXRpb24gdXNpbmcgdGhlIEFwcCBSb3V0ZXIuIEltcGxlbWVudHMgdGhlIEJGRiAoQmFja2VuZCBmb3IgRnJvbnRlbmQpIHBhdHRlcm4g4oCUIHRoZSBicm93c2VyIGNvbW11bmljYXRlcyBvbmx5IHdpdGggTmV4dC5qcy4gSldUcyBhcmUgc3RvcmVkIGluIGh0dHBPbmx5IGNvb2tpZXMgYW5kIG5ldmVyIGV4cG9zZWQgdG8gSmF2YVNjcmlwdC4iCiAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJOb2RlIDIwIC8gTmV4dC5qcyAxNCAvIFR5cGVTY3JpcHQgLyBSZWFjdCAxOCIKICAgICAgICAgICAgICAgIHRhZ3MgIkZyb250ZW5kIgoKICAgICAgICAgICAgICAgIGJmZlByb3h5ID0gY29tcG9uZW50ICJCRkYgQ2F0Y2gtQWxsIFByb3h5IiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIkludGVyY2VwdHMgZXZlcnkgL2FwaS8qIHJlcXVlc3QgZnJvbSBjbGllbnQgY29kZS4gUmVhZHMgdGhlIGNvbnRyb2xyb29tX3Rva2VuIGh0dHBPbmx5IGNvb2tpZSBhbmQgYXR0YWNoZXMgQXV0aG9yaXphdGlvbjogQmVhcmVyIHt0b2tlbn0gYmVmb3JlIGZvcndhcmRpbmcgdG8gRmFzdEFQSS4gVGhpcyBpcyB0aGUgb25seSBwbGFjZSB0aGUgSldUIGVudGVycyBhbiBIVFRQIGhlYWRlciDigJQgdGhlIGJyb3dzZXIgaXRzZWxmIG5ldmVyIHNlZXMgdGhlIHRva2VuLiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJhcHAvYXBpL1suLi5wYXRoXS9yb3V0ZS50cyIKICAgICAgICAgICAgICAgICAgICB0YWdzICJCRkYiCiAgICAgICAgICAgICAgICB9CgogICAgICAgICAgICAgICAgYXV0aFJvdXRlcyA9IGNvbXBvbmVudCAiQXV0aCBBUEkgUm91dGVzIiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIkhhbmRsZXMgdXNlcm5hbWUvcGFzc3dvcmQgbG9naW4gKFBPU1QgL2FwaS9hdXRoL3Rva2VuKSwgR29vZ2xlIFNTTyBsb2dpbiAoUE9TVCAvYXBpL2F1dGgvZ29vZ2xlKSwgYW5kIGxvZ291dCAoUE9TVCAvYXBpL2F1dGgvbG9nb3V0KS4gT24gbG9naW4sIGV4Y2hhbmdlcyBjcmVkZW50aWFscyB3aXRoIEZhc3RBUEkgdGhlbiBzZXRzIHRoZSBjb250cm9scm9vbV90b2tlbiBodHRwT25seSBjb29raWUgKGh0dHBPbmx5LCBzZWN1cmUsIHNhbWVTaXRlPWxheCwgOC1ob3VyIG1heEFnZSkuIE9uIGxvZ291dCwgZGVsZXRlcyB0aGUgY29va2llLiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJhcHAvYXBpL2F1dGgvIgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkJGRiIKICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICBhdXRoQ29udGV4dCA9IGNvbXBvbmVudCAiQXV0aCBDb250ZXh0IiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIlByb3ZpZGVzIHVzZXJuYW1lIGFuZCByb2xlIHRvIGFsbCBjbGllbnQgY29tcG9uZW50cyB2aWEgUmVhY3QgY29udGV4dC4gT24gbW91bnQsIGNoZWNrcyBmb3IgYW4gZXhpc3Rpbmcgc2Vzc2lvbiB2aWEgR0VUIC9hcGkvYXV0aC9tZS4gUmVkaXJlY3RzIHVuYXV0aGVudGljYXRlZCB1c2VycyB0byAvbG9naW47IHJlZGlyZWN0cyBhdXRoZW50aWNhdGVkIHVzZXJzIGF3YXkgZnJvbSAvbG9naW4uIgogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgImxpYi9hdXRoLnRzeCIKICAgICAgICAgICAgICAgICAgICB0YWdzICJMaWJyYXJ5IgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGFwaUNsaWVudCA9IGNvbXBvbmVudCAiQVBJIENsaWVudCIgewogICAgICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJUeXBlZCBmZXRjaCB3cmFwcGVyIHdpdGggbWV0aG9kcyBmb3IgbGlzdCwgbGlzdFBhZ2VkLCBnZXQsIGNyZWF0ZSwgdXBkYXRlLCBkZWxldGUsIGFuZCBzZWFyY2hHbG9iYWwuIEFsbCBjYWxscyB0YXJnZXQgcmVsYXRpdmUgL2FwaS8uLi4gcGF0aHMg4oCUIG5vIEF1dGhvcml6YXRpb24gaGVhZGVyIGlzIHNldCBieSBjbGllbnQgY29kZS4gVGhlIGJyb3dzZXIgc2VuZHMgdGhlIGh0dHBPbmx5IGNvb2tpZSBhdXRvbWF0aWNhbGx5LiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJsaWIvYXBpLnRzIgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkxpYnJhcnkiCiAgICAgICAgICAgICAgICB9CgogICAgICAgICAgICAgICAgdGFibGVQYWdlRnJhbWV3b3JrID0gY29tcG9uZW50ICJUYWJsZVBhZ2UgRnJhbWV3b3JrIiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIkdlbmVyaWMgQ1JVRCBwYWdlIGNvbnRhaW5lciB1c2VkIGJ5IGFsbCAxOCBkYXRhIHRhYmxlcy4gTWFuYWdlcyBzZXJ2ZXItc2lkZSBwYWdpbmF0aW9uIHZpYSB1c2VJbmZpbml0ZVF1ZXJ5LCBwZXItY29sdW1uIGZpbHRlcmluZyAoMzUwbXMgZGVib3VuY2UsIDItY2hhciBtaW5pbXVtKSwgc29ydGluZywgYnVsayBlZGl0IGJhciAoYWRtaW4gb25seSksIGFuZCBtb2RhbCBkaXNwYXRjaCBvbiByb3cgY2xpY2suIFF1ZXJ5IGludmFsaWRhdGlvbiBvbiBtdXRhdGlvbiB0cmlnZ2VycyBhdXRvbWF0aWMgcmVmZXRjaC4iCiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAiY29tcG9uZW50cy9UYWJsZVBhZ2UudHN4ICsgRGF0YVRhYmxlLnRzeCIKICAgICAgICAgICAgICAgICAgICB0YWdzICJVSSIKICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICBtb2RhbFN5c3RlbSA9IGNvbXBvbmVudCAiTW9kYWwgU3lzdGVtIiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIlJlY29yZE1vZGFsIHNoZWxsIHN1cHBvcnRpbmcgdmlldywgZWRpdCwgaGlzdG9yeSwgYW5kIHR3by1zdGFnZSBkZWxldGUgbW9kZXMuIEVpZ2h0IGRvbWFpbi1zcGVjaWZpYyBtb2RhbHMgKEJyYW5kTW9kYWwsIE1vZGVsTW9kYWwsIEVmZmVjdE1vZGFsLCBJbnN0cnVtZW50TW9kYWwsIExpYnJhcnlNb2RhbCwgV29ya3N0YXRpb25Nb2RhbCwgVG9vbE1vZGFsLCBDb25maWdNb2RhbCkgZWFjaCBjb21wb3NlIFJlY29yZE1vZGFsIGFuZCBvd24gdGhlaXIgZm9ybSBzdGF0ZS4gUmVjb3JkSGlzdG9yeVZpZXcgcmVuZGVycyB0aGUgZnVsbCBhdWRpdCB0cmFpbCB3aXRoIGZpZWxkLWxldmVsIGRpZmZzIGFuZCB1bmRvLiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJjb21wb25lbnRzL1JlY29yZE1vZGFsLnRzeCArIGNvbXBvbmVudHMvdGFibGVzLyIKICAgICAgICAgICAgICAgICAgICB0YWdzICJVSSIKICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICBwYWdlcyA9IGNvbXBvbmVudCAiUGFnZXMiIHsKICAgICAgICAgICAgICAgICAgICBkZXNjcmlwdGlvbiAiMjUgcGFnZSBmaWxlcyBhY3Jvc3MgNiBkb21haW5zOiBsb2dpbiwgY2F0YWxvZyAoYnJhbmRzLCBtb2RlbHMpLCBzZXNzaW9uIChlZmZlY3RzLCBpbnN0cnVtZW50cywgbGlicmFyaWVzLCB3b3Jrc3RhdGlvbnMpLCB0b29scyAod29ya2Zsb3csIG1lYXN1cmVtZW50LCByZWZlcmVuY2UsIGNvbXBvc2l0aW9uLCBhZG1pbiksIGNvbmZpZyAoNyBsb29rdXAgdGFibGVzKSwgc2VhcmNoLCBhbmQgYWRtaW4gKHN0YXRzLCBjaGFuZ2UtcmV2aWV3LCBiYWNrdXAsIGltcG9ydC9leHBvcnQsIHVzZXJzKS4iCiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAiYXBwLyIKICAgICAgICAgICAgICAgICAgICB0YWdzICJVSSIKICAgICAgICAgICAgICAgIH0KICAgICAgICAgICAgfQoKICAgICAgICAgICAgIyDilIDilIAgQmFja2VuZCDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCiAgICAgICAgICAgIGJhY2tlbmQgPSBjb250YWluZXIgIkZhc3RBUEkgQmFja2VuZCIgewogICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIlJFU1QgQVBJIHByb3ZpZGluZyBDUlVEIGZvciBhbGwgY2F0YWxvZyBlbnRpdGllcywgZ2xvYmFsIGZ1bGwtdGV4dCBzZWFyY2gsIGF1ZGl0IGxvZ2dpbmcsIGFuZCBhZG1pbiBvcGVyYXRpb25zLiBBbGwgbXV0YXRpb25zIHJlcXVpcmUgYWRtaW4gcm9sZS4gQWxsIGRhdGFiYXNlIGFjY2VzcyBpcyBhc3luY2hyb25vdXMgdmlhIGFzeW5jcGcuIgogICAgICAgICAgICAgICAgdGVjaG5vbG9neSAiUHl0aG9uIDMuMTIgLyBGYXN0QVBJIC8gYXN5bmNwZyAvIFV2aWNvcm4iCiAgICAgICAgICAgICAgICB0YWdzICJCYWNrZW5kIgoKICAgICAgICAgICAgICAgIGFwcENvcmUgPSBjb21wb25lbnQgIkFwcCBDb3JlIiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIkZhc3RBUEkgYXBwbGljYXRpb24gZW50cnkgcG9pbnQuIFJlZ2lzdGVycyBDT1JTTWlkZGxld2FyZSAoYWxsb3dlZCBvcmlnaW46IGh0dHBzOi8vbG9jYWxob3N0OjIxMTIpLCBtYW5hZ2VzIGFzeW5jcGcgcG9vbCBsaWZlY3ljbGUgdmlhIGxpZmVzcGFuIGNvbnRleHQsIHNlZWRzIHRoZSBkZWZhdWx0IGFkbWluIGFjY291bnQgb24gc3RhcnR1cCwgYW5kIG1vdW50cyAxNCByb3V0ZXJzLiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJtYWluLnB5IgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkFwcGxpY2F0aW9uIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGNvbmZpZ01vZHVsZSA9IGNvbXBvbmVudCAiQ29uZmlndXJhdGlvbiIgewogICAgICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJQeWRhbnRpYyBTZXR0aW5ncyBsb2FkZWQgZnJvbSBlbnZpcm9ubWVudCB2YXJpYWJsZXM6IERCIGNyZWRlbnRpYWxzLCBKV1Qgc2VjcmV0IGFuZCBhbGdvcml0aG0gKEhTMjU2KSwgdG9rZW4gZXhwaXJ5ICg0ODAgbWluKSwgR29vZ2xlIE9BdXRoIGNsaWVudCBJRCwgYW5kIHNlcnZlciBiaW5kIGFkZHJlc3MuIEV4cG9zZXMgZGJfZHNuIGNvbXB1dGVkIHByb3BlcnR5LiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJjb25maWcucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiSW5mcmFzdHJ1Y3R1cmVDb21wb25lbnQiCiAgICAgICAgICAgICAgICB9CgogICAgICAgICAgICAgICAgZGJQb29sID0gY29tcG9uZW50ICJEYXRhYmFzZSBQb29sIiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gImFzeW5jcGcgY29ubmVjdGlvbiBwb29sIChtaW49MiwgbWF4PTEwKSB3aXRoIEpTT04vSlNPTkIgY29kZWMgcmVnaXN0cmF0aW9uIGZvciBhdXRvbWF0aWMgZGljdCBzZXJpYWxpc2F0aW9uLiBFeHBvc2VzIGdldF9jb25uKCkgYXMgYSBGYXN0QVBJIGRlcGVuZGVuY3kgaW5qZWN0ZWQgaW50byBldmVyeSByb3V0ZSB0aGF0IG5lZWRzIGRhdGFiYXNlIGFjY2Vzcy4iCiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAiZGF0YWJhc2UucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiSW5mcmFzdHJ1Y3R1cmVDb21wb25lbnQiCiAgICAgICAgICAgICAgICB9CgogICAgICAgICAgICAgICAgYXV0aFJvdXRlciA9IGNvbXBvbmVudCAiQXV0aCBSb3V0ZXIiIHsKICAgICAgICAgICAgICAgICAgICBkZXNjcmlwdGlvbiAiSldUIGF1dGhlbnRpY2F0aW9uIHZpYSBIUzI1NiBhbmQgR29vZ2xlIE9BdXRoIElEIHRva2VuIHZhbGlkYXRpb24uIEV4cG9zZXMgL2F1dGgvdG9rZW4sIC9hdXRoL21lLCBhbmQgL2F1dGgvZ29vZ2xlLiBQcm92aWRlcyB0d28gcmV1c2FibGUgRmFzdEFQSSBkZXBlbmRlbmNpZXM6IGdldF9jdXJyZW50X3VzZXIgKHZhbGlkYXRlcyBhbmQgZGVjb2RlcyBKV1QpIGFuZCByZXF1aXJlX2FkbWluIChhZGRpdGlvbmFsbHkgY2hlY2tzIHJvbGU9YWRtaW4pLiBBbGwgcHJvdGVjdGVkIHJvdXRlcyBkZWNsYXJlIG9uZSBvZiB0aGVzZSBhcyBhIERlcGVuZHMgcGFyYW1ldGVyLiIKICAgICAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJyb3V0ZXJzL2F1dGgucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIHVzZXJzUm91dGVyID0gY29tcG9uZW50ICJVc2VycyBSb3V0ZXIiIHsKICAgICAgICAgICAgICAgICAgICBkZXNjcmlwdGlvbiAiVXNlciBhY2NvdW50IG1hbmFnZW1lbnQ6IGxpc3QgYWxsIHVzZXJzLCBjcmVhdGUgKGFkbWluKSwgY2hhbmdlIG93biBwYXNzd29yZCwgY2hhbmdlIHJvbGUgKGFkbWluKSwgbGluay91bmxpbmsgR29vZ2xlIGFjY291bnQsIGRlbGV0ZSAoYWRtaW4pLiBFbmZvcmNlcyBsYXN0LWFkbWluIHByb3RlY3Rpb24gYW5kIGVtYWlsIHVuaXF1ZW5lc3MuIgogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgInJvdXRlcnMvdXNlcnMucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIHNlYXJjaFJvdXRlciA9IGNvbXBvbmVudCAiU2VhcmNoIFJvdXRlciIgewogICAgICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJHbG9iYWwgZnVsbC10ZXh0IHNlYXJjaCB2aWEgUG9zdGdyZVNRTCB3ZWJzZWFyY2hfdG9fdHNxdWVyeSBhY3Jvc3MgMTEgY2F0YWxvZyB2aWV3cyAoYnJhbmRzLCBtb2RlbHMsIGVmZmVjdHMsIGluc3RydW1lbnRzLCBsaWJyYXJpZXMsIHdvcmtzdGF0aW9ucywgYW5kIDUgdG9vbCBjYXRlZ29yaWVzKS4gT3B0aW9uYWwgbm90ZXMgZmllbGQgc2VhcmNoLiBSZXR1cm5zIHJhbmstc29ydGVkIHJlc3VsdHMgZ3JvdXBlZCBieSB0YWJsZS4iCiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAicm91dGVycy9zZWFyY2gucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGNhdGFsb2dSb3V0ZXJzID0gY29tcG9uZW50ICJDYXRhbG9nIFJvdXRlcnMiIHsKICAgICAgICAgICAgICAgICAgICBkZXNjcmlwdGlvbiAiU2l4IHJvdXRlcnMgbWFuYWdpbmcgY29udGVudCBlbnRpdGllczogYnJhbmRzLCBtb2RlbHMsIGVmZmVjdHMsIGluc3RydW1lbnRzLCBsaWJyYXJpZXMsIHdvcmtzdGF0aW9ucy4gQWxsIGV4cG9zZSBwYWdpbmF0ZWQgbGlzdCAod2l0aCBwZXItY29sdW1uIGZpbHRlcmluZyBhbmQgc29ydGluZyksIHNpbmdsZSBnZXQsIGNyZWF0ZS91cGRhdGUvc29mdC1kZWxldGUgKGFkbWluIG9ubHkpLCBhbmQgYXVkaXQgaGlzdG9yeS4gRWZmZWN0cywgaW5zdHJ1bWVudHMsIGFuZCBsaWJyYXJpZXMgc3VwcG9ydCBwYXJlbnRfcmVmIGhpZXJhcmNoaWNhbCByZWxhdGlvbnNoaXBzIGFuZCBtb2RlbCBhc3NvY2lhdGlvbnMuIgogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgInJvdXRlcnMvYnJhbmRzfG1vZGVsc3xlZmZlY3RzfGluc3RydW1lbnRzfGxpYnJhcmllc3x3b3Jrc3RhdGlvbnMucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIHRvb2xzUm91dGVyID0gY29tcG9uZW50ICJUb29scyBSb3V0ZXIiIHsKICAgICAgICAgICAgICAgICAgICBkZXNjcmlwdGlvbiAiVW5pZmllZCBDUlVEIGludGVyZmFjZSBmb3IgNSB0b29sIGNhdGVnb3JpZXM6IHdvcmtmbG93LCBtZWFzdXJlbWVudCwgcmVmZXJlbmNlLCBjb21wb3NpdGlvbiwgYWRtaW4uIE5vcm1hbGlzZXMgcGVyLXRhYmxlIHByaW1hcnkga2V5cyB0byBhIGNvbW1vbiB0b29sX2lkIGZvciBhIGNvbnNpc3RlbnQgQVBJIHN1cmZhY2UuIE1lYXN1cmVtZW50IGFuZCByZWZlcmVuY2UgdG9vbHMgY2FuIGJlIGFzc29jaWF0ZWQgd2l0aCBoYXJkd2FyZSBtb2RlbHMuIgogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgInJvdXRlcnMvdG9vbHMucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGNvbmZpZ1JvdXRlciA9IGNvbXBvbmVudCAiQ29uZmlnIFJvdXRlciIgewogICAgICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJDUlVEIGZvciA3IGxvb2t1cC9lbnVtZXJhdGlvbiB0YWJsZXMgKGVudGl0eV90eXBlcywgdGFnX3R5cGVzLCBwbHVnaW5fZm9ybWF0cywgbW9kZWxfdHlwZXMsIGVmZmVjdF90eXBlcywgaW5zdHJ1bWVudF90eXBlcywgdG9vbF90eXBlcykuIE1hcHMgVVJMIHNsdWdzIChlLmcuIGVudGl0eS10eXBlcykgdG8gdGFibGUgbmFtZXMuIEVuZm9yY2VzIHJlZmVyZW50aWFsIGludGVncml0eSBiZWZvcmUgZGVsZXRlcy4iCiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAicm91dGVycy9jb25maWcucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGFkbWluUm91dGVycyA9IGNvbXBvbmVudCAiQWRtaW4gUm91dGVycyIgewogICAgICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJGb3VyIGFkbWluLW9ubHkgcm91dGVycyBtb3VudGVkIHVuZGVyIC9hZG1pbjogY2hhbmdlX3JldmlldyAoYXVkaXQgbG9nIGJyb3dzZXIgd2l0aCBhY2tub3dsZWRnZSBhbmQgdW5kbyB0byBvbGRfZGF0YSBzbmFwc2hvdCksIGFkbWluX3N0YXRzIChyb3cgY291bnRzIHBlciB0YWJsZSBhbmQgcGVuZGluZyBhdWRpdCBjb3VudHMpLCBiYWNrdXBfb3BzIChwZ19kdW1wIHN0cmVhbWluZyByZXNwb25zZSB3aXRoIG1hbmlmZXN0IGNoZWNrc3VtcyBhbmQgcHNxbCByZXN0b3JlKSwgaW1wb3J0X2V4cG9ydCAoWExTWCBidWxrIGltcG9ydC9leHBvcnQgdXAgdG8gMTBNQikuIgogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgInJvdXRlcnMvY2hhbmdlX3Jldmlld3xhZG1pbl9zdGF0c3xiYWNrdXBfb3BzfGltcG9ydF9leHBvcnQucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiUm91dGVyIgogICAgICAgICAgICAgICAgfQoKICAgICAgICAgICAgICAgIGNydWRMaWJyYXJ5ID0gY29tcG9uZW50ICJDUlVEICYgQXVkaXQgTGlicmFyeSIgewogICAgICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJTaGFyZWQgYWJzdHJhY3Rpb25zIHVzZWQgYnkgYWxsIGNhdGFsb2cgYW5kIGNvbmZpZyByb3V0ZXJzOiBsaXN0X2VudGl0aWVzIChwYWdpbmF0ZWQgd2l0aCBmaWx0ZXIvc29ydCBEU0wpLCBnZXRfZW50aXR5ICg0MDQgb24gbWlzcyksIGRlbGV0ZV9lbnRpdHkgKHNvZnQtZGVsZXRlIHdpdGggYXVkaXQgc25hcHNob3QpLCBnZXRfaGlzdG9yeSAoYXVkaXQgdHJhaWwgZm9yIGEgcmVjb3JkKS4gRmlsdGVyIERTTCBzdXBwb3J0cyBjb250YWlucyAoSUxJS0UpLCBlcXVhbHMsIGZ1enp5IChwZ190cmdtIHNpbWlsYXJpdHkpLCBpc19lbXB0eSwgYW5kIGRhdGUgb3BlcmF0b3JzLiBsb2dfYXVkaXQgd3JpdGVzIG9sZF9kYXRhL25ld19kYXRhIEpTT04gc25hcHNob3RzIHRvIGF1ZGl0X2xvZy4iCiAgICAgICAgICAgICAgICAgICAgdGVjaG5vbG9neSAicm91dGVycy9fY3J1ZF9vcHMucHkgKyBfaGVscGVycy5weSArIGZpbHRlcl9vcGVyYXRvcnMucHkiCiAgICAgICAgICAgICAgICAgICAgdGFncyAiTGlicmFyeSIKICAgICAgICAgICAgICAgIH0KCiAgICAgICAgICAgICAgICB4bHN4TGlicmFyeSA9IGNvbXBvbmVudCAiWExTWCBMaWJyYXJ5IiB7CiAgICAgICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIkdlbmVyYXRlcyBhbmQgcGFyc2VzIFhMU1ggd29ya2Jvb2tzIGZvciB0aGUgaW1wb3J0L2V4cG9ydCByb3V0ZXIuIFRBQkxFX0NPTkZJR1MgZGVmaW5lcyBwZXItdGFibGUgc2NoZW1hIChjb2x1bW5zLCB2YWxpZGF0b3JzLCBsb29rdXAgcmVmZXJlbmNlcykuIGZldGNoX2xvb2t1cF9kYXRhIGFuZCBidWlsZF93b3JrYm9vayBwcm9kdWNlIGV4cG9ydCBmaWxlczsgcGFyc2Vfd29ya2Jvb2ssIHZhbGlkYXRlX2ltcG9ydCwgYW5kIGV4ZWN1dGVfaW1wb3J0IGhhbmRsZSBidWxrIGluZ2VzdCB3aXRoIGF1ZGl0IGxvZ2dpbmcuIgogICAgICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgInJvdXRlcnMvX3hsc3hfc2NoZW1hfF9idWlsZHxfaW1wb3J0LnB5IgogICAgICAgICAgICAgICAgICAgIHRhZ3MgIkxpYnJhcnkiCiAgICAgICAgICAgICAgICB9CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgICMg4pSA4pSAIERhdGFiYXNlIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICAgICAgZGF0YWJhc2UgPSBjb250YWluZXIgIlBvc3RncmVTUUwiIHsKICAgICAgICAgICAgICAgIGRlc2NyaXB0aW9uICJQcmltYXJ5IGRhdGEgc3RvcmUuIFRocmVlIGxvZ2ljYWwgZGF0YWJhc2VzOiBjb250cm9scm9vbWRiIChwcm9kdWN0aW9uIGFwcCksIGNvbnRyb2xyb29tZGJfdGVzdCAoYXV0b21hdGVkIHRlc3Qgc3VpdGUg4oCUIGVhY2ggdGVzdCBydW5zIGluIGEgcm9sbGVkLWJhY2sgdHJhbnNhY3Rpb24pLCBzdHVkaW8gKGxlZ2FjeSBDU1YgcGlwZWxpbmUpLiBwZ3ZlY3RvciBleHRlbnNpb24gaW5zdGFsbGVkIGZvciBmdXR1cmUgdmVjdG9yIHNpbWlsYXJpdHkuIFNlbWFudGljIHZpZXdzIChicmFuZHNfdmlldywgbW9kZWxzX3ZpZXcsIGV0Yy4pIHVzZWQgZm9yIHJlYWRzOyBiYXNlIHRhYmxlcyBmb3Igd3JpdGVzLiBhdWRpdF9sb2cgdGFibGUgcmVjb3JkcyBldmVyeSBDUkVBVEUsIFVQREFURSwgYW5kIERFTEVURSB3aXRoIG9sZF9kYXRhL25ld19kYXRhIEpTT04gc25hcHNob3RzLiIKICAgICAgICAgICAgICAgIHRlY2hub2xvZ3kgInBndmVjdG9yL3BndmVjdG9yOnBnMTciCiAgICAgICAgICAgICAgICB0YWdzICJEYXRhYmFzZSIKICAgICAgICAgICAgfQoKICAgICAgICAgICAgIyDilIDilIAgRGV2IHRvb2xpbmcg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgICAgICBzb25hcnF1YmUgPSBjb250YWluZXIgIlNvbmFyUXViZSIgewogICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIlNBU1QsIGNvZGUgcXVhbGl0eSBtZXRyaWNzLCBhbmQgY292ZXJhZ2UgZ2F0ZS4gUnVucyBhcyBhIHNlcGFyYXRlIERvY2tlciBwcm9qZWN0IChub3QgcGFydCBvZiB0aGUgcHJvZHVjdGlvbiBzdGFjaykuIFF1YWxpdHkgZ2F0ZSB0aHJlc2hvbGRzOiB6ZXJvIG5ldyB2aW9sYXRpb25zLCDiiaU4MCUgbGluZSBjb3ZlcmFnZSwgPDMlIGR1cGxpY2F0aW9uIG9uIG5ldy9jaGFuZ2VkIGNvZGUuIgogICAgICAgICAgICAgICAgdGVjaG5vbG9neSAic29uYXJxdWJlOmNvbW11bml0eSIKICAgICAgICAgICAgICAgIHRhZ3MgIkRldk9ubHkiCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIHN0cnVjdHVyaXpyTGl0ZSA9IGNvbnRhaW5lciAiU3RydWN0dXJpenIgTGl0ZSIgewogICAgICAgICAgICAgICAgZGVzY3JpcHRpb24gIkFyY2hpdGVjdHVyZSBkb2N1bWVudGF0aW9uIHNlcnZlci4gUmVhZHMgd29ya3NwYWNlLmRzbCBmcm9tIHRoZSByZXBvc2l0b3J5IGFuZCBzZXJ2ZXMgdGhlIEM0IG1vZGVsIGFzIGFuIGludGVyYWN0aXZlIHdlYiBhcHBsaWNhdGlvbi4gRGV2IHRvb2xpbmcgb25seS4iCiAgICAgICAgICAgICAgICB0ZWNobm9sb2d5ICJzdHJ1Y3R1cml6ci9saXRlIgogICAgICAgICAgICAgICAgdGFncyAiRGV2T25seSIKICAgICAgICAgICAgfQogICAgICAgIH0KCiAgICAgICAgIyDilIDilIAgU3lzdGVtLWxldmVsIHJlbGF0aW9uc2hpcHMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgIGFkbWluIC0+IGNvbnRyb2xSb29tICJNYW5hZ2VzIGNhdGFsb2cgYW5kIGFkbWluIG9wZXJhdGlvbnMiCiAgICAgICAgdmlld2VyIC0+IGNvbnRyb2xSb29tICJCcm93c2VzIGFuZCBzZWFyY2hlcyBjYXRhbG9nIgogICAgICAgIGNvbnRyb2xSb29tIC0+IGdvb2dsZSAiVmFsaWRhdGVzIEdvb2dsZSBJRCB0b2tlbnMgZm9yIHNpZ24taW4iCgogICAgICAgICMg4pSA4pSAIFBlcnNvbiDihpIgQ29udGFpbmVyIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICBhZG1pbiAtPiBuZ2lueCAiSFRUUFMg4oCUIHBvcnRzIDIxMTIgKGFwcCkgYW5kIDUxNTAgKEFQSS9Td2FnZ2VyKSIKICAgICAgICB2aWV3ZXIgLT4gbmdpbnggIkhUVFBTIOKAlCBwb3J0IDIxMTIiCgogICAgICAgICMg4pSA4pSAIENvbnRhaW5lciDihpIgQ29udGFpbmVyIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICBuZ2lueCAtPiBmcm9udGVuZCAiUHJveGllcyBIVFRQUyA6MjExMiDihpIgSFRUUCA6MjExMiAod2l0aCBXZWJTb2NrZXQgcGFzc3Rocm91Z2gpIgogICAgICAgIG5naW54IC0+IGJhY2tlbmQgIlByb3hpZXMgSFRUUFMgOjUxNTAg4oaSIEhUVFAgOjUxNTAiCiAgICAgICAgZnJvbnRlbmQgLT4gYmFja2VuZCAiUkVTVCBBUEkgb3ZlciBpbnRlcm5hbCBEb2NrZXIgbmV0d29yayDigJQgSldUIGF0dGFjaGVkIGJ5IEJGRiBwcm94eSIKICAgICAgICBiYWNrZW5kIC0+IGRhdGFiYXNlICJhc3luY3BnIGNvbm5lY3Rpb24gcG9vbCDigJQgcGFyYW1ldGVyaXNlZCBTUUwgb25seSIKICAgICAgICBiYWNrZW5kIC0+IGdvb2dsZSAiVmFsaWRhdGVzIEdvb2dsZSBJRCB0b2tlbnMgdmlhIGdvb2dsZS1hdXRoIGxpYnJhcnkiCgogICAgICAgICMg4pSA4pSAIEZyb250ZW5kIGNvbXBvbmVudCByZWxhdGlvbnNoaXBzIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICBwYWdlcyAtPiBhdXRoQ29udGV4dCAiUmVhZHMgdXNlcm5hbWUgYW5kIHJvbGUgdG8gZ2F0ZSBVSSBhbmQgc2hvdy9oaWRlIGFkbWluIGNvbnRyb2xzIgogICAgICAgIHBhZ2VzIC0+IHRhYmxlUGFnZUZyYW1ld29yayAiQWxsIGNhdGFsb2csIHNlc3Npb24sIHRvb2xzLCBhbmQgY29uZmlnIHBhZ2VzIHVzZSB0aGlzIgogICAgICAgIHRhYmxlUGFnZUZyYW1ld29yayAtPiBhcGlDbGllbnQgIkZldGNoZXMgcGFnaW5hdGVkIGRhdGEgYW5kIHN1Ym1pdHMgY3JlYXRlL3VwZGF0ZS9kZWxldGUgbXV0YXRpb25zIgogICAgICAgIHRhYmxlUGFnZUZyYW1ld29yayAtPiBtb2RhbFN5c3RlbSAiT3BlbnMgb24gcm93IGNsaWNrOyBpbnZhbGlkYXRlcyBxdWVyeSBjYWNoZSBvbiBzYXZlIG9yIGRlbGV0ZSIKICAgICAgICBtb2RhbFN5c3RlbSAtPiBhcGlDbGllbnQgIlNhdmVzIGFuZCBkZWxldGVzIHJlY29yZHMiCiAgICAgICAgYXV0aENvbnRleHQgLT4gYXV0aFJvdXRlcyAiQ2FsbHMgbG9naW4sIGxvZ2luR29vZ2xlLCBsb2dvdXQsIGFuZCBzZXNzaW9uIGNoZWNrICgvYXBpL2F1dGgvbWUpIgogICAgICAgIGFwaUNsaWVudCAtPiBiZmZQcm94eSAiRXZlcnkgZmV0Y2goJy9hcGkvLi4uJykgY2FsbCBpcyBpbnRlcmNlcHRlZCBoZXJlIgogICAgICAgIGJmZlByb3h5IC0+IGJhY2tlbmQgIkZvcndhcmRzIHJlcXVlc3Qgd2l0aCBBdXRob3JpemF0aW9uOiBCZWFyZXIge3Rva2VuIHJlYWQgZnJvbSBodHRwT25seSBjb29raWV9IgogICAgICAgIGF1dGhSb3V0ZXMgLT4gYmFja2VuZCAiQ2FsbHMgL2F1dGgvdG9rZW4sIC9hdXRoL2dvb2dsZSwgL2F1dGgvbWUiCgogICAgICAgICMg4pSA4pSAIEJhY2tlbmQgY29tcG9uZW50IHJlbGF0aW9uc2hpcHMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgIGNvbmZpZ01vZHVsZSAtPiBhcHBDb3JlICJTdXBwbGllcyBEQiBEU04sIEpXVCBjb25maWcsIGFuZCBHb29nbGUgY2xpZW50IElEIG9uIHN0YXJ0dXAiCiAgICAgICAgYXBwQ29yZSAtPiBkYlBvb2wgIkluaXRpYWxpc2VzIGNvbm5lY3Rpb24gcG9vbCBvbiBzdGFydHVwOyBjbG9zZXMgb24gc2h1dGRvd24iCiAgICAgICAgYXBwQ29yZSAtPiBhdXRoUm91dGVyICJNb3VudHMgYXQgL2F1dGgiCiAgICAgICAgYXBwQ29yZSAtPiB1c2Vyc1JvdXRlciAiTW91bnRzIGF0IC91c2VycyIKICAgICAgICBhcHBDb3JlIC0+IHNlYXJjaFJvdXRlciAiTW91bnRzIGF0IC9zZWFyY2giCiAgICAgICAgYXBwQ29yZSAtPiBjYXRhbG9nUm91dGVycyAiTW91bnRzIGF0IC9icmFuZHMsIC9tb2RlbHMsIC9lZmZlY3RzLCAvaW5zdHJ1bWVudHMsIC9saWJyYXJpZXMsIC93b3Jrc3RhdGlvbnMiCiAgICAgICAgYXBwQ29yZSAtPiB0b29sc1JvdXRlciAiTW91bnRzIGF0IC90b29scy97Y2F0ZWdvcnl9IgogICAgICAgIGFwcENvcmUgLT4gY29uZmlnUm91dGVyICJNb3VudHMgYXQgL2NvbmZpZy97c2x1Z30iCiAgICAgICAgYXBwQ29yZSAtPiBhZG1pblJvdXRlcnMgIk1vdW50cyBhdCAvYWRtaW4vY2hhbmdlLXJldmlldywgL2FkbWluL3N0YXRzLCAvYWRtaW4vYmFja3VwLCAvYWRtaW4vcmVzdG9yZSwgL2FkbWluL2V4cG9ydCwgL2FkbWluL2ltcG9ydCIKCiAgICAgICAgY2F0YWxvZ1JvdXRlcnMgLT4gYXV0aFJvdXRlciAiRGVwZW5kcyhyZXF1aXJlX2FkbWluKSBvbiBhbGwgd3JpdGUgcm91dGVzIgogICAgICAgIHRvb2xzUm91dGVyIC0+IGF1dGhSb3V0ZXIgIkRlcGVuZHMocmVxdWlyZV9hZG1pbikgb24gYWxsIHdyaXRlIHJvdXRlcyIKICAgICAgICBjb25maWdSb3V0ZXIgLT4gYXV0aFJvdXRlciAiRGVwZW5kcyhyZXF1aXJlX2FkbWluKSBvbiBhbGwgd3JpdGUgcm91dGVzIgogICAgICAgIGFkbWluUm91dGVycyAtPiBhdXRoUm91dGVyICJEZXBlbmRzKHJlcXVpcmVfYWRtaW4pIG9uIGFsbCByb3V0ZXMiCiAgICAgICAgdXNlcnNSb3V0ZXIgLT4gYXV0aFJvdXRlciAiRGVwZW5kcyhnZXRfY3VycmVudF91c2VyKSBhbmQgRGVwZW5kcyhyZXF1aXJlX2FkbWluKSBvbiB3cml0ZSByb3V0ZXMiCiAgICAgICAgc2VhcmNoUm91dGVyIC0+IGF1dGhSb3V0ZXIgIkRlcGVuZHMoZ2V0X2N1cnJlbnRfdXNlcikiCgogICAgICAgIGNhdGFsb2dSb3V0ZXJzIC0+IGNydWRMaWJyYXJ5ICJsaXN0X2VudGl0aWVzLCBnZXRfZW50aXR5LCBkZWxldGVfZW50aXR5LCBnZXRfaGlzdG9yeSIKICAgICAgICB0b29sc1JvdXRlciAtPiBjcnVkTGlicmFyeSAibGlzdF9lbnRpdGllcywgZ2V0X2VudGl0eSwgZGVsZXRlX2VudGl0eSwgZ2V0X2hpc3RvcnkiCiAgICAgICAgY29uZmlnUm91dGVyIC0+IGNydWRMaWJyYXJ5ICJsaXN0X2VudGl0aWVzLCBnZXRfZW50aXR5LCBkZWxldGVfZW50aXR5LCBnZXRfaGlzdG9yeSIKICAgICAgICBhZG1pblJvdXRlcnMgLT4gY3J1ZExpYnJhcnkgImxvZ19hdWRpdCwgYXBwbHlfb2xkX2RhdGEsIGZldGNoX211dGFibGVfZW50cnkiCiAgICAgICAgYWRtaW5Sb3V0ZXJzIC0+IHhsc3hMaWJyYXJ5ICJidWlsZF93b3JrYm9vaywgcGFyc2Vfd29ya2Jvb2ssIHZhbGlkYXRlX2ltcG9ydCwgZXhlY3V0ZV9pbXBvcnQiCgogICAgICAgIGF1dGhSb3V0ZXIgLT4gZGJQb29sICJSZWFkcyB1c2VycyB0YWJsZTsgYmNyeXB0IHZlcmlmeSBvbiBsb2dpbiIKICAgICAgICB1c2Vyc1JvdXRlciAtPiBkYlBvb2wgIlJlYWRzIGFuZCB3cml0ZXMgdXNlcnMgdGFibGUiCiAgICAgICAgc2VhcmNoUm91dGVyIC0+IGRiUG9vbCAiUXVlcmllcyBhbGwgMTEgY2F0YWxvZyB2aWV3cyIKICAgICAgICBjYXRhbG9nUm91dGVycyAtPiBkYlBvb2wgIlJlYWRzL3dyaXRlcyBjYXRhbG9nIHRhYmxlcyBhbmQgYXVkaXRfbG9nIgogICAgICAgIHRvb2xzUm91dGVyIC0+IGRiUG9vbCAiUmVhZHMvd3JpdGVzIHRvb2wgdGFibGVzIGFuZCBhdWRpdF9sb2ciCiAgICAgICAgY29uZmlnUm91dGVyIC0+IGRiUG9vbCAiUmVhZHMvd3JpdGVzIGxvb2t1cCB0YWJsZXMgYW5kIGF1ZGl0X2xvZyIKICAgICAgICBhZG1pblJvdXRlcnMgLT4gZGJQb29sICJSZWFkcy93cml0ZXMgYXVkaXRfbG9nOyByZWFkcyBhbGwgY2F0YWxvZyB0YWJsZXMiCiAgICAgICAgY3J1ZExpYnJhcnkgLT4gZGJQb29sICJFeGVjdXRlcyBwYXJhbWV0ZXJpc2VkIFNRTCBmb3IgbGlzdCwgZ2V0LCBkZWxldGUsIGFuZCBhdWRpdCIKCiAgICAgICAgZGJQb29sIC0+IGRhdGFiYXNlICJNYWludGFpbnMgYXN5bmNwZyBjb25uZWN0aW9uIHBvb2wiCiAgICAgICAgYXV0aFJvdXRlciAtPiBnb29nbGUgIlZhbGlkYXRlcyBHb29nbGUgSUQgdG9rZW5zIG9uIC9hdXRoL2dvb2dsZSIKICAgIH0KCiAgICB2aWV3cyB7CgogICAgICAgICMg4pSA4pSAIExldmVsIDE6IFN5c3RlbSBDb250ZXh0IOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICBzeXN0ZW1Db250ZXh0IGNvbnRyb2xSb29tICJTeXN0ZW1Db250ZXh0IiB7CiAgICAgICAgICAgIHRpdGxlICJMZXZlbCAxIOKAlCBTeXN0ZW0gQ29udGV4dCIKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgICAgIGF1dG9MYXlvdXQgbHIKICAgICAgICB9CgogICAgICAgICMg4pSA4pSAIExldmVsIDI6IENvbnRhaW5lcnMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgIGNvbnRhaW5lciBjb250cm9sUm9vbSAiQ29udGFpbmVycyIgewogICAgICAgICAgICB0aXRsZSAiTGV2ZWwgMiDigJQgQ29udGFpbmVyIERpYWdyYW0iCiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgICAgICBhdXRvTGF5b3V0IGxyCiAgICAgICAgfQoKICAgICAgICAjIOKUgOKUgCBMZXZlbCAzOiBCYWNrZW5kIENvbXBvbmVudHMg4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSA4pSACgogICAgICAgIGNvbXBvbmVudCBiYWNrZW5kICJCYWNrZW5kQ29tcG9uZW50cyIgewogICAgICAgICAgICB0aXRsZSAiTGV2ZWwgMyDigJQgRmFzdEFQSSBCYWNrZW5kIENvbXBvbmVudHMiCiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgICAgICBhdXRvTGF5b3V0IGxyCiAgICAgICAgfQoKICAgICAgICAjIOKUgOKUgCBMZXZlbCAzOiBGcm9udGVuZCBDb21wb25lbnRzIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAoKICAgICAgICBjb21wb25lbnQgZnJvbnRlbmQgIkZyb250ZW5kQ29tcG9uZW50cyIgewogICAgICAgICAgICB0aXRsZSAiTGV2ZWwgMyDigJQgTmV4dC5qcyBGcm9udGVuZCBDb21wb25lbnRzIgogICAgICAgICAgICBpbmNsdWRlICoKICAgICAgICAgICAgYXV0b0xheW91dCBscgogICAgICAgIH0KCiAgICAgICAgIyDilIDilIAgTGV2ZWwgNDogQkZGIEF1dGhlbnRpY2F0aW9uIEZsb3cgKER5bmFtaWMpIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAogICAgICAgICMgU2hvd3MgaG93IGEgYnJvd3NlciByZXF1ZXN0IGZsb3dzIHRocm91Z2ggdGhlIHN0YWNrIGFuZCBob3cgdGhlIEpXVAogICAgICAgICMgaXMgYXR0YWNoZWQgd2l0aG91dCBldmVyIGJlaW5nIGV4cG9zZWQgdG8gY2xpZW50LXNpZGUgSmF2YVNjcmlwdC4KCiAgICAgICAgZHluYW1pYyBjb250cm9sUm9vbSAiQmZmSnd0RmxvdyIgewogICAgICAgICAgICB0aXRsZSAiTGV2ZWwgNCDigJQgQkZGIEF1dGhlbnRpY2F0aW9uIEZsb3ciCiAgICAgICAgICAgIHZpZXdlciAtPiBuZ2lueCAiMS4gSFRUUFMgR0VUIC9jYXRhbG9nL2JyYW5kcyAoYnJvd3NlciBzZW5kcyBodHRwT25seSBjb29raWUgYXV0b21hdGljYWxseSkiCiAgICAgICAgICAgIG5naW54IC0+IGZyb250ZW5kICIyLiBIVFRQIDoyMTEyIChwcm94aWVkKSIKICAgICAgICAgICAgZnJvbnRlbmQgLT4gYmFja2VuZCAiMy4gUHJveHkgcmVhZHMgY29va2llLCBhdHRhY2hlcyBBdXRob3JpemF0aW9uOiBCZWFyZXIge3Rva2VufSwgZm9yd2FyZHMgR0VUIC9icmFuZHMiCiAgICAgICAgICAgIGJhY2tlbmQgLT4gZGF0YWJhc2UgIjQuIFNFTEVDVCAqIEZST00gYnJhbmRzX3ZpZXcgV0hFUkUgLi4uIExJTUlUICQxIE9GRlNFVCAkMiIKICAgICAgICAgICAgYXV0b0xheW91dCBscgogICAgICAgIH0KCiAgICAgICAgIyDilIDilIAgTGV2ZWwgNDogRmFzdEFQSSBBdXRoIERlcGVuZGVuY3kgQ2hhaW4gKER5bmFtaWMpIOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgOKUgAogICAgICAgICMgU2hvd3MgaG93IHJlcXVpcmVfYWRtaW4gZmlyZXMgYmVmb3JlIGFueSByb3V0ZSBoYW5kbGVyLCBzbyBhCiAgICAgICAgIyBub24tYWRtaW4gdXNlciBuZXZlciByZWFjaGVzIGRhdGFiYXNlIGxvZ2ljLgoKICAgICAgICBkeW5hbWljIGJhY2tlbmQgIkF1dGhEZXBlbmRlbmN5Q2hhaW4iIHsKICAgICAgICAgICAgdGl0bGUgIkxldmVsIDQg4oCUIEZhc3RBUEkgQXV0aCBEZXBlbmRlbmN5IENoYWluIgogICAgICAgICAgICBhcHBDb3JlIC0+IGF1dGhSb3V0ZXIgIjEuIEluY29taW5nIHJlcXVlc3Qg4oCUIHJlc29sdmUgcmVxdWlyZV9hZG1pbiBkZXBlbmRlbmN5IgogICAgICAgICAgICBhdXRoUm91dGVyIC0+IGRiUG9vbCAiMi4gRGVjb2RlIEhTMjU2IEpXVCwgZmV0Y2ggdXNlciByb3cgZnJvbSBEQiIKICAgICAgICAgICAgZGJQb29sIC0+IGRhdGFiYXNlICIzLiBTRUxFQ1QgdXNlcm5hbWUsIHJvbGUgRlJPTSB1c2VycyBXSEVSRSB1c2VybmFtZSA9ICQxIgogICAgICAgICAgICBhcHBDb3JlIC0+IGNhdGFsb2dSb3V0ZXJzICI0LiByZXF1aXJlX2FkbWluIHNhdGlzZmllZCDigJQgcm91dGUgaGFuZGxlciBpbnZva2VkIgogICAgICAgICAgICBjYXRhbG9nUm91dGVycyAtPiBjcnVkTGlicmFyeSAiNS4gbGlzdF9lbnRpdGllcyAvIGNyZWF0ZSAvIHVwZGF0ZSAvIGRlbGV0ZSIKICAgICAgICAgICAgY3J1ZExpYnJhcnkgLT4gZGJQb29sICI2LiBQYXJhbWV0ZXJpc2VkIFNRTCArIGxvZ19hdWRpdCBJTlNFUlQiCiAgICAgICAgICAgIGF1dG9MYXlvdXQgbHIKICAgICAgICB9CgogICAgICAgICMg4pSA4pSAIFN0eWxlcyDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIDilIAKCiAgICAgICAgc3R5bGVzIHsKCiAgICAgICAgICAgIGVsZW1lbnQgIlBlcnNvbiIgewogICAgICAgICAgICAgICAgc2hhcGUgUGVyc29uCiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICMxMTY4YmQKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgICAgIGZvbnRTaXplIDE0CiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkFkbWluIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBQZXJzb24KICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzBlM2E2ZQogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJVc2VyIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBQZXJzb24KICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzExNjhiZAogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJTb2Z0d2FyZSBTeXN0ZW0iIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzExNjhiZAogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJFeHRlcm5hbCIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjNjY2NjY2CiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkNvbnRhaW5lciIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjNDM4ZGQ1CiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkZyb250ZW5kIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICMyZDYwOTkKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgfQoKICAgICAgICAgICAgZWxlbWVudCAiQmFja2VuZCIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjMWE0ZjdhCiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkRhdGFiYXNlIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBDeWxpbmRlcgogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjMWE0ZjdhCiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkluZnJhc3RydWN0dXJlIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM1NTU1NTUKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgfQoKICAgICAgICAgICAgZWxlbWVudCAiRGV2T25seSIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjOTk5OTk5CiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkNvbXBvbmVudCIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjODViYmYwCiAgICAgICAgICAgICAgICBjb2xvciAjMDAwMDAwCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGVsZW1lbnQgIkFwcGxpY2F0aW9uIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICMxYTRmN2EKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgfQoKICAgICAgICAgICAgZWxlbWVudCAiSW5mcmFzdHJ1Y3R1cmVDb21wb25lbnQiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzU1NTU1NQogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJSb3V0ZXIiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzQzOGRkNQogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJCRkYiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzJkNjA5OQogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CgogICAgICAgICAgICBlbGVtZW50ICJMaWJyYXJ5IiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM4NWJiZjAKICAgICAgICAgICAgICAgIGNvbG9yICMwMDAwMDAKICAgICAgICAgICAgfQoKICAgICAgICAgICAgZWxlbWVudCAiVUkiIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzY2OTliYgogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9",
+    "structurizr.inspection.info" : "0",
+    "structurizr.inspection.ignore" : "0",
+    "structurizr.inspection.warning" : "0"
+  },
+  "views" : {
+    "componentViews" : [ {
+      "automaticLayout" : {
+        "edgeSeparation" : 50,
+        "nodeSeparation" : 50,
+        "rankDirection" : "LeftRight",
+        "rankSeparation" : 100,
+        "vertices" : true
+      },
+      "containerId" : "14",
+      "elements" : [ {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "15",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "16",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "17",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "18",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "19",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "20",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "21",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "22",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "23",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "24",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "25",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "26",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "27",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "BackendComponents",
+      "name" : "Component View: STUD.io ControlRoom - FastAPI Backend",
+      "order" : 3,
+      "relationships" : [ {
+        "id" : "49"
+      }, {
+        "id" : "50"
+      }, {
+        "id" : "51"
+      }, {
+        "id" : "52"
+      }, {
+        "id" : "53"
+      }, {
+        "id" : "54"
+      }, {
+        "id" : "55"
+      }, {
+        "id" : "56"
+      }, {
+        "id" : "57"
+      }, {
+        "id" : "58"
+      }, {
+        "id" : "59"
+      }, {
+        "id" : "60"
+      }, {
+        "id" : "61"
+      }, {
+        "id" : "62"
+      }, {
+        "id" : "63"
+      }, {
+        "id" : "64"
+      }, {
+        "id" : "65"
+      }, {
+        "id" : "66"
+      }, {
+        "id" : "67"
+      }, {
+        "id" : "68"
+      }, {
+        "id" : "69"
+      }, {
+        "id" : "70"
+      }, {
+        "id" : "71"
+      }, {
+        "id" : "72"
+      }, {
+        "id" : "73"
+      }, {
+        "id" : "74"
+      }, {
+        "id" : "75"
+      }, {
+        "id" : "76"
+      }, {
+        "id" : "77"
+      }, {
+        "id" : "78"
+      } ],
+      "title" : "Level 3 — FastAPI Backend Components"
+    }, {
+      "automaticLayout" : {
+        "edgeSeparation" : 50,
+        "nodeSeparation" : 50,
+        "rankDirection" : "LeftRight",
+        "rankSeparation" : 100,
+        "vertices" : true
+      },
+      "containerId" : "6",
+      "elements" : [ {
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "10",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "11",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "12",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "13",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "14",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalContainerBoundariesVisible" : false,
+      "key" : "FrontendComponents",
+      "name" : "Component View: STUD.io ControlRoom - Next.js Frontend",
+      "order" : 4,
+      "relationships" : [ {
+        "id" : "40"
+      }, {
+        "id" : "41"
+      }, {
+        "id" : "42"
+      }, {
+        "id" : "43"
+      }, {
+        "id" : "44"
+      }, {
+        "id" : "45"
+      }, {
+        "id" : "46"
+      }, {
+        "id" : "47"
+      }, {
+        "id" : "48"
+      } ],
+      "title" : "Level 3 — Next.js Frontend Components"
+    } ],
+    "configuration" : {
+      "styles" : {
+        "elements" : [ {
+          "background" : "#0e3a6e",
+          "color" : "#ffffff",
+          "shape" : "Person",
+          "tag" : "Admin"
+        }, {
+          "background" : "#1a4f7a",
+          "color" : "#ffffff",
+          "tag" : "Application"
+        }, {
+          "background" : "#2d6099",
+          "color" : "#ffffff",
+          "tag" : "BFF"
+        }, {
+          "background" : "#1a4f7a",
+          "color" : "#ffffff",
+          "tag" : "Backend"
+        }, {
+          "background" : "#85bbf0",
+          "color" : "#000000",
+          "tag" : "Component"
+        }, {
+          "background" : "#438dd5",
+          "color" : "#ffffff",
+          "tag" : "Container"
+        }, {
+          "background" : "#1a4f7a",
+          "color" : "#ffffff",
+          "shape" : "Cylinder",
+          "tag" : "Database"
+        }, {
+          "background" : "#999999",
+          "color" : "#ffffff",
+          "tag" : "DevOnly"
+        }, {
+          "background" : "#666666",
+          "color" : "#ffffff",
+          "tag" : "External"
+        }, {
+          "background" : "#2d6099",
+          "color" : "#ffffff",
+          "tag" : "Frontend"
+        }, {
+          "background" : "#555555",
+          "color" : "#ffffff",
+          "tag" : "Infrastructure"
+        }, {
+          "background" : "#555555",
+          "color" : "#ffffff",
+          "tag" : "InfrastructureComponent"
+        }, {
+          "background" : "#85bbf0",
+          "color" : "#000000",
+          "tag" : "Library"
+        }, {
+          "background" : "#1168bd",
+          "color" : "#ffffff",
+          "fontSize" : 14,
+          "shape" : "Person",
+          "tag" : "Person"
+        }, {
+          "background" : "#438dd5",
+          "color" : "#ffffff",
+          "tag" : "Router"
+        }, {
+          "background" : "#1168bd",
+          "color" : "#ffffff",
+          "tag" : "Software System"
+        }, {
+          "background" : "#6699bb",
+          "color" : "#ffffff",
+          "tag" : "UI"
+        }, {
+          "background" : "#1168bd",
+          "color" : "#ffffff",
+          "shape" : "Person",
+          "tag" : "User"
+        } ]
+      },
+      "terminology" : { }
+    },
+    "containerViews" : [ {
+      "automaticLayout" : {
+        "edgeSeparation" : 50,
+        "nodeSeparation" : 50,
+        "rankDirection" : "LeftRight",
+        "rankSeparation" : 100,
+        "vertices" : true
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "6",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "14",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "27",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "28",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "29",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalSoftwareSystemBoundariesVisible" : false,
+      "key" : "Containers",
+      "name" : "Container View: STUD.io ControlRoom",
+      "order" : 2,
+      "relationships" : [ {
+        "id" : "33"
+      }, {
+        "id" : "34"
+      }, {
+        "id" : "35"
+      }, {
+        "id" : "36"
+      }, {
+        "id" : "37"
+      }, {
+        "id" : "38"
+      }, {
+        "id" : "39"
+      } ],
+      "softwareSystemId" : "4",
+      "title" : "Level 2 — Container Diagram"
+    } ],
+    "dynamicViews" : [ {
+      "automaticLayout" : {
+        "edgeSeparation" : 50,
+        "nodeSeparation" : 50,
+        "rankDirection" : "LeftRight",
+        "rankSeparation" : 100,
+        "vertices" : true
+      },
+      "elementId" : "4",
+      "elements" : [ {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "6",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "14",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "27",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalBoundariesVisible" : false,
+      "key" : "BffJwtFlow",
+      "name" : "Dynamic View: STUD.io ControlRoom",
+      "order" : 5,
+      "relationships" : [ {
+        "description" : "1. HTTPS GET /catalog/brands (browser sends httpOnly cookie automatically)",
+        "id" : "34",
+        "order" : "1",
+        "response" : false
+      }, {
+        "description" : "2. HTTP :2112 (proxied)",
+        "id" : "35",
+        "order" : "2",
+        "response" : false
+      }, {
+        "description" : "3. Proxy reads cookie, attaches Authorization: Bearer {token}, forwards GET /brands",
+        "id" : "37",
+        "order" : "3",
+        "response" : false
+      }, {
+        "description" : "4. SELECT * FROM brands_view WHERE ... LIMIT $1 OFFSET $2",
+        "id" : "38",
+        "order" : "4",
+        "response" : false
+      } ],
+      "title" : "Level 4 — BFF Authentication Flow"
+    }, {
+      "automaticLayout" : {
+        "edgeSeparation" : 50,
+        "nodeSeparation" : 50,
+        "rankDirection" : "LeftRight",
+        "rankSeparation" : 100,
+        "vertices" : true
+      },
+      "elementId" : "14",
+      "elements" : [ {
+        "id" : "15",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "17",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "18",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "21",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "25",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "27",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "externalBoundariesVisible" : false,
+      "key" : "AuthDependencyChain",
+      "name" : "Dynamic View: STUD.io ControlRoom - FastAPI Backend",
+      "order" : 6,
+      "relationships" : [ {
+        "description" : "1. Incoming request — resolve require_admin dependency",
+        "id" : "51",
+        "order" : "1",
+        "response" : false
+      }, {
+        "description" : "2. Decode HS256 JWT, fetch user row from DB",
+        "id" : "69",
+        "order" : "2",
+        "response" : false
+      }, {
+        "description" : "3. SELECT username, role FROM users WHERE username = $1",
+        "id" : "77",
+        "order" : "3",
+        "response" : false
+      }, {
+        "description" : "4. require_admin satisfied — route handler invoked",
+        "id" : "54",
+        "order" : "4",
+        "response" : false
+      }, {
+        "description" : "5. list_entities / create / update / delete",
+        "id" : "64",
+        "order" : "5",
+        "response" : false
+      }, {
+        "description" : "6. Parameterised SQL + log_audit INSERT",
+        "id" : "76",
+        "order" : "6",
+        "response" : false
+      } ],
+      "title" : "Level 4 — FastAPI Auth Dependency Chain"
+    } ],
+    "systemContextViews" : [ {
+      "automaticLayout" : {
+        "edgeSeparation" : 50,
+        "nodeSeparation" : 50,
+        "rankDirection" : "LeftRight",
+        "rankSeparation" : 100,
+        "vertices" : true
+      },
+      "elements" : [ {
+        "id" : "1",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "2",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "4",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "enterpriseBoundaryVisible" : true,
+      "key" : "SystemContext",
+      "name" : "System Context View: STUD.io ControlRoom",
+      "order" : 1,
+      "relationships" : [ {
+        "id" : "30"
+      }, {
+        "id" : "31"
+      }, {
+        "id" : "32"
+      } ],
+      "softwareSystemId" : "4",
+      "title" : "Level 1 — System Context"
+    } ]
+  }
+}

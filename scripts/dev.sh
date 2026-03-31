@@ -1,5 +1,5 @@
 #!/bin/bash
-# Manage the dev tooling stack (SonarQube).
+# Manage the dev tooling stack (SonarQube + Structurizr).
 # Runs as a separate Docker project named "dev", isolated from the studio stack.
 #
 # Usage:
@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.dev.yml"
 
-SONAR_HOST="http://localhost:9000"
+SONAR_HOST="http://localhost:1969"
 SONAR_USER="admin"
 SONAR_PASS="My@mpGoesTo11"
 DEFAULT_PASS="admin"
@@ -78,9 +78,10 @@ case "${1:-up}" in
     fi
 
     echo ""
-    echo "SonarQube: $SONAR_HOST  (admin / My@mpGoesTo11)"
+    echo "SonarQube:    $SONAR_HOST  (admin / My@mpGoesTo11)"
+    echo "Structurizr:  http://localhost:1967"
     echo ""
-    echo "To scan: ./scripts/sonar-scan.sh"
+    echo "To scan: ./scripts/test-scan.sh --sonar"
     ;;
   down)
     echo "Stopping dev stack..."

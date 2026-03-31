@@ -95,6 +95,7 @@ if [ "$RUN_SECRETS" = true ]; then
             --exclude-files '.*\.next/.*' \
             --exclude-files '.*__pycache__.*' \
             --exclude-files '\.secrets\.baseline' \
+            --exclude-files 'structurizr/workspace\.json' \
             > /tmp/secrets_current.json
 
         python3 - <<'PYEOF'

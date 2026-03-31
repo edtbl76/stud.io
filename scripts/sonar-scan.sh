@@ -3,7 +3,7 @@
 # Requires the dev stack to be running: ./build.sh --dev  or  ./scripts/dev.sh up
 set -e
 
-SONAR_HOST="http://localhost:9000"
+SONAR_HOST="http://localhost:1969"
 PROJECT_KEY="controlroom"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOKEN_FILE="$PROJECT_ROOT/.sonar-token"

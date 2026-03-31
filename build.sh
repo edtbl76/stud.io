@@ -120,7 +120,7 @@ else
       echo "  WARNING: .sonar-token not found — cannot verify quality gate."
     else
       TOKEN=$(cat "$TOKEN_FILE")
-      SONAR_URL="http://localhost:9000"
+      SONAR_URL="http://localhost:1969"
 
       echo -n "  Waiting for SonarQube analysis "
       for i in $(seq 1 30); do
@@ -163,7 +163,8 @@ echo "  API:  https://localhost:5150"
 echo "  Docs: https://localhost:5150/docs"
 if $WITH_DEV; then
   echo ""
-  echo "  SonarQube: http://localhost:9000"
+  echo "  SonarQube:    http://localhost:1969"
+  echo "  Structurizr:  http://localhost:1967"
 fi
 if $WITH_RELEASE; then
   echo ""

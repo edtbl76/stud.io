@@ -96,6 +96,22 @@ Requirements:
 
 ---
 
+### `scripts/test-precommit.sh`
+
+Runs pre-commit hooks against all files without performing a commit. Useful for verifying the full hook suite is clean during development.
+
+```bash
+./scripts/test-precommit.sh              # all hooks
+./scripts/test-precommit.sh --ruff       # Python lint only
+./scripts/test-precommit.sh --unit-tests # tsc + jest + pytest only
+./scripts/test-precommit.sh --bandit     # Python SAST only
+./scripts/test-precommit.sh --pip-audit  # Python CVEs only
+./scripts/test-precommit.sh --npm-audit  # Node CVEs only
+./scripts/test-precommit.sh --detect-secrets  # secrets scan only
+```
+
+---
+
 ### `scripts/install-hooks.sh`
 
 Installs git pre-commit hooks via the [pre-commit framework](https://pre-commit.com). Run once after cloning. Requires `pre-commit` to be installed (`pip install pre-commit`).
@@ -108,16 +124,21 @@ Installs git pre-commit hooks via the [pre-commit framework](https://pre-commit.
 
 ### `scripts/dev.sh`
 
-Manages the SonarQube Docker stack (separate from the studio stack).
+Manages the dev tooling stack — SonarQube and Structurizr (separate Docker project from the studio stack).
 
 ```bash
-./scripts/dev.sh up      # Start SonarQube (idempotent — safe to run repeatedly)
+./scripts/dev.sh up      # Start dev stack (idempotent — safe to run repeatedly)
 ./scripts/dev.sh down    # Stop and preserve data
 ./scripts/dev.sh reset   # Wipe all data and start fresh
 ./scripts/dev.sh status  # Show running containers
 ```
 
-`up` performs first-time setup automatically (password change, project creation, token generation) and skips steps that are already done.
+`up` performs first-time SonarQube setup automatically (password change, project creation, token generation) and skips steps that are already done. Structurizr starts with no setup required.
+
+| Service | URL |
+|---|---|
+| SonarQube | `http://localhost:1969` (admin / My@mpGoesTo11) |
+| Structurizr | `http://localhost:1967` |
 
 ---
 

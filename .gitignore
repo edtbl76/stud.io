@@ -348,6 +348,10 @@ nginx/certs/*.pem
 ### SonarQube
 .sonar-token
 
+### Structurizr
+structurizr/.structurizr/
+structurizr/workspace.json
+
 ### Coverage
 coverage.xml
 .coverage

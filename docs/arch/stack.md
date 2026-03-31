@@ -11,7 +11,13 @@ The studio stack (`./build.sh`) runs four containers in a single Docker network:
 | `controlroom_frontend` | custom (Node 20-alpine) | 2112 | Next.js app (dev server) |
 | `controlroom_nginx` | `nginx:alpine` | 2112, 5150 | HTTPS reverse proxy |
 
-The SonarQube stack (`./scripts/dev.sh`) runs separately in its own Docker network and does not interact with the studio stack at runtime.
+The dev tooling stack (`./scripts/dev.sh`) runs separately in its own Docker project and does not interact with the studio stack at runtime:
+
+| Container | Image | Port | Role |
+|---|---|---|---|
+| `sonarqube` | `sonarqube:community` | 1969 | SAST, code quality, coverage gate |
+| `sonarqube_db` | `postgres:17` | — (internal) | SonarQube data store |
+| `structurizr` | `structurizr/structurizr` | 1967 | Architecture documentation (C4 model) |
 
 ---
 
@@ -22,9 +28,12 @@ The SonarQube stack (`./scripts/dev.sh`) runs separately in its own Docker netwo
 | 2112 | nginx → Next.js (app) | External | HTTPS |
 | 5150 | nginx → FastAPI (API / Swagger) | External | HTTPS |
 | 5432 | PostgreSQL | Internal | TCP |
-| 9000 | SonarQube (dev stack only) | External | HTTP |
+| 1967 | Structurizr Lite (dev stack only) | External | HTTP |
+| 1969 | SonarQube (dev stack only) | External | HTTP |
 
 nginx terminates TLS on both external ports. Port 2112 proxies to the Next.js container; port 5150 proxies to the FastAPI container. There is no port 443 — this is a local dev stack using mkcert certificates, and the ports are chosen to avoid requiring root privileges.
+
+> **Port lore:** The service ports follow a music history theme. 2112 is Rush's landmark 1976 concept album. 5150 is Van Halen's 1986 comeback record (also California's code for an involuntary psychiatric hold — make of that what you will). 1967 is the year of *Sgt. Pepper's Lonely Hearts Club Band* and the Summer of Love. 1969 is Woodstock, the Stones at Altamont, Led Zeppelin's debut, and Abbey Road — arguably the most consequential year in rock history. When a new service needs a port, there's a candidate list in the dev notes.
 
 ---
 
