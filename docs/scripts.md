@@ -2,6 +2,8 @@
 
 All scripts live in `scripts/` (dev tooling and hook runners) or `util/` (legacy CSV pipeline).
 
+For the overall development workflow (branches, PRs, CI gate, pre-merge checklist), see [`docs/arch/workflow.md`](arch/workflow.md).
+
 ---
 
 ## scripts/
