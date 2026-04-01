@@ -40,12 +40,22 @@ usage() {
 
 for arg in "$@"; do
     case "$arg" in
-        -h|--help)    usage ;;
-        --sonar)      ONLY_MODE=true; RUN_GATE=false; RUN_TRIVY=false;  RUN_SECRETS=false; RUN_HEADERS=false ;;
-        --sonar-gate) ONLY_MODE=true; RUN_GATE=true; RUN_TRIVY=false; RUN_SECRETS=false; RUN_HEADERS=false ;;
-        --trivy)      ONLY_MODE=true; RUN_SONAR=false; RUN_GATE=false; RUN_SECRETS=false; RUN_HEADERS=false ;;
-        --secrets)    ONLY_MODE=true; RUN_SONAR=false; RUN_GATE=false; RUN_TRIVY=false;   RUN_HEADERS=false ;;
-        --headers)    ONLY_MODE=true; RUN_SONAR=false; RUN_GATE=false; RUN_TRIVY=false;   RUN_SECRETS=false ;;
+        -h|--help) usage ;;
+        --sonar|--sonar-gate|--trivy|--secrets|--headers)
+            if [ "$ONLY_MODE" = true ]; then
+                echo "[scan] Error: mode flags are mutually exclusive — only one of --sonar, --sonar-gate, --trivy, --secrets, --headers may be specified."
+                exit 1
+            fi
+            ONLY_MODE=true
+            RUN_SONAR=false; RUN_GATE=false; RUN_TRIVY=false; RUN_SECRETS=false; RUN_HEADERS=false
+            case "$arg" in
+                --sonar)      RUN_SONAR=true ;;
+                --sonar-gate) RUN_SONAR=true; RUN_GATE=true ;;
+                --trivy)      RUN_TRIVY=true ;;
+                --secrets)    RUN_SECRETS=true ;;
+                --headers)    RUN_HEADERS=true ;;
+            esac
+            ;;
         *) echo "[scan] Unknown flag: $arg"; echo "Run with -h for help."; exit 1 ;;
     esac
 done
