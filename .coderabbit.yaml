@@ -1,0 +1,91 @@
+version: "2"
+
+language: en
+
+tone_instructions: >
+  Be direct and concise. Flag real issues clearly. Skip praise and filler.
+  Assume the author knows the stack — no need to explain FastAPI, Next.js, or
+  asyncpg basics.
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  collapse_walkthrough: true
+
+  path_filters:
+    - "!app/controlroom_frontend/package-lock.json"
+    - "!app/controlroom_frontend/node_modules/**"
+    - "!app/controlroom_frontend/.next/**"
+    - "!app/controlroom_frontend/.next-perf/**"
+    - "!app/controlroom_frontend/.next-e2e*/**"
+    - "!app/controlroom_frontend/components/ui/**"
+    - "!**/__pycache__/**"
+    - "!**/*.pyc"
+    - "!.secrets.baseline"
+    - "!structurizr/workspace.json"
+    - "!docs/superpowers/**"
+
+  path_instructions:
+    - path: "app/controlroom_backend/**/*.py"
+      instructions: |
+        Review against these standards:
+        - Function length: max 40 lines (excluding docstring and blank lines)
+        - File length: max 250 lines
+        - Nesting depth: max 3 levels — use early returns to flatten
+        - Cyclomatic complexity: max 5 per function
+        - All public function signatures must be fully type-annotated. No bare Any.
+        - No bare except — catch specific exception types only
+        - SQL: parameterized queries only. Flag any f-string or .format() interpolation of user-supplied values into SQL strings.
+        - No magic numbers — extract to named module-level constants
+        - No commented-out code
+        - Duplication: if the same logic appears twice, flag it for extraction
+
+    - path: "app/controlroom_frontend/**/*.{ts,tsx}"
+      instructions: |
+        Review against these standards:
+        - No `any` — use `unknown` and narrow, or type properly. Flag `as unknown as T` casts without an explanatory comment.
+        - Component function length: max 200 lines (JSX included)
+        - File length: max 400 lines
+        - Nesting depth: max 3 levels. Ternaries count as one level; flag nested ternaries.
+        - Cyclomatic complexity: max 5 per function
+        - Components use named exports. Default exports only for Next.js page files.
+        - Extract named event handler functions (e.g. handleSubmit) — no inline arrow functions longer than a single expression.
+        - No useEffect with suppressed dependency arrays
+        - No magic numbers — extract to named constants
+        - No commented-out code
+        - Duplication: flag copy-paste between components or routers
+
+    - path: "app/controlroom_backend/tests/**"
+      instructions: |
+        - Every test must assert real behavior — flag tests that only check that code runs without errors
+        - Tests use asyncpg with transaction rollback per test — flag any test that commits data without cleanup
+        - No DB mocking — tests must hit the real test database
+
+    - path: "app/controlroom_frontend/__tests__/**"
+      instructions: |
+        - Mock @/lib/auth and @/lib/api per project conventions
+        - Every test must assert real behavior — flag coverage-padding tests
+        - Flag missing edge case coverage on new logic
+
+    - path: "app/controlroom_frontend/e2e/**"
+      instructions: |
+        - E2E tests run against the dev stack at https://localhost:2112
+        - One spec file per feature area
+        - Flag any test that writes to the database (perf suite must be read-only)
+
+    - path: "app/controlroom_backend/routers/**"
+      instructions: |
+        - New routes must be documented in docs/arch/api.md
+        - Admin-only routes need test_user_cannot_* and test_unauthenticated_cannot_* cases in test_rbac.py
+        - User-accessible routes need test_unauthenticated_cannot_* coverage
+
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches:
+      - main
+
+chat:
+  auto_reply: true
