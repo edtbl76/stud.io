@@ -6,13 +6,13 @@ import { NextRequest } from 'next/server'
 
 const mockGet = jest.fn()
 jest.mock('next/headers', () => ({
-  cookies: () => ({ get: mockGet }),
+  cookies: () => Promise.resolve({ get: mockGet }),
 }))
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-const PARAMS = { params: { path: ['effects'] } }
+const PARAMS = { params: Promise.resolve({ path: ['effects'] }) }
 
 function jsonResponse(body: unknown, status = 200) {
   return {
@@ -109,7 +109,7 @@ describe('proxy route', () => {
     mockFetch.mockResolvedValue({ status: 204, body: null, headers: { get: () => null } })
 
     const req = new NextRequest('http://localhost/api/effects/1', { method: 'DELETE' })
-    const res = await DELETE(req, { params: { path: ['effects', '1'] } })
+    const res = await DELETE(req, { params: Promise.resolve({ path: ['effects', '1'] }) })
 
     expect(res.status).toBe(204)
     expect(mockFetch).toHaveBeenCalledWith(
@@ -132,7 +132,7 @@ describe('proxy route', () => {
     })
 
     const req = new NextRequest('http://localhost/api/admin/backup')
-    const res = await GET(req, { params: { path: ['admin', 'backup'] } })
+    const res = await GET(req, { params: Promise.resolve({ path: ['admin', 'backup'] }) })
 
     expect(res.headers.get('content-disposition')).toBe('attachment; filename=backup.sql')
   })
@@ -141,7 +141,7 @@ describe('proxy route', () => {
     mockFetch.mockResolvedValue(jsonResponse({ detail: 'Not found' }, 404))
 
     const req = new NextRequest('http://localhost/api/effects/999')
-    const res = await GET(req, { params: { path: ['effects', '999'] } })
+    const res = await GET(req, { params: Promise.resolve({ path: ['effects', '999'] }) })
 
     expect(res.status).toBe(404)
   })

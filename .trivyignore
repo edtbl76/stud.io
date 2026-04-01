@@ -17,11 +17,10 @@ CVE-2025-69720
 # it is not reachable from the application and the container runs as non-root (appuser).
 CVE-2026-29111
 
-# Next.js 14.x known CVEs — require Next.js 15+ to fix (breaking upgrade)
-# Neither applies to this app: no remotePatterns configured, no insecure RSC.
-# Revisit when upgrading to Next.js 16. Consistent with npm-audit suppression.
-GHSA-9g9p-9gw9-jx7f
-GHSA-h25m-26qc-wcjf
+# CVE-2026-4046: glibc — DoS via iconv() with specific character sets (libc-bin, libc6)
+# Suppressed: fix_deferred in debian 13.4 — no patched version available.
+# glibc iconv is not invoked by the application; present only as an OS base image dep.
+CVE-2026-4046
 
 # Frontend npm devDependency CVEs
 # The following packages are transitive dependencies of build/test tooling

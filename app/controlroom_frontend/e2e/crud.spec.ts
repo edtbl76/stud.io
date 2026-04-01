@@ -1,4 +1,9 @@
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+/** Waits for the record count label — only rendered after React hydrates and data loads. */
+async function waitForRows(page: Page) {
+  await expect(page.getByText(/\d+ records?/)).toBeVisible({ timeout: 30_000 })
+}
 
 interface TableSpec {
   name: string
@@ -30,16 +35,16 @@ for (const table of ALL_TABLES) {
   test(`${table.name}: row click opens and closes modal`, async ({ page }) => {
     await page.goto(table.path)
 
-    // Wait for at least one data row to appear
+    // Wait for hydration before clicking — row clicks require React to be attached
+    await waitForRows(page)
     const firstRow = page.locator('table tbody tr').first()
-    await expect(firstRow).toBeVisible({ timeout: 8000 })
 
     // Click the last cell — always a data column, never the checkbox (which is always first)
     await firstRow.locator('td').last().click()
-    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
 
     // Close the modal
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 })
   })
 }

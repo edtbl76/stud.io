@@ -27,7 +27,7 @@
  * Run via: ./scripts/test-perf.sh
  */
 import * as fs from 'fs'
-import { test, expect, TestInfo } from '@playwright/test'
+import { test, expect, TestInfo, Browser } from '@playwright/test'
 import { playAudit } from 'playwright-lighthouse'
 import { co2 } from '@tgwf/co2'
 
@@ -71,9 +71,19 @@ function pct(score: number | null | undefined): string {
   return score != null ? `${Math.round(score * 100)}%` : 'n/a'
 }
 
+// Inject cookies into the browser's default context (used by Lighthouse via CDP).
+// Lighthouse navigates independently of the Playwright isolated context, so
+// page.context().addCookies() alone is insufficient.
+async function seedLighthouseCookies(browser: Browser): Promise<void> {
+  const cdp = await browser.newBrowserCDPSession()
+  await cdp.send('Storage.setCookies', { cookies: AUTH_COOKIES })
+  await cdp.detach()
+}
+
 for (const path of PAGES) {
-  test(`Lighthouse: ${path}`, async ({ page }, testInfo: TestInfo) => {
+  test(`Lighthouse: ${path}`, async ({ page, browser }, testInfo: TestInfo) => {
     await page.context().addCookies(AUTH_COOKIES)
+    await seedLighthouseCookies(browser)
     await page.goto(path)
     await page.waitForLoadState('networkidle')
 

@@ -94,7 +94,7 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 | `CVE-2024-23342` | `ecdsa` (transitive via python-jose) | App uses HS256/HMAC JWTs exclusively — EC keys are not used. No upstream fix. |
 | `CVE-2025-69720` | `ncurses` (OS dep, python:3.12-slim) | No fix available in debian 13.4. Not reachable from the application. |
 | `CVE-2026-29111` | `systemd` (OS dep, python:3.12-slim) | No fix available. Container runs as non-root (`appuser`). Not reachable. |
-| `GHSA-9g9p-9gw9-jx7f`, `GHSA-h25m-26qc-wcjf` | Next.js 14.x | Require Next.js 15+ to fix (breaking upgrade). Neither applies: no `remotePatterns`, no insecure RSC. Revisit when upgrading to Next.js 16. |
+| `GHSA-9g9p-9gw9-jx7f`, `GHSA-h25m-26qc-wcjf` | Next.js 14.x | Resolved — upgraded to Next.js 16. |
 | `CVE-2024-21538` | `cross-spawn` | npm devDep (jest/playwright tooling). Not in the HTTP request path. |
 | `CVE-2025-64756` | `glob` | npm devDep. Not in the HTTP request path. |
 | `CVE-2026-26996`, `CVE-2026-27903`, `CVE-2026-27904` | `minimatch` | npm devDeps. Not in the HTTP request path. |

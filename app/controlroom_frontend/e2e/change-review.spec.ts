@@ -15,14 +15,19 @@ test('change review page shows pagination controls', async ({ page }) => {
 
   await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible({ timeout: 10_000 })
 
-  await expect(page.getByRole('button', { name: /previous/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /next/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Previous', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Next', exact: true })).toBeVisible()
 })
 
 test('change review page shows empty state or table rows', async ({ page }) => {
   await page.goto('/admin/change-review')
 
   await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible({ timeout: 10_000 })
+
+  // Wait for the table to settle: either rows or the empty state must appear
+  const firstRow = page.locator('tbody tr').first()
+  const emptyMsg = page.getByText('No entries found.')
+  await expect(firstRow.or(emptyMsg)).toBeVisible({ timeout: 10_000 })
 
   // Either a row exists or the empty state message is shown — either is valid
   const hasEntries = await page.locator('tbody tr').count() > 0
@@ -32,7 +37,7 @@ test('change review page shows empty state or table rows', async ({ page }) => {
     await expect(page.getByRole('columnheader', { name: 'Op' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'By' })).toBeVisible()
   } else {
-    await expect(page.getByText('No entries found.')).toBeVisible()
+    await expect(emptyMsg).toBeVisible()
   }
 })
 

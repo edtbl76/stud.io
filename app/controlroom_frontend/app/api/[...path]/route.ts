@@ -5,13 +5,14 @@ const BACKEND = process.env.BACKEND_URL ?? 'http://controlroom_backend:5150'
 
 async function proxy(
   req: NextRequest,
-  { params }: { params: { path: string[] } },
+  { params }: { params: Promise<{ path: string[] }> },
 ): Promise<NextResponse> {
-  const path = '/' + params.path.join('/')
+  const { path } = await params
   const search = req.nextUrl.search
-  const backendUrl = `${BACKEND}${path}${search}`
+  const backendUrl = `${BACKEND}/${path.join('/')}${search}`
 
-  const token = cookies().get('controlroom_token')?.value
+  const cookieStore = await cookies()
+  const token = cookieStore.get('controlroom_token')?.value
 
   const headers: Record<string, string> = {}
   const contentType = req.headers.get('content-type')
