@@ -42,7 +42,8 @@ git commit -m "feat: my change"
 git push -u origin feat/my-change
 gh pr create --title "feat: my change" --fill
 
-# 5. Watch CI
+# 5. Watch checks and AI reviews
+# CodeRabbit and Qodo Merge post reviews automatically — no action needed.
 gh pr checks --watch
 
 # 6. Merge (squash)
@@ -82,6 +83,19 @@ feat: add reverb unit search
 fix: auth session timeout on idle tabs
 chore: upgrade Next.js to 16.x
 ```
+
+---
+
+## GitHub-side tooling
+
+On every PR, two AI reviewers run automatically alongside CI:
+
+- **CodeRabbit** — line-by-line review against project standards (config: `.coderabbit.yaml`)
+- **Qodo Merge** — review, code suggestions, and PR description generation (config: `.pr_agent.toml`)
+
+Both review against the same standards defined in `best_practices.md`. Neither requires a local command — they trigger on PR open/update via GitHub Apps.
+
+Full GitHub configuration (repo settings, branch protection, installed apps): `docs/arch/github.md`.
 
 ---
 
