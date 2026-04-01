@@ -94,7 +94,7 @@ export function ModelSelect({
                     )}
                   >
                     <div className={cn(
-                      'flex h-4 w-4 items-center justify-center rounded border border-border flex-shrink-0',
+                      'flex h-4 w-4 items-center justify-center rounded border border-border shrink-0',
                       isSelected && 'bg-primary border-primary',
                     )}>
                       {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}

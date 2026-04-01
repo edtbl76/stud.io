@@ -199,7 +199,7 @@ export default function BackupRestorePage() {
 
         {verifyError && (
           <div className="flex items-center gap-2 mt-3 text-xs text-destructive">
-            <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
             {verifyError.includes('manifest') || verifyError.includes('Re-download')
               ? 'This file was not created with manifest support. Re-download a fresh backup to enable verification.'
               : verifyError}
@@ -258,8 +258,8 @@ function StatusMessage({ status }: Readonly<{ status: NonNullable<Status> }>) {
       status.type === 'success' ? 'text-green-400' : 'text-destructive'
     }`}>
       {status.type === 'success'
-        ? <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
-        : <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />}
+        ? <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+        : <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
       {status.message}
     </div>
   )
