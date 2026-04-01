@@ -96,7 +96,7 @@ LIGHTHOUSE_RESULT=skip
 cleanup() {
     echo ""
     echo "[perf] Tearing down..."
-    [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null || true
+    [ -n "$FRONTEND_PID" ] && kill -- -"$FRONTEND_PID" 2>/dev/null || true
     docker rm -f "$PERF_CONTAINER" 2>/dev/null || true
     if [ "$SKIP_BUILD" = false ]; then
         rm -rf "$FRONTEND_DIR/.next-perf"
@@ -159,12 +159,7 @@ if fuser "${FRONTEND_PORT}/tcp" > /dev/null 2>&1; then
     BUSY_PID="$(fuser "${FRONTEND_PORT}/tcp" 2>/dev/null || true)"
     echo ""
     echo "[perf] ERROR: port ${FRONTEND_PORT} is already in use (PID ${BUSY_PID})."
-    echo "[perf] To investigate:"
-    echo "[perf]   lsof -p ${BUSY_PID}"
-    echo "[perf]   fuser -n tcp ${FRONTEND_PORT}"
-    echo "[perf] To free the port:"
-    echo "[perf]   kill ${BUSY_PID}"
-    echo "[perf] Then re-run: ./scripts/test-perf.sh"
+    echo "[perf] Cannot determine what owns the port — free it manually and re-run."
     exit 1
 fi
 pushd "$FRONTEND_DIR" > /dev/null
