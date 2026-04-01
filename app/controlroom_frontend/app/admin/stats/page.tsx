@@ -39,7 +39,7 @@ export default function StatsPage() {
     return (
       <div className="px-6 py-6">
         <div className="flex items-center gap-2 text-xs text-destructive">
-          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          <AlertCircle className="h-3.5 w-3.5 shrink-0" />
           Could not load stats.
         </div>
       </div>

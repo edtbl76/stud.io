@@ -12,19 +12,22 @@
 #   ./scripts/test-scan.sh [flags]
 #
 # Flags:
-#   -h, --help      Show this help message
-#   --sonar         Run SonarQube scan only
-#   --trivy         Run Trivy image scan only
-#   --secrets       Run detect-secrets audit only
-#   --headers       Run HTTP security header assertions only
+#   -h, --help        Show this help message
+#   --sonar           Run SonarQube scan only (no gate check)
+#   --sonar-gate      Run SonarQube scan and verify the quality gate passes
+#   --trivy           Run Trivy image scan only
+#   --secrets         Run detect-secrets audit only
+#   --headers         Run HTTP security header assertions only
 #
 # Prerequisites:
 #   - Production stack running: docker compose up -d
-#   - Dev stack running (for --sonar): ./scripts/dev.sh up
+#   - Dev stack running (for --sonar/--sonar-gate): ./scripts/dev.sh up
+#   - .sonar-token present (for --sonar-gate)
 # =============================================================================
 set -e
 
 RUN_SONAR=true
+RUN_GATE=true
 RUN_TRIVY=true
 RUN_SECRETS=true
 RUN_HEADERS=true
@@ -38,7 +41,8 @@ usage() {
 for arg in "$@"; do
     case "$arg" in
         -h|--help)    usage ;;
-        --sonar)      ONLY_MODE=true; RUN_TRIVY=false;  RUN_SECRETS=false; RUN_HEADERS=false ;;
+        --sonar)      ONLY_MODE=true; RUN_GATE=false; RUN_TRIVY=false;  RUN_SECRETS=false; RUN_HEADERS=false ;;
+        --sonar-gate) ONLY_MODE=true; RUN_GATE=true; RUN_TRIVY=false; RUN_SECRETS=false; RUN_HEADERS=false ;;
         --trivy)      ONLY_MODE=true; RUN_SONAR=false;  RUN_SECRETS=false; RUN_HEADERS=false ;;
         --secrets)    ONLY_MODE=true; RUN_SONAR=false;  RUN_TRIVY=false;   RUN_HEADERS=false ;;
         --headers)    ONLY_MODE=true; RUN_SONAR=false;  RUN_TRIVY=false;   RUN_SECRETS=false ;;
@@ -59,6 +63,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 
 FAILED=0
 SONAR_RESULT=skip
+GATE_RESULT=skip
 TRIVY_RESULT=skip
 SECRETS_RESULT=skip
 HEADERS_RESULT=skip
@@ -76,6 +81,50 @@ if [ "$RUN_SONAR" = true ]; then
     fi
 else
     echo "[scan] Skipping SonarQube."
+fi
+
+# ---------------------------------------------------------------------------
+# 1b. SonarQube quality gate (only when --sonar-gate is set)
+# ---------------------------------------------------------------------------
+if [ "$RUN_GATE" = true ]; then
+    TOKEN_FILE="$ROOT/.sonar-token"
+    if [ ! -f "$TOKEN_FILE" ]; then
+        echo "[scan] ERROR: .sonar-token not found — cannot check quality gate."
+        GATE_RESULT=fail
+        FAILED=1
+    else
+        TOKEN=$(cat "$TOKEN_FILE")
+        SONAR_URL="http://localhost:1969"
+        echo -n "[scan] Waiting for SonarQube quality gate"
+        gate="IN_PROGRESS"
+        for i in $(seq 1 30); do
+            gate=$(curl -sf -H "Authorization: Bearer $TOKEN" \
+                "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
+                | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null \
+                || echo "IN_PROGRESS")
+            [ "$gate" != "IN_PROGRESS" ] && break
+            echo -n "."
+            sleep 2
+        done
+        echo ""
+        if [ "$gate" = "OK" ]; then
+            echo "[scan] Quality gate: OK"
+            GATE_RESULT=pass
+        else
+            echo "[scan] Quality gate: $gate"
+            curl -sf -H "Authorization: Bearer $TOKEN" \
+                "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
+                | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for c in d['projectStatus'].get('conditions', []):
+    if c['status'] == 'ERROR':
+        print(f\"[scan]   FAIL: {c['metricKey']} = {c.get('actualValue','?')} (threshold: {c.get('errorThreshold','?')})\")
+" 2>/dev/null || true
+            GATE_RESULT=fail
+            FAILED=1
+        fi
+    fi
 fi
 
 # ---------------------------------------------------------------------------
@@ -183,6 +232,7 @@ echo "[scan] ┌─────────────────────�
 echo "[scan] │  Code Scan Summary   │"
 echo "[scan] ├───────────────┬──────┤"
 printf "[scan] │ %-13s │ %s │\n" "SonarQube" "$(result "$SONAR_RESULT")"
+printf "[scan] │ %-13s │ %s │\n" "Sonar Gate" "$(result "$GATE_RESULT")"
 printf "[scan] │ %-13s │ %s │\n" "Trivy"     "$(result "$TRIVY_RESULT")"
 printf "[scan] │ %-13s │ %s │\n" "Secrets"   "$(result "$SECRETS_RESULT")"
 printf "[scan] │ %-13s │ %s │\n" "Headers"   "$(result "$HEADERS_RESULT")"

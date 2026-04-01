@@ -74,7 +74,7 @@ export const brandColumns: ColumnDef<Brand, unknown>[] = [
           className="flex items-center gap-1 text-primary hover:underline text-xs"
         >
           {url.replace(/^https?:\/\//, '').split('/')[0]}
-          <ExternalLink className="h-3 w-3 flex-shrink-0" />
+          <ExternalLink className="h-3 w-3 shrink-0" />
         </a>
       )
     },

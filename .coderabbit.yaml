@@ -85,5 +85,9 @@ reviews:
     base_branches:
       - main
 
+tools:
+  pydocstyle:
+    enabled: false
+
 chat:
   auto_reply: true

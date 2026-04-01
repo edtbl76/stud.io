@@ -80,7 +80,7 @@ This builds and starts four containers (`studio_db`, `controlroom_backend`, `con
 | **API** (FastAPI) | `https://localhost:5150` |
 | **API Docs** (Swagger) | `https://localhost:5150/docs` |
 
-First run takes longer — Docker builds the frontend image and `npm install` runs inside the container.
+First run takes longer — Docker builds the frontend image and `npm ci` runs inside the container.
 
 ### Accessing from other devices on the network
 

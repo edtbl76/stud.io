@@ -3,7 +3,7 @@ WORKDIR /app
 # Upgrade zlib to fix CVE-2026-22184 (HIGH: buffer overflow, fix in 1.3.2-r0)
 RUN apk upgrade --no-cache zlib
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 COPY . .
 
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app

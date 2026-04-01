@@ -112,7 +112,7 @@ export function MultiSelect({
                     >
                       <div
                         className={cn(
-                          'flex h-4 w-4 items-center justify-center rounded border border-border flex-shrink-0',
+                          'flex h-4 w-4 items-center justify-center rounded border border-border shrink-0',
                           isSelected && 'bg-primary border-primary'
                         )}
                       >

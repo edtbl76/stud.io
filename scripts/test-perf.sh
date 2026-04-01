@@ -102,7 +102,7 @@ cleanup() {
     fi
     echo "[perf] Done."
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # ---------------------------------------------------------------------------
 # 1. Start backend container (reuses existing image — no rebuild)
@@ -154,6 +154,14 @@ fi
 # 3. Start Next.js production server
 # ---------------------------------------------------------------------------
 echo "[perf] Starting frontend on port $FRONTEND_PORT..."
+# Kill any process already holding the port (e.g. a stale server from a prior
+# interrupted run — cleanup() only fires on clean EXIT, not Ctrl+C with set -e).
+if fuser "${FRONTEND_PORT}/tcp" > /dev/null 2>&1; then
+    STALE_PID="$(fuser "${FRONTEND_PORT}/tcp" 2>/dev/null || true)"
+    echo "[perf] WARNING: port $FRONTEND_PORT already in use (PID $STALE_PID) — killing stale server."
+    fuser -k "${FRONTEND_PORT}/tcp" 2>/dev/null || true
+    sleep 1
+fi
 pushd "$FRONTEND_DIR" > /dev/null
 NEXT_DIST_DIR=".next-perf" \
 BACKEND_URL="http://localhost:${BACKEND_PORT}" \
@@ -229,11 +237,16 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$RUN_LIGHTHOUSE" = true ]; then
     echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
+    rm -f /tmp/perf-lcp-warnings
     if (set -o pipefail; cd "$FRONTEND_DIR" && BASE_URL="http://localhost:${FRONTEND_PORT}" \
             npx playwright test \
                 --config playwright.perf.config.ts \
             2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'); then
-        LIGHTHOUSE_RESULT=pass
+        if [ -s /tmp/perf-lcp-warnings ]; then
+            LIGHTHOUSE_RESULT=warn
+        else
+            LIGHTHOUSE_RESULT=pass
+        fi
     else
         LIGHTHOUSE_RESULT=fail
         FAILED=1
@@ -259,6 +272,7 @@ fi
 result() {
     case "$1" in
         pass) echo "PASS" ;;
+        warn) echo "WARN" ;;
         fail) echo "FAIL" ;;
         skip) echo "skip" ;;
     esac

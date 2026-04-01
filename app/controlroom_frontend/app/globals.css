@@ -1,24 +1,42 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Raw HSL channel values — referenced by @theme tokens and scrollbar CSS */
+:root {
+  --background: 220 18% 9%;
+  --foreground: 210 20% 90%;
+  --muted: 220 16% 14%;
+  --muted-foreground: 215 14% 52%;
+  --border: 220 16% 18%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 0 0% 100%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --ring: 217 91% 60%;
+  --sidebar-bg: 220 22% 7%;
+  --sidebar-border: 220 16% 13%;
+  --card: 220 18% 11%;
+}
+
+/* Tailwind v4 theme tokens — @theme inline defers resolution to runtime */
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-ring: hsl(var(--ring));
+  --color-sidebar-bg: hsl(var(--sidebar-bg));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-card: hsl(var(--card));
+}
 
 @layer base {
-  :root {
-    --background: 220 18% 9%;
-    --foreground: 210 20% 90%;
-    --muted: 220 16% 14%;
-    --muted-foreground: 215 14% 52%;
-    --border: 220 16% 18%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
-    --ring: 217 91% 60%;
-    --sidebar-bg: 220 22% 7%;
-    --sidebar-border: 220 16% 13%;
-    --card: 220 18% 11%;
-  }
-
   * {
     @apply border-border;
   }

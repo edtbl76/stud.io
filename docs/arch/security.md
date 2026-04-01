@@ -158,13 +158,30 @@ Eight hooks run before every commit (see `setup.md` for installation):
 
 ---
 
+## SonarQube rule suppressions
+
+Rule-level suppressions are configured in `sonar-project.properties` via `sonar.issue.ignore.multicriteria`. Each entry requires a rule key, a resource pattern, and an inline comment explaining the justification.
+
+Current suppressions:
+
+| ID | Rule | Resource | Reason |
+|---|---|---|---|
+| `e1` | `css:S4662` | `app/controlroom_frontend/app/globals.css` | `@custom-variant` is a valid Tailwind v4 directive; SonarQube's CSS parser predates it. |
+
+**Note:** `/* NOSONAR */` inline comments are not honoured for CSS rules in SonarQube — `sonar.issue.ignore.multicriteria` is required.
+
+**When to update:** if a SonarQube rule fires on valid framework syntax (not a real issue), add a suppression with justification. Increment the entry ID (`e1`, `e2`, …) for each new suppression.
+
+---
+
 ## The security test suite
 
 `./scripts/test-scan.sh` orchestrates all four checks:
 
 ```
-./scripts/test-scan.sh              # all four
-./scripts/test-scan.sh --sonar      # SonarQube SAST + quality gate
+./scripts/test-scan.sh              # all four checks (includes sonar gate)
+./scripts/test-scan.sh --sonar      # SonarQube scan only (no gate check)
+./scripts/test-scan.sh --sonar-gate # SonarQube scan + quality gate verification
 ./scripts/test-scan.sh --trivy      # Trivy container scan
 ./scripts/test-scan.sh --secrets    # detect-secrets working tree audit
 ./scripts/test-scan.sh --headers    # HTTP security header assertions
@@ -172,7 +189,7 @@ Eight hooks run before every commit (see `setup.md` for installation):
 
 Run automatically as part of `./build.sh --release`. Run manually on demand before releases, after base image upgrades, or after adding new dependencies.
 
-Prerequisites: production stack running (`docker compose up -d`). `--sonar` additionally requires the SonarQube dev stack (`./scripts/dev.sh up`).
+Prerequisites: production stack running (`docker compose up -d`). `--sonar` and `--sonar-gate` additionally require the SonarQube dev stack (`./scripts/dev.sh up`).
 
 ---
 
