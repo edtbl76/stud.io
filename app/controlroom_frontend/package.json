@@ -30,6 +30,7 @@
   "devDependencies": {
     "@next/bundle-analyzer": "^16.0.0",
     "@playwright/test": "^1.58.2",
+    "@tailwindcss/postcss": "^4.2.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@tgwf/co2": "^0.18.0",
@@ -38,13 +39,12 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/tgwf__co2": "^0.14.2",
-    "autoprefixer": "^10.4.20",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "lighthouse": "^12.8.2",
     "playwright-lighthouse": "^4.0.0",
     "postcss": "^8.5.1",
-    "tailwindcss": "^3.4.17",
+    "tailwindcss": "^4.2.2",
     "typescript": "^5"
   }
 }

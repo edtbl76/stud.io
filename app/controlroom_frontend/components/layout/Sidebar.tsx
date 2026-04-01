@@ -97,7 +97,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 h-screen w-56 flex-shrink-0 overflow-y-auto"
+      className="fixed left-0 top-0 z-40 h-screen w-56 shrink-0 overflow-y-auto"
       style={{
         backgroundColor: 'hsl(var(--sidebar-bg))',
         borderRight: '1px solid hsl(var(--sidebar-border))',
@@ -119,7 +119,7 @@ export function Sidebar() {
         <button
           onClick={logout}
           title="Sign out"
-          className="ml-2 flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+          className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         >
           <LogOut className="h-3.5 w-3.5" />
         </button>
@@ -129,7 +129,7 @@ export function Sidebar() {
       <div className="px-3 py-2.5 border-b border-sidebar-border">
         <form onSubmit={handleSearch}>
           <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-muted/40 border border-border/50">
-            <Search className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+            <Search className="h-3 w-3 text-muted-foreground shrink-0" />
             <input
               type="search"
               value={searchQuery}

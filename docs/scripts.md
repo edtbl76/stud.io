@@ -27,7 +27,7 @@ On startup it:
 2. Waits for PostgreSQL, API, and frontend health checks
 3. Applies `sql/schema.sql` and `sql/views.sql` to `controlroomdb` and `controlroomdb_test`
 4. Runs backend (`pytest`) and frontend (`jest`) unit tests
-5. (With `--dev`) Runs the SonarQube scanner and checks the quality gate — aborts if it fails
+5. (With `--dev`) Runs the SonarQube scanner and verifies the quality gate (`--sonar-gate`) — aborts if it fails
 6. (With `--release`) Runs the full security scan (`test-scan.sh`) — aborts if any check fails
 7. Runs the Playwright E2E test suite
 8. (With `--release`) Runs the performance suite (`test-perf.sh`)
@@ -59,7 +59,7 @@ Outputs:
 - `app/controlroom_frontend/perf-reports/lighthouse/` — Lighthouse HTML reports per page (includes accessibility and best-practices detail)
 - `app/controlroom_frontend/.next-perf/analyze/` — bundle size reports
 
-k6 SLOs: `p95 < 500ms`, `error_rate < 1%`. Lighthouse thresholds: `LCP < 2.5s`, `TBT < 200ms`, `CLS < 0.1`.
+k6 SLOs: `p95 < 500ms`, `error_rate < 1%`. Lighthouse thresholds: `LCP` warn at 2.5s / hard fail at 4.0s, `TBT < 200ms`, `CLS < 0.1`. Pages with LCP in the 2.5–4.0s band produce a `lcp-warning` annotation in the Playwright HTML report and surface as `WARN` in the Performance Summary; they do not fail the build. Pages above 4.0s fail.
 
 To install k6: https://k6.io/docs/get-started/installation/
 
@@ -149,14 +149,15 @@ Manages the dev tooling stack — SonarQube and Structurizr (separate Docker pro
 Runs the full security suite. Flags can be combined or used independently.
 
 ```bash
-./scripts/test-scan.sh            # all four checks
-./scripts/test-scan.sh --sonar    # SonarQube scan + quality gate only
-./scripts/test-scan.sh --trivy    # Trivy container image scan only
-./scripts/test-scan.sh --secrets  # detect-secrets audit only
-./scripts/test-scan.sh --headers  # HTTP security header assertions only
+./scripts/test-scan.sh              # all four checks (includes sonar gate)
+./scripts/test-scan.sh --sonar      # SonarQube scan only (no gate check)
+./scripts/test-scan.sh --sonar-gate # SonarQube scan + quality gate verification
+./scripts/test-scan.sh --trivy      # Trivy container image scan only
+./scripts/test-scan.sh --secrets    # detect-secrets audit only
+./scripts/test-scan.sh --headers    # HTTP security header assertions only
 ```
 
-Requires the production stack to be running (`docker compose up -d`). `--sonar` additionally requires the dev stack (`./scripts/dev.sh up`).
+Requires the production stack to be running (`docker compose up -d`). `--sonar` and `--sonar-gate` additionally require the dev stack (`./scripts/dev.sh up`).
 
 Steps performed (full run):
 1. **SonarQube** — coverage reports + scanner upload (delegates to `sonar-scan.sh`)

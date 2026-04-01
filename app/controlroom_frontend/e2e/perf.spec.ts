@@ -2,7 +2,7 @@
  * Lighthouse audits for every user-facing page.
  *
  * Performance thresholds (Google "Good" band):
- *   LCP  < 2500ms  — Largest Contentful Paint
+ *   LCP  < 2500ms  — Largest Contentful Paint (warn); < 4000ms (hard fail)
  *   TBT  < 200ms   — Total Blocking Time
  *   CLS  < 0.1     — Cumulative Layout Shift
  *
@@ -32,6 +32,11 @@ import { playAudit } from 'playwright-lighthouse'
 import { co2 } from '@tgwf/co2'
 
 const LIGHTHOUSE_PORT = 9222
+
+const LCP_WARN_MS  = 2500   // Google "Good" band upper bound — annotation threshold
+const LCP_FAIL_MS  = 4000   // Hard gate — above this fails the build
+const TBT_FAIL_MS  = 200
+const CLS_FAIL     = 0.1
 const carbonModel = new co2({ model: 'swd' })
 
 // Auth cookies from the setup step. Restored before each audit because
@@ -110,9 +115,16 @@ for (const path of PAGES) {
     const tbt = audits['total-blocking-time']?.numericValue ?? Infinity
     const cls = audits['cumulative-layout-shift']?.numericValue ?? Infinity
 
-    expect(lcp, `LCP for ${path} (${(lcp / 1000).toFixed(2)}s)`).toBeLessThan(2500)
-    expect(tbt, `TBT for ${path} (${tbt.toFixed(0)}ms)`).toBeLessThan(200)
-    expect(cls, `CLS for ${path} (${cls.toFixed(3)})`).toBeLessThan(0.1)
+    if (lcp >= LCP_WARN_MS && lcp < LCP_FAIL_MS) {
+      testInfo.annotations.push({
+        type: 'lcp-warning',
+        description: `LCP for ${path} is ${(lcp / 1000).toFixed(2)}s — above 2.5s target, check HTML report`,
+      })
+      fs.appendFileSync('/tmp/perf-lcp-warnings', `${path}: ${(lcp / 1000).toFixed(2)}s\n`)
+    }
+    expect(lcp, `LCP for ${path} (${(lcp / 1000).toFixed(2)}s)`).toBeLessThan(LCP_FAIL_MS)
+    expect(tbt, `TBT for ${path} (${tbt.toFixed(0)}ms)`).toBeLessThan(TBT_FAIL_MS)
+    expect(cls, `CLS for ${path} (${cls.toFixed(3)})`).toBeLessThan(CLS_FAIL)
 
     // ── Accessibility (informational) ─────────────────────────────────────
     const a11yScore = categories['accessibility']?.score

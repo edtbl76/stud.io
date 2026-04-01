@@ -76,7 +76,7 @@ export function DataTableHeader<TData>({
                     type="button"
                     draggable
                     onDragStart={(e) => onDragStart(e, header.column.id)}
-                    className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/70 flex-shrink-0 bg-transparent border-0 p-0"
+                    className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-muted-foreground/70 shrink-0 bg-transparent border-0 p-0"
                   >
                     <GripVertical className="h-3 w-3" />
                   </button>

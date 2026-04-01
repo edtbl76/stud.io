@@ -88,7 +88,7 @@ export function FilterCell({ colId, entry, filterOperators, onEntryChange }: Fil
   return (
     <div ref={containerRef} className="relative flex items-center gap-1">
       {showOperatorButton && (
-        <div className="relative flex-shrink-0">
+        <div className="relative shrink-0">
           <button
             type="button"
             aria-label="Filter operator"
@@ -141,7 +141,7 @@ export function FilterCell({ colId, entry, filterOperators, onEntryChange }: Fil
             onChange={handleValueChange}
             className={DATE_INPUT_CLASS}
           />
-          <span className="text-muted-foreground/50 text-xs flex-shrink-0">–</span>
+          <span className="text-muted-foreground/50 text-xs shrink-0">–</span>
           <input
             type="date"
             value={valueEnd}
@@ -156,7 +156,7 @@ export function FilterCell({ colId, entry, filterOperators, onEntryChange }: Fil
           type="button"
           aria-label="Clear filter"
           onClick={handleClear}
-          className="flex-shrink-0 text-muted-foreground/50 hover:text-muted-foreground bg-transparent border-0 p-0"
+          className="shrink-0 text-muted-foreground/50 hover:text-muted-foreground bg-transparent border-0 p-0"
         >
           <X className="h-3 w-3" />
         </button>

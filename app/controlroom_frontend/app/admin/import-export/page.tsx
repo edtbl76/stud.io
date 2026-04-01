@@ -322,8 +322,8 @@ function StatusMessage({ status }: Readonly<{ status: NonNullable<Status> }>) {
   return (
     <div className={`flex items-center gap-2 mt-3 text-xs ${status.type === 'success' ? 'text-green-400' : 'text-destructive'}`}>
       {status.type === 'success'
-        ? <CheckCircle className="h-3.5 w-3.5 flex-shrink-0" />
-        : <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />}
+        ? <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+        : <AlertCircle className="h-3.5 w-3.5 shrink-0" />}
       {status.message}
     </div>
   )

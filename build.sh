@@ -112,32 +112,7 @@ else
     if $WITH_RELEASE; then
       bash "$SCRIPT_DIR/scripts/test-scan.sh"
     else
-      bash "$SCRIPT_DIR/scripts/test-scan.sh" --sonar
-    fi
-
-    TOKEN_FILE="$SCRIPT_DIR/.sonar-token"
-    if [ ! -f "$TOKEN_FILE" ]; then
-      echo "  WARNING: .sonar-token not found — cannot verify quality gate."
-    else
-      TOKEN=$(cat "$TOKEN_FILE")
-      SONAR_URL="http://localhost:1969"
-
-      echo -n "  Waiting for SonarQube analysis "
-      for i in $(seq 1 30); do
-        gate=$(curl -sf -H "Authorization: Bearer $TOKEN" \
-          "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
-          | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null || echo "IN_PROGRESS")
-        [ "$gate" != "IN_PROGRESS" ] && break
-        echo -n "."
-        sleep 2
-      done
-      echo " done"
-
-      if [ "$gate" != "OK" ]; then
-        echo "  ERROR: SonarQube quality gate failed ($gate). Fix violations before running E2E."
-        exit 1
-      fi
-      echo "  Quality gate: OK"
+      bash "$SCRIPT_DIR/scripts/test-scan.sh" --sonar-gate
     fi
   fi
 

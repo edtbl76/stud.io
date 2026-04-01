@@ -50,7 +50,7 @@ Install the GitHub App at [coderabbit.ai](https://coderabbit.ai). Triggers on PR
 
 Key config decisions:
 - Excludes `package-lock.json`, shadcn/ui primitives, build artifacts, and generated files
-- Path-specific instructions for Python (FastAPI) and TypeScript (Next.js) files mirror the standards in `best_practices.md`
+- Path-specific instructions for Python (FastAPI) and TypeScript (Next.js) files mirror the standards in `CLAUDE.md`
 - Router instructions remind it to check for RBAC test coverage on new routes
 - `profile: chill` — flags real issues without nitpicking style already covered by ruff/tsc
 
@@ -70,7 +70,7 @@ Install the GitHub App at [qodo.ai](https://qodo.ai). Auto-runs three commands o
 ## Coding standards
 
 **`best_practices.md`** (repo root) — single source of truth for code quality rules. Referenced by:
-- Qodo Merge (`[best_practices]` in `.pr_agent.toml`)
+- Qodo Merge — rules are duplicated into `extra_instructions` in `.pr_agent.toml`; the `[best_practices]` section exists but `content = ""` so Qodo does not inject the file directly. The duplication is a known maintenance trap — `extra_instructions` will drift from `best_practices.md` over time. This is accepted: CodeRabbit is the primary review tool and Qodo is not a priority.
 - CodeRabbit path instructions (`.coderabbit.yaml`)
 - Claude Code (`CLAUDE.md` Code Quality Standards section)
 

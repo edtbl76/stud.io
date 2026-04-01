@@ -85,5 +85,10 @@ reviews:
     base_branches:
       - main
 
+  tools:
+    # should detect .pylintrc in root of repo
+    pylint:
+      enabled: true
+
 chat:
   auto_reply: true

@@ -99,6 +99,34 @@ Full GitHub configuration (repo settings, branch protection, installed apps): `d
 
 ---
 
+## CodeScene (local, interactive)
+
+CodeScene is available as an MCP tool inside Claude Code sessions. It analyzes code health and technical debt directly from the working tree — no project setup on codescene.io required for the tools below.
+
+**When to use:**
+
+| Situation | Tool |
+|---|---|
+| Before opening a PR — check if changed files degraded code health | `pre_commit_code_health_safeguard` |
+| Reviewing a diff or change set for complexity/hotspot risk | `analyze_change_set` |
+| Spot-checking a specific file's health score | `code_health_score` |
+| Getting a detailed review of a file (complexity, duplication, coupling) | `code_health_review` |
+
+**How to invoke (in a Claude Code session):**
+
+Ask Claude to run a CodeScene check — for example:
+- "Run a CodeScene health check on the files I just changed"
+- "Check the code health of `app/controlroom_frontend/lib/auth.tsx`"
+- "Analyze the change set for this PR"
+
+Claude will call the appropriate MCP tool and surface the results inline.
+
+**Not a CI gate.** These tools run interactively in Claude Code and are not wired into `test-scan.sh`. Use them as a pre-PR hygiene check, not a blocking step. If a file consistently scores low, treat it as a refactor candidate.
+
+**Credentials:** `CS_ACCESS_TOKEN` is configured in the environment. No additional setup needed.
+
+---
+
 ## Release Tagging
 
 When `main` is ready to ship:

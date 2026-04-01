@@ -88,6 +88,7 @@ DB_NAME="$(cfg test_db_source)"
 PERF_CONTAINER="${BACKEND_SERVICE}_perf"
 FRONTEND_PID=""
 FAILED=0
+WARNED=0
 BENCHMARKS_RESULT=skip
 K6_RESULT=skip
 LIGHTHOUSE_RESULT=skip
@@ -102,7 +103,7 @@ cleanup() {
     fi
     echo "[perf] Done."
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 # ---------------------------------------------------------------------------
 # 1. Start backend container (reuses existing image — no rebuild)
@@ -154,6 +155,18 @@ fi
 # 3. Start Next.js production server
 # ---------------------------------------------------------------------------
 echo "[perf] Starting frontend on port $FRONTEND_PORT..."
+if fuser "${FRONTEND_PORT}/tcp" > /dev/null 2>&1; then
+    BUSY_PID="$(fuser "${FRONTEND_PORT}/tcp" 2>/dev/null || true)"
+    echo ""
+    echo "[perf] ERROR: port ${FRONTEND_PORT} is already in use (PID ${BUSY_PID})."
+    echo "[perf] To investigate:"
+    echo "[perf]   lsof -p ${BUSY_PID}"
+    echo "[perf]   fuser -n tcp ${FRONTEND_PORT}"
+    echo "[perf] To free the port:"
+    echo "[perf]   kill ${BUSY_PID}"
+    echo "[perf] Then re-run: ./scripts/test-perf.sh"
+    exit 1
+fi
 pushd "$FRONTEND_DIR" > /dev/null
 NEXT_DIST_DIR=".next-perf" \
 BACKEND_URL="http://localhost:${BACKEND_PORT}" \
@@ -229,11 +242,17 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$RUN_LIGHTHOUSE" = true ]; then
     echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
+    rm -f /tmp/perf-lcp-warnings
     if (set -o pipefail; cd "$FRONTEND_DIR" && BASE_URL="http://localhost:${FRONTEND_PORT}" \
             npx playwright test \
                 --config playwright.perf.config.ts \
             2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'); then
-        LIGHTHOUSE_RESULT=pass
+        if [ -s /tmp/perf-lcp-warnings ]; then
+            LIGHTHOUSE_RESULT=warn
+            WARNED=1
+        else
+            LIGHTHOUSE_RESULT=pass
+        fi
     else
         LIGHTHOUSE_RESULT=fail
         FAILED=1
@@ -259,6 +278,7 @@ fi
 result() {
     case "$1" in
         pass) echo "PASS" ;;
+        warn) echo "WARN" ;;
         fail) echo "FAIL" ;;
         skip) echo "skip" ;;
     esac
@@ -277,9 +297,11 @@ echo "[perf] Benchmark results:  /tmp/perf-benchmarks.json"
 echo "[perf] Bundle reports:     $FRONTEND_DIR/.next-perf/analyze/"
 echo "[perf] Lighthouse reports: $FRONTEND_DIR/perf-reports/lighthouse/"
 
-if [ "$FAILED" -eq 0 ]; then
-    echo "[perf] All performance checks passed."
-else
+if [ "$FAILED" -ne 0 ]; then
     echo "[perf] One or more performance checks FAILED."
     exit 1
+elif [ "$WARNED" -ne 0 ]; then
+    echo "[perf] Performance checks passed with warnings — check Lighthouse HTML report for LCP details."
+else
+    echo "[perf] All performance checks passed."
 fi
