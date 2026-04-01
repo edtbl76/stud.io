@@ -43,9 +43,9 @@ for arg in "$@"; do
         -h|--help)    usage ;;
         --sonar)      ONLY_MODE=true; RUN_GATE=false; RUN_TRIVY=false;  RUN_SECRETS=false; RUN_HEADERS=false ;;
         --sonar-gate) ONLY_MODE=true; RUN_GATE=true; RUN_TRIVY=false; RUN_SECRETS=false; RUN_HEADERS=false ;;
-        --trivy)      ONLY_MODE=true; RUN_SONAR=false;  RUN_SECRETS=false; RUN_HEADERS=false ;;
-        --secrets)    ONLY_MODE=true; RUN_SONAR=false;  RUN_TRIVY=false;   RUN_HEADERS=false ;;
-        --headers)    ONLY_MODE=true; RUN_SONAR=false;  RUN_TRIVY=false;   RUN_SECRETS=false ;;
+        --trivy)      ONLY_MODE=true; RUN_SONAR=false; RUN_GATE=false; RUN_SECRETS=false; RUN_HEADERS=false ;;
+        --secrets)    ONLY_MODE=true; RUN_SONAR=false; RUN_GATE=false; RUN_TRIVY=false;   RUN_HEADERS=false ;;
+        --headers)    ONLY_MODE=true; RUN_SONAR=false; RUN_GATE=false; RUN_TRIVY=false;   RUN_SECRETS=false ;;
         *) echo "[scan] Unknown flag: $arg"; echo "Run with -h for help."; exit 1 ;;
     esac
 done
@@ -98,7 +98,8 @@ if [ "$RUN_GATE" = true ]; then
         echo -n "[scan] Waiting for SonarQube quality gate"
         gate="IN_PROGRESS"
         for i in $(seq 1 30); do
-            gate=$(curl -sf -H "Authorization: Bearer $TOKEN" \
+            gate=$(curl -sf --connect-timeout 5 --max-time 10 \
+                -H "Authorization: Bearer $TOKEN" \
                 "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
                 | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null \
                 || echo "IN_PROGRESS")
@@ -112,7 +113,8 @@ if [ "$RUN_GATE" = true ]; then
             GATE_RESULT=pass
         else
             echo "[scan] Quality gate: $gate"
-            curl -sf -H "Authorization: Bearer $TOKEN" \
+            curl -sf --connect-timeout 5 --max-time 10 \
+                -H "Authorization: Bearer $TOKEN" \
                 "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
                 | python3 -c "
 import sys, json

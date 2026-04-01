@@ -37,7 +37,7 @@ Python (FastAPI backend):
 - Flag commented-out code
 
 TypeScript / React (Next.js frontend):
-- Flag any use of `any` without an explanatory comment
+- Flag any use of `any` — use `unknown` and narrow, or type properly; `as unknown as T` casts are permitted only with an inline comment explaining why
 - Flag component functions longer than 200 lines (JSX included)
 - Flag files longer than 400 lines
 - Flag nesting deeper than 3 levels (ternaries count as one level; flag nested ternaries)

@@ -70,7 +70,7 @@ Install the GitHub App at [qodo.ai](https://qodo.ai). Auto-runs three commands o
 ## Coding standards
 
 **`best_practices.md`** (repo root) — single source of truth for code quality rules. Referenced by:
-- Qodo Merge (`[best_practices]` in `.pr_agent.toml`)
+- Qodo Merge — rules are duplicated into `extra_instructions` in `.pr_agent.toml`; the `[best_practices]` section exists but `content = ""` so Qodo does not inject the file directly. The duplication is a known maintenance trap — `extra_instructions` will drift from `best_practices.md` over time. This is accepted: CodeRabbit is the primary review tool and Qodo is not a priority.
 - CodeRabbit path instructions (`.coderabbit.yaml`)
 - Claude Code (`CLAUDE.md` Code Quality Standards section)
 

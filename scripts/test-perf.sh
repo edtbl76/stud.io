@@ -88,6 +88,7 @@ DB_NAME="$(cfg test_db_source)"
 PERF_CONTAINER="${BACKEND_SERVICE}_perf"
 FRONTEND_PID=""
 FAILED=0
+WARNED=0
 BENCHMARKS_RESULT=skip
 K6_RESULT=skip
 LIGHTHOUSE_RESULT=skip
@@ -154,13 +155,17 @@ fi
 # 3. Start Next.js production server
 # ---------------------------------------------------------------------------
 echo "[perf] Starting frontend on port $FRONTEND_PORT..."
-# Kill any process already holding the port (e.g. a stale server from a prior
-# interrupted run — cleanup() only fires on clean EXIT, not Ctrl+C with set -e).
 if fuser "${FRONTEND_PORT}/tcp" > /dev/null 2>&1; then
-    STALE_PID="$(fuser "${FRONTEND_PORT}/tcp" 2>/dev/null || true)"
-    echo "[perf] WARNING: port $FRONTEND_PORT already in use (PID $STALE_PID) — killing stale server."
-    fuser -k "${FRONTEND_PORT}/tcp" 2>/dev/null || true
-    sleep 1
+    BUSY_PID="$(fuser "${FRONTEND_PORT}/tcp" 2>/dev/null || true)"
+    echo ""
+    echo "[perf] ERROR: port ${FRONTEND_PORT} is already in use (PID ${BUSY_PID})."
+    echo "[perf] To investigate:"
+    echo "[perf]   lsof -p ${BUSY_PID}"
+    echo "[perf]   fuser -n tcp ${FRONTEND_PORT}"
+    echo "[perf] To free the port:"
+    echo "[perf]   kill ${BUSY_PID}"
+    echo "[perf] Then re-run: ./scripts/test-perf.sh"
+    exit 1
 fi
 pushd "$FRONTEND_DIR" > /dev/null
 NEXT_DIST_DIR=".next-perf" \
@@ -244,6 +249,7 @@ if [ "$RUN_LIGHTHOUSE" = true ]; then
             2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'); then
         if [ -s /tmp/perf-lcp-warnings ]; then
             LIGHTHOUSE_RESULT=warn
+            WARNED=1
         else
             LIGHTHOUSE_RESULT=pass
         fi
@@ -291,9 +297,11 @@ echo "[perf] Benchmark results:  /tmp/perf-benchmarks.json"
 echo "[perf] Bundle reports:     $FRONTEND_DIR/.next-perf/analyze/"
 echo "[perf] Lighthouse reports: $FRONTEND_DIR/perf-reports/lighthouse/"
 
-if [ "$FAILED" -eq 0 ]; then
-    echo "[perf] All performance checks passed."
-else
+if [ "$FAILED" -ne 0 ]; then
     echo "[perf] One or more performance checks FAILED."
     exit 1
+elif [ "$WARNED" -ne 0 ]; then
+    echo "[perf] Performance checks passed with warnings — check Lighthouse HTML report for LCP details."
+else
+    echo "[perf] All performance checks passed."
 fi

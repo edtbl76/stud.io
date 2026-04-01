@@ -178,7 +178,7 @@ Current suppressions:
 
 `./scripts/test-scan.sh` orchestrates all four checks:
 
-```
+```bash
 ./scripts/test-scan.sh              # all four checks (includes sonar gate)
 ./scripts/test-scan.sh --sonar      # SonarQube scan only (no gate check)
 ./scripts/test-scan.sh --sonar-gate # SonarQube scan + quality gate verification
