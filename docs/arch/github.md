@@ -50,7 +50,7 @@ Install the GitHub App at [coderabbit.ai](https://coderabbit.ai). Triggers on PR
 
 Key config decisions:
 - Excludes `package-lock.json`, shadcn/ui primitives, build artifacts, and generated files
-- Path-specific instructions for Python (FastAPI) and TypeScript (Next.js) files mirror the standards in `CLAUDE.md`
+- Path-specific instructions for Python (FastAPI) and TypeScript (Next.js) files mirror the standards in `best_practices.md`
 - Router instructions remind it to check for RBAC test coverage on new routes
 - `profile: chill` — flags real issues without nitpicking style already covered by ruff/tsc
 
