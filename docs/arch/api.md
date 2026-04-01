@@ -49,8 +49,11 @@ The FastAPI auth endpoints are not called directly from the browser. All auth fl
 5. BFF sets the httpOnly cookie and returns `{username, role}` to the browser
 6. If no account is linked to that Google ID, FastAPI returns 401 and the BFF forwards it
 
+**Session check:**
+On mount, `AuthProvider` calls `GET /api/auth/me` (a dedicated Next.js BFF route). It reads the `controlroom_token` cookie and proxies to FastAPI `GET /auth/me`. Returns `{username, role}` if valid, 401 otherwise.
+
 **Subsequent requests:**
-All API calls use relative `/api/...` paths. The Next.js catch-all proxy reads the `controlroom_token` cookie and adds `Authorization: Bearer <token>` before forwarding to FastAPI.
+All other API calls use relative `/api/...` paths. The Next.js catch-all proxy reads the `controlroom_token` cookie and adds `Authorization: Bearer <token>` before forwarding to FastAPI.
 
 **Default admin account:** `admin` / `admin` — seeded automatically on first startup if no users exist.
 

@@ -5,7 +5,7 @@ import { POST } from '@/app/api/auth/logout/route'
 
 const mockDelete = jest.fn()
 jest.mock('next/headers', () => ({
-  cookies: () => ({ delete: mockDelete }),
+  cookies: () => Promise.resolve({ delete: mockDelete }),
 }))
 
 beforeEach(() => {

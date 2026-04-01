@@ -76,7 +76,7 @@ export function Sidebar() {
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = React.useState('')
 
-  function handleSearch(e: React.FormEvent<HTMLFormElement>) {
+  function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     const q = searchQuery.trim()
     if (q.length < 2) return

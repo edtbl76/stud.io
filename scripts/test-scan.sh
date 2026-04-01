@@ -58,13 +58,22 @@ done
 ROOT="$(git rev-parse --show-toplevel)"
 
 FAILED=0
+SONAR_RESULT=skip
+TRIVY_RESULT=skip
+SECRETS_RESULT=skip
+HEADERS_RESULT=skip
 
 # ---------------------------------------------------------------------------
 # 1. SonarQube
 # ---------------------------------------------------------------------------
 if [ "$RUN_SONAR" = true ]; then
     echo "[scan] Running SonarQube..."
-    bash "$ROOT/scripts/sonar-scan.sh" 2>&1 | sed -u 's/^/[sonar] /' || FAILED=1
+    if (set -o pipefail; bash "$ROOT/scripts/sonar-scan.sh" 2>&1 | sed -u 's/^/[sonar] /'); then
+        SONAR_RESULT=pass
+    else
+        SONAR_RESULT=fail
+        FAILED=1
+    fi
 else
     echo "[scan] Skipping SonarQube."
 fi
@@ -74,7 +83,12 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$RUN_TRIVY" = true ]; then
     echo "[scan] Running Trivy image scan..."
-    bash "$ROOT/scripts/run-trivy.sh" 2>&1 | sed -u 's/^/[trivy] /' || FAILED=1
+    if (set -o pipefail; bash "$ROOT/scripts/run-trivy.sh" 2>&1 | sed -u 's/^/[trivy] /'); then
+        TRIVY_RESULT=pass
+    else
+        TRIVY_RESULT=fail
+        FAILED=1
+    fi
 else
     echo "[scan] Skipping Trivy."
 fi
@@ -84,7 +98,7 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$RUN_SECRETS" = true ]; then
     echo "[scan] Running detect-secrets audit..."
-    (
+    if (
         set -o pipefail
         cd "$ROOT"
         detect-secrets scan \
@@ -121,7 +135,12 @@ if added:
 total = sum(len(v) for v in current.get('results', {}).values())
 print(f"[secrets] No new secrets detected ({total} findings, all baselined).")
 PYEOF
-    ) || FAILED=1
+    ); then
+        SECRETS_RESULT=pass
+    else
+        SECRETS_RESULT=fail
+        FAILED=1
+    fi
 else
     echo "[scan] Skipping detect-secrets."
 fi
@@ -132,12 +151,17 @@ fi
 if [ "$RUN_HEADERS" = true ]; then
     FRONTEND_URL="${SCAN_BASE_URL:-https://localhost:2112}"
     echo "[scan] Asserting security headers against $FRONTEND_URL..."
-    (
+    if (
         set -o pipefail
         SCAN_BASE_URL="$FRONTEND_URL" \
             python -m pytest "$ROOT/tests/security/test_security_headers.py" -v \
             2>&1 | sed -u 's/^/[headers] /'
-    ) || FAILED=1
+    ); then
+        HEADERS_RESULT=pass
+    else
+        HEADERS_RESULT=fail
+        FAILED=1
+    fi
 else
     echo "[scan] Skipping security headers."
 fi
@@ -145,7 +169,25 @@ fi
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+label() { printf "  %-12s" "$1"; }
+result() {
+    case "$1" in
+        pass) echo "PASS" ;;
+        fail) echo "FAIL" ;;
+        skip) echo "skip" ;;
+    esac
+}
+
 echo ""
+echo "[scan] ┌──────────────────────┐"
+echo "[scan] │  Code Scan Summary   │"
+echo "[scan] ├───────────────┬──────┤"
+printf "[scan] │ %-13s │ %s │\n" "SonarQube" "$(result "$SONAR_RESULT")"
+printf "[scan] │ %-13s │ %s │\n" "Trivy"     "$(result "$TRIVY_RESULT")"
+printf "[scan] │ %-13s │ %s │\n" "Secrets"   "$(result "$SECRETS_RESULT")"
+printf "[scan] │ %-13s │ %s │\n" "Headers"   "$(result "$HEADERS_RESULT")"
+echo "[scan] └───────────────┴──────┘"
+
 if [ "$FAILED" -eq 0 ]; then
     echo "[scan] All security checks passed."
 else

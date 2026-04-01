@@ -34,14 +34,21 @@ git checkout -b feat/my-change
 ./scripts/test-unit.sh
 ./scripts/test-e2e.sh
 
-# 3. Push and open PR
-git push -u origin feat/my-change
-gh pr create --title "feat: my change" --body "..."
+# 3. Commit
+git add <files>
+git commit -m "feat: my change"
 
-# 4. Merge (squash)
+# 4. Push and open PR
+git push -u origin feat/my-change
+gh pr create --title "feat: my change" --fill
+
+# 5. Watch CI
+gh pr checks --watch
+
+# 6. Merge (squash)
 gh pr merge --squash --delete-branch
 
-# 5. Pull main
+# 7. Pull main
 git checkout main && git pull
 ```
 

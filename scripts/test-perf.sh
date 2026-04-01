@@ -88,6 +88,9 @@ DB_NAME="$(cfg test_db_source)"
 PERF_CONTAINER="${BACKEND_SERVICE}_perf"
 FRONTEND_PID=""
 FAILED=0
+BENCHMARKS_RESULT=skip
+K6_RESULT=skip
+LIGHTHOUSE_RESULT=skip
 
 cleanup() {
     echo ""
@@ -177,16 +180,17 @@ done
 # ---------------------------------------------------------------------------
 if [ "$RUN_BENCHMARKS" = true ]; then
     echo "[perf] Running EXPLAIN plan assertions and benchmarks..."
-    (
-        set -o pipefail
-        cd "$BACKEND_DIR"
-        python -m pytest \
+    if (set -o pipefail; cd "$BACKEND_DIR" && python -m pytest \
             tests/test_query_plans.py \
             tests/test_benchmarks.py \
             -v \
             --benchmark-json=/tmp/perf-benchmarks.json \
-            2>&1 | tee /tmp/perf-pytest.log | sed -u 's/^/[pytest] /'
-    ) || FAILED=1
+            2>&1 | tee /tmp/perf-pytest.log | sed -u 's/^/[pytest] /'); then
+        BENCHMARKS_RESULT=pass
+    else
+        BENCHMARKS_RESULT=fail
+        FAILED=1
+    fi
 else
     echo "[perf] Skipping benchmarks."
 fi
@@ -198,17 +202,22 @@ if [ "$RUN_K6" = true ]; then
     if ! command -v k6 > /dev/null 2>&1; then
         echo "[perf] WARNING: k6 not installed — skipping load tests."
         echo "[perf]          Install: https://k6.io/docs/get-started/installation/"
+        K6_RESULT=skip
     else
+        K6_RESULT=pass
         for SCRIPT in "$ROOT/tests/perf/k6/"*.js; do
             [ "$(basename "$SCRIPT")" = "thresholds.js" ] && continue
             NAME="$(basename "$SCRIPT" .js)"
             echo "[perf] Running k6: $NAME..."
-            (
+            if ! (
                 set -o pipefail
                 BACKEND_URL="http://localhost:${BACKEND_PORT}" \
                     k6 run "$SCRIPT" \
                     2>&1 | tee "/tmp/perf-k6-${NAME}.log" | sed -u "s/^/[k6:${NAME}] /"
-            ) || FAILED=1
+            ); then
+                K6_RESULT=fail
+                FAILED=1
+            fi
         done
     fi
 else
@@ -220,14 +229,15 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$RUN_LIGHTHOUSE" = true ]; then
     echo "[perf] Running Lighthouse audits (full logs: /tmp/perf-playwright.log)..."
-    (
-        set -o pipefail
-        cd "$FRONTEND_DIR"
-        BASE_URL="http://localhost:${FRONTEND_PORT}" \
+    if (set -o pipefail; cd "$FRONTEND_DIR" && BASE_URL="http://localhost:${FRONTEND_PORT}" \
             npx playwright test \
                 --config playwright.perf.config.ts \
-            2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'
-    ) || FAILED=1
+            2>&1 | tee /tmp/perf-playwright.log | sed -u 's/^/[lighthouse] /'); then
+        LIGHTHOUSE_RESULT=pass
+    else
+        LIGHTHOUSE_RESULT=fail
+        FAILED=1
+    fi
 else
     echo "[perf] Skipping Lighthouse audits."
 fi
@@ -246,15 +256,30 @@ fi
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+result() {
+    case "$1" in
+        pass) echo "PASS" ;;
+        fail) echo "FAIL" ;;
+        skip) echo "skip" ;;
+    esac
+}
+
 echo ""
-if [ "$FAILED" -eq 0 ]; then
-    echo "[perf] All performance checks passed."
-else
-    echo "[perf] One or more performance checks FAILED."
-fi
+echo "[perf] ┌─────────────────────┐"
+echo "[perf] │ Performance Summary │"
+echo "[perf] ├──────────────┬──────┤"
+printf "[perf] │ %-12s │ %s │\n" "Benchmarks" "$(result "$BENCHMARKS_RESULT")"
+printf "[perf] │ %-12s │ %s │\n" "k6"         "$(result "$K6_RESULT")"
+printf "[perf] │ %-12s │ %s │\n" "Lighthouse" "$(result "$LIGHTHOUSE_RESULT")"
+echo "[perf] └──────────────┴──────┘"
 
 echo "[perf] Benchmark results:  /tmp/perf-benchmarks.json"
 echo "[perf] Bundle reports:     $FRONTEND_DIR/.next-perf/analyze/"
 echo "[perf] Lighthouse reports: $FRONTEND_DIR/perf-reports/lighthouse/"
 
-[ "$FAILED" -eq 0 ] || exit 1
+if [ "$FAILED" -eq 0 ]; then
+    echo "[perf] All performance checks passed."
+else
+    echo "[perf] One or more performance checks FAILED."
+    exit 1
+fi

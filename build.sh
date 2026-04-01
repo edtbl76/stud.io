@@ -168,6 +168,11 @@ if $WITH_DEV; then
 fi
 if $WITH_RELEASE; then
   echo ""
-  echo "  Release gate passed: Sonar + Trivy + secrets + headers + perf"
+  echo "  Release gate passed:"
+  echo "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest"
+  echo "    Unit:        tsc · jest · pytest"
+  echo "    E2E:         Playwright"
+  echo "    Scans:       SonarQube · Trivy · secrets · headers"
+  echo "    Perf:        benchmarks · k6 · Lighthouse"
 fi
 echo "============================================================"

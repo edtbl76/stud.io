@@ -17,7 +17,8 @@ export async function createSession(
   })
   const user = (await meRes.json()) as { username: string; role: string }
 
-  cookies().set('controlroom_token', access_token, {
+  const cookieStore = await cookies()
+  cookieStore.set('controlroom_token', access_token, {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',

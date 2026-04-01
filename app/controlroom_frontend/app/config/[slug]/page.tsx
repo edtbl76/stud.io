@@ -1,17 +1,15 @@
 'use client'
 
+import { useParams } from 'next/navigation'
 import { TablePage } from '@/components/TablePage'
 import { configColumns } from '@/components/tables/config/columns'
 import { ConfigModal } from '@/components/tables/config/ConfigModal'
 import { LookupOut } from '@/lib/types'
 import { formatSlug } from '@/lib/utils'
 
-interface ConfigPageProps {
-  params: { slug: string }
-}
-
-export default function ConfigPage({ params }: Readonly<ConfigPageProps>) {
-  const { slug } = params
+export default function ConfigPage() {
+  const params = useParams<{ slug: string }>()
+  const slug = params.slug
   const title = formatSlug(slug)
   const endpoint = `/config/${slug}`
 

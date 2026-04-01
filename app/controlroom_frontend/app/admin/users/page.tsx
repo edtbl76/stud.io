@@ -109,7 +109,7 @@ export default function UsersPage() {
     gApi.accounts.id.prompt()
   }
 
-  async function handleAdd(e: React.FormEvent) {
+  async function handleAdd(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setAddLoading(true)
     setStatus(null)

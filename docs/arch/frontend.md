@@ -2,7 +2,7 @@
 
 ## Overview
 
-The frontend is a [Next.js](https://nextjs.org/) 14 app (App Router) written in TypeScript, styled with [Tailwind CSS](https://tailwindcss.com/) and [shadcn/ui](https://ui.shadcn.com/) primitives. It runs as a dev server inside Docker — there is no production build step.
+The frontend is a [Next.js](https://nextjs.org/) 16 app (App Router) written in TypeScript with React 19, styled with [Tailwind CSS](https://tailwindcss.com/) and [shadcn/ui](https://ui.shadcn.com/) primitives. It runs as a dev server inside Docker for development and E2E testing; a production build is used for the Lighthouse performance suite.
 
 - App URL: `https://localhost:2112`
 - All API calls are relative `/api/...` paths — the Next.js server proxies them to FastAPI internally
@@ -225,7 +225,7 @@ Coverage is collected via `jest --coverage` and reported to SonarQube as LCOV. N
 
 End-to-end tests use [Playwright](https://playwright.dev/) and live in `e2e/`. They run against the dev frontend at `https://localhost:2112` with a separate test backend container (`controlroom_backend_test`) on port 5151 pointing at `controlroomdb_test`. Auth state is saved to `e2e/.auth/state.json` by the `auth.setup.ts` project and reused across tests. Run via `./scripts/test-e2e.sh`.
 
-A separate Lighthouse performance suite lives in `e2e/perf.spec.ts` and runs against a production build pointed at `controlroomdb_test`. It asserts Core Web Vitals (LCP < 2500ms, TBT < 200ms, CLS < 0.1) and captures accessibility score, best-practices score, and a local CO₂ estimate as informational annotations. Auth cookies are restored before each audit because Lighthouse's error-path cleanup clears browser storage. Run via `./scripts/test-perf.sh`.
+A separate Lighthouse performance suite lives in `e2e/perf.spec.ts` and runs against a production build pointed at `controlroomdb_test`. It asserts Core Web Vitals (LCP < 2500ms, TBT < 200ms, CLS < 0.1) and captures accessibility score, best-practices score, and a local CO₂ estimate as informational annotations. Auth cookies are seeded into the browser's default context via CDP (`Storage.setCookies`) before each audit — Lighthouse navigates independently of the Playwright isolated context, so `addCookies` alone is insufficient. Cookies are also re-added to the Playwright context per-test because Lighthouse's error-path cleanup clears browser storage. Run via `./scripts/test-perf.sh`.
 
 E2E spec files:
 - `crud.spec.ts` — row click opens and closes modal for all 18 tables

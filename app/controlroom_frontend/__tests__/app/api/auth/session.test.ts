@@ -5,7 +5,7 @@ import { createSession } from '@/app/api/auth/session'
 
 const mockSet = jest.fn()
 jest.mock('next/headers', () => ({
-  cookies: () => ({ set: mockSet }),
+  cookies: () => Promise.resolve({ set: mockSet }),
 }))
 
 const mockFetch = jest.fn()
