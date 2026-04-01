@@ -96,7 +96,7 @@ LIGHTHOUSE_RESULT=skip
 cleanup() {
     echo ""
     echo "[perf] Tearing down..."
-    [ -n "$FRONTEND_PID" ] && kill "$FRONTEND_PID" 2>/dev/null || true
+    [ -n "$FRONTEND_PID" ] && kill -- -"$FRONTEND_PID" 2>/dev/null || true
     docker rm -f "$PERF_CONTAINER" 2>/dev/null || true
     if [ "$SKIP_BUILD" = false ]; then
         rm -rf "$FRONTEND_DIR/.next-perf"
