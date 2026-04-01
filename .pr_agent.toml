@@ -1,0 +1,75 @@
+# Qodo Merge / PR-Agent repository configuration
+# Docs: https://qodo-ai.github.io/pr-agent/usage-guide/configuration_options/
+
+[config]
+git_provider = "github"
+response_language = "en-US"
+verbosity_level = 0
+
+[github_app]
+pr_commands = [
+    "/describe --pr_description.final_update_message=false",
+    "/review",
+    "/improve --pr_code_suggestions.focus_only_on_problems=true",
+]
+
+[pr_reviewer]
+require_security_review = true
+require_tests_review = true
+require_score_review = false
+require_estimate_effort_to_review = true
+enable_review_labels_security = true
+enable_review_labels_effort = true
+num_max_findings = 5
+persistent_comment = true
+extra_instructions = """
+Review against the project's coding standards (see best_practices.md).
+
+Python (FastAPI backend):
+- Flag functions longer than 40 lines (excluding docstring/blank lines)
+- Flag files longer than 250 lines
+- Flag nesting deeper than 3 levels — early returns preferred
+- Flag cyclomatic complexity > 5
+- Flag missing type annotations on public function signatures
+- Flag bare except — specific exception types only
+- Flag any f-string or .format() interpolation of user-supplied values into SQL strings
+- Flag magic numbers not extracted to named constants
+- Flag commented-out code
+
+TypeScript / React (Next.js frontend):
+- Flag any use of `any` without an explanatory comment
+- Flag component functions longer than 200 lines (JSX included)
+- Flag files longer than 400 lines
+- Flag nesting deeper than 3 levels (ternaries count as one level; flag nested ternaries)
+- Flag cyclomatic complexity > 5
+- Flag non-page files using default exports
+- Flag inline arrow functions longer than a single expression used as event handlers
+- Flag useEffect with suppressed dependency arrays
+- Flag magic numbers not extracted to named constants
+- Flag commented-out code
+
+Both:
+- Flag duplicate logic that appears in more than one place
+- New routes must be documented in docs/arch/api.md
+- Admin-only routes need RBAC tests in test_rbac.py
+- New npm or Python packages must be flagged explicitly
+"""
+
+[pr_code_suggestions]
+focus_only_on_problems = true
+num_code_suggestions_per_chunk = 3
+suggestions_score_threshold = 6
+extra_instructions = """
+Don't suggest adding try-except blocks unless there is a clear unhandled failure mode.
+Don't suggest type: ignore or any-casts as fixes.
+Don't suggest extracting code into helpers unless the duplication is flagged elsewhere in the review.
+"""
+
+[pr_description]
+publish_labels = true
+generate_ai_title = false
+enable_pr_diagram = false
+enable_semantic_files_types = true
+
+[best_practices]
+content = ""
