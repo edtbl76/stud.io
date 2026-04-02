@@ -114,13 +114,6 @@ fi
 # 1b. SonarQube quality gate (only when --sonar-gate is set)
 # ---------------------------------------------------------------------------
 if [ "$RUN_GATE" = true ]; then
-    TOKEN_FILE="$ROOT/.sonar-token"
-    if [ ! -f "$TOKEN_FILE" ]; then
-        echo "[scan] ERROR: .sonar-token not found — cannot check quality gate."
-        GATE_RESULT=fail
-        FAILED=1
-    else
-        TOKEN=$(cat "$TOKEN_FILE")
         SONAR_URL="http://localhost:1969"
         SONAR_AUTH="admin:My@mpGoesTo11"
         echo -n "[scan] Waiting for CE task"
@@ -166,7 +159,6 @@ for c in d['projectStatus'].get('conditions', []):
             GATE_RESULT=fail
             FAILED=1
         fi
-    fi
 fi
 
 # ---------------------------------------------------------------------------
