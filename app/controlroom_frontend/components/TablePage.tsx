@@ -176,7 +176,7 @@ function useTableData<T>(
   const pagedTableProps: PagedTableProps = paginated
     ? {
         hasNextPage,
-        fetchNextPage: () => void fetchNextPage?.(),
+        fetchNextPage: () => { fetchNextPage?.() },
         isFetchingNextPage,
         manualSorting: true,
         externalSorting,
@@ -298,7 +298,7 @@ export function TablePage<T>({
     }).catch(() => {})
   }, [endpoint, setSelectedRecord])
 
-  function handleMutate() { void queryClient.invalidateQueries({ queryKey: [queryKey] }) }
+  function handleMutate() { queryClient.invalidateQueries({ queryKey: [queryKey] }).catch(() => {}) }
   function handleAdd() { setSelectedRecord(null) }
   function handleRowClick(row: T) { setSelectedRecord(row) }
   function handleClose() { setSelectedRecord(undefined) }

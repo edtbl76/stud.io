@@ -47,10 +47,15 @@ done
 ROOT="$(git rev-parse --show-toplevel)"
 FAILED=0
 
+if ! command -v pre-commit &>/dev/null; then
+    echo "[precommit] ERROR: pre-commit not found. Run: pip install pre-commit"
+    exit 1
+fi
+
 run_hook() {
     local hook_id="$1"
     echo "[precommit] Running $hook_id..."
-    pre-commit run "$hook_id" --all-files 2>&1 | sed -u "s/^/[$hook_id] /" || FAILED=1
+    (set -o pipefail; pre-commit run "$hook_id" --all-files 2>&1 | sed -u "s/^/[$hook_id] /") || FAILED=1
 }
 
 [ "$RUN_RUFF" = true ]    && run_hook ruff
