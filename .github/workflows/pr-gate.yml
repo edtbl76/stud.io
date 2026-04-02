@@ -73,6 +73,9 @@ jobs:
     needs: [backend-tests, security-scans]
     steps:
       - uses: actions/checkout@v4
+      - name: Install frontend dependencies
+        working-directory: app/controlroom_frontend
+        run: npm ci
       - name: Verify production stack is healthy
         run: |
           curl -sfk https://localhost:5150/health || \
@@ -89,6 +92,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
+      - name: Install frontend dependencies
+        working-directory: app/controlroom_frontend
+        run: npm ci
       - name: Verify production stack is healthy
         run: |
           curl -sfk https://localhost:5150/health || \

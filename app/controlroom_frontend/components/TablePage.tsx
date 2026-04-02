@@ -176,7 +176,7 @@ function useTableData<T>(
   const pagedTableProps: PagedTableProps = paginated
     ? {
         hasNextPage,
-        fetchNextPage: () => void fetchNextPage?.(),
+        fetchNextPage: () => { fetchNextPage?.() },
         isFetchingNextPage,
         manualSorting: true,
         externalSorting,
@@ -248,6 +248,45 @@ function OpenIdHandler({
   return null
 }
 
+// ── TablePage sub-components ──
+
+interface TableHeaderProps {
+  title: string
+  isLoading: boolean
+  recordCountLabel: string
+  isAdmin: boolean
+  onAdd: () => void
+}
+
+function TableHeader({ title, isLoading, recordCountLabel, isAdmin, onAdd }: Readonly<TableHeaderProps>) {
+  return (
+    <div className="px-6 py-4 border-b border-border">
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      <div className="flex items-center gap-3 mt-0.5">
+        {!isLoading && (
+          <p className="text-xs text-muted-foreground">{recordCountLabel}</p>
+        )}
+        {isAdmin && (
+          <Button size="sm" onClick={onAdd} className="gap-1.5 h-6 text-xs px-2">
+            <Plus className="h-3 w-3" />
+            Add
+          </Button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ErrorBanner({ error }: Readonly<{ error: Error | null }>) {
+  if (!error) return null
+  const message = error instanceof Error ? error.message : 'Unknown error'
+  return (
+    <div className="px-6 py-3 bg-destructive/10 border-b border-destructive/20 text-sm text-destructive">
+      Error loading data: {message}
+    </div>
+  )
+}
+
 // ── TablePage ──
 
 interface TablePageProps<T> {
@@ -298,42 +337,35 @@ export function TablePage<T>({
     }).catch(() => {})
   }, [endpoint, setSelectedRecord])
 
-  function handleMutate() { void queryClient.invalidateQueries({ queryKey: [queryKey] }) }
+  function handleMutate() { queryClient.invalidateQueries({ queryKey: [queryKey] }).catch(() => {}) }
   function handleAdd() { setSelectedRecord(null) }
   function handleRowClick(row: T) { setSelectedRecord(row) }
   function handleClose() { setSelectedRecord(undefined) }
   function handleBulkApply() { setRowSelection({}); handleMutate() }
+
+  const rowSelectionProps = showBulkEdit
+    ? { rowSelection, onRowSelectionChange: setRowSelection }
+    : { rowSelection: undefined, onRowSelectionChange: undefined }
+  const fields = bulkEditFields ?? []
 
   return (
     <div className="flex flex-col h-full">
       <React.Suspense fallback={null}>
         <OpenIdHandler endpoint={endpoint} onOpen={handleOpenById} />
       </React.Suspense>
-      <div className="px-6 py-4 border-b border-border">
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        <div className="flex items-center gap-3 mt-0.5">
-          {!isLoading && (
-            <p className="text-xs text-muted-foreground">{recordCountLabel}</p>
-          )}
-          {isAdmin && (
-            <Button size="sm" onClick={handleAdd} className="gap-1.5 h-6 text-xs px-2">
-              <Plus className="h-3 w-3" />
-              Add
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {error && (
-        <div className="px-6 py-3 bg-destructive/10 border-b border-destructive/20 text-sm text-destructive">
-          Error loading data: {error instanceof Error ? error.message : 'Unknown error'}
-        </div>
-      )}
+      <TableHeader
+        title={title}
+        isLoading={isLoading}
+        recordCountLabel={recordCountLabel}
+        isAdmin={isAdmin}
+        onAdd={handleAdd}
+      />
+      <ErrorBanner error={error} />
 
       {showBulkEdit && selectedRows.length > 0 && (
         <BulkEditBar
           selectedRows={selectedRows as unknown as Record<string, unknown>[]}
-          fields={bulkEditFields ?? []}
+          fields={fields}
           endpoint={endpoint}
           getRowId={(row) => getRowId(row as unknown as T)}
           onApply={handleBulkApply}
@@ -347,11 +379,10 @@ export function TablePage<T>({
           data={data}
           onRowClick={handleRowClick}
           isLoading={isLoading}
-          rowSelection={showBulkEdit ? rowSelection : undefined}
-          onRowSelectionChange={showBulkEdit ? setRowSelection : undefined}
           getRowId={getRowId}
           sortFields={sortFields}
-            {...pagedTableProps}
+          {...rowSelectionProps}
+          {...pagedTableProps}
         />
       </div>
 
