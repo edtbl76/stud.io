@@ -57,11 +57,10 @@ jobs:
             { echo "Production stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
           curl -sf http://localhost:1969 || \
             { echo "Dev stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
-      - name: Write SonarQube token
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: printf '%s' "$SONAR_TOKEN" > .sonar-token
       - name: SonarQube scan + quality gate
+        env:
+          SONAR_LOGIN: ${{ secrets.SONAR_LOGIN }}
+          SONAR_PASSWORD: ${{ secrets.SONAR_PASSWORD }}
         run: bazel test --config=ci-infra //tests:scan_sonar
       - name: Trivy image scan
         run: bazel test --config=ci-infra //tests:scan_trivy
