@@ -82,6 +82,23 @@ HEADERS_RESULT=skip
 # 1. SonarQube
 # ---------------------------------------------------------------------------
 if [ "$RUN_SONAR" = true ]; then
+    # Generate frontend coverage before invoking the scanner.
+    # jest --coverage OOM-crashes the SonarJS Node.js bridge when run immediately
+    # before the Docker scanner. Running it here lets pytest (inside sonar-scan.sh)
+    # provide a natural gap for the OS to reclaim jest's memory.
+    echo "[scan] Generating frontend coverage (jest)..."
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+    for DIR in \
+        "$HOME/.nvm/versions/node/$(ls "$HOME/.nvm/versions/node" 2>/dev/null | tail -1)/bin" \
+        "/usr/local/bin" \
+        "/usr/bin"; do
+        [ -f "$DIR/node" ] && export PATH="$DIR:$PATH" && break
+    done
+    cd "$ROOT/app/controlroom_frontend"
+    node_modules/.bin/jest --coverage --coverageReporters=lcov --passWithNoTests 2>&1 | tail -3
+    cd "$ROOT"
+
     echo "[scan] Running SonarQube..."
     if (set -o pipefail; bash "$ROOT/scripts/sonar-scan.sh" 2>&1 | sed -u 's/^/[sonar] /'); then
         SONAR_RESULT=pass

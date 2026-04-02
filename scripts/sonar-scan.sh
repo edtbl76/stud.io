@@ -25,28 +25,19 @@ python -m pytest "$PROJECT_ROOT/app/controlroom_backend/tests/" -q --tb=short \
     --cov-config="$PROJECT_ROOT/app/controlroom_backend/.coveragerc" \
     --cov-report=xml:"$PROJECT_ROOT/app/controlroom_backend/coverage.xml" 2>&1 | tail -5
 
-# Generate frontend coverage
-echo "Generating frontend coverage..."
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
-for DIR in \
-    "$HOME/.nvm/versions/node/$(ls $HOME/.nvm/versions/node 2>/dev/null | tail -1)/bin" \
-    "/usr/local/bin" \
-    "/usr/bin"; do
-    [ -f "$DIR/node" ] && export PATH="$DIR:$PATH" && break
-done
-cd "$PROJECT_ROOT/app/controlroom_frontend"
-node_modules/.bin/jest --coverage --coverageReporters=lcov --passWithNoTests 2>&1 | tail -3
-cd "$PROJECT_ROOT"
-
-# Allow the OS to reclaim Jest's memory before the SonarJS Node.js bridge starts.
-# Without this pause, the bridge OOM-crashes intermittently when launched immediately
-# after jest --coverage on memory-constrained machines.
-sleep 5
+# Frontend coverage must be pre-generated before this script is called.
+# jest --coverage causes the SonarJS Node.js bridge to OOM-crash when run
+# immediately before the Docker scanner. test-scan.sh generates lcov.info
+# first, then pytest (above) provides a natural gap for memory reclamation.
+LCOV="$PROJECT_ROOT/app/controlroom_frontend/coverage/lcov.info"
+if [ ! -f "$LCOV" ]; then
+  echo "ERROR: Frontend coverage not found at $LCOV"
+  echo "Run ./scripts/test-scan.sh --sonar-gate (or test-unit.sh first)."
+  exit 1
+fi
 
 # Fix lcov paths: Jest emits paths relative to the frontend dir (e.g. "SF:app/layout.tsx"),
 # but SonarQube resolves them from the project root, so prefix with the frontend subdirectory.
-LCOV="$PROJECT_ROOT/app/controlroom_frontend/coverage/lcov.info"
 if ! grep -q '^SF:app/controlroom_frontend/' "$LCOV"; then
   sed -i 's|^SF:|SF:app/controlroom_frontend/|' "$LCOV"
 fi
