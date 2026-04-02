@@ -43,7 +43,7 @@ jobs:
   # ── Job 3: Security scans ─────────────────────────────────────────────────
   # sonar-gate + trivy + secrets — runs in parallel with backend-tests
   security-scans:
-    name: "Security scans (sonar · trivy · secrets)"
+    name: "Scans (sonar · trivy · secrets)"
     runs-on: [self-hosted, linux, controlroom]
     needs: hermetic
     steps:
