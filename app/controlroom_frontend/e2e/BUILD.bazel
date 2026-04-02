@@ -1,0 +1,15 @@
+# Phase 0: sh_test wrapper around test-e2e.sh.
+# Requires full Docker stack — tagged external + manual so it is excluded
+# from bazel test //... and //:unit.
+# Invoke explicitly: bazel test //app/controlroom_frontend/e2e:playwright
+
+sh_test(
+    name = "playwright",
+    srcs = ["//tools/bazel:playwright.sh"],
+    tags = [
+        "external",
+        "local",
+        "manual",
+        "requires-docker",
+    ],
+)

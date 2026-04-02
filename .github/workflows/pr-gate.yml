@@ -1,0 +1,84 @@
+name: PR Gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel in-progress runs on the same branch when a new push arrives
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Job 1: Hermetic ──────────────────────────────────────────────────────
+  # tsc + jest + ruff + bandit — no infrastructure required
+  hermetic:
+    name: "Hermetic (tsc · jest · ruff · bandit)"
+    runs-on: [self-hosted, linux, controlroom-runner]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run hermetic checks
+        run: bazel test --config=ci //:unit
+
+  # ── Job 2: Backend tests ──────────────────────────────────────────────────
+  # pytest — requires live PostgreSQL (controlroomdb_test)
+  backend-tests:
+    name: "Backend tests (pytest)"
+    runs-on: [self-hosted, linux, controlroom-runner]
+    needs: hermetic
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure production stack is up
+        run: ./roadie.sh start
+      - name: Run pytest
+        run: bazel test --config=ci //app/controlroom_backend/tests:pytest
+
+  # ── Job 3: Security scans ─────────────────────────────────────────────────
+  # sonar-gate + trivy + secrets — runs in parallel with backend-tests
+  security-scans:
+    name: "Security scans (sonar · trivy · secrets)"
+    runs-on: [self-hosted, linux, controlroom-runner]
+    needs: hermetic
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure production + dev stack is up
+        run: ./roadie.sh start --dev
+      - name: Write SonarQube token
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: printf '%s' "$SONAR_TOKEN" > .sonar-token
+      - name: SonarQube scan + quality gate
+        run: bazel test --config=ci //tests:scan_sonar
+      - name: Trivy image scan
+        run: bazel test --config=ci //tests:scan_trivy
+      - name: Secrets audit
+        run: bazel test --config=ci //tests:scan_secrets
+
+  # ── Job 4: E2E ────────────────────────────────────────────────────────────
+  # Playwright — requires full Docker stack
+  e2e:
+    name: "E2E (Playwright)"
+    runs-on: [self-hosted, linux, controlroom-runner]
+    needs: [backend-tests, security-scans]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure production stack is up
+        run: ./roadie.sh start
+      - name: Run Playwright
+        run: bazel test --config=ci //app/controlroom_frontend/e2e:playwright
+
+  # ── Job 5: Performance ────────────────────────────────────────────────────
+  # Benchmarks + k6 + Lighthouse — push to main only, non-blocking
+  perf:
+    name: "Performance (benchmarks · k6 · Lighthouse)"
+    runs-on: [self-hosted, linux, controlroom-runner]
+    needs: e2e
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure production stack is up
+        run: ./roadie.sh start
+      - name: Run performance suite
+        run: bazel test --config=ci //tests:perf

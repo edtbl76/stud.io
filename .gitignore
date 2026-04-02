@@ -339,6 +339,12 @@ cython_debug/
 docs/superpowers/
 .worktrees/
 
+### Bazel
+/bazel-*
+
+### GitHub Actions self-hosted runner
+/actions-runner/
+
 ### SSL certs
 nginx/certs/*.pem
 

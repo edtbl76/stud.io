@@ -86,6 +86,49 @@ chore: upgrade Next.js to 16.x
 
 ---
 
+## Bazel + CI
+
+The project uses Bazel (via bazelisk, pinned in `.bazelversion`) as the build system. A self-hosted GitHub Actions runner (co-located with the Docker stack) executes the `.github/workflows/pr-gate.yml` workflow on every PR.
+
+### Target quick reference
+
+| Command | What runs |
+|---|---|
+| `bazel test //:unit` | Hermetic checks only — tsc, jest, ruff, bandit (no infrastructure needed) |
+| `bazel test //app/controlroom_backend/tests:pytest` | pytest (requires live PostgreSQL) |
+| `bazel test //app/controlroom_frontend/e2e:playwright` | Playwright E2E (requires Docker stack) |
+| `bazel test //tests:scan_sonar` | SonarQube scan + quality gate |
+| `bazel test //tests:scan_trivy` | Trivy image scan |
+| `bazel test //tests:scan_secrets` | detect-secrets audit |
+| `bazel test //tests:perf` | Full performance suite |
+| `bazel run //:buildifier` | Format all BUILD files |
+
+Use `--config=dev` locally for disk caching: `bazel test --config=dev //:unit`.
+
+### PR gate jobs (5 jobs)
+
+```
+hermetic (tsc · jest · ruff · bandit)
+  ├── backend-tests (pytest)      ─┐
+  └── security-scans (sonar·trivy·secrets) ─┘  → e2e → perf (main only)
+```
+
+Jobs 2 and 3 run in parallel after Job 1 passes. Job 4 (E2E) is gated on both.
+Job 5 (perf) runs only on push to `main` and is non-blocking.
+
+### Self-hosted runner prerequisites
+
+The runner is on the same machine as the Docker stack. One-time setup before registering:
+- `./scripts/reset-test-db.sh` — provision `controlroomdb_test` once
+- `npx playwright install chromium` — install Playwright browsers once
+- `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in security-scans job)
+
+The workflow calls `./roadie.sh start` or `./roadie.sh start --dev` at the start of each infra job, so the Docker stack does not need to be manually kept running — CI restarts it after reboots automatically.
+
+Runner label: `self-hosted, linux, controlroom-runner`
+
+---
+
 ## GitHub-side tooling
 
 On every PR, two AI reviewers run automatically alongside CI:

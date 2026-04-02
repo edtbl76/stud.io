@@ -1,0 +1,17 @@
+# Phase 0: sh_test wrappers around existing scripts.
+# Tags = ["local"]: CWD is set to the workspace root, so scripts can call
+# git rev-parse --show-toplevel and relative paths resolve correctly.
+# These targets are hermetic (no live infrastructure required) and are
+# included in //:unit and in bazel test //...
+
+sh_test(
+    name = "ruff",
+    srcs = ["//tools/bazel:ruff.sh"],
+    tags = ["local"],
+)
+
+sh_test(
+    name = "bandit",
+    srcs = ["//tools/bazel:bandit.sh"],
+    tags = ["local"],
+)

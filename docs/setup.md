@@ -64,9 +64,20 @@ The `nginx/certs/` directory is git-ignored — certs must be generated locally 
 
 ## Running the app
 
+To manage the stack without running tests:
+```bash
+./roadie.sh start        # start production stack
+./roadie.sh start --dev  # start production stack + dev tools (SonarQube, Structurizr)
+./roadie.sh stop         # stop production stack
+./roadie.sh stop --dev   # stop production stack + dev tools
+./roadie.sh restart      # stop then start
+./roadie.sh status       # show running containers
+```
+
+To build and run the full test suite:
 ```bash
 ./build.sh              # stack + unit tests + E2E tests
-./build.sh --skip-tests # stack only
+./build.sh --skip-tests # stack only (rebuild images)
 ./build.sh --skip-e2e   # stack + unit tests only
 ./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
 ./build.sh --release    # full release gate: --dev + Trivy + secrets + headers + perf
