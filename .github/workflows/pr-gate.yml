@@ -19,6 +19,9 @@ jobs:
     runs-on: [self-hosted, linux, controlroom]
     steps:
       - uses: actions/checkout@v4
+      - name: Install frontend dependencies
+        working-directory: app/controlroom_frontend
+        run: npm ci
       - name: Run hermetic checks
         run: bazel test --config=ci //:unit
 
