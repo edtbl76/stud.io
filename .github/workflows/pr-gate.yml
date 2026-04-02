@@ -33,8 +33,10 @@ jobs:
     needs: hermetic
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure production stack is up
-        run: ./roadie.sh start
+      - name: Verify production stack is healthy
+        run: |
+          curl -sfk https://localhost:5150/health || \
+            { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
       - name: Run pytest
         run: bazel test --config=ci //app/controlroom_backend/tests:pytest
 
@@ -46,8 +48,12 @@ jobs:
     needs: hermetic
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure production + dev stack is up
-        run: ./roadie.sh start --dev
+      - name: Verify production + dev stack is healthy
+        run: |
+          curl -sfk https://localhost:5150/health || \
+            { echo "Production stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
+          curl -sf http://localhost:1969 || \
+            { echo "Dev stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
       - name: Write SonarQube token
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -67,8 +73,10 @@ jobs:
     needs: [backend-tests, security-scans]
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure production stack is up
-        run: ./roadie.sh start
+      - name: Verify production stack is healthy
+        run: |
+          curl -sfk https://localhost:5150/health || \
+            { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
       - name: Run Playwright
         run: bazel test --config=ci //app/controlroom_frontend/e2e:playwright
 
@@ -81,7 +89,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
-      - name: Ensure production stack is up
-        run: ./roadie.sh start
+      - name: Verify production stack is healthy
+        run: |
+          curl -sfk https://localhost:5150/health || \
+            { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
       - name: Run performance suite
         run: bazel test --config=ci //tests:perf

@@ -123,7 +123,7 @@ The runner is on the same machine as the Docker stack. One-time setup before reg
 - `npx playwright install chromium` — install Playwright browsers once
 - `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in security-scans job)
 
-The workflow calls `./roadie.sh start` or `./roadie.sh start --dev` at the start of each infra job, so the Docker stack does not need to be manually kept running — CI restarts it after reboots automatically.
+The workflow verifies the stack is healthy at the start of each infra job and fails fast if it isn't. The stack must be running before CI will pass — start it with `./roadie.sh start` or `./roadie.sh start --dev` from the persistent workspace.
 
 Runner label: `self-hosted, linux, controlroom`
 
