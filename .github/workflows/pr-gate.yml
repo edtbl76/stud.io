@@ -48,6 +48,9 @@ jobs:
     needs: hermetic
     steps:
       - uses: actions/checkout@v4
+      - name: Install frontend dependencies
+        working-directory: app/controlroom_frontend
+        run: npm ci
       - name: Verify production + dev stack is healthy
         run: |
           curl -sfk https://localhost:5150/health || \
