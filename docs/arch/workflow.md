@@ -125,7 +125,7 @@ The runner is on the same machine as the Docker stack. One-time setup before reg
 
 The workflow calls `./roadie.sh start` or `./roadie.sh start --dev` at the start of each infra job, so the Docker stack does not need to be manually kept running — CI restarts it after reboots automatically.
 
-Runner label: `self-hosted, linux, controlroom-runner`
+Runner label: `self-hosted, linux, controlroom`
 
 ---
 

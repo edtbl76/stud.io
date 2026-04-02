@@ -16,7 +16,7 @@ jobs:
   # tsc + jest + ruff + bandit — no infrastructure required
   hermetic:
     name: "Hermetic (tsc · jest · ruff · bandit)"
-    runs-on: [self-hosted, linux, controlroom-runner]
+    runs-on: [self-hosted, linux, controlroom]
     steps:
       - uses: actions/checkout@v4
       - name: Run hermetic checks
@@ -26,7 +26,7 @@ jobs:
   # pytest — requires live PostgreSQL (controlroomdb_test)
   backend-tests:
     name: "Backend tests (pytest)"
-    runs-on: [self-hosted, linux, controlroom-runner]
+    runs-on: [self-hosted, linux, controlroom]
     needs: hermetic
     steps:
       - uses: actions/checkout@v4
@@ -39,7 +39,7 @@ jobs:
   # sonar-gate + trivy + secrets — runs in parallel with backend-tests
   security-scans:
     name: "Security scans (sonar · trivy · secrets)"
-    runs-on: [self-hosted, linux, controlroom-runner]
+    runs-on: [self-hosted, linux, controlroom]
     needs: hermetic
     steps:
       - uses: actions/checkout@v4
@@ -60,7 +60,7 @@ jobs:
   # Playwright — requires full Docker stack
   e2e:
     name: "E2E (Playwright)"
-    runs-on: [self-hosted, linux, controlroom-runner]
+    runs-on: [self-hosted, linux, controlroom]
     needs: [backend-tests, security-scans]
     steps:
       - uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
   # Benchmarks + k6 + Lighthouse — push to main only, non-blocking
   perf:
     name: "Performance (benchmarks · k6 · Lighthouse)"
-    runs-on: [self-hosted, linux, controlroom-runner]
+    runs-on: [self-hosted, linux, controlroom]
     needs: e2e
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
