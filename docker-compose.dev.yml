@@ -37,7 +37,7 @@ services:
     restart: unless-stopped
 
   sonarqube:
-    image: sonarqube:community
+    image: sonarqube:lts-community
     container_name: sonarqube
     depends_on:
       - sonarqube_db

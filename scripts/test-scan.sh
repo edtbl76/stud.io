@@ -122,18 +122,31 @@ if [ "$RUN_GATE" = true ]; then
     else
         TOKEN=$(cat "$TOKEN_FILE")
         SONAR_URL="http://localhost:1969"
-        echo -n "[scan] Waiting for SonarQube quality gate"
-        gate="IN_PROGRESS"
-        for i in $(seq 1 30); do
-            gate=$(curl -sf --connect-timeout 5 --max-time 10 \
-                -H "Authorization: Bearer $TOKEN" \
-                "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
-                | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null \
-                || echo "IN_PROGRESS")
-            [ "$gate" != "IN_PROGRESS" ] && break
+        SONAR_AUTH="admin:My@mpGoesTo11"
+        echo -n "[scan] Waiting for CE task"
+        for i in $(seq 1 100); do
+            pending=$(curl -sf --connect-timeout 5 --max-time 10 \
+                -u "$SONAR_AUTH" \
+                "$SONAR_URL/api/ce/component?component=controlroom" \
+                | python3 -c "
+import sys,json
+d=json.load(sys.stdin)
+q=d.get('queue') or []
+c=d.get('current') or {}
+active=any(t.get('status') in ('IN_PROGRESS','PENDING') for t in q)
+if c.get('status') in ('IN_PROGRESS','PENDING'): active=True
+print('yes' if active else 'no')
+" 2>/dev/null || echo "yes")
+            [ "$pending" = "no" ] && break
             echo -n "."
-            sleep 2
+            sleep 3
         done
+        echo " done"
+        gate=$(curl -sf --connect-timeout 5 --max-time 10 \
+            -u "$SONAR_AUTH" \
+            "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null \
+            || echo "ERROR")
         echo ""
         if [ "$gate" = "OK" ]; then
             echo "[scan] Quality gate: OK"
@@ -141,7 +154,7 @@ if [ "$RUN_GATE" = true ]; then
         else
             echo "[scan] Quality gate: $gate"
             curl -sf --connect-timeout 5 --max-time 10 \
-                -H "Authorization: Bearer $TOKEN" \
+                -u "$SONAR_AUTH" \
                 "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
                 | python3 -c "
 import sys, json

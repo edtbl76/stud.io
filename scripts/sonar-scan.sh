@@ -20,7 +20,6 @@ echo "Generating coverage report..."
 # Run from project root so --cov path is relative, producing a relative <source> in coverage.xml
 # that the Docker SonarQube scanner can resolve under /usr/src.
 python -m pytest "$PROJECT_ROOT/app/controlroom_backend/tests/" -q --tb=short \
-    --benchmark-skip \
     --cov=app/controlroom_backend \
     --cov-config="$PROJECT_ROOT/app/controlroom_backend/.coveragerc" \
     --cov-report=xml:"$PROJECT_ROOT/app/controlroom_backend/coverage.xml" 2>&1 | tail -5
