@@ -5,9 +5,13 @@
 # Default: exclude infra-dependent and manually-invoked targets from bazel test //...
 test --test_tag_filters=-external,-manual
 
-# ci profile — used in the GHA pr-gate workflow
+# ci profile — used for hermetic targets in the GHA pr-gate workflow
 build:ci --noshow_progress --show_result=0
 test:ci  --test_output=errors --keep_going
+
+# ci-infra profile — used for infra-dependent targets (clears the tag filter)
+build:ci-infra --noshow_progress --show_result=0
+test:ci-infra  --test_output=errors --keep_going --test_tag_filters=
 
 # dev profile — local disk cache for faster iteration
 build:dev --disk_cache=~/.cache/bazel-disk-cache

@@ -38,7 +38,7 @@ jobs:
           curl -sfk https://localhost:5150/health || \
             { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
       - name: Run pytest
-        run: bazel test --config=ci //app/controlroom_backend/tests:pytest
+        run: bazel test --config=ci-infra //app/controlroom_backend/tests:pytest
 
   # ── Job 3: Security scans ─────────────────────────────────────────────────
   # sonar-gate + trivy + secrets — runs in parallel with backend-tests
@@ -59,11 +59,11 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: printf '%s' "$SONAR_TOKEN" > .sonar-token
       - name: SonarQube scan + quality gate
-        run: bazel test --config=ci //tests:scan_sonar
+        run: bazel test --config=ci-infra //tests:scan_sonar
       - name: Trivy image scan
-        run: bazel test --config=ci //tests:scan_trivy
+        run: bazel test --config=ci-infra //tests:scan_trivy
       - name: Secrets audit
-        run: bazel test --config=ci //tests:scan_secrets
+        run: bazel test --config=ci-infra //tests:scan_secrets
 
   # ── Job 4: E2E ────────────────────────────────────────────────────────────
   # Playwright — requires full Docker stack
@@ -78,7 +78,7 @@ jobs:
           curl -sfk https://localhost:5150/health || \
             { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
       - name: Run Playwright
-        run: bazel test --config=ci //app/controlroom_frontend/e2e:playwright
+        run: bazel test --config=ci-infra //app/controlroom_frontend/e2e:playwright
 
   # ── Job 5: Performance ────────────────────────────────────────────────────
   # Benchmarks + k6 + Lighthouse — push to main only, non-blocking
@@ -94,4 +94,4 @@ jobs:
           curl -sfk https://localhost:5150/health || \
             { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
       - name: Run performance suite
-        run: bazel test --config=ci //tests:perf
+        run: bazel test --config=ci-infra //tests:perf
