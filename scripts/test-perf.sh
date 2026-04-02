@@ -156,11 +156,9 @@ fi
 # ---------------------------------------------------------------------------
 echo "[perf] Starting frontend on port $FRONTEND_PORT..."
 if fuser "${FRONTEND_PORT}/tcp" > /dev/null 2>&1; then
-    BUSY_PID="$(fuser "${FRONTEND_PORT}/tcp" 2>/dev/null || true)"
-    echo ""
-    echo "[perf] ERROR: port ${FRONTEND_PORT} is already in use (PID ${BUSY_PID})."
-    echo "[perf] Cannot determine what owns the port — free it manually and re-run."
-    exit 1
+    echo "[perf] Port ${FRONTEND_PORT} in use — killing existing process..."
+    fuser -k "${FRONTEND_PORT}/tcp" 2>/dev/null || true
+    sleep 1
 fi
 pushd "$FRONTEND_DIR" > /dev/null
 NEXT_DIST_DIR=".next-perf" \
