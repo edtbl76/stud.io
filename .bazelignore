@@ -1,0 +1,15 @@
+app/controlroom_frontend/node_modules
+app/controlroom_frontend/.next
+app/controlroom_frontend/.next-e2e-0
+app/controlroom_frontend/.next-e2e-1
+app/controlroom_frontend/.next-e2e-2
+app/controlroom_frontend/.next-e2e-3
+app/controlroom_frontend/.next-perf
+app/controlroom_frontend/coverage
+app/controlroom_frontend/test-results
+app/controlroom_frontend/perf-reports
+app/controlroom_backend/__pycache__
+app/controlroom_backend/.venv
+backups
+import
+csv

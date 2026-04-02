@@ -1,0 +1,47 @@
+# Phase 0: sh_test wrappers for security and performance suites.
+# All targets require live infrastructure — tagged external + manual so they
+# are excluded from bazel test //... and //:unit.
+
+sh_test(
+    name = "scan_sonar",
+    srcs = ["//tools/bazel:scan_sonar.sh"],
+    tags = [
+        "external",
+        "local",
+        "manual",
+        "scan",
+    ],
+)
+
+sh_test(
+    name = "scan_trivy",
+    srcs = ["//tools/bazel:scan_trivy.sh"],
+    tags = [
+        "external",
+        "local",
+        "manual",
+        "scan",
+    ],
+)
+
+sh_test(
+    name = "scan_secrets",
+    srcs = ["//tools/bazel:scan_secrets.sh"],
+    tags = [
+        "external",
+        "local",
+        "manual",
+        "scan",
+    ],
+)
+
+sh_test(
+    name = "perf",
+    srcs = ["//tools/bazel:perf.sh"],
+    tags = [
+        "external",
+        "local",
+        "manual",
+        "perf",
+    ],
+)

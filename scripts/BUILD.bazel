@@ -1,0 +1,15 @@
+exports_files(
+    [
+        "run-bandit.sh",
+        "run-jest.sh",
+        "run-npm-audit.sh",
+        "run-pip-audit.sh",
+        "run-pytest.sh",
+        "run-trivy.sh",
+        "run-tsc.sh",
+        "test-e2e.sh",
+        "test-perf.sh",
+        "test-scan.sh",
+    ],
+    visibility = ["//tools/bazel:__pkg__"],
+)

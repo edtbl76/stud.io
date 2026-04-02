@@ -1,0 +1,17 @@
+# =============================================================================
+# STUD.io ControlRoom — Bazel configuration
+# =============================================================================
+
+# Default: exclude infra-dependent and manually-invoked targets from bazel test //...
+test --test_tag_filters=-external,-manual
+
+# ci profile — used in the GHA pr-gate workflow
+build:ci --noshow_progress --show_result=0
+test:ci  --test_output=errors --keep_going
+
+# dev profile — local disk cache for faster iteration
+build:dev --disk_cache=~/.cache/bazel-disk-cache
+test:dev  --disk_cache=~/.cache/bazel-disk-cache
+
+# remote_cache profile — stub for Phase 4
+# build:remote_cache --remote_cache=grpcs://your-cache-endpoint
