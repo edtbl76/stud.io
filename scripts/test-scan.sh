@@ -115,11 +115,14 @@ fi
 # ---------------------------------------------------------------------------
 if [ "$RUN_GATE" = true ]; then
         SONAR_URL="http://localhost:1969"
-        SONAR_AUTH="admin:My@mpGoesTo11"
+        if [ -z "$SONAR_TOKEN" ]; then
+            echo "[scan] ERROR: SONAR_TOKEN is not set. Export it before running --sonar-gate."
+            exit 1
+        fi
         echo -n "[scan] Waiting for CE task"
         for i in $(seq 1 100); do
             pending=$(curl -sf --connect-timeout 5 --max-time 10 \
-                -u "$SONAR_AUTH" \
+                -H "Authorization: Bearer $SONAR_TOKEN" \
                 "$SONAR_URL/api/ce/component?component=controlroom" \
                 | python3 -c "
 import sys,json
@@ -136,7 +139,7 @@ print('yes' if active else 'no')
         done
         echo " done"
         gate=$(curl -sf --connect-timeout 5 --max-time 10 \
-            -u "$SONAR_AUTH" \
+            -H "Authorization: Bearer $SONAR_TOKEN" \
             "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
             | python3 -c "import sys,json; print(json.load(sys.stdin)['projectStatus']['status'])" 2>/dev/null \
             || echo "ERROR")
@@ -147,7 +150,7 @@ print('yes' if active else 'no')
         else
             echo "[scan] Quality gate: $gate"
             curl -sf --connect-timeout 5 --max-time 10 \
-                -u "$SONAR_AUTH" \
+                -H "Authorization: Bearer $SONAR_TOKEN" \
                 "$SONAR_URL/api/qualitygates/project_status?projectKey=controlroom" \
                 | python3 -c "
 import sys, json
