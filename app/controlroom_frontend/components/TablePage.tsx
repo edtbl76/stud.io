@@ -248,45 +248,6 @@ function OpenIdHandler({
   return null
 }
 
-// ── TablePage sub-components ──
-
-interface TableHeaderProps {
-  title: string
-  isLoading: boolean
-  recordCountLabel: string
-  isAdmin: boolean
-  onAdd: () => void
-}
-
-function TableHeader({ title, isLoading, recordCountLabel, isAdmin, onAdd }: Readonly<TableHeaderProps>) {
-  return (
-    <div className="px-6 py-4 border-b border-border">
-      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-      <div className="flex items-center gap-3 mt-0.5">
-        {!isLoading && (
-          <p className="text-xs text-muted-foreground">{recordCountLabel}</p>
-        )}
-        {isAdmin && (
-          <Button size="sm" onClick={onAdd} className="gap-1.5 h-6 text-xs px-2">
-            <Plus className="h-3 w-3" />
-            Add
-          </Button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-function ErrorBanner({ error }: Readonly<{ error: Error | null }>) {
-  if (!error) return null
-  const message = error instanceof Error ? error.message : 'Unknown error'
-  return (
-    <div className="px-6 py-3 bg-destructive/10 border-b border-destructive/20 text-sm text-destructive">
-      Error loading data: {message}
-    </div>
-  )
-}
-
 // ── TablePage ──
 
 interface TablePageProps<T> {
@@ -353,14 +314,26 @@ export function TablePage<T>({
       <React.Suspense fallback={null}>
         <OpenIdHandler endpoint={endpoint} onOpen={handleOpenById} />
       </React.Suspense>
-      <TableHeader
-        title={title}
-        isLoading={isLoading}
-        recordCountLabel={recordCountLabel}
-        isAdmin={isAdmin}
-        onAdd={handleAdd}
-      />
-      <ErrorBanner error={error} />
+      <div className="px-6 py-4 border-b border-border">
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+        <div className="flex items-center gap-3 mt-0.5">
+          {!isLoading && (
+            <p className="text-xs text-muted-foreground">{recordCountLabel}</p>
+          )}
+          {isAdmin && (
+            <Button size="sm" onClick={handleAdd} className="gap-1.5 h-6 text-xs px-2">
+              <Plus className="h-3 w-3" />
+              Add
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {error && (
+        <div className="px-6 py-3 bg-destructive/10 border-b border-destructive/20 text-sm text-destructive">
+          Error loading data: {error instanceof Error ? error.message : 'Unknown error'}
+        </div>
+      )}
 
       {showBulkEdit && selectedRows.length > 0 && (
         <BulkEditBar
