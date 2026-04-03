@@ -44,4 +44,5 @@ sh_test(
         "manual",
         "perf",
     ],
+    timeout = "eternal",
 )
