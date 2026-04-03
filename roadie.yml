@@ -1,0 +1,34 @@
+providers:
+  container:
+    type: docker
+    compose_file: docker-compose.yml
+    dev_compose_file: docker-compose.dev.yml
+  database:
+    type: postgres
+    service: studio_db
+    user: studio
+
+stack:
+  health_checks:
+    - name: PostgreSQL
+      type: database
+      user: studio
+    - name: API
+      type: http
+      url: https://localhost:5150/health
+    - name: Frontend
+      type: http
+      url: https://localhost:2112
+  dev_health_checks:
+    - name: SonarQube
+      type: http
+      url: http://localhost:1969
+    - name: Structurizr
+      type: http
+      url: http://localhost:1967
+  urls:
+    app: https://localhost:2112
+    api: https://localhost:5150
+    docs: https://localhost:5150/docs
+    sonarqube: http://localhost:1969
+    structurizr: http://localhost:1967

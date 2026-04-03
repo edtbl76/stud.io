@@ -82,11 +82,17 @@ test('bulk edit: field picker shows correct fields for brands', async ({ page })
 
 test('bulk edit: selecting a text field shows a text input', async ({ page }) => {
   await page.goto('/session/effects')
-  // Search to reduce the dataset before selecting
+  // Search to reduce the dataset before selecting.
+  // waitForResponse catches the debounced Absynth-filtered request specifically;
+  // waitForLoadState('networkidle') resolves before the 350ms debounce fires and
+  // races with the data update, causing Select all to capture stale row IDs.
+  const filtered = page.waitForResponse(
+    (resp) => resp.url().includes('/effects') && resp.url().includes('Absynth'),
+    { timeout: 30_000 },
+  )
   await page.getByPlaceholder('2+ chars…').first().fill('Absynth')
+  await filtered
   await waitForRows(page)
-  // keepPreviousData shows old count immediately — wait for the Absynth fetch to settle
-  await page.waitForLoadState('networkidle')
 
   await page.getByLabel('Select all').click()
   await expect(page.getByTestId('bulk-edit-bar')).toBeVisible({ timeout: 5_000 })
@@ -98,12 +104,14 @@ test('bulk edit: selecting a text field shows a text input', async ({ page }) =>
 
 test('bulk edit: Apply button is disabled until a value is entered', async ({ page }) => {
   await page.goto('/session/effects')
+  const filtered = page.waitForResponse(
+    (resp) => resp.url().includes('/effects') && resp.url().includes('Absynth'),
+    { timeout: 30_000 },
+  )
   await page.getByPlaceholder('2+ chars…').first().fill('Absynth')
+  await filtered
   await waitForRows(page)
-  // keepPreviousData shows old count immediately — wait for the Absynth fetch to settle
-  await page.waitForLoadState('networkidle')
 
-  // Use per-row checkbox (more reliable on paginated tables than Select all)
   await page.getByRole('checkbox', { name: /^Select row /i }).first().click()
   await expect(page.getByTestId('bulk-edit-bar')).toBeVisible({ timeout: 5_000 })
 

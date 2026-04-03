@@ -1,0 +1,19 @@
+reviews:
+  abort_on_close: true
+  request_changes_workflow: false
+
+  finishing_touches:
+    docstrings:
+      enabled: false
+
+  path_instructions:
+    - path: "roadie/**/*.go"
+      instructions: |
+        This is a Go project. Do not flag missing doc comments on unexported
+        functions or methods — Go convention is to document exported identifiers
+        only. Do not report docstring coverage metrics or apply coverage thresholds.
+    - path: "**/*.go"
+      instructions: |
+        Do not report docstring or doc comment coverage percentages for Go files.
+        Go convention requires doc comments only on exported identifiers.
+
