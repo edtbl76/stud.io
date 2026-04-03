@@ -1,0 +1,3 @@
+providers:
+  container:
+    type: [this is not valid yaml
