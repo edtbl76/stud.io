@@ -59,8 +59,7 @@ jobs:
             { echo "Dev stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
       - name: SonarQube scan + quality gate
         env:
-          SONAR_LOGIN: ${{ secrets.SONAR_LOGIN }}
-          SONAR_PASSWORD: ${{ secrets.SONAR_PASSWORD }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: bazel test --config=ci-infra --test_output=streamed //tests:scan_sonar
       - name: Trivy image scan
         run: bazel test --config=ci-infra --test_output=streamed //tests:scan_trivy
