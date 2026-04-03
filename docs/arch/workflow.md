@@ -172,10 +172,25 @@ Claude will call the appropriate MCP tool and surface the results inline.
 
 ## Release Tagging
 
-When `main` is ready to ship:
+STUD.io is a multi-product monorepo. Each product versions independently using
+semver. Tags are prefixed with the product name so products can advance at their
+own pace.
+
+### Tag format
+
+| Product | Example tag |
+|---|---|
+| ControlRoom | `controlroom/v2.0.0` |
+| Roadie | `roadie/v1.0.0` |
+| (future products) | `<product>/vX.Y.Z` |
+
+### Tagging a release
 
 ```bash
-./build.sh --release   # full gate: unit + E2E + security + perf
-git tag v1.x.y
-git push origin v1.x.y
+./build.sh --release          # full gate: unit + E2E + security + perf
+git tag controlroom/vX.Y.Z
+git push origin controlroom/vX.Y.Z
 ```
+
+GitHub Actions release workflows trigger on `controlroom/v*` tag pushes.
+Use semver: increment patch for fixes, minor for features, major for breaking changes.
