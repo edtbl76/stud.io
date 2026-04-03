@@ -38,7 +38,7 @@ go build -ldflags "-X main.version=1.0.0" -o ../roadie ./cmd/roadie/
 
 ## Running
 
-```
+```text
 roadie [command] [flags]
 ```
 

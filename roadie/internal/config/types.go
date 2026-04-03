@@ -24,6 +24,7 @@ type DatabaseProviderConfig struct {
 	Type    string `yaml:"type"`
 	Service string `yaml:"service"`
 	User    string `yaml:"user"`
+	DBName  string `yaml:"db_name"`
 }
 
 // StackConfig defines the services and health checks for the stack.

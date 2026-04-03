@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 
@@ -37,6 +38,36 @@ func validate(cfg *Config) error {
 	}
 	if cfg.Providers.Database.User == "" {
 		return fmt.Errorf("providers.database.user is required")
+	}
+	if err := validateHealthChecks("health_checks", cfg.Stack.HealthChecks); err != nil {
+		return err
+	}
+	if err := validateHealthChecks("dev_health_checks", cfg.Stack.DevHealthChecks); err != nil {
+		return err
+	}
+	return nil
+}
+
+func validateHealthChecks(section string, checks []HealthCheck) error {
+	for i, c := range checks {
+		if c.Type == "" {
+			return fmt.Errorf("stack.%s[%d]: missing type", section, i)
+		}
+		switch c.Type {
+		case "http":
+			if c.URL == "" {
+				return fmt.Errorf("stack.%s[%d]: http check missing url", section, i)
+			}
+			if _, err := url.ParseRequestURI(c.URL); err != nil {
+				return fmt.Errorf("stack.%s[%d]: invalid url %q: %w", section, i, c.URL, err)
+			}
+		case "database":
+			if c.User == "" {
+				return fmt.Errorf("stack.%s[%d]: database check missing user", section, i)
+			}
+		default:
+			return fmt.Errorf("stack.%s[%d]: unknown type %q", section, i, c.Type)
+		}
 	}
 	return nil
 }
