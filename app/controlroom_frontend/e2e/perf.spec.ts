@@ -42,8 +42,12 @@ const carbonModel = new co2({ model: 'swd' })
 // Auth cookies from the setup step. Restored before each audit because
 // Lighthouse clears browser storage in its error-path cleanup (NO_FCP etc.),
 // which would log out every page after the first failure.
-const AUTH_COOKIES: ReturnType<typeof JSON.parse> =
-  JSON.parse(fs.readFileSync('e2e/.auth/state.json', 'utf8')).cookies
+// Read in beforeAll (not at module level) so Playwright's setup project can
+// create the file before it is accessed.
+let AUTH_COOKIES: ReturnType<typeof JSON.parse>
+test.beforeAll(() => {
+  AUTH_COOKIES = JSON.parse(fs.readFileSync('e2e/.auth/state.json', 'utf8')).cookies
+})
 
 const PAGES = [
   '/search',
