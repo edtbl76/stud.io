@@ -6,8 +6,7 @@ set -e
 SONAR_HOST="http://localhost:1969"
 PROJECT_KEY="controlroom"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SONAR_LOGIN="${SONAR_LOGIN:-admin}"
-SONAR_PASSWORD="${SONAR_PASSWORD:-My@mpGoesTo11}"
+SONAR_TOKEN="${SONAR_TOKEN:-}"
 
 # Generate coverage report before scanning
 echo "Generating coverage report..."
@@ -38,12 +37,13 @@ fi
 echo "Running SonarQube scanner..."
 docker run --rm \
   --network dev_default \
+  --memory=16g \
   -e SONAR_HOST_URL="http://sonarqube:9000" \
+  -e SONAR_TOKEN="$SONAR_TOKEN" \
   -v "$PROJECT_ROOT:/usr/src" \
   sonarsource/sonar-scanner-cli \
   -Dsonar.host.url="http://sonarqube:9000" \
-  -Dsonar.login="$SONAR_LOGIN" \
-  -Dsonar.password="$SONAR_PASSWORD" \
+  -Dsonar.token="$SONAR_TOKEN" \
   -Dsonar.projectKey="$PROJECT_KEY"
 
 echo ""
