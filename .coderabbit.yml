@@ -1,23 +1,19 @@
 reviews:
-  tools:
-    # Go convention: only exported identifiers need doc comments.
-    # The 80% threshold is calibrated for Python/TypeScript and produces
-    # false positives on idiomatic Go code.
-    ast-grep:
-      enabled: false
-
   abort_on_close: true
+  request_changes_workflow: false
 
   finishing_touches:
     docstrings:
       enabled: false
-
-  request_changes_workflow: false
 
   path_instructions:
     - path: "roadie/**/*.go"
       instructions: |
         This is a Go project. Do not flag missing doc comments on unexported
         functions or methods — Go convention is to document exported identifiers
-        only. Do not apply Python or TypeScript docstring coverage thresholds.
+        only. Do not report docstring coverage metrics or apply coverage thresholds.
+    - path: "**/*.go"
+      instructions: |
+        Do not report docstring or doc comment coverage percentages for Go files.
+        Go convention requires doc comments only on exported identifiers.
 
