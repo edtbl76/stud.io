@@ -65,6 +65,16 @@ do_start() {
   fi
 
   echo "[roadie] All services ready."
+  echo ""
+  echo "  App:  https://localhost:2112"
+  echo "  API:  https://localhost:5150"
+  echo "  Docs: https://localhost:5150/docs"
+  if $WITH_DEV; then
+    echo ""
+    echo "  SonarQube:   http://localhost:1969"
+    echo "  Structurizr: http://localhost:1967"
+  fi
+  echo ""
 }
 
 do_stop() {

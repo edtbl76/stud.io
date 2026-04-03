@@ -155,12 +155,12 @@ fi
 # 3. Start Next.js production server
 # ---------------------------------------------------------------------------
 echo "[perf] Starting frontend on port $FRONTEND_PORT..."
-BUSY_PID="$(lsof -ti :"${FRONTEND_PORT}" 2>/dev/null || true)"
+BUSY_PID="$(ss -tlnp "sport = :${FRONTEND_PORT}" 2>/dev/null | grep -oP 'pid=\K[0-9]+' | head -1 || true)"
 if [ -n "$BUSY_PID" ]; then
     echo "[perf] Port ${FRONTEND_PORT} in use (PID ${BUSY_PID}) — killing..."
     kill -9 "$BUSY_PID" 2>/dev/null || true
     for i in $(seq 1 10); do
-        lsof -ti :"${FRONTEND_PORT}" > /dev/null 2>&1 || break
+        ss -tlnp "sport = :${FRONTEND_PORT}" 2>/dev/null | grep -q LISTEN || break
         sleep 1
     done
 fi
