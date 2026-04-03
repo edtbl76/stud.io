@@ -25,6 +25,7 @@ scan() {
     echo "[trivy] Scanning $label image..."
     docker run --rm \
         -v /var/run/docker.sock:/var/run/docker.sock \
+        -v trivy-cache:/root/.cache/trivy \
         -v "$ROOT/.trivyignore:/src/.trivyignore:ro" \
         ghcr.io/aquasecurity/trivy:latest image \
         --severity HIGH,CRITICAL \
