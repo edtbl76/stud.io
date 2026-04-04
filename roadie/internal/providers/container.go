@@ -32,6 +32,6 @@ type ContainerProvider interface {
 	Up(ctx context.Context, cfg UpConfig) error
 	Down(ctx context.Context, cfg DownConfig) error
 	IsRunning(ctx context.Context, service string) (bool, error)
-	Status(ctx context.Context, composeFile string) ([]ServiceStatus, error)
+	Status(ctx context.Context) ([]ServiceStatus, error)
 	Exec(ctx context.Context, service string, cmd []string) error
 }
