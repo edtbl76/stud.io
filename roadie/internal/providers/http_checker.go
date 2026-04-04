@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+	"time"
 )
 
 // HTTPChecker implements HTTPHealthChecker using a standard HTTP client.
@@ -16,6 +17,7 @@ type HTTPChecker struct {
 func NewHTTPChecker() *HTTPChecker {
 	return &HTTPChecker{
 		client: &http.Client{
+			Timeout: 5 * time.Second,
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // local dev only
 			},

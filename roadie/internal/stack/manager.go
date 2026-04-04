@@ -90,31 +90,37 @@ func (m *Manager) Status(ctx context.Context) error {
 }
 
 func (m *Manager) waitForCheck(ctx context.Context, cfg *config.Config, check config.HealthCheck) error {
-	checkFn, err := m.resolveCheckFn(ctx, cfg, check)
+	checkFn, err := m.resolveCheckFn(cfg, check)
 	if err != nil {
 		return err
 	}
 	return m.pollUntilReady(ctx, check.Name, checkFn)
 }
 
-func (m *Manager) resolveCheckFn(ctx context.Context, cfg *config.Config, check config.HealthCheck) (func() (bool, error), error) {
+func (m *Manager) resolveCheckFn(cfg *config.Config, check config.HealthCheck) (func(context.Context) (bool, error), error) {
 	switch check.Type {
 	case "http":
-		return func() (bool, error) { return m.http.IsReachable(ctx, check.URL) }, nil
+		return func(ctx context.Context) (bool, error) { return m.http.IsReachable(ctx, check.URL) }, nil
 	case "database":
-		dbCfg := providers.DBConfig{Service: cfg.Providers.Database.Service, User: check.User}
-		return func() (bool, error) { return m.db.IsReady(ctx, dbCfg) }, nil
+		user := check.User
+		if user == "" {
+			user = cfg.Providers.Database.User
+		}
+		dbCfg := providers.DBConfig{Service: cfg.Providers.Database.Service, User: user}
+		return func(ctx context.Context) (bool, error) { return m.db.IsReady(ctx, dbCfg) }, nil
 	default:
 		return nil, fmt.Errorf("unknown health check type %q for %q", check.Type, check.Name)
 	}
 }
 
-func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func() (bool, error)) error {
+func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(context.Context) (bool, error)) error {
 	fmt.Fprintf(m.out, "[roadie] %-12s ", name)
 	deadline := time.Now().Add(m.checkTimeout)
 	var lastErr error
 	for {
-		ok, err := checkFn()
+		probeCtx, cancel := context.WithDeadline(ctx, deadline)
+		ok, err := checkFn(probeCtx)
+		cancel()
 		if ok {
 			fmt.Fprintln(m.out, "ready")
 			return nil

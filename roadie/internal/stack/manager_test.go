@@ -72,7 +72,7 @@ func testConfig() *config.Config {
 	}
 }
 
-func fastManager(container *mockContainer, db *mockDB, http *mockHTTP) *Manager {
+func fastManager(container providers.ContainerProvider, db providers.SQLDatabaseProvider, http providers.HTTPHealthChecker) *Manager {
 	m := NewManager(container, db, http, io.Discard)
 	m.checkTimeout = 200 * time.Millisecond
 	m.checkInterval = 10 * time.Millisecond
@@ -151,6 +151,38 @@ func TestManager_Stop(t *testing.T) {
 		t.Errorf("expected 'Done' in output, got: %q", buf.String())
 	}
 }
+
+func TestManager_Start_DBCheck_UserFallback(t *testing.T) {
+	cfg := testConfig()
+	cfg.Providers.Database.User = "fallback_user"
+	cfg.Stack.HealthChecks = []config.HealthCheck{
+		{Name: "DB", Type: "database"}, // User intentionally empty
+	}
+
+	var gotCfg providers.DBConfig
+	db := &capturingDB{}
+	db.fn = func(c providers.DBConfig) { gotCfg = c }
+
+	if err := fastManager(&mockContainer{}, db, &mockHTTP{}).Start(context.Background(), cfg, false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotCfg.User != "fallback_user" {
+		t.Errorf("expected User=%q, got %q", "fallback_user", gotCfg.User)
+	}
+}
+
+type capturingDB struct {
+	fn func(providers.DBConfig)
+}
+
+func (c *capturingDB) IsReady(_ context.Context, cfg providers.DBConfig) (bool, error) {
+	if c.fn != nil {
+		c.fn(cfg)
+	}
+	return true, nil
+}
+
+func (c *capturingDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
 
 func TestManager_Start_WithDev_RunsDevChecks(t *testing.T) {
 	cfg := testConfig()
