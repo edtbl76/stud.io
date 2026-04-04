@@ -30,14 +30,21 @@ func (p *PostgresProvider) IsReady(ctx context.Context, cfg DBConfig) (bool, err
 		"pg_isready", "-U", cfg.User, "-q",
 	}
 	err := p.run.Run(ctx, io.Discard, "docker", args...)
-	return err == nil, nil
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (p *PostgresProvider) ExecSQL(ctx context.Context, cfg DBConfig, sql string) error {
 	args := []string{
 		"compose", "-f", p.composeFile,
 		"exec", "-T", cfg.Service,
-		"psql", "-U", cfg.User, "-c", sql,
+		"psql", "-U", cfg.User,
 	}
+	if cfg.DBName != "" {
+		args = append(args, "-d", cfg.DBName)
+	}
+	args = append(args, "-c", sql)
 	return p.run.Run(ctx, io.Discard, "docker", args...)
 }

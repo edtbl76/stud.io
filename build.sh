@@ -58,7 +58,7 @@ fi
 echo ""
 echo "[2/4] Waiting for services..."
 echo -n "  PostgreSQL "
-until docker compose exec db pg_isready -U studio -q 2>/dev/null; do
+until docker compose exec studio_db pg_isready -U studio -q 2>/dev/null; do
     echo -n "."
     sleep 1
 done

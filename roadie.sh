@@ -39,7 +39,7 @@ cd "$SCRIPT_DIR"
 
 do_start() {
   echo "[roadie] Starting production stack..."
-  docker compose up -d
+  docker compose up -d --remove-orphans
 
   echo -n "[roadie] PostgreSQL "
   until docker compose exec studio_db pg_isready -U studio -q 2>/dev/null; do

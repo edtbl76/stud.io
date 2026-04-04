@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"github.com/studiocontrolroom/roadie/internal/config"
@@ -53,10 +54,11 @@ func (m *Manager) Start(ctx context.Context, cfg *config.Config, withDev bool) e
 		return fmt.Errorf("starting stack: %w", err)
 	}
 
-	checks := cfg.Stack.HealthChecks
+	var devChecks []config.HealthCheck
 	if withDev {
-		checks = append(checks, cfg.Stack.DevHealthChecks...)
+		devChecks = cfg.Stack.DevHealthChecks
 	}
+	checks := slices.Concat(cfg.Stack.HealthChecks, devChecks)
 	for _, check := range checks {
 		if err := m.waitForCheck(ctx, cfg, check); err != nil {
 			return err
@@ -110,13 +112,22 @@ func (m *Manager) resolveCheckFn(ctx context.Context, cfg *config.Config, check 
 func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func() (bool, error)) error {
 	fmt.Fprintf(m.out, "[roadie] %-12s ", name)
 	deadline := time.Now().Add(m.checkTimeout)
+	var lastErr error
 	for {
-		if ok, _ := checkFn(); ok {
+		ok, err := checkFn()
+		if ok {
 			fmt.Fprintln(m.out, "ready")
 			return nil
 		}
+		if err != nil && err != lastErr {
+			fmt.Fprintf(m.out, "\n[roadie] %-12s warning: %v", name, err)
+			lastErr = err
+		}
 		if time.Now().After(deadline) {
 			fmt.Fprintln(m.out, "TIMED OUT")
+			if lastErr != nil {
+				return fmt.Errorf("health check %q timed out after %s: %w", name, m.checkTimeout, lastErr)
+			}
 			return fmt.Errorf("health check %q timed out after %s", name, m.checkTimeout)
 		}
 		select {

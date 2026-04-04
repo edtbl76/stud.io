@@ -24,7 +24,7 @@ if ! docker compose ps | grep -q "running"; then
     echo "  Starting containers..."
     docker compose up -d
     echo "  Waiting for PostgreSQL to be ready..."
-    until docker compose exec db pg_isready -U studio -q; do
+    until docker compose exec studio_db pg_isready -U studio -q; do
         sleep 1
     done
     echo "  PostgreSQL is ready"

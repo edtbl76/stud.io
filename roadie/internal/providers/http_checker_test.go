@@ -42,8 +42,8 @@ func TestHTTPChecker_IsReachable_5xx(t *testing.T) {
 func TestHTTPChecker_IsReachable_ConnectionRefused(t *testing.T) {
 	checker := NewHTTPChecker()
 	ok, err := checker.IsReachable(context.Background(), "https://127.0.0.1:1")
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+	if err == nil {
+		t.Fatal("expected error for refused connection, got nil")
 	}
 	if ok {
 		t.Error("expected IsReachable=false for refused connection")

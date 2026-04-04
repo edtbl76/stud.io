@@ -119,7 +119,7 @@ Health check types:
 
 | Type | Required fields | How it works |
 |---|---|---|
-| `database` | `user` | `docker compose exec pg_isready -U <user> -q` |
+| `database` | `user` | `docker compose exec database pg_isready -U <user> -q` |
 | `http` | `url` | HTTP GET, passes on any 2xx |
 
 Roadie polls each health check every 2 seconds with a 5-minute timeout. If the context is cancelled (e.g. Ctrl-C) it exits immediately.

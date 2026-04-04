@@ -30,7 +30,7 @@ func (h *HTTPChecker) IsReachable(ctx context.Context, url string) (bool, error)
 	}
 	resp, err := h.client.Do(req)
 	if err != nil {
-		return false, nil // not ready yet — connection refused or similar
+		return false, err
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode >= 200 && resp.StatusCode < 300, nil

@@ -261,7 +261,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             # ── Providers ─────────────────────────────────────────────────────
 
             dockerProvider = container "Docker Provider" {
-                description "Implements ContainerProvider. Up runs 'docker compose -f <file> up -d --no-recreate'. Down runs 'docker compose down'. Status streams 'docker compose ps'. Supports merging a dev compose overlay via a second -f flag when --dev is set."
+                description "Implements ContainerProvider. Up runs 'docker compose -f <file> up -d --remove-orphans'. Down runs 'docker compose down'. Status streams 'docker compose ps'. Supports merging a dev compose overlay via a second -f flag when --dev is set."
                 technology "Go — internal/providers/docker.go"
                 tags "CLIContainer"
             }

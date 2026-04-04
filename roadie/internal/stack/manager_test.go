@@ -32,17 +32,23 @@ func (m *mockContainer) Status(_ context.Context) ([]providers.ServiceStatus, er
 }
 func (m *mockContainer) Exec(_ context.Context, _ string, _ []string) error { return nil }
 
-type mockDB struct{ ready bool }
+type mockDB struct {
+	ready    bool
+	checkErr error
+}
 
 func (m *mockDB) IsReady(_ context.Context, _ providers.DBConfig) (bool, error) {
-	return m.ready, nil
+	return m.ready, m.checkErr
 }
 func (m *mockDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
 
-type mockHTTP struct{ reachable bool }
+type mockHTTP struct {
+	reachable bool
+	checkErr  error
+}
 
 func (m *mockHTTP) IsReachable(_ context.Context, _ string) (bool, error) {
-	return m.reachable, nil
+	return m.reachable, m.checkErr
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -54,7 +60,7 @@ func testConfig() *config.Config {
 				ComposeFile: "docker-compose.yml",
 			},
 			Database: config.DatabaseProviderConfig{
-				Service: "db",
+				Service: "studio_db",
 				User:    "studio",
 			},
 		},
@@ -109,6 +115,27 @@ func TestManager_Start_HealthCheckTimeout(t *testing.T) {
 	err := fastManager(container, db, &mockHTTP{}).Start(ctx, testConfig(), false)
 	if err == nil {
 		t.Fatal("expected timeout error, got nil")
+	}
+}
+
+func TestManager_Start_HealthCheckError_SurfacedInTimeout(t *testing.T) {
+	container := &mockContainer{}
+	db := &mockDB{ready: false, checkErr: errors.New("service 'studio_db' not running")}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+
+	var buf strings.Builder
+	m := NewManager(container, db, &mockHTTP{}, &buf)
+	m.checkTimeout = 200 * time.Millisecond
+	m.checkInterval = 10 * time.Millisecond
+
+	err := m.Start(ctx, testConfig(), false)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(buf.String(), "studio_db") {
+		t.Errorf("expected error message in output, got: %q", buf.String())
 	}
 }
 

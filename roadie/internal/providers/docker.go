@@ -40,27 +40,63 @@ func (d *DockerProvider) devComposeArgs() []string {
 	return []string{"compose", "-f", d.devComposeFile, "-p", "dev"}
 }
 
+func resolveFile(cfgFile, providerFile string) string {
+	if cfgFile != "" {
+		return cfgFile
+	}
+	return providerFile
+}
+
+func (d *DockerProvider) resolveDevFile(cfgDevFile string) (string, error) {
+	devFile := resolveFile(cfgDevFile, d.devComposeFile)
+	if devFile == "" {
+		return "", fmt.Errorf("--dev requested but no dev compose file configured")
+	}
+	return devFile, nil
+}
+
 func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
-	args := append(d.composeArgs(), "up", "-d", "--remove-orphans")
+	composeFile := resolveFile(cfg.ComposeFile, d.composeFile)
+	args := []string{"compose", "-f", composeFile, "up", "-d", "--remove-orphans"}
+	if cfg.Build {
+		args = append(args, "--build")
+	}
+	if cfg.ForceRecreate {
+		args = append(args, "--force-recreate")
+	}
 	if err := d.run.Run(ctx, d.out, "docker", args...); err != nil {
 		return err
 	}
-	if cfg.WithDev && d.devComposeFile != "" {
-		devArgs := append(d.devComposeArgs(), "up", "-d")
-		return d.run.Run(ctx, d.out, "docker", devArgs...)
+	if !cfg.WithDev {
+		return nil
 	}
-	return nil
+	return d.upDev(ctx, cfg.DevComposeFile)
+}
+
+func (d *DockerProvider) upDev(ctx context.Context, cfgDevFile string) error {
+	devFile, err := d.resolveDevFile(cfgDevFile)
+	if err != nil {
+		return err
+	}
+	return d.run.Run(ctx, d.out, "docker", "compose", "-f", devFile, "-p", "dev", "up", "-d")
 }
 
 func (d *DockerProvider) Down(ctx context.Context, cfg DownConfig) error {
-	if cfg.WithDev && d.devComposeFile != "" {
-		devArgs := append(d.devComposeArgs(), "down")
-		if err := d.run.Run(ctx, d.out, "docker", devArgs...); err != nil {
+	if cfg.WithDev {
+		if err := d.downDev(ctx, cfg.DevComposeFile); err != nil {
 			return err
 		}
 	}
-	args := append(d.composeArgs(), "down")
-	return d.run.Run(ctx, d.out, "docker", args...)
+	composeFile := resolveFile(cfg.ComposeFile, d.composeFile)
+	return d.run.Run(ctx, d.out, "docker", "compose", "-f", composeFile, "down")
+}
+
+func (d *DockerProvider) downDev(ctx context.Context, cfgDevFile string) error {
+	devFile, err := d.resolveDevFile(cfgDevFile)
+	if err != nil {
+		return err
+	}
+	return d.run.Run(ctx, d.out, "docker", "compose", "-f", devFile, "-p", "dev", "down")
 }
 
 func (d *DockerProvider) IsRunning(ctx context.Context, service string) (bool, error) {
@@ -88,6 +124,9 @@ func (d *DockerProvider) Status(ctx context.Context) ([]ServiceStatus, error) {
 }
 
 func (d *DockerProvider) Exec(ctx context.Context, service string, cmd []string) error {
+	if len(cmd) == 0 {
+		return fmt.Errorf("empty command for docker compose exec")
+	}
 	args := append(d.composeArgs(), "exec", "-T", service)
 	args = append(args, cmd...)
 	return d.run.Run(ctx, d.out, "docker", args...)
