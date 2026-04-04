@@ -40,17 +40,6 @@ func (d *DockerProvider) devComposeArgs() []string {
 	return []string{"compose", "-f", d.devComposeFile, "-p", "dev"}
 }
 
-func (d *DockerProvider) resolveDevFile(cfgDevFile string) (string, error) {
-	devFile := d.devComposeFile
-	if cfgDevFile != "" {
-		devFile = cfgDevFile
-	}
-	if devFile == "" {
-		return "", fmt.Errorf("--dev requested but no dev compose file configured")
-	}
-	return devFile, nil
-}
-
 func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
 	composeFile := d.composeFile
 	if cfg.ComposeFile != "" {
@@ -69,20 +58,26 @@ func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
 	if !cfg.WithDev {
 		return nil
 	}
-	return d.upDev(ctx, cfg.DevComposeFile)
-}
-
-func (d *DockerProvider) upDev(ctx context.Context, cfgDevFile string) error {
-	devFile, err := d.resolveDevFile(cfgDevFile)
-	if err != nil {
-		return err
+	devFile := d.devComposeFile
+	if cfg.DevComposeFile != "" {
+		devFile = cfg.DevComposeFile
+	}
+	if devFile == "" {
+		return fmt.Errorf("--dev requested but no dev compose file configured")
 	}
 	return d.run.Run(ctx, d.out, "docker", "compose", "-f", devFile, "-p", "dev", "up", "-d")
 }
 
 func (d *DockerProvider) Down(ctx context.Context, cfg DownConfig) error {
 	if cfg.WithDev {
-		if err := d.downDev(ctx, cfg.DevComposeFile); err != nil {
+		devFile := d.devComposeFile
+		if cfg.DevComposeFile != "" {
+			devFile = cfg.DevComposeFile
+		}
+		if devFile == "" {
+			return fmt.Errorf("--dev requested but no dev compose file configured")
+		}
+		if err := d.run.Run(ctx, d.out, "docker", "compose", "-f", devFile, "-p", "dev", "down"); err != nil {
 			return err
 		}
 	}
@@ -91,14 +86,6 @@ func (d *DockerProvider) Down(ctx context.Context, cfg DownConfig) error {
 		composeFile = cfg.ComposeFile
 	}
 	return d.run.Run(ctx, d.out, "docker", "compose", "-f", composeFile, "down")
-}
-
-func (d *DockerProvider) downDev(ctx context.Context, cfgDevFile string) error {
-	devFile, err := d.resolveDevFile(cfgDevFile)
-	if err != nil {
-		return err
-	}
-	return d.run.Run(ctx, d.out, "docker", "compose", "-f", devFile, "-p", "dev", "down")
 }
 
 func (d *DockerProvider) IsRunning(ctx context.Context, service string) (bool, error) {
