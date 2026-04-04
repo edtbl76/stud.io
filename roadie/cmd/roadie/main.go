@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/studiocontrolroom/roadie/internal/commands"
 )
 
 // version is set at build time via -ldflags "-X main.version=x.y.z".
@@ -25,6 +26,7 @@ Run 'roadie <command> --help' for details on a specific command.`,
 	root.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 
 	root.AddCommand(versionCmd())
+	commands.AddStackCommands(root)
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
