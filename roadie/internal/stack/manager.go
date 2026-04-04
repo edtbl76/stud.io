@@ -119,16 +119,10 @@ func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(
 			fmt.Fprintln(m.out, "ready")
 			return nil
 		}
-		if err != nil && err != lastErr {
-			fmt.Fprintf(m.out, "\n[roadie] %-12s warning: %v", name, err)
-			lastErr = err
-		}
+		lastErr = m.logNewWarning(name, err, lastErr)
 		if time.Now().After(deadline) {
 			fmt.Fprintln(m.out, "TIMED OUT")
-			if lastErr != nil {
-				return fmt.Errorf("health check %q timed out after %s: %w", name, m.checkTimeout, lastErr)
-			}
-			return fmt.Errorf("health check %q timed out after %s", name, m.checkTimeout)
+			return m.timeoutError(name, lastErr)
 		}
 		select {
 		case <-ctx.Done():
@@ -137,6 +131,21 @@ func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(
 			fmt.Fprint(m.out, ".")
 		}
 	}
+}
+
+func (m *Manager) logNewWarning(name string, err, lastErr error) error {
+	if err != nil && err != lastErr {
+		fmt.Fprintf(m.out, "\n[roadie] %-12s warning: %v", name, err)
+		return err
+	}
+	return lastErr
+}
+
+func (m *Manager) timeoutError(name string, lastErr error) error {
+	if lastErr != nil {
+		return fmt.Errorf("health check %q timed out after %s: %w", name, m.checkTimeout, lastErr)
+	}
+	return fmt.Errorf("health check %q timed out after %s", name, m.checkTimeout)
 }
 
 func (m *Manager) printURLs(cfg *config.Config, withDev bool) {

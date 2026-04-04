@@ -91,29 +91,28 @@ func TestDockerProvider_Down_WithDev(t *testing.T) {
 	}
 }
 
-func TestDockerProvider_Up_Build(t *testing.T) {
-	fake, calls := captureRunCalls()
-	if err := newTestDocker(fake).Up(context.Background(), UpConfig{Build: true}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
+func TestDockerProvider_Up_Flags(t *testing.T) {
+	tests := []struct {
+		name     string
+		cfg      UpConfig
+		wantFlag string
+	}{
+		{"build flag", UpConfig{Build: true}, "--build"},
+		{"force-recreate flag", UpConfig{ForceRecreate: true}, "--force-recreate"},
 	}
-	if len(*calls) == 0 {
-		t.Fatalf("expected at least 1 docker call, got 0")
-	}
-	if !slices.Contains((*calls)[0], "--build") {
-		t.Errorf("expected --build in args %v", (*calls)[0])
-	}
-}
-
-func TestDockerProvider_Up_ForceRecreate(t *testing.T) {
-	fake, calls := captureRunCalls()
-	if err := newTestDocker(fake).Up(context.Background(), UpConfig{ForceRecreate: true}); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(*calls) == 0 {
-		t.Fatalf("expected at least 1 docker call, got 0")
-	}
-	if !slices.Contains((*calls)[0], "--force-recreate") {
-		t.Errorf("expected --force-recreate in args %v", (*calls)[0])
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake, calls := captureRunCalls()
+			if err := newTestDocker(fake).Up(context.Background(), tt.cfg); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(*calls) == 0 {
+				t.Fatalf("expected at least 1 docker call, got 0")
+			}
+			if !slices.Contains((*calls)[0], tt.wantFlag) {
+				t.Errorf("expected %q in args %v", tt.wantFlag, (*calls)[0])
+			}
+		})
 	}
 }
 

@@ -40,15 +40,11 @@ func (d *DockerProvider) devComposeArgs() []string {
 	return []string{"compose", "-f", d.devComposeFile, "-p", "dev"}
 }
 
-func resolveFile(cfgFile, providerFile string) string {
-	if cfgFile != "" {
-		return cfgFile
-	}
-	return providerFile
-}
-
 func (d *DockerProvider) resolveDevFile(cfgDevFile string) (string, error) {
-	devFile := resolveFile(cfgDevFile, d.devComposeFile)
+	devFile := d.devComposeFile
+	if cfgDevFile != "" {
+		devFile = cfgDevFile
+	}
 	if devFile == "" {
 		return "", fmt.Errorf("--dev requested but no dev compose file configured")
 	}
@@ -56,7 +52,10 @@ func (d *DockerProvider) resolveDevFile(cfgDevFile string) (string, error) {
 }
 
 func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
-	composeFile := resolveFile(cfg.ComposeFile, d.composeFile)
+	composeFile := d.composeFile
+	if cfg.ComposeFile != "" {
+		composeFile = cfg.ComposeFile
+	}
 	args := []string{"compose", "-f", composeFile, "up", "-d", "--remove-orphans"}
 	if cfg.Build {
 		args = append(args, "--build")
@@ -87,7 +86,10 @@ func (d *DockerProvider) Down(ctx context.Context, cfg DownConfig) error {
 			return err
 		}
 	}
-	composeFile := resolveFile(cfg.ComposeFile, d.composeFile)
+	composeFile := d.composeFile
+	if cfg.ComposeFile != "" {
+		composeFile = cfg.ComposeFile
+	}
 	return d.run.Run(ctx, d.out, "docker", "compose", "-f", composeFile, "down")
 }
 
