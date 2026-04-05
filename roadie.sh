@@ -39,10 +39,10 @@ cd "$SCRIPT_DIR"
 
 do_start() {
   echo "[roadie] Starting production stack..."
-  docker compose up -d --no-recreate
+  docker compose up -d --remove-orphans
 
   echo -n "[roadie] PostgreSQL "
-  until docker compose exec db pg_isready -U studio -q 2>/dev/null; do
+  until docker compose exec studio_db pg_isready -U studio -q 2>/dev/null; do
     echo -n "."; sleep 1
   done
   echo " ready"

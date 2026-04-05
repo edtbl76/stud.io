@@ -14,10 +14,20 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             tags "User"
         }
 
+        developer = person "Developer" {
+            description "Operates the local development environment. Uses the Roadie CLI to start, stop, restart, and check the status of the STUD.io Docker stack. Will also use Roadie for build, test, scan, and performance commands as those phases are implemented."
+            tags "Developer"
+        }
+
         # ── External Systems ──────────────────────────────────────────────────
 
         google = softwareSystem "Google OAuth 2.0" {
             description "Provides user identity for Google Sign-In. The backend validates ID tokens via the google-auth library; the frontend displays the sign-in button via the Google Identity Services SDK."
+            tags "External"
+        }
+
+        dockerDaemon = softwareSystem "Docker Daemon" {
+            description "Local Docker engine. Receives docker compose commands from Roadie to bring services up and down, query service status, and exec into containers for health checks."
             tags "External"
         }
 
@@ -187,11 +197,96 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             }
         }
 
+        # ── Roadie CLI ────────────────────────────────────────────────────────
+
+        roadie = softwareSystem "Roadie CLI" {
+            description "Go CLI binary that manages the STUD.io local development stack. Provides start, stop, restart, and status commands with full health-check polling. Will absorb build, test, scan, and performance commands in later phases, retiring roadie.sh, build.sh, and all scripts/run-*.sh wrappers."
+
+            # ── CLI Entry Point ───────────────────────────────────────────────
+
+            roadieCLI = container "CLI Entry Point" {
+                description "Cobra root command. Registers --verbose persistent flag and delegates to subcommand groups. Version string injected at build time via -ldflags '-X main.version=x.y.z'."
+                technology "Go 1.26 / Cobra — cmd/roadie/main.go"
+                tags "CLIContainer"
+            }
+
+            # ── Stack Commands ────────────────────────────────────────────────
+
+            stackCommands = container "Stack Commands" {
+                description "Registers start [--dev], stop [--dev], restart [--dev], and status cobra subcommands. Each loads roadie.yml, constructs a Manager with the three providers, and calls the appropriate Manager method."
+                technology "Go / Cobra — internal/commands/stack.go"
+                tags "CLIContainer"
+
+                startCmd = component "start" {
+                    description "Calls Manager.Start(ctx, cfg, --dev). Blocks until all health checks in roadie.yml pass, then prints service URLs."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+
+                stopCmd = component "stop" {
+                    description "Calls Manager.Stop(ctx, cfg, --dev). Tears down the Docker Compose stack."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+
+                restartCmd = component "restart" {
+                    description "Calls Manager.Stop then Manager.Start in sequence. Accepts --dev."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+
+                statusCmd = component "status" {
+                    description "Calls Manager.Status, which streams docker compose ps output to stdout."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+            }
+
+            # ── Stack Manager ─────────────────────────────────────────────────
+
+            stackManager = container "Stack Manager" {
+                description "Orchestrates the full start/stop/status lifecycle. On start: calls ContainerProvider.Up, then iterates health checks from config polling every 2 seconds up to a 5-minute timeout, then prints service URLs. On stop: calls ContainerProvider.Down."
+                technology "Go — internal/stack/manager.go"
+                tags "CLIContainer"
+            }
+
+            # ── Config Loader ─────────────────────────────────────────────────
+
+            configLoader = container "Config Loader" {
+                description "Reads and validates roadie.yml from the repo root. Validates required provider fields and all health check entries (type, URL for http, user for database). Exposes typed Config, ProvidersConfig, StackConfig, HealthCheck, and URLsConfig structs."
+                technology "Go / gopkg.in/yaml.v3 — internal/config/"
+                tags "CLIContainer"
+            }
+
+            # ── Providers ─────────────────────────────────────────────────────
+
+            dockerProvider = container "Docker Provider" {
+                description "Implements ContainerProvider. Up runs 'docker compose -f <file> up -d --remove-orphans'. Down runs 'docker compose down'. Status streams 'docker compose ps'. Supports merging a dev compose overlay via a second -f flag when --dev is set."
+                technology "Go — internal/providers/docker.go"
+                tags "CLIContainer"
+            }
+
+            postgresProvider = container "Postgres Provider" {
+                description "Implements SQLDatabaseProvider. IsReady runs 'docker compose exec -T <service> pg_isready -U <user> -q' to test availability without a direct network connection. ExecSQL runs psql inside the container."
+                technology "Go — internal/providers/postgres.go"
+                tags "CLIContainer"
+            }
+
+            httpChecker = container "HTTP Checker" {
+                description "Implements HTTPHealthChecker. Issues an HTTP GET with TLS verification disabled (local self-signed mkcert certs). Returns true on any 2xx response; returns false without error on connection refused so the retry loop can continue."
+                technology "Go / net/http — internal/providers/http_checker.go"
+                tags "CLIContainer"
+            }
+        }
+
         # ── System-level relationships ────────────────────────────────────────
 
         admin -> controlRoom "Manages catalog and admin operations"
         viewer -> controlRoom "Browses and searches catalog"
         controlRoom -> google "Validates Google ID tokens for sign-in"
+        developer -> roadie "Runs CLI commands: start, stop, restart, status"
+        roadie -> controlRoom "Manages — starts, stops, restarts, and health-checks"
+        roadie -> dockerDaemon "Invokes docker compose up / down / ps / exec"
 
         # ── Person → Container ────────────────────────────────────────────────
 
@@ -205,6 +300,28 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         frontend -> backend "REST API over internal Docker network — JWT attached by BFF proxy"
         backend -> database "asyncpg connection pool — parameterised SQL only"
         backend -> google "Validates Google ID tokens via google-auth library"
+
+        # ── Roadie → ControlRoom containers ──────────────────────────────────
+
+        dockerProvider -> dockerDaemon "docker compose up / down / ps / exec"
+        postgresProvider -> dockerDaemon "docker compose exec pg_isready / psql"
+        httpChecker -> nginx "GET https://localhost:2112 and https://localhost:5150/health"
+
+        # ── Roadie container relationships ────────────────────────────────────
+
+        roadieCLI -> stackCommands "Registers subcommands and delegates invocations"
+        stackCommands -> configLoader "Load(\".\") — reads and validates roadie.yml"
+        stackCommands -> stackManager "Constructs Manager with providers; calls Start / Stop / Status"
+        stackManager -> dockerProvider "ContainerProvider: Up, Down, Status, IsRunning, Exec"
+        stackManager -> postgresProvider "SQLDatabaseProvider: IsReady (retry loop)"
+        stackManager -> httpChecker "HTTPHealthChecker: IsReachable (retry loop)"
+
+        # ── Stack Commands component relationships ────────────────────────────
+
+        startCmd -> stackManager "Manager.Start(ctx, cfg, withDev)"
+        stopCmd -> stackManager "Manager.Stop(ctx, cfg, withDev)"
+        restartCmd -> stackManager "Manager.Stop then Manager.Start"
+        statusCmd -> stackManager "Manager.Status(ctx, cfg)"
 
         # ── Frontend component relationships ──────────────────────────────────
 
@@ -266,10 +383,22 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             autoLayout lr
         }
 
+        systemContext roadie "RoadieSystemContext" {
+            title "Level 1 — Roadie System Context"
+            include *
+            autoLayout lr
+        }
+
         # ── Level 2: Containers ───────────────────────────────────────────────
 
         container controlRoom "Containers" {
             title "Level 2 — Container Diagram"
+            include *
+            autoLayout lr
+        }
+
+        container roadie "RoadieContainers" {
+            title "Level 2 — Roadie Container Diagram"
             include *
             autoLayout lr
         }
@@ -286,6 +415,14 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
 
         component frontend "FrontendComponents" {
             title "Level 3 — Next.js Frontend Components"
+            include *
+            autoLayout lr
+        }
+
+        # ── Level 3: Roadie Stack Commands Components ─────────────────────────
+
+        component stackCommands "RoadieStackCommandsComponents" {
+            title "Level 3 — Roadie Stack Commands Components"
             include *
             autoLayout lr
         }
@@ -318,6 +455,27 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             autoLayout lr
         }
 
+        # ── Level 4: Roadie Start Flow (Dynamic) ─────────────────────────────
+        # Shows the full sequence from CLI invocation through docker compose up,
+        # health-check polling, and URL output.
+
+        dynamic roadie "RoadieStartFlow" {
+            title "Level 4 — roadie start Command Flow"
+            developer -> roadieCLI "1. roadie start [--dev]"
+            roadieCLI -> stackCommands "2. Cobra dispatches to start subcommand"
+            stackCommands -> configLoader "3. Load and validate roadie.yml"
+            stackCommands -> stackManager "4. NewManager(dockerProvider, postgresProvider, httpChecker)"
+            stackManager -> dockerProvider "5. ContainerProvider.Up — compose file + optional dev overlay"
+            dockerProvider -> dockerDaemon "6. docker compose up -d --no-recreate"
+            stackManager -> postgresProvider "7. Poll IsReady every 2s (up to 5 min)"
+            postgresProvider -> dockerDaemon "8. docker compose exec -T <service> pg_isready -U studio -q"
+            stackManager -> httpChecker "9. Poll IsReachable every 2s — API health check"
+            httpChecker -> nginx "10. GET https://localhost:5150/health — await 2xx"
+            stackManager -> httpChecker "11. Poll IsReachable every 2s — Frontend health check"
+            httpChecker -> nginx "12. GET https://localhost:2112 — await 2xx"
+            autoLayout lr
+        }
+
         # ── Styles ────────────────────────────────────────────────────────────
 
         styles {
@@ -338,6 +496,12 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             element "User" {
                 shape Person
                 background #1168bd
+                color #ffffff
+            }
+
+            element "Developer" {
+                shape Person
+                background #2e7d32
                 color #ffffff
             }
 
@@ -380,6 +544,16 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             element "DevOnly" {
                 background #999999
                 color #ffffff
+            }
+
+            element "CLIContainer" {
+                background #388e3c
+                color #ffffff
+            }
+
+            element "CLIComponent" {
+                background #a5d6a7
+                color #000000
             }
 
             element "Component" {

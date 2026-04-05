@@ -49,7 +49,20 @@ roadie [command] [flags]
 | `--verbose` / `-v` | Enable verbose output |
 | `--help` / `-h` | Show help |
 
-### Commands (Phase 1)
+### Commands
+
+#### Stack management
+
+| Command | Description | Replaces |
+|---|---|---|
+| `roadie start [--dev]` | Start the stack and wait for all health checks | `roadie.sh start` |
+| `roadie stop [--dev]` | Stop the stack | `roadie.sh stop` |
+| `roadie restart [--dev]` | Stop then start | `roadie.sh restart` |
+| `roadie status` | Show running services | `roadie.sh status` |
+
+The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-compose.dev.yml`).
+
+#### Other
 
 | Command | Description |
 |---|---|
@@ -80,12 +93,36 @@ providers:
   container:
     type: docker
     compose_file: docker-compose.yml       # required
+    dev_compose_file: docker-compose.dev.yml
   database:
     service: studio_db                     # required
     user: studio                           # required
+
+stack:
+  health_checks:
+    - name: PostgreSQL
+      type: database
+      user: studio
+    - name: API
+      type: http
+      url: https://localhost:5150/health
+  dev_health_checks:
+    - name: SonarQube
+      type: http
+      url: http://localhost:1969
+  urls:
+    app: https://localhost:2112
+    api: https://localhost:5150
 ```
 
-Roadie will refuse to start if any required field is missing.
+Health check types:
+
+| Type | Required fields | How it works |
+|---|---|---|
+| `database` | `user` | `docker compose exec database pg_isready -U <user> -q` |
+| `http` | `url` | HTTP GET, passes on any 2xx |
+
+Roadie polls each health check every 2 seconds with a 5-minute timeout. If the context is cancelled (e.g. Ctrl-C) it exits immediately.
 
 ---
 
@@ -104,6 +141,14 @@ roadie/
       database.go            — SQLDatabaseProvider interface
       http.go                — HTTPHealthChecker interface
       base.go                — baseProvider (retry logic, embedded by concrete providers)
+      runner.go              — cmdRunner interface + realRunner (shell execution abstraction)
+      docker.go              — DockerProvider: ContainerProvider via docker compose
+      postgres.go            — PostgresProvider: SQLDatabaseProvider via docker compose exec
+      http_checker.go        — HTTPChecker: HTTPHealthChecker via net/http
+    stack/
+      manager.go             — StackManager: orchestrates start/stop/health checks
+    commands/
+      stack.go               — start, stop, restart, status Cobra subcommands
 ```
 
 ---
@@ -112,9 +157,9 @@ roadie/
 
 | Phase | Commands added | Retires |
 |---|---|---|
-| 1 (done) | `version` | — |
-| 2 | `start`, `stop`, `restart`, `status` | `roadie.sh` |
-| 3 | Pipeline engine | `scripts/run-*.sh` safety wrappers |
+| 1 ✓ | `version` | — |
+| 2 ✓ | `start`, `stop`, `restart`, `status` | `roadie.sh` |
+| 3 | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
 | 4 | `build`, `release` | `build.sh` |
 | 5 | `test`, `scan`, `perf` (full flag surface) | `test-*.sh`, remaining `scripts/run-*.sh` |
 | 6 | `doctor`, `--json` flag, summary output | — |

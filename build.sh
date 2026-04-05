@@ -57,24 +57,44 @@ fi
 # ---------------------------------------------------------------------------
 echo ""
 echo "[2/4] Waiting for services..."
+WAIT_TIMEOUT=120
+
 echo -n "  PostgreSQL "
-until docker compose exec db pg_isready -U studio -q 2>/dev/null; do
+START_TIME=$(date +%s)
+until docker compose exec studio_db pg_isready -U studio -q 2>/dev/null; do
     echo -n "."
     sleep 1
+    if (( $(date +%s) - START_TIME >= WAIT_TIMEOUT )); then
+        echo ""
+        echo "ERROR: PostgreSQL not ready after ${WAIT_TIMEOUT}s" >&2
+        exit 1
+    fi
 done
 echo " ready"
 
 echo -n "  API        "
+START_TIME=$(date +%s)
 until curl -sfk https://localhost:5150/health > /dev/null 2>&1; do
     echo -n "."
     sleep 1
+    if (( $(date +%s) - START_TIME >= WAIT_TIMEOUT )); then
+        echo ""
+        echo "ERROR: API not ready after ${WAIT_TIMEOUT}s" >&2
+        exit 1
+    fi
 done
 echo " ready"
 
 echo -n "  Frontend   "
+START_TIME=$(date +%s)
 until curl -sfk https://localhost:2112 > /dev/null 2>&1; do
     echo -n "."
     sleep 2
+    if (( $(date +%s) - START_TIME >= WAIT_TIMEOUT )); then
+        echo ""
+        echo "ERROR: Frontend not ready after ${WAIT_TIMEOUT}s" >&2
+        exit 1
+    fi
 done
 echo " ready"
 
