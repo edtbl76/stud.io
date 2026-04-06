@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -59,6 +60,45 @@ func TestLoad_ValidConfig(t *testing.T) {
 	}
 	if len(cfg.Stack.DevHealthChecks) != 1 {
 		t.Errorf("dev_health_checks: got %d, want 1", len(cfg.Stack.DevHealthChecks))
+	}
+}
+
+func TestLoad_BuildConfig(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	wantFiles := []string{"sql/schema.sql", "sql/views.sql"}
+	if !slices.Equal(cfg.Build.SchemaFiles, wantFiles) {
+		t.Errorf("schema_files: got %v, want %v", cfg.Build.SchemaFiles, wantFiles)
+	}
+
+	wantDBs := []string{"controlroomdb_test"}
+	if !slices.Equal(cfg.Build.Databases, wantDBs) {
+		t.Errorf("databases: got %v, want %v", cfg.Build.Databases, wantDBs)
+	}
+
+	if cfg.Providers.Database.DBName != "controlroomdb" {
+		t.Errorf("db_name: got %q, want %q", cfg.Providers.Database.DBName, "controlroomdb")
+	}
+}
+
+func TestLoad_BuildConfig_EmptyIsValid(t *testing.T) {
+	dir := t.TempDir()
+	content := validProvidersYAML // no build: section
+	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(content), 0644); err != nil {
+		t.Fatalf("writing temp config: %v", err)
+	}
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("expected no error for config without build: section, got: %v", err)
+	}
+	if len(cfg.Build.SchemaFiles) != 0 {
+		t.Errorf("expected empty schema_files, got %v", cfg.Build.SchemaFiles)
+	}
+	if len(cfg.Build.Databases) != 0 {
+		t.Errorf("expected empty databases, got %v", cfg.Build.Databases)
 	}
 }
 
@@ -122,6 +162,56 @@ func TestLoad_HealthCheckValidationErrors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assertLoadError(t, validProvidersYAML+tt.extra, tt.wantErr)
+		})
+	}
+}
+
+// validProvidersWithProdDB is like validProvidersYAML but includes db_name.
+var validProvidersWithProdDB = `
+providers:
+  container:
+    type: docker
+    compose_file: docker-compose.yml
+  database:
+    service: studio_db
+    user: studio
+    db_name: controlroomdb
+`
+
+func TestLoad_BuildDatabases_ProdNameRejected(t *testing.T) {
+	// The production db_name must never appear in build.databases.
+	content := validProvidersWithProdDB + `
+build:
+  databases:
+    - controlroomdb_test
+    - controlroomdb
+`
+	assertLoadError(t, content, "build.databases must not contain the production database")
+}
+
+func TestLoad_BuildDatabases_ValidCases(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{
+			name:    "test-only names pass when db_name is set",
+			content: validProvidersWithProdDB + "\nbuild:\n  databases:\n    - controlroomdb_test\n",
+		},
+		{
+			name:    "any name passes when db_name is not set",
+			content: validProvidersYAML + "\nbuild:\n  databases:\n    - anything\n",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(tt.content), 0644); err != nil {
+				t.Fatalf("writing temp config: %v", err)
+			}
+			if _, err := Load(dir); err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
 		})
 	}
 }

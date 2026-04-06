@@ -40,19 +40,26 @@ func (d *DockerProvider) devComposeArgs() []string {
 	return []string{"compose", "-f", d.devComposeFile, "-p", "dev"}
 }
 
-func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
-	composeFile := d.composeFile
-	if cfg.ComposeFile != "" {
-		composeFile = cfg.ComposeFile
-	}
-	args := []string{"compose", "-f", composeFile, "up", "-d", "--remove-orphans"}
+// buildUpArgs appends "up -d --remove-orphans" and any rebuild flags to base.
+// base is the "compose -f <file> [extras]" prefix for the target stack.
+func buildUpArgs(base []string, cfg UpConfig) []string {
+	args := append(base, "up", "-d", "--remove-orphans")
 	if cfg.Build {
 		args = append(args, "--build")
 	}
 	if cfg.ForceRecreate {
 		args = append(args, "--force-recreate")
 	}
-	if err := d.run.Run(ctx, d.out, "docker", args...); err != nil {
+	return args
+}
+
+func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
+	composeFile := d.composeFile
+	if cfg.ComposeFile != "" {
+		composeFile = cfg.ComposeFile
+	}
+	prodBase := []string{"compose", "-f", composeFile}
+	if err := d.run.Run(ctx, d.out, "docker", buildUpArgs(prodBase, cfg)...); err != nil {
 		return err
 	}
 	if !cfg.WithDev {
@@ -65,7 +72,8 @@ func (d *DockerProvider) Up(ctx context.Context, cfg UpConfig) error {
 	if devFile == "" {
 		return fmt.Errorf("--dev requested but no dev compose file configured")
 	}
-	return d.run.Run(ctx, d.out, "docker", "compose", "-f", devFile, "-p", "dev", "up", "-d")
+	devBase := []string{"compose", "-f", devFile, "-p", "dev"}
+	return d.run.Run(ctx, d.out, "docker", buildUpArgs(devBase, cfg)...)
 }
 
 func (d *DockerProvider) Down(ctx context.Context, cfg DownConfig) error {

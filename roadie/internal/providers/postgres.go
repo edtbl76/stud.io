@@ -2,8 +2,10 @@ package providers
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
+	"os"
 )
 
 // PostgresProvider implements SQLDatabaseProvider by running pg_isready and
@@ -47,4 +49,30 @@ func (p *PostgresProvider) ExecSQL(ctx context.Context, cfg DBConfig, sql string
 	}
 	args = append(args, "-c", sql)
 	return p.run.Run(ctx, io.Discard, "docker", args...)
+}
+
+// ExecSQLFile pipes the contents of path into psql via stdin (-f -) with
+// --single-transaction so the entire file is applied atomically: if any
+// statement fails, psql rolls back the whole file. This prevents partial
+// schema application, but note that atomicity is per-file only — if multiple
+// files are applied in sequence (see schemaApplier), schema files should be
+// idempotent (e.g. use IF NOT EXISTS / CREATE OR REPLACE) so a retry after a
+// cross-file failure is safe.
+func (p *PostgresProvider) ExecSQLFile(ctx context.Context, cfg DBConfig, path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("opening SQL file %q: %w", path, err)
+	}
+	defer f.Close()
+
+	args := []string{
+		"compose", "-f", p.composeFile,
+		"exec", "-T", cfg.Service,
+		"psql", "-U", cfg.User,
+	}
+	if cfg.DBName != "" {
+		args = append(args, "-d", cfg.DBName)
+	}
+	args = append(args, "--single-transaction", "-f", "-")
+	return p.run.RunWithStdin(ctx, IOStreams{Stdin: f, Out: io.Discard}, "docker", args...)
 }

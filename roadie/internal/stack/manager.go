@@ -46,10 +46,33 @@ func NewManager(
 // Start brings the stack up and waits for all configured health checks to pass.
 func (m *Manager) Start(ctx context.Context, cfg *config.Config, withDev bool) error {
 	fmt.Fprintln(m.out, "[roadie] Starting production stack...")
+	if err := m.bringUp(ctx, cfg, withDev, false); err != nil {
+		return err
+	}
+	m.printURLs(cfg, withDev)
+	return nil
+}
+
+// Build rebuilds all container images (--build --force-recreate) and waits for
+// health checks. Use this instead of Start when you need a clean image rebuild.
+func (m *Manager) Build(ctx context.Context, cfg *config.Config, withDev bool) error {
+	fmt.Fprintln(m.out, "[roadie] Building stack (--build --force-recreate)...")
+	if err := m.bringUp(ctx, cfg, withDev, true); err != nil {
+		return err
+	}
+	m.printURLs(cfg, withDev)
+	return nil
+}
+
+// bringUp is the shared implementation for Start and Build. rebuild=true sets
+// --build --force-recreate on the compose up call.
+func (m *Manager) bringUp(ctx context.Context, cfg *config.Config, withDev, rebuild bool) error {
 	if err := m.container.Up(ctx, providers.UpConfig{
 		ComposeFile:    cfg.Providers.Container.ComposeFile,
 		DevComposeFile: cfg.Providers.Container.DevComposeFile,
 		WithDev:        withDev,
+		Build:          rebuild,
+		ForceRecreate:  rebuild,
 	}); err != nil {
 		return fmt.Errorf("starting stack: %w", err)
 	}
@@ -64,8 +87,6 @@ func (m *Manager) Start(ctx context.Context, cfg *config.Config, withDev bool) e
 			return err
 		}
 	}
-
-	m.printURLs(cfg, withDev)
 	return nil
 }
 

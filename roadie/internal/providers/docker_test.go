@@ -116,6 +116,33 @@ func TestDockerProvider_Up_Flags(t *testing.T) {
 	}
 }
 
+func TestDockerProvider_Up_WithDev_PropagatesFlags(t *testing.T) {
+	tests := []struct {
+		name     string
+		cfg      UpConfig
+		wantFlag string
+	}{
+		{"--build propagated to dev", UpConfig{WithDev: true, Build: true}, "--build"},
+		{"--force-recreate propagated to dev", UpConfig{WithDev: true, ForceRecreate: true}, "--force-recreate"},
+		{"--remove-orphans in dev", UpConfig{WithDev: true}, "--remove-orphans"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fake, calls := captureRunCalls()
+			if err := newTestDocker(fake).Up(context.Background(), tt.cfg); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(*calls) != 2 {
+				t.Fatalf("expected 2 calls (prod + dev), got %d", len(*calls))
+			}
+			devCall := (*calls)[1]
+			if !slices.Contains(devCall, tt.wantFlag) {
+				t.Errorf("dev call: expected %q in args %v", tt.wantFlag, devCall)
+			}
+		})
+	}
+}
+
 func TestDockerProvider_Up_WithDev_NoDevFile_Errors(t *testing.T) {
 	dp := NewDockerProvider("docker-compose.yml", "", nil, io.Discard)
 	fake, _ := captureRunCalls()

@@ -60,15 +60,17 @@ git checkout main && git pull
 Before opening a PR, run locally:
 
 ```bash
-./scripts/test-unit.sh   # tsc + jest + pytest
-./scripts/test-e2e.sh    # Playwright shards
+roadie build             # rebuild images, apply schema to test DBs, run unit tests
+roadie build --e2e       # also run Playwright shards
 ```
+
+The individual scripts still work and are used by CI, but `roadie build` is the recommended local gate starting from Phase 4.
 
 For security-sensitive changes or before a release:
 
 ```bash
-./scripts/test-scan.sh   # Sonar, Trivy, detect-secrets, headers
-./build.sh --release     # full release gate
+./scripts/test-scan.sh   # Sonar, Trivy, detect-secrets, headers (Phase 5 will absorb into roadie)
+roadie release           # full release gate: rebuild dev stack + unit + E2E + scan + perf
 ```
 
 ---
@@ -123,7 +125,7 @@ The runner is on the same machine as the Docker stack. One-time setup before reg
 - `npx playwright install chromium` — install Playwright browsers once
 - `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in security-scans job)
 
-The workflow verifies the stack is healthy at the start of each infra job and fails fast if it isn't. The stack must be running before CI will pass — start it with `./roadie.sh start` or `./roadie.sh start --dev` from the persistent workspace.
+The workflow verifies the stack is healthy at the start of each infra job and fails fast if it isn't. The stack must be running before CI will pass — start it with `roadie start` or `roadie start --dev` from the persistent workspace.
 
 Runner label: `self-hosted, linux, controlroom`
 
@@ -187,7 +189,7 @@ own pace.
 ### Tagging a release
 
 ```bash
-./build.sh --release          # full gate: unit + E2E + security + perf
+roadie release                # full gate: unit + E2E + security + perf
 git tag controlroom/vX.Y.Z
 git push origin controlroom/vX.Y.Z
 ```
