@@ -126,6 +126,60 @@ Roadie polls each health check every 2 seconds with a 5-minute timeout. If the c
 
 ---
 
+## Pipeline engine (`internal/pipeline`)
+
+The pipeline package is the execution layer for all tool invocations. It replaces the `scripts/run-*.sh` wrappers by providing type-safe, testable equivalents in Go.
+
+### Layers
+
+```text
+Pipeline
+  └─ []ToolStep
+        └─ stepRunner (interface)
+              └─ realStepRunner   (production: exec.CommandContext with Dir + Env)
+              └─ fakeStepRunner   (tests: records calls, injects errors)
+```
+
+Each `ToolStep` routes its output through a `LabelWriter` before writing to the caller's `io.Writer`, so every output line is prefixed with `[stepname]` — the same pattern as `sed -u 's/^/[label] /'` in the shell scripts.
+
+### Execution modes
+
+| Mode | Method | Behaviour | Used by |
+|---|---|---|---|
+| Fatal-sequential | `Pipeline.RunSequential` | Stop and return on first failure | `roadie test unit` |
+| Collect | `Pipeline.RunCollect` | Run all steps, accumulate results, return combined error | `roadie test scan`, `roadie test perf` |
+
+`RunCollect` returns `[]StepResult` (name, error, duration). Call `PrintSummary(out, results)` to write the PASS/FAIL table. Phase 6 will add a JSON path via the same results slice.
+
+### PATH resolution
+
+Tools that require Node or Python are located at step-creation time:
+
+| Function | Search order |
+|---|---|
+| `ResolveNode()` | `~/.nvm/versions/node/<latest>/bin` → `/usr/local/bin` → `/usr/bin` |
+| `ResolvePython()` | `~/anaconda3/bin` → `~/miniconda3/bin` → `~/opt/anaconda3/bin` → `~/opt/miniconda3/bin` |
+
+The resolved directory is injected as `PATH=<dir>:$PATH` in the step's `Env` field. If no managed runtime is found the step inherits the shell's PATH.
+
+### Factory functions
+
+| Function | Replaces | Notes |
+|---|---|---|
+| `TscStep(root)` | `run-tsc.sh` | Uses `node_modules/.bin/tsc --noEmit` |
+| `JestStep(root, coverage)` | `run-jest.sh` | Pass `coverage=true` for SonarQube lcov report |
+| `PytestStep(root, extraArgs...)` | `run-pytest.sh` | Extra args appended after the test dir |
+| `BanditStep(root)` | `run-bandit.sh` | |
+| `PipAuditStep(root)` | `run-pip-audit.sh` | Ignores CVE-2024-23342 (see script for rationale) |
+| `NpmAuditStep(root)` | `run-npm-audit.sh` | `--audit-level=critical` |
+| `TrivyStep(root, imageRef)` | `run-trivy.sh` scan() | Single image; caller resolves `imageRef` via `docker inspect` |
+
+### Test injection
+
+`ToolStep` and `Pipeline` both expose an unexported `withRunner(r stepRunner)` copy-constructor. Tests in the `pipeline` package use a `fakeStepRunner` to record calls and inject per-binary errors without spawning real processes.
+
+---
+
 ## Project layout
 
 ```
@@ -147,6 +201,10 @@ roadie/
       http_checker.go        — HTTPChecker: HTTPHealthChecker via net/http
     stack/
       manager.go             — StackManager: orchestrates start/stop/health checks
+    pipeline/
+      pipeline.go            — LabelWriter, ToolStep, Pipeline, StepResult, PrintSummary
+      resolve.go             — ResolveNode / ResolvePython (NVM + conda PATH discovery)
+      steps.go               — ToolStep factory functions (TscStep, JestStep, PytestStep, …)
     commands/
       stack.go               — start, stop, restart, status Cobra subcommands
 ```
@@ -159,7 +217,7 @@ roadie/
 |---|---|---|
 | 1 ✓ | `version` | — |
 | 2 ✓ | `start`, `stop`, `restart`, `status` | `roadie.sh` |
-| 3 | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
+| 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
 | 4 | `build`, `release` | `build.sh` |
 | 5 | `test`, `scan`, `perf` (full flag surface) | `test-*.sh`, remaining `scripts/run-*.sh` |
 | 6 | `doctor`, `--json` flag, summary output | — |

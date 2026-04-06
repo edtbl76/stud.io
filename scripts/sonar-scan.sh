@@ -7,6 +7,10 @@ SONAR_HOST="http://localhost:1969"
 PROJECT_KEY="controlroom"
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SONAR_TOKEN="${SONAR_TOKEN:-}"
+if [ -z "$SONAR_TOKEN" ] && [ -f "$PROJECT_ROOT/.sonar-token" ]; then
+    SONAR_TOKEN=$(cat "$PROJECT_ROOT/.sonar-token")
+    export SONAR_TOKEN
+fi
 
 # Generate coverage report before scanning
 echo "Generating coverage report..."

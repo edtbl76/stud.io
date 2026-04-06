@@ -200,7 +200,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         # ── Roadie CLI ────────────────────────────────────────────────────────
 
         roadie = softwareSystem "Roadie CLI" {
-            description "Go CLI binary that manages the STUD.io local development stack. Provides start, stop, restart, and status commands with full health-check polling. Will absorb build, test, scan, and performance commands in later phases, retiring roadie.sh, build.sh, and all scripts/run-*.sh wrappers."
+            description "Go CLI binary that manages the STUD.io local development stack. Provides start, stop, restart, and status commands (Phase 2) and a pipeline engine for tool invocation (Phase 3). Will absorb build, test, scan, and perf commands in Phases 4–5, retiring roadie.sh, build.sh, and all scripts/run-*.sh wrappers."
 
             # ── CLI Entry Point ───────────────────────────────────────────────
 
@@ -277,6 +277,38 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                 technology "Go / net/http — internal/providers/http_checker.go"
                 tags "CLIContainer"
             }
+
+            # ── Pipeline Engine ───────────────────────────────────────────────
+
+            pipelineEngine = container "Pipeline Engine" {
+                description "Execution layer for all tool invocations. Replaces scripts/run-*.sh with type-safe, testable Go equivalents. Two execution modes: fatal-sequential (stop on first failure) and collect (run all, accumulate StepResults). All output is line-prefixed via LabelWriter. PATH to Node and Python is resolved at step-creation time from NVM and conda directories."
+                technology "Go — internal/pipeline/"
+                tags "CLIContainer"
+
+                labelWriter = component "LabelWriter" {
+                    description "io.Writer decorator that buffers incoming bytes and prefixes each completed line with '[stepname] '. Replicates sed -u 's/^/[label] /' from the shell scripts. Partial lines are held in an internal byte buffer until a newline arrives."
+                    technology "Go — pipeline.go"
+                    tags "CLIComponent"
+                }
+
+                toolStepPipeline = component "ToolStep + Pipeline" {
+                    description "ToolStep is a value type holding Bin, Args, Dir, and Env for a single tool invocation. Pipeline sequences ToolSteps in two modes: RunSequential (fatal — stop on first failure, used by test unit) and RunCollect (non-fatal — run all, return []StepResult, used by test scan and test perf). StepResult captures name, error, and duration per step — the building block for Phase 6 --json output."
+                    technology "Go — pipeline.go"
+                    tags "CLIComponent"
+                }
+
+                pathResolvers = component "PATH Resolvers" {
+                    description "ResolveNode scans ~/.nvm/versions/node/<latest>/bin then /usr/local/bin and /usr/bin. ResolvePython scans ~/anaconda3/bin, ~/miniconda3/bin, ~/opt/anaconda3/bin, ~/opt/miniconda3/bin. The resolved directory is injected as PATH=<dir>:$PATH in the step Env field. Returns empty string if no managed runtime is found, in which case the step inherits the shell PATH."
+                    technology "Go — resolve.go"
+                    tags "CLIComponent"
+                }
+
+                stepFactories = component "Step Factories" {
+                    description "Factory functions that return pre-configured ToolSteps mirroring each run-*.sh script: TscStep (tsc --noEmit), JestStep (jest --passWithNoTests; coverage flag for SonarQube), PytestStep (python -m pytest), BanditStep (python -m bandit), PipAuditStep (python -m pip_audit, ignores CVE-2024-23342), NpmAuditStep (npm audit --audit-level=critical), TrivyStep (docker run trivy image — caller resolves imageRef via docker inspect)."
+                    technology "Go — steps.go"
+                    tags "CLIComponent"
+                }
+            }
         }
 
         # ── System-level relationships ────────────────────────────────────────
@@ -322,6 +354,13 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         stopCmd -> stackManager "Manager.Stop(ctx, cfg, withDev)"
         restartCmd -> stackManager "Manager.Stop then Manager.Start"
         statusCmd -> stackManager "Manager.Status(ctx, cfg)"
+
+        # ── Pipeline Engine relationships ─────────────────────────────────────
+
+        stepFactories -> pathResolvers "Calls ResolveNode / ResolvePython at step-creation time"
+        stepFactories -> labelWriter "Each ToolStep.Run wraps out with NewLabelWriter(step.Name)"
+        toolStepPipeline -> labelWriter "ToolStep.Run routes all output through LabelWriter"
+        pipelineEngine -> dockerDaemon "TrivyStep: docker run ghcr.io/aquasecurity/trivy:latest image ..."
 
         # ── Frontend component relationships ──────────────────────────────────
 
@@ -427,6 +466,14 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             autoLayout lr
         }
 
+        # ── Level 3: Roadie Pipeline Engine Components ────────────────────────
+
+        component pipelineEngine "RoadiePipelineComponents" {
+            title "Level 3 — Roadie Pipeline Engine Components"
+            include *
+            autoLayout lr
+        }
+
         # ── Level 4: BFF Authentication Flow (Dynamic) ───────────────────────
         # Shows how a browser request flows through the stack and how the JWT
         # is attached without ever being exposed to client-side JavaScript.
@@ -466,13 +513,30 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             stackCommands -> configLoader "3. Load and validate roadie.yml"
             stackCommands -> stackManager "4. NewManager(dockerProvider, postgresProvider, httpChecker)"
             stackManager -> dockerProvider "5. ContainerProvider.Up — compose file + optional dev overlay"
-            dockerProvider -> dockerDaemon "6. docker compose up -d --no-recreate"
+            dockerProvider -> dockerDaemon "6. docker compose up -d --remove-orphans"
             stackManager -> postgresProvider "7. Poll IsReady every 2s (up to 5 min)"
             postgresProvider -> dockerDaemon "8. docker compose exec -T <service> pg_isready -U studio -q"
             stackManager -> httpChecker "9. Poll IsReachable every 2s — API health check"
             httpChecker -> nginx "10. GET https://localhost:5150/health — await 2xx"
             stackManager -> httpChecker "11. Poll IsReachable every 2s — Frontend health check"
             httpChecker -> nginx "12. GET https://localhost:2112 — await 2xx"
+            autoLayout lr
+        }
+
+        # ── Level 4: Pipeline Collect Execution Flow (Dynamic) ───────────────
+        # Shows how a collect-mode pipeline (e.g. roadie test scan) runs all
+        # steps regardless of failure and produces a PASS/FAIL summary table.
+
+        dynamic roadie "RoadiePipelineCollectFlow" {
+            title "Level 4 — Pipeline Collect Execution Flow"
+            developer -> roadieCLI "1. roadie test scan (Phase 5)"
+            roadieCLI -> pipelineEngine "2. pipeline.New(BanditStep, PipAuditStep, NpmAuditStep, TrivyStep(root, imageRef))"
+            pipelineEngine -> pathResolvers "3. ResolveNode / ResolvePython at step-creation time"
+            pipelineEngine -> toolStepPipeline "4. Pipeline.RunCollect(ctx, out)"
+            toolStepPipeline -> labelWriter "5. Each step wraps out with NewLabelWriter(step.Name)"
+            toolStepPipeline -> dockerDaemon "6. TrivyStep: docker run trivy image <imageRef>"
+            toolStepPipeline -> pipelineEngine "7. Return []StepResult (name, err, duration per step)"
+            pipelineEngine -> roadieCLI "8. PrintSummary — PASS/FAIL table; non-zero exit if any failed"
             autoLayout lr
         }
 
