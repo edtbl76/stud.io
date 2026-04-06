@@ -71,6 +71,11 @@ done
 
 ROOT="$(git rev-parse --show-toplevel)"
 
+if [ -z "$SONAR_TOKEN" ] && [ -f "$ROOT/.sonar-token" ]; then
+    SONAR_TOKEN=$(cat "$ROOT/.sonar-token")
+    export SONAR_TOKEN
+fi
+
 FAILED=0
 SONAR_RESULT=skip
 GATE_RESULT=skip
@@ -116,7 +121,7 @@ fi
 if [ "$RUN_GATE" = true ]; then
         SONAR_URL="http://localhost:1969"
         if [ -z "$SONAR_TOKEN" ]; then
-            echo "[scan] ERROR: SONAR_TOKEN is not set. Export it before running --sonar-gate."
+            echo "[scan] ERROR: SONAR_TOKEN is not set. Export it or add it to .sonar-token."
             exit 1
         fi
         echo -n "[scan] Waiting for CE task"

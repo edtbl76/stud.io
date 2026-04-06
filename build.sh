@@ -103,10 +103,10 @@ echo " ready"
 # ---------------------------------------------------------------------------
 echo ""
 echo "[3/4] Applying schema and semantic views..."
-docker compose exec -T db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/schema.sql" > /dev/null
-docker compose exec -T db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/schema.sql" > /dev/null
-docker compose exec -T db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/views.sql"  > /dev/null
-docker compose exec -T db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/views.sql"  > /dev/null
+docker compose exec -T studio_db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/schema.sql" > /dev/null
+docker compose exec -T studio_db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/schema.sql" > /dev/null
+docker compose exec -T studio_db psql -U studio -d controlroomdb      -f - < "$SCRIPT_DIR/sql/views.sql"  > /dev/null
+docker compose exec -T studio_db psql -U studio -d controlroomdb_test -f - < "$SCRIPT_DIR/sql/views.sql"  > /dev/null
 echo "  Schema and views applied"
 
 # ---------------------------------------------------------------------------
