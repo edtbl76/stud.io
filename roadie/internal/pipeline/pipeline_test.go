@@ -19,13 +19,14 @@ type fakeStepRunner struct {
 
 func (f *fakeStepRunner) Run(_ context.Context, out io.Writer, cmd runCmd) error {
 	f.calls = append(f.calls, cmd)
-	// Write something so LabelWriter is exercised.
 	io.WriteString(out, "output from "+cmd.name+"\n")
-	if f.errors != nil {
-		for label, err := range f.errors {
-			if strings.Contains(cmd.name, label) || strings.Contains(strings.Join(cmd.args, " "), label) {
-				return err
-			}
+	return f.errorFor(cmd)
+}
+
+func (f *fakeStepRunner) errorFor(cmd runCmd) error {
+	for label, err := range f.errors {
+		if strings.Contains(cmd.name, label) || strings.Contains(strings.Join(cmd.args, " "), label) {
+			return err
 		}
 	}
 	return nil
@@ -79,6 +80,92 @@ func TestLabelWriter_SplitAcrossWrites(t *testing.T) {
 		t.Errorf("unexpected output:\ngot:  %q\nwant: %q", got, want)
 	}
 }
+
+func TestLabelWriter_Flush_WritesRemainingBuffer(t *testing.T) {
+	var buf strings.Builder
+	lw := NewLabelWriter("tsc", &buf)
+	lw.Write([]byte("no newline at end"))
+
+	if buf.Len() > 0 {
+		t.Errorf("expected nothing written before flush, got: %q", buf.String())
+	}
+	if err := lw.Flush(); err != nil {
+		t.Fatalf("unexpected flush error: %v", err)
+	}
+	if got := buf.String(); got != "[tsc] no newline at end\n" {
+		t.Errorf("unexpected output after flush: %q", got)
+	}
+}
+
+func TestLabelWriter_Flush_EmptyBuffer_IsNoop(t *testing.T) {
+	var buf strings.Builder
+	lw := NewLabelWriter("tsc", &buf)
+	if err := lw.Flush(); err != nil {
+		t.Fatalf("unexpected error flushing empty buffer: %v", err)
+	}
+	if buf.Len() > 0 {
+		t.Errorf("expected no output for empty flush, got: %q", buf.String())
+	}
+}
+
+func TestToolStep_Run_FlushesPartialLine(t *testing.T) {
+	var out strings.Builder
+	step := ToolStep{Name: "tsc", Bin: "tsc"}.withRunner(&partialLineRunner{})
+
+	if err := step.Run(context.Background(), &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), "[tsc] partial output") {
+		t.Errorf("expected flushed partial line in output, got: %q", out.String())
+	}
+}
+
+// partialLineRunner writes output without a trailing newline to simulate a
+// subprocess that exits mid-line.
+type partialLineRunner struct{}
+
+func (partialLineRunner) Run(_ context.Context, out io.Writer, cmd runCmd) error {
+	io.WriteString(out, "partial output") // no trailing newline
+	return nil
+}
+
+func TestLabelWriter_Write_PropagatesUnderlyingError(t *testing.T) {
+	lw := NewLabelWriter("tsc", &errorWriter{err: errors.New("disk full")})
+	n, err := lw.Write([]byte("line\n"))
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "disk full") {
+		t.Errorf("expected 'disk full', got: %v", err)
+	}
+	if n != 0 {
+		t.Errorf("expected n=0 on error, got %d", n)
+	}
+}
+
+func TestLabelWriter_Write_FailsFastAfterError(t *testing.T) {
+	lw := NewLabelWriter("tsc", &errorWriter{err: errors.New("disk full")})
+	lw.Write([]byte("first\n"))
+	_, err := lw.Write([]byte("second\n"))
+	if err == nil {
+		t.Fatal("expected sticky error on second write, got nil")
+	}
+}
+
+func TestLabelWriter_Flush_PropagatesUnderlyingError(t *testing.T) {
+	lw := NewLabelWriter("tsc", &errorWriter{err: errors.New("disk full")})
+	lw.Write([]byte("no newline")) // partial — buffered, not yet written
+	// The write above won't trigger the underlying writer (no newline yet),
+	// but Flush will attempt to write and should propagate the error.
+	if err := lw.Flush(); err == nil {
+		t.Fatal("expected error from Flush, got nil")
+	}
+}
+
+// errorWriter is an io.Writer that always returns the configured error.
+type errorWriter struct{ err error }
+
+func (e *errorWriter) Write(_ []byte) (int, error) { return 0, e.err }
 
 // ── ToolStep.Run ──────────────────────────────────────────────────────────────
 
@@ -277,6 +364,22 @@ func TestResolveNodeInHome_NvmPicksLatest(t *testing.T) {
 	wantBin := filepath.Join(tmp, ".nvm", "versions", "node", "v22.0.0", "bin")
 	if got != wantBin {
 		t.Errorf("expected latest version %q, got %q", wantBin, got)
+	}
+}
+
+func TestResolveNodeInHome_NvmPicksHighestSemver_NotLexicographic(t *testing.T) {
+	// v22.9.0 sorts lexicographically after v22.10.0 ("9" > "1") but is lower semver.
+	tmp := t.TempDir()
+	for _, ver := range []string{"v22.9.0", "v22.10.0"} {
+		bin := filepath.Join(tmp, ".nvm", "versions", "node", ver, "bin")
+		os.MkdirAll(bin, 0o755)
+		os.WriteFile(filepath.Join(bin, "node"), []byte(""), 0o755)
+	}
+
+	got := resolveNodeInHome(tmp)
+	wantBin := filepath.Join(tmp, ".nvm", "versions", "node", "v22.10.0", "bin")
+	if got != wantBin {
+		t.Errorf("expected v22.10.0 to win over v22.9.0, got %q", got)
 	}
 }
 

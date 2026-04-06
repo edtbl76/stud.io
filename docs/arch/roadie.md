@@ -132,7 +132,7 @@ The pipeline package is the execution layer for all tool invocations. It replace
 
 ### Layers
 
-```
+```text
 Pipeline
   └─ []ToolStep
         └─ stepRunner (interface)

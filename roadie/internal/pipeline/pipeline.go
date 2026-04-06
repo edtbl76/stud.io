@@ -45,11 +45,13 @@ func (realStepRunner) Run(ctx context.Context, out io.Writer, cmd runCmd) error 
 
 // LabelWriter is an io.Writer that prefixes every completed line with "[label] ",
 // replicating the sed -u 's/^/[label] /' pattern used in the run-*.sh scripts.
-// Partial lines are buffered until a newline arrives.
+// Partial lines are buffered until a newline arrives. Once a downstream write
+// fails, the error is stored and all subsequent Write and Flush calls fail fast.
 type LabelWriter struct {
 	label string
 	out   io.Writer
 	buf   []byte
+	err   error // sticky — set on first downstream write failure
 }
 
 // NewLabelWriter returns a LabelWriter that writes to out with each line
@@ -59,16 +61,40 @@ func NewLabelWriter(label string, out io.Writer) *LabelWriter {
 }
 
 func (lw *LabelWriter) Write(p []byte) (int, error) {
+	if lw.err != nil {
+		return 0, lw.err
+	}
 	lw.buf = append(lw.buf, p...)
 	for {
 		idx := bytes.IndexByte(lw.buf, '\n')
 		if idx < 0 {
 			break
 		}
-		fmt.Fprintf(lw.out, "[%s] %s\n", lw.label, lw.buf[:idx])
+		if _, err := fmt.Fprintf(lw.out, "[%s] %s\n", lw.label, lw.buf[:idx]); err != nil {
+			lw.err = err
+			return 0, err
+		}
 		lw.buf = lw.buf[idx+1:]
 	}
 	return len(p), nil
+}
+
+// Flush writes any buffered bytes that have not yet been terminated by a
+// newline. This handles subprocesses that exit without a trailing newline.
+// Returns nil when there is nothing buffered.
+func (lw *LabelWriter) Flush() error {
+	if lw.err != nil {
+		return lw.err
+	}
+	if len(lw.buf) == 0 {
+		return nil
+	}
+	_, err := fmt.Fprintf(lw.out, "[%s] %s\n", lw.label, lw.buf)
+	lw.buf = lw.buf[:0]
+	if err != nil {
+		lw.err = err
+	}
+	return err
 }
 
 // ToolStep is a single tool invocation in a pipeline.
@@ -89,17 +115,23 @@ func (s ToolStep) withRunner(r stepRunner) ToolStep {
 }
 
 // Run executes the step, routing all output through a LabelWriter.
+// Any bytes buffered without a trailing newline are flushed after the step
+// completes. If the step succeeded but the flush failed, the flush error is
+// returned. If both failed, both errors are returned via errors.Join.
 func (s ToolStep) Run(ctx context.Context, out io.Writer) error {
 	runner := s.run
 	if runner == nil {
 		runner = realStepRunner{}
 	}
-	return runner.Run(ctx, NewLabelWriter(s.Name, out), runCmd{
+	lw := NewLabelWriter(s.Name, out)
+	stepErr := runner.Run(ctx, lw, runCmd{
 		dir:  s.Dir,
 		env:  s.Env,
 		name: s.Bin,
 		args: s.Args,
 	})
+	flushErr := lw.Flush()
+	return errors.Join(stepErr, flushErr)
 }
 
 // StepResult records the outcome of a single step in a collect-mode pipeline.

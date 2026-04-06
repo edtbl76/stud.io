@@ -121,7 +121,7 @@ fi
 if [ "$RUN_GATE" = true ]; then
         SONAR_URL="http://localhost:1969"
         if [ -z "$SONAR_TOKEN" ]; then
-            echo "[scan] ERROR: SONAR_TOKEN is not set. Export it or add it to .sonar-token."
+            echo "[scan] ERROR: SONAR_TOKEN is not set. Export it or add it to $ROOT/.sonar-token."
             exit 1
         fi
         echo -n "[scan] Waiting for CE task"

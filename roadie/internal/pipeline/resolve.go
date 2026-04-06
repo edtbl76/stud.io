@@ -3,6 +3,8 @@ package pipeline
 import (
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // ResolveNode returns the bin directory containing the node binary, or ""
@@ -33,13 +35,14 @@ func pathEnv(dir string) []string {
 
 // resolveNodeInHome is the testable core of ResolveNode.
 func resolveNodeInHome(homeDir string) string {
-	// Try NVM — pick the lexicographically last (latest) installed version.
+	// Try NVM — pick the highest semver-versioned install.
 	nvmVersionsDir := filepath.Join(homeDir, ".nvm", "versions", "node")
-	if entries, err := os.ReadDir(nvmVersionsDir); err == nil && len(entries) > 0 {
-		latest := entries[len(entries)-1]
-		binDir := filepath.Join(nvmVersionsDir, latest.Name(), "bin")
-		if fileExists(filepath.Join(binDir, "node")) {
-			return binDir
+	if entries, err := os.ReadDir(nvmVersionsDir); err == nil {
+		if name := highestSemver(entries); name != "" {
+			binDir := filepath.Join(nvmVersionsDir, name, "bin")
+			if fileExists(filepath.Join(binDir, "node")) {
+				return binDir
+			}
 		}
 	}
 	// Fall back to common system locations.
@@ -49,6 +52,40 @@ func resolveNodeInHome(homeDir string) string {
 		}
 	}
 	return ""
+}
+
+// highestSemver returns the name of the directory entry with the highest
+// semantic version of the form vX.Y.Z. Entries that cannot be parsed are
+// skipped. Returns "" when no parseable entries are found.
+func highestSemver(entries []os.DirEntry) string {
+	best := [3]int{-1, -1, -1}
+	bestName := ""
+	for _, e := range entries {
+		v, ok := parseSemver(e.Name())
+		if !ok {
+			continue
+		}
+		if v[0] > best[0] || (v[0] == best[0] && v[1] > best[1]) || (v[0] == best[0] && v[1] == best[1] && v[2] > best[2]) {
+			best = v
+			bestName = e.Name()
+		}
+	}
+	return bestName
+}
+
+// parseSemver parses a directory name of the form vX.Y.Z into [major, minor, patch].
+func parseSemver(name string) ([3]int, bool) {
+	parts := strings.SplitN(strings.TrimPrefix(name, "v"), ".", 3)
+	if len(parts) != 3 {
+		return [3]int{}, false
+	}
+	major, err1 := strconv.Atoi(parts[0])
+	minor, err2 := strconv.Atoi(parts[1])
+	patch, err3 := strconv.Atoi(parts[2])
+	if err1 != nil || err2 != nil || err3 != nil {
+		return [3]int{}, false
+	}
+	return [3]int{major, minor, patch}, true
 }
 
 // resolvePythonInHome is the testable core of ResolvePython.
