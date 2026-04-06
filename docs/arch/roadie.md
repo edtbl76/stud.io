@@ -62,6 +62,29 @@ roadie [command] [flags]
 
 The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-compose.dev.yml`).
 
+#### Build commands
+
+| Command | Description | Replaces |
+|---|---|---|
+| `roadie build [--dev] [--skip-tests] [--e2e] [--scan] [--perf] [--full]` | Rebuild images, apply schema to test DBs, run tests | `build.sh` |
+| `roadie release` | Full release gate: rebuild dev stack and run all suites | `build.sh --release` |
+
+`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`.
+
+`roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
+
+**Schema application:** Before running tests, `roadie build` applies each file in `build.schema_files` to every database in `build.databases`. The production database never appears in `build.databases` — use `roadie db init` for first-time production setup.
+
+#### Database commands
+
+| Command | Description |
+|---|---|
+| `roadie db init [--yes]` | Apply schema files to the production database (first-time setup only) |
+
+`roadie db init` includes an interactive confirmation gate. The user must type exactly `"yes"` to proceed. Use `--yes` to bypass the gate for scripted or CI use.
+
+This command targets the database named in `providers.database.db_name`. It will fail if the tables already exist. It is intended for first-time setup — use `roadie build` for ongoing schema application to test databases.
+
 #### Other
 
 | Command | Description |
@@ -92,11 +115,12 @@ Required fields:
 providers:
   container:
     type: docker
-    compose_file: docker-compose.yml       # required
+    compose_file: docker-compose.yml         # required
     dev_compose_file: docker-compose.dev.yml
   database:
-    service: studio_db                     # required
-    user: studio                           # required
+    service: studio_db                       # required
+    user: studio                             # required
+    db_name: controlroomdb                   # required for roadie db init
 
 stack:
   health_checks:
@@ -106,13 +130,29 @@ stack:
     - name: API
       type: http
       url: https://localhost:5150/health
+    - name: Frontend
+      type: http
+      url: https://localhost:2112
   dev_health_checks:
     - name: SonarQube
       type: http
       url: http://localhost:1969
+    - name: Structurizr
+      type: http
+      url: http://localhost:1967
   urls:
     app: https://localhost:2112
     api: https://localhost:5150
+    docs: https://localhost:5150/docs
+    sonarqube: http://localhost:1969
+    structurizr: http://localhost:1967
+
+build:
+  schema_files:                              # applied in order to each database in `databases`
+    - sql/schema.sql
+    - sql/views.sql
+  databases:                                 # test databases only — never production
+    - controlroomdb_test
 ```
 
 Health check types:
@@ -162,17 +202,28 @@ Tools that require Node or Python are located at step-creation time:
 
 The resolved directory is injected as `PATH=<dir>:$PATH` in the step's `Env` field. If no managed runtime is found the step inherits the shell's PATH.
 
+### Types
+
+The pipeline package exports two named string types to prevent raw-string confusion at call sites:
+
+| Type | Used for |
+|---|---|
+| `Root` | Filesystem root of the monorepo — passed to all step factory functions |
+| `ImageRef` | Docker image SHA or tag — passed to `TrivyStep` |
+
+Go untyped string constants (e.g. `"."`, `"/repo"`) are assignable to these types without a cast. Typed `string` variables require an explicit conversion: `pipeline.Root(myStringVar)`.
+
 ### Factory functions
 
 | Function | Replaces | Notes |
 |---|---|---|
-| `TscStep(root)` | `run-tsc.sh` | Uses `node_modules/.bin/tsc --noEmit` |
-| `JestStep(root, coverage)` | `run-jest.sh` | Pass `coverage=true` for SonarQube lcov report |
-| `PytestStep(root, extraArgs...)` | `run-pytest.sh` | Extra args appended after the test dir |
-| `BanditStep(root)` | `run-bandit.sh` | |
-| `PipAuditStep(root)` | `run-pip-audit.sh` | Ignores CVE-2024-23342 (see script for rationale) |
-| `NpmAuditStep(root)` | `run-npm-audit.sh` | `--audit-level=critical` |
-| `TrivyStep(root, imageRef)` | `run-trivy.sh` scan() | Single image; caller resolves `imageRef` via `docker inspect` |
+| `TscStep(root Root)` | `run-tsc.sh` | Uses `node_modules/.bin/tsc --noEmit` |
+| `JestStep(root Root, coverage bool)` | `run-jest.sh` | Pass `coverage=true` for SonarQube lcov report |
+| `PytestStep(root Root, extraArgs ...string)` | `run-pytest.sh` | Extra args appended after the test dir |
+| `BanditStep(root Root)` | `run-bandit.sh` | |
+| `PipAuditStep(root Root)` | `run-pip-audit.sh` | Ignores CVE-2024-23342 (see script for rationale) |
+| `NpmAuditStep(root Root)` | `run-npm-audit.sh` | `--audit-level=critical` |
+| `TrivyStep(root Root, image ImageRef)` | `run-trivy.sh` scan() | Single image; caller resolves `image` via `docker inspect` |
 
 ### Test injection
 
@@ -195,7 +246,7 @@ roadie/
       database.go            — SQLDatabaseProvider interface
       http.go                — HTTPHealthChecker interface
       base.go                — baseProvider (retry logic, embedded by concrete providers)
-      runner.go              — cmdRunner interface + realRunner (shell execution abstraction)
+      runner.go              — cmdRunner interface + realRunner + IOStreams
       docker.go              — DockerProvider: ContainerProvider via docker compose
       postgres.go            — PostgresProvider: SQLDatabaseProvider via docker compose exec
       http_checker.go        — HTTPChecker: HTTPHealthChecker via net/http
@@ -204,9 +255,11 @@ roadie/
     pipeline/
       pipeline.go            — LabelWriter, ToolStep, Pipeline, StepResult, PrintSummary
       resolve.go             — ResolveNode / ResolvePython (NVM + conda PATH discovery)
-      steps.go               — ToolStep factory functions (TscStep, JestStep, PytestStep, …)
+      steps.go               — Root + ImageRef types; ToolStep factory functions
     commands/
       stack.go               — start, stop, restart, status Cobra subcommands
+      build.go               — build, release Cobra subcommands; schemaApplier
+      db.go                  — db init Cobra subcommand with confirmation gate
 ```
 
 ---
@@ -218,7 +271,7 @@ roadie/
 | 1 ✓ | `version` | — |
 | 2 ✓ | `start`, `stop`, `restart`, `status` | `roadie.sh` |
 | 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
-| 4 | `build`, `release` | `build.sh` |
+| 4 ✓ | `build`, `release`, `db init` | `build.sh` |
 | 5 | `test`, `scan`, `perf` (full flag surface) | `test-*.sh`, remaining `scripts/run-*.sh` |
 | 6 | `doctor`, `--json` flag, summary output | — |
 

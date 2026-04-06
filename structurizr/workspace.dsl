@@ -15,7 +15,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         }
 
         developer = person "Developer" {
-            description "Operates the local development environment. Uses the Roadie CLI to start, stop, restart, and check the status of the STUD.io Docker stack. Will also use Roadie for build, test, scan, and performance commands as those phases are implemented."
+            description "Operates the local development environment. Uses the Roadie CLI to start, stop, restart, and check the status of the STUD.io Docker stack. Runs 'roadie build' to rebuild images and apply schema to test databases, 'roadie release' for the full release gate, and 'roadie db init' for first-time production database setup. Will also use Roadie for test, scan, and performance commands as Phase 5 is implemented."
             tags "Developer"
         }
 
@@ -200,7 +200,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         # ── Roadie CLI ────────────────────────────────────────────────────────
 
         roadie = softwareSystem "Roadie CLI" {
-            description "Go CLI binary that manages the STUD.io local development stack. Provides start, stop, restart, and status commands (Phase 2) and a pipeline engine for tool invocation (Phase 3). Will absorb build, test, scan, and perf commands in Phases 4–5, retiring roadie.sh, build.sh, and all scripts/run-*.sh wrappers."
+            description "Go CLI binary that manages the STUD.io local development stack. Provides start, stop, restart, and status commands (Phase 2), a pipeline engine for tool invocation (Phase 3), and build, release, and db init commands (Phase 4). Absorbs build.sh and roadie.sh; will absorb test-*.sh and remaining scripts/run-*.sh wrappers in Phase 5."
 
             # ── CLI Entry Point ───────────────────────────────────────────────
 
@@ -237,6 +237,46 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
 
                 statusCmd = component "status" {
                     description "Calls Manager.Status, which streams docker compose ps output to stdout."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+            }
+
+            # ── Build Commands ────────────────────────────────────────────────
+
+            buildCommands = container "Build Commands" {
+                description "Registers 'build' and 'release' cobra subcommands. build() rebuilds container images via Manager.Build, applies schema files to all configured test databases via schemaApplier, then runs the requested test suites through the pipeline engine. release is shorthand for build --dev --full."
+                technology "Go / Cobra — internal/commands/build.go"
+                tags "CLIContainer"
+
+                buildCmd = component "build" {
+                    description "Rebuilds images with --build --force-recreate, applies schema to each test database in build.databases, then runs unit tests (tsc → jest → pytest) and any enabled suites (--e2e, --scan, --perf). --full enables all three. --skip-tests suppresses the unit suite only. --dev includes the SonarQube/Structurizr dev overlay."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+
+                releaseCmd = component "release" {
+                    description "Full release gate equivalent to 'build --dev --full'. No optional flags — all suites run unconditionally."
+                    technology "cobra.Command"
+                    tags "CLIComponent"
+                }
+
+                schemaApplierComp = component "schemaApplier" {
+                    description "Holds db provider, schema file list, and service/user from config. Calls PostgresProvider.ExecSQLFile for each (schema file, test database) pair in order. The production database never appears in the configured database list — use 'roadie db init' for first-time production setup."
+                    technology "Go — schemaApplier struct in build.go"
+                    tags "CLIComponent"
+                }
+            }
+
+            # ── DB Commands ───────────────────────────────────────────────────
+
+            dbCommands = container "DB Commands" {
+                description "Registers the 'db init [--yes]' cobra subcommand. Applies schema files to the production database for first-time setup. Validates that providers.database.db_name and build.schema_files are set. Includes an interactive confirmation gate; --yes bypasses it for scripted use."
+                technology "Go / Cobra — internal/commands/db.go"
+                tags "CLIContainer"
+
+                dbInitCmd = component "db init" {
+                    description "Prints a boxed WARNING banner and requires the user to type 'yes' to confirm (unless --yes is set). Validates config, then calls PostgresProvider.ExecSQLFile for each schema file against the production database. Intended for first-time setup only — not idempotent."
                     technology "cobra.Command"
                     tags "CLIComponent"
                 }
@@ -304,7 +344,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                 }
 
                 stepFactories = component "Step Factories" {
-                    description "Factory functions that return pre-configured ToolSteps mirroring each run-*.sh script: TscStep (tsc --noEmit), JestStep (jest --passWithNoTests; coverage flag for SonarQube), PytestStep (python -m pytest), BanditStep (python -m bandit), PipAuditStep (python -m pip_audit, ignores CVE-2024-23342), NpmAuditStep (npm audit --audit-level=critical), TrivyStep (docker run trivy image — caller resolves imageRef via docker inspect)."
+                    description "Factory functions that return pre-configured ToolSteps mirroring each run-*.sh script: TscStep (tsc --noEmit), JestStep (jest --passWithNoTests; coverage flag for SonarQube), PytestStep (python -m pytest), BanditStep (python -m bandit), PipAuditStep (python -m pip_audit, ignores CVE-2024-23342), NpmAuditStep (npm audit --audit-level=critical), TrivyStep (docker run trivy image). All accept a Root named type (not raw string) for the repo root; TrivyStep also takes ImageRef for the image reference — both types prevent primitive-obsession errors at call sites."
                     technology "Go — steps.go"
                     tags "CLIComponent"
                 }
@@ -316,7 +356,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         admin -> controlRoom "Manages catalog and admin operations"
         viewer -> controlRoom "Browses and searches catalog"
         controlRoom -> google "Validates Google ID tokens for sign-in"
-        developer -> roadie "Runs CLI commands: start, stop, restart, status"
+        developer -> roadie "Runs CLI commands: start, stop, restart, status, build, release, db init"
         roadie -> controlRoom "Manages — starts, stops, restarts, and health-checks"
         roadie -> dockerDaemon "Invokes docker compose up / down / ps / exec"
 
@@ -342,8 +382,16 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         # ── Roadie container relationships ────────────────────────────────────
 
         roadieCLI -> stackCommands "Registers subcommands and delegates invocations"
+        roadieCLI -> buildCommands "Registers subcommands and delegates invocations"
+        roadieCLI -> dbCommands "Registers subcommands and delegates invocations"
         stackCommands -> configLoader "Load(\".\") — reads and validates roadie.yml"
         stackCommands -> stackManager "Constructs Manager with providers; calls Start / Stop / Status"
+        buildCommands -> configLoader "Load(\".\") — reads and validates roadie.yml"
+        buildCommands -> stackManager "Manager.Build(ctx, cfg, --dev) — compose up --build --force-recreate"
+        buildCommands -> postgresProvider "schemaApplier.applyToDatabase — ExecSQLFile per (schema, test database)"
+        buildCommands -> pipelineEngine "TscStep → JestStep → PytestStep; optional E2EStep, ScanStep, PerfStep"
+        dbCommands -> configLoader "Load(\".\") — reads and validates roadie.yml"
+        dbCommands -> postgresProvider "ExecSQLFile per schema file → production database"
         stackManager -> dockerProvider "ContainerProvider: Up, Down, Status, IsRunning, Exec"
         stackManager -> postgresProvider "SQLDatabaseProvider: IsReady (retry loop)"
         stackManager -> httpChecker "HTTPHealthChecker: IsReachable (retry loop)"
@@ -354,6 +402,13 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         stopCmd -> stackManager "Manager.Stop(ctx, cfg, withDev)"
         restartCmd -> stackManager "Manager.Stop then Manager.Start"
         statusCmd -> stackManager "Manager.Status(ctx, cfg)"
+
+        # ── Build Commands component relationships ────────────────────────────
+
+        buildCmd -> schemaApplierComp "Constructs schemaApplier from config; applyToDatabase for each test DB"
+        releaseCmd -> schemaApplierComp "Same path as buildCmd — --dev --full, all suites"
+        schemaApplierComp -> postgresProvider "ExecSQLFile(ctx, dbCfg, schemaFile)"
+        dbInitCmd -> postgresProvider "ExecSQLFile(ctx, prodDbCfg, schemaFile)"
 
         # ── Pipeline Engine relationships ─────────────────────────────────────
 
@@ -466,6 +521,22 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             autoLayout lr
         }
 
+        # ── Level 3: Roadie Build Commands Components ─────────────────────────
+
+        component buildCommands "RoadieBuildCommandsComponents" {
+            title "Level 3 — Roadie Build Commands Components"
+            include *
+            autoLayout lr
+        }
+
+        # ── Level 3: Roadie DB Commands Components ────────────────────────────
+
+        component dbCommands "RoadieDBCommandsComponents" {
+            title "Level 3 — Roadie DB Commands Components"
+            include *
+            autoLayout lr
+        }
+
         # ── Level 3: Roadie Pipeline Engine Components ────────────────────────
 
         component pipelineEngine "RoadiePipelineComponents" {
@@ -520,6 +591,25 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             httpChecker -> nginx "10. GET https://localhost:5150/health — await 2xx"
             stackManager -> httpChecker "11. Poll IsReachable every 2s — Frontend health check"
             httpChecker -> nginx "12. GET https://localhost:2112 — await 2xx"
+            autoLayout lr
+        }
+
+        # ── Level 4: roadie build Command Flow (Dynamic) ─────────────────────
+        # Shows the sequence from CLI invocation through image rebuild, schema
+        # application to test databases, and unit test execution.
+
+        dynamic roadie "RoadieBuildFlow" {
+            title "Level 4 — roadie build Command Flow"
+            developer -> roadieCLI "1. roadie build [--dev] [--skip-tests] [flags]"
+            roadieCLI -> buildCommands "2. Cobra dispatches to build subcommand"
+            buildCommands -> configLoader "3. Load and validate roadie.yml"
+            buildCommands -> stackManager "4. Manager.Build(ctx, cfg, --dev) — rebuild images"
+            stackManager -> dockerProvider "5. ContainerProvider.Up — --build --force-recreate"
+            dockerProvider -> dockerDaemon "6. docker compose up --build --force-recreate"
+            buildCommands -> postgresProvider "7. schemaApplier: apply schema_files to each test database"
+            postgresProvider -> dockerDaemon "8. docker compose exec psql — pipe SQL via stdin (-f -)"
+            buildCommands -> pipelineEngine "9. Pipeline.RunSequential: TscStep → JestStep → PytestStep"
+            pipelineEngine -> labelWriter "10. Each step output prefixed with [stepname]"
             autoLayout lr
         }
 
