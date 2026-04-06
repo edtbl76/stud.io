@@ -11,7 +11,10 @@ import (
 // if node cannot be found. It mirrors the PATH-resolution logic in run-tsc.sh
 // and run-jest.sh: NVM's latest version first, then /usr/local/bin, /usr/bin.
 func ResolveNode() string {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
 	return resolveNodeInHome(home)
 }
 
@@ -19,7 +22,10 @@ func ResolveNode() string {
 // if python cannot be found. It mirrors run-pytest.sh: conda/miniconda
 // directories first, then the system (relies on PATH already including python).
 func ResolvePython() string {
-	home, _ := os.UserHomeDir()
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
 	return resolvePythonInHome(home)
 }
 
@@ -119,5 +125,5 @@ func resolvePythonInHome(homeDir string) string {
 
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
+	return err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0
 }
