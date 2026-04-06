@@ -189,35 +189,30 @@ build:
 	assertLoadError(t, content, "build.databases must not contain the production database")
 }
 
-func TestLoad_BuildDatabases_NoProdNameIsValid(t *testing.T) {
-	// build.databases with only test names must pass even when db_name is set.
-	dir := t.TempDir()
-	content := validProvidersWithProdDB + `
-build:
-  databases:
-    - controlroomdb_test
-`
-	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(content), 0644); err != nil {
-		t.Fatalf("writing temp config: %v", err)
+func TestLoad_BuildDatabases_ValidCases(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{
+			name:    "test-only names pass when db_name is set",
+			content: validProvidersWithProdDB + "\nbuild:\n  databases:\n    - controlroomdb_test\n",
+		},
+		{
+			name:    "any name passes when db_name is not set",
+			content: validProvidersYAML + "\nbuild:\n  databases:\n    - anything\n",
+		},
 	}
-	if _, err := Load(dir); err != nil {
-		t.Fatalf("expected no error, got: %v", err)
-	}
-}
-
-func TestLoad_BuildDatabases_NoDB_NameSkipsCheck(t *testing.T) {
-	// When db_name is not set, any value in databases is acceptable.
-	dir := t.TempDir()
-	content := validProvidersYAML + `
-build:
-  databases:
-    - anything
-`
-	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(content), 0644); err != nil {
-		t.Fatalf("writing temp config: %v", err)
-	}
-	if _, err := Load(dir); err != nil {
-		t.Fatalf("expected no error when db_name is unset, got: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(tt.content), 0644); err != nil {
+				t.Fatalf("writing temp config: %v", err)
+			}
+			if _, err := Load(dir); err != nil {
+				t.Fatalf("expected no error, got: %v", err)
+			}
+		})
 	}
 }
 

@@ -50,61 +50,30 @@ func TestApplySchema_AllowsTestDatabases(t *testing.T) {
 	}
 }
 
-func TestBuildFlags_RunE2E(t *testing.T) {
+func TestBuildFlags_Methods(t *testing.T) {
 	tests := []struct {
-		name  string
-		flags buildFlags
-		want  bool
+		name   string
+		flags  buildFlags
+		method func(buildFlags) bool
+		want   bool
 	}{
-		{"--e2e sets runE2E", buildFlags{e2e: true}, true},
-		{"--full sets runE2E", buildFlags{full: true}, true},
-		{"neither flag", buildFlags{}, false},
-		{"--scan alone does not set runE2E", buildFlags{scan: true}, false},
+		{"--e2e sets runE2E", buildFlags{e2e: true}, buildFlags.runE2E, true},
+		{"--full sets runE2E", buildFlags{full: true}, buildFlags.runE2E, true},
+		{"neither flag sets runE2E", buildFlags{}, buildFlags.runE2E, false},
+		{"--scan alone does not set runE2E", buildFlags{scan: true}, buildFlags.runE2E, false},
+		{"--scan sets runScan", buildFlags{scan: true}, buildFlags.runScan, true},
+		{"--full sets runScan", buildFlags{full: true}, buildFlags.runScan, true},
+		{"neither flag sets runScan", buildFlags{}, buildFlags.runScan, false},
+		{"--e2e alone does not set runScan", buildFlags{e2e: true}, buildFlags.runScan, false},
+		{"--perf sets runPerf", buildFlags{perf: true}, buildFlags.runPerf, true},
+		{"--full sets runPerf", buildFlags{full: true}, buildFlags.runPerf, true},
+		{"neither flag sets runPerf", buildFlags{}, buildFlags.runPerf, false},
+		{"--scan alone does not set runPerf", buildFlags{scan: true}, buildFlags.runPerf, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.flags.runE2E(); got != tt.want {
-				t.Errorf("runE2E() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestBuildFlags_RunScan(t *testing.T) {
-	tests := []struct {
-		name  string
-		flags buildFlags
-		want  bool
-	}{
-		{"--scan sets runScan", buildFlags{scan: true}, true},
-		{"--full sets runScan", buildFlags{full: true}, true},
-		{"neither flag", buildFlags{}, false},
-		{"--e2e alone does not set runScan", buildFlags{e2e: true}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.flags.runScan(); got != tt.want {
-				t.Errorf("runScan() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestBuildFlags_RunPerf(t *testing.T) {
-	tests := []struct {
-		name  string
-		flags buildFlags
-		want  bool
-	}{
-		{"--perf sets runPerf", buildFlags{perf: true}, true},
-		{"--full sets runPerf", buildFlags{full: true}, true},
-		{"neither flag", buildFlags{}, false},
-		{"--scan alone does not set runPerf", buildFlags{scan: true}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.flags.runPerf(); got != tt.want {
-				t.Errorf("runPerf() = %v, want %v", got, tt.want)
+			if got := tt.method(tt.flags); got != tt.want {
+				t.Errorf("got %v, want %v", got, tt.want)
 			}
 		})
 	}
