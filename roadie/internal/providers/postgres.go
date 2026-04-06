@@ -51,9 +51,13 @@ func (p *PostgresProvider) ExecSQL(ctx context.Context, cfg DBConfig, sql string
 	return p.run.Run(ctx, io.Discard, "docker", args...)
 }
 
-// ExecSQLFile pipes the contents of path into psql via stdin (-f -).
-// This correctly handles multi-statement files, comments, and transactions,
-// unlike ExecSQL which uses -c and is limited to single statements.
+// ExecSQLFile pipes the contents of path into psql via stdin (-f -) with
+// --single-transaction so the entire file is applied atomically: if any
+// statement fails, psql rolls back the whole file. This prevents partial
+// schema application, but note that atomicity is per-file only — if multiple
+// files are applied in sequence (see schemaApplier), schema files should be
+// idempotent (e.g. use IF NOT EXISTS / CREATE OR REPLACE) so a retry after a
+// cross-file failure is safe.
 func (p *PostgresProvider) ExecSQLFile(ctx context.Context, cfg DBConfig, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
@@ -69,6 +73,6 @@ func (p *PostgresProvider) ExecSQLFile(ctx context.Context, cfg DBConfig, path s
 	if cfg.DBName != "" {
 		args = append(args, "-d", cfg.DBName)
 	}
-	args = append(args, "-f", "-")
+	args = append(args, "--single-transaction", "-f", "-")
 	return p.run.RunWithStdin(ctx, IOStreams{Stdin: f, Out: io.Discard}, "docker", args...)
 }

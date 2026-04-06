@@ -1,9 +1,54 @@
 package commands
 
-import "testing"
+import (
+	"context"
+	"io"
+	"strings"
+	"testing"
+
+	"github.com/studiocontrolroom/roadie/internal/config"
+)
 
 // The command layer (buildCmd, releaseCmd) is wiring-only and tested via
 // integration. Unit tests here cover the buildFlags helper methods.
+
+func TestApplySchema_RejectsProductionDatabase(t *testing.T) {
+	cfg := &config.Config{
+		Providers: config.ProvidersConfig{
+			Container: config.ContainerProviderConfig{ComposeFile: "docker-compose.yml"},
+			Database:  config.DatabaseProviderConfig{DBName: "proddb", Service: "studio_db", User: "studio"},
+		},
+		Build: config.BuildConfig{
+			SchemaFiles: []string{"schema.sql"},
+			Databases:   []string{"testdb", "proddb"},
+		},
+	}
+	err := applySchema(context.Background(), cfg, io.Discard)
+	if err == nil {
+		t.Fatal("expected error when production database is in build.databases, got nil")
+	}
+	if !strings.Contains(err.Error(), "proddb") {
+		t.Errorf("expected error to name the database, got: %v", err)
+	}
+}
+
+func TestApplySchema_AllowsTestDatabases(t *testing.T) {
+	cfg := &config.Config{
+		Providers: config.ProvidersConfig{
+			Container: config.ContainerProviderConfig{ComposeFile: "docker-compose.yml"},
+			Database:  config.DatabaseProviderConfig{DBName: "proddb", Service: "studio_db", User: "studio"},
+		},
+		Build: config.BuildConfig{
+			SchemaFiles: []string{"schema.sql"},
+			Databases:   []string{"testdb"},
+		},
+	}
+	// guard should pass; provider will fail (no Docker) — confirm error is not the guard
+	err := applySchema(context.Background(), cfg, io.Discard)
+	if err != nil && strings.Contains(err.Error(), "refusing") {
+		t.Errorf("guard should not have fired for a test-only database list, got: %v", err)
+	}
+}
 
 func TestBuildFlags_RunE2E(t *testing.T) {
 	tests := []struct {

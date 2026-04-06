@@ -84,7 +84,9 @@ func TestPostgresProvider_ExecSQL(t *testing.T) {
 func tempSQLFile(t *testing.T) string {
 	t.Helper()
 	f := filepath.Join(t.TempDir(), "schema.sql")
-	os.WriteFile(f, []byte("SELECT 1;"), 0o644)
+	if err := os.WriteFile(f, []byte("SELECT 1;"), 0o644); err != nil {
+		t.Fatalf("writing temp SQL file: %v", err)
+	}
 	return f
 }
 
@@ -97,7 +99,9 @@ func captureExecSQLFileArgs(t *testing.T, cfg DBConfig) []string {
 		gotArgs = args
 		return nil
 	}}
-	newTestPostgres(fake).ExecSQLFile(context.Background(), cfg, tempSQLFile(t))
+	if err := newTestPostgres(fake).ExecSQLFile(context.Background(), cfg, tempSQLFile(t)); err != nil {
+		t.Fatalf("ExecSQLFile: %v", err)
+	}
 	return gotArgs
 }
 
@@ -114,6 +118,9 @@ func TestPostgresProvider_ExecSQLFile_PipesViaStdin(t *testing.T) {
 	}
 	if !slices.Contains(gotArgs, "-f") || !slices.Contains(gotArgs, "-") {
 		t.Errorf("expected -f - in args, got %v", gotArgs)
+	}
+	if !slices.Contains(gotArgs, "--single-transaction") {
+		t.Errorf("expected --single-transaction in args, got %v", gotArgs)
 	}
 	if gotStdin == nil {
 		t.Error("expected stdin to be set, got nil")

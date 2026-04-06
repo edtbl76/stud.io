@@ -45,6 +45,24 @@ func validate(cfg *Config) error {
 	if err := validateHealthChecks("dev_health_checks", cfg.Stack.DevHealthChecks); err != nil {
 		return err
 	}
+	return validateBuildDatabases(cfg)
+}
+
+// validateBuildDatabases ensures the production database name is not listed in
+// build.databases. This would cause "roadie build" to overwrite production data.
+func validateBuildDatabases(cfg *Config) error {
+	prodDB := cfg.Providers.Database.DBName
+	if prodDB == "" {
+		return nil
+	}
+	for _, db := range cfg.Build.Databases {
+		if db == prodDB {
+			return fmt.Errorf(
+				"build.databases must not contain the production database %q; use 'roadie db init' for production setup",
+				prodDB,
+			)
+		}
+	}
 	return nil
 }
 

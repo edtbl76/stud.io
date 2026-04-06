@@ -159,11 +159,28 @@ func (a schemaApplier) applyToDatabase(ctx context.Context, dbName string, out i
 	return nil
 }
 
+// guardNoProdDB returns an error if the production database name appears in the
+// test database list. prodDB is skipped when empty (db_name not configured).
+func guardNoProdDB(prodDB string, databases []string) error {
+	if prodDB == "" {
+		return nil
+	}
+	for _, db := range databases {
+		if db == prodDB {
+			return fmt.Errorf("build: refusing to apply schema to production database %q; use 'roadie db init'", prodDB)
+		}
+	}
+	return nil
+}
+
 // applySchema applies each configured schema file to each configured test
 // database. The production database must never appear in cfg.Build.Databases.
 func applySchema(ctx context.Context, cfg *config.Config, out io.Writer) error {
 	if len(cfg.Build.SchemaFiles) == 0 || len(cfg.Build.Databases) == 0 {
 		return nil
+	}
+	if err := guardNoProdDB(cfg.Providers.Database.DBName, cfg.Build.Databases); err != nil {
+		return err
 	}
 	applier := schemaApplier{
 		db:          providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil),

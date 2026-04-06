@@ -166,6 +166,61 @@ func TestLoad_HealthCheckValidationErrors(t *testing.T) {
 	}
 }
 
+// validProvidersWithProdDB is like validProvidersYAML but includes db_name.
+var validProvidersWithProdDB = `
+providers:
+  container:
+    type: docker
+    compose_file: docker-compose.yml
+  database:
+    service: studio_db
+    user: studio
+    db_name: controlroomdb
+`
+
+func TestLoad_BuildDatabases_ProdNameRejected(t *testing.T) {
+	// The production db_name must never appear in build.databases.
+	content := validProvidersWithProdDB + `
+build:
+  databases:
+    - controlroomdb_test
+    - controlroomdb
+`
+	assertLoadError(t, content, "build.databases must not contain the production database")
+}
+
+func TestLoad_BuildDatabases_NoProdNameIsValid(t *testing.T) {
+	// build.databases with only test names must pass even when db_name is set.
+	dir := t.TempDir()
+	content := validProvidersWithProdDB + `
+build:
+  databases:
+    - controlroomdb_test
+`
+	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(content), 0644); err != nil {
+		t.Fatalf("writing temp config: %v", err)
+	}
+	if _, err := Load(dir); err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+}
+
+func TestLoad_BuildDatabases_NoDB_NameSkipsCheck(t *testing.T) {
+	// When db_name is not set, any value in databases is acceptable.
+	dir := t.TempDir()
+	content := validProvidersYAML + `
+build:
+  databases:
+    - anything
+`
+	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(content), 0644); err != nil {
+		t.Fatalf("writing temp config: %v", err)
+	}
+	if _, err := Load(dir); err != nil {
+		t.Fatalf("expected no error when db_name is unset, got: %v", err)
+	}
+}
+
 func TestLoad_ValidationErrors(t *testing.T) {
 	tests := []struct {
 		name    string
