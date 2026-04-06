@@ -40,7 +40,8 @@ type mockDB struct {
 func (m *mockDB) IsReady(_ context.Context, _ providers.DBConfig) (bool, error) {
 	return m.ready, m.checkErr
 }
-func (m *mockDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
+func (m *mockDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error     { return nil }
+func (m *mockDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
 
 type mockHTTP struct {
 	reachable bool
@@ -95,14 +96,9 @@ func TestManager_Start_Success(t *testing.T) {
 }
 
 func TestManager_Start_UpError(t *testing.T) {
-	container := &mockContainer{upErr: errors.New("compose failed")}
-	err := fastManager(container, &mockDB{}, &mockHTTP{}).Start(context.Background(), testConfig(), false)
-	if err == nil {
-		t.Fatal("expected error from Up, got nil")
-	}
-	if !strings.Contains(err.Error(), "compose failed") {
-		t.Errorf("expected error to contain 'compose failed', got: %v", err)
-	}
+	assertUpError(t, func(m *Manager) error {
+		return m.Start(context.Background(), testConfig(), false)
+	})
 }
 
 func TestManager_Start_HealthCheckTimeout(t *testing.T) {
@@ -183,6 +179,93 @@ func (c *capturingDB) IsReady(_ context.Context, cfg providers.DBConfig) (bool, 
 }
 
 func (c *capturingDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
+func (c *capturingDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, _ string) error {
+	return nil
+}
+
+// assertUpError verifies that fn returns an error containing "compose failed".
+func assertUpError(t *testing.T, fn func(*Manager) error) {
+	t.Helper()
+	container := &mockContainer{upErr: errors.New("compose failed")}
+	err := fn(fastManager(container, &mockDB{}, &mockHTTP{}))
+	if err == nil {
+		t.Fatal("expected error from Up, got nil")
+	}
+	if !strings.Contains(err.Error(), "compose failed") {
+		t.Errorf("expected error to contain 'compose failed', got: %v", err)
+	}
+}
+
+// captureUpConfig runs fn against a capturing manager and returns the UpConfig
+// that was passed to the container provider.
+func captureUpConfig(t *testing.T, fn func(*Manager) error) providers.UpConfig {
+	t.Helper()
+	var gotCfg providers.UpConfig
+	container := &capturingContainer{fn: func(c providers.UpConfig) { gotCfg = c }}
+	if err := fn(fastManager(container, &mockDB{ready: true}, &mockHTTP{})); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	return gotCfg
+}
+
+// ── Manager.Build ─────────────────────────────────────────────────────────────
+
+func TestManager_Build_Success(t *testing.T) {
+	gotCfg := captureUpConfig(t, func(m *Manager) error {
+		return m.Build(context.Background(), testConfig(), false)
+	})
+	if !gotCfg.Build {
+		t.Error("expected Build=true in UpConfig, got false")
+	}
+	if !gotCfg.ForceRecreate {
+		t.Error("expected ForceRecreate=true in UpConfig, got false")
+	}
+}
+
+func TestManager_Build_UpError(t *testing.T) {
+	assertUpError(t, func(m *Manager) error {
+		return m.Build(context.Background(), testConfig(), false)
+	})
+}
+
+func TestManager_Build_SetsDevFlag(t *testing.T) {
+	gotCfg := captureUpConfig(t, func(m *Manager) error {
+		return m.Build(context.Background(), testConfig(), true)
+	})
+	if !gotCfg.WithDev {
+		t.Error("expected WithDev=true in UpConfig, got false")
+	}
+}
+
+func TestManager_Start_DoesNotSetBuildFlags(t *testing.T) {
+	gotCfg := captureUpConfig(t, func(m *Manager) error {
+		return m.Start(context.Background(), testConfig(), false)
+	})
+	if gotCfg.Build {
+		t.Error("Start must not set Build=true — only Build() should rebuild images")
+	}
+	if gotCfg.ForceRecreate {
+		t.Error("Start must not set ForceRecreate=true")
+	}
+}
+
+// capturingContainer records the UpConfig passed to Up.
+type capturingContainer struct {
+	fn func(providers.UpConfig)
+}
+
+func (c *capturingContainer) Up(_ context.Context, cfg providers.UpConfig) error {
+	if c.fn != nil {
+		c.fn(cfg)
+	}
+	return nil
+}
+func (c *capturingContainer) Down(_ context.Context, _ providers.DownConfig) error { return nil }
+func (c *capturingContainer) IsRunning(_ context.Context, _ string) (bool, error)  { return false, nil }
+func (c *capturingContainer) Status(_ context.Context) ([]providers.ServiceStatus, error) {
+	return nil, nil
+}
+func (c *capturingContainer) Exec(_ context.Context, _ string, _ []string) error { return nil }
 
 func TestManager_Start_WithDev_RunsDevChecks(t *testing.T) {
 	cfg := testConfig()

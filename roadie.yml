@@ -7,6 +7,7 @@ providers:
     type: postgres
     service: studio_db
     user: studio
+    db_name: controlroomdb
 
 stack:
   health_checks:
@@ -32,3 +33,10 @@ stack:
     docs: https://localhost:5150/docs
     sonarqube: http://localhost:1969
     structurizr: http://localhost:1967
+
+build:
+  schema_files:
+    - sql/schema.sql
+    - sql/views.sql
+  databases:
+    - controlroomdb_test

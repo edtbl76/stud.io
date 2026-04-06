@@ -4,6 +4,19 @@ package config
 type Config struct {
 	Providers ProvidersConfig `yaml:"providers"`
 	Stack     StackConfig     `yaml:"stack"`
+	Build     BuildConfig     `yaml:"build"`
+}
+
+// BuildConfig controls what "roadie build" applies to test databases.
+// The production database is never touched by "roadie build" — use "roadie db init"
+// for first-time production setup.
+type BuildConfig struct {
+	// SchemaFiles lists SQL files applied to each test database during build,
+	// in order. Paths are relative to the repo root.
+	SchemaFiles []string `yaml:"schema_files"`
+	// Databases lists the test database names that receive the schema files.
+	// The production database must never appear here.
+	Databases []string `yaml:"databases"`
 }
 
 // ProvidersConfig holds configuration for each provider type.
@@ -24,7 +37,9 @@ type DatabaseProviderConfig struct {
 	Type    string `yaml:"type"`
 	Service string `yaml:"service"`
 	User    string `yaml:"user"`
-	DBName  string `yaml:"db_name"`
+	// DBName is the production database name. Used by "roadie db init".
+	// Not required for stack management commands.
+	DBName string `yaml:"db_name"`
 }
 
 // StackConfig defines the services and health checks for the stack.

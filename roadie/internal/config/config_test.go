@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -59,6 +60,45 @@ func TestLoad_ValidConfig(t *testing.T) {
 	}
 	if len(cfg.Stack.DevHealthChecks) != 1 {
 		t.Errorf("dev_health_checks: got %d, want 1", len(cfg.Stack.DevHealthChecks))
+	}
+}
+
+func TestLoad_BuildConfig(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	wantFiles := []string{"sql/schema.sql", "sql/views.sql"}
+	if !slices.Equal(cfg.Build.SchemaFiles, wantFiles) {
+		t.Errorf("schema_files: got %v, want %v", cfg.Build.SchemaFiles, wantFiles)
+	}
+
+	wantDBs := []string{"controlroomdb_test"}
+	if !slices.Equal(cfg.Build.Databases, wantDBs) {
+		t.Errorf("databases: got %v, want %v", cfg.Build.Databases, wantDBs)
+	}
+
+	if cfg.Providers.Database.DBName != "controlroomdb" {
+		t.Errorf("db_name: got %q, want %q", cfg.Providers.Database.DBName, "controlroomdb")
+	}
+}
+
+func TestLoad_BuildConfig_EmptyIsValid(t *testing.T) {
+	dir := t.TempDir()
+	content := validProvidersYAML // no build: section
+	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(content), 0644); err != nil {
+		t.Fatalf("writing temp config: %v", err)
+	}
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("expected no error for config without build: section, got: %v", err)
+	}
+	if len(cfg.Build.SchemaFiles) != 0 {
+		t.Errorf("expected empty schema_files, got %v", cfg.Build.SchemaFiles)
+	}
+	if len(cfg.Build.Databases) != 0 {
+		t.Errorf("expected empty databases, got %v", cfg.Build.Databases)
 	}
 }
 
