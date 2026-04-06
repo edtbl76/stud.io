@@ -11,27 +11,36 @@ import (
 	"time"
 )
 
+// runCmd holds the parameters for a single tool invocation.
+// Grouping them avoids an excess-argument signature on stepRunner.Run.
+type runCmd struct {
+	dir  string
+	env  []string
+	name string
+	args []string
+}
+
 // stepRunner abstracts shell command execution so pipeline steps can be tested
 // without spawning real processes. Unlike providers.cmdRunner, it carries Dir
 // and Env because every step may run in a different working directory with
 // different environment variables.
 type stepRunner interface {
-	Run(ctx context.Context, out io.Writer, dir string, env []string, name string, args ...string) error
+	Run(ctx context.Context, out io.Writer, cmd runCmd) error
 }
 
 type realStepRunner struct{}
 
-func (realStepRunner) Run(ctx context.Context, out io.Writer, dir string, env []string, name string, args ...string) error {
-	cmd := exec.CommandContext(ctx, name, args...)
-	cmd.Stdout = out
-	cmd.Stderr = out
-	if dir != "" {
-		cmd.Dir = dir
+func (realStepRunner) Run(ctx context.Context, out io.Writer, cmd runCmd) error {
+	c := exec.CommandContext(ctx, cmd.name, cmd.args...)
+	c.Stdout = out
+	c.Stderr = out
+	if cmd.dir != "" {
+		c.Dir = cmd.dir
 	}
-	if len(env) > 0 {
-		cmd.Env = append(os.Environ(), env...)
+	if len(cmd.env) > 0 {
+		c.Env = append(os.Environ(), cmd.env...)
 	}
-	return cmd.Run()
+	return c.Run()
 }
 
 // LabelWriter is an io.Writer that prefixes every completed line with "[label] ",
@@ -85,7 +94,12 @@ func (s ToolStep) Run(ctx context.Context, out io.Writer) error {
 	if runner == nil {
 		runner = realStepRunner{}
 	}
-	return runner.Run(ctx, NewLabelWriter(s.Name, out), s.Dir, s.Env, s.Bin, s.Args...)
+	return runner.Run(ctx, NewLabelWriter(s.Name, out), runCmd{
+		dir:  s.Dir,
+		env:  s.Env,
+		name: s.Bin,
+		args: s.Args,
+	})
 }
 
 // StepResult records the outcome of a single step in a collect-mode pipeline.

@@ -13,24 +13,17 @@ import (
 // ── Fake runner ───────────────────────────────────────────────────────────────
 
 type fakeStepRunner struct {
-	calls  []fakeCall
-	errors map[string]error // step Name → error to return
+	calls  []runCmd
+	errors map[string]error // binary name → error to return
 }
 
-type fakeCall struct {
-	dir  string
-	env  []string
-	name string
-	args []string
-}
-
-func (f *fakeStepRunner) Run(_ context.Context, out io.Writer, dir string, env []string, name string, args ...string) error {
-	f.calls = append(f.calls, fakeCall{dir: dir, env: env, name: name, args: args})
+func (f *fakeStepRunner) Run(_ context.Context, out io.Writer, cmd runCmd) error {
+	f.calls = append(f.calls, cmd)
 	// Write something so LabelWriter is exercised.
-	io.WriteString(out, "output from "+name+"\n")
+	io.WriteString(out, "output from "+cmd.name+"\n")
 	if f.errors != nil {
 		for label, err := range f.errors {
-			if strings.Contains(name, label) || strings.Contains(strings.Join(args, " "), label) {
+			if strings.Contains(cmd.name, label) || strings.Contains(strings.Join(cmd.args, " "), label) {
 				return err
 			}
 		}
@@ -108,6 +101,7 @@ func TestToolStep_Run_Success(t *testing.T) {
 	if fake.calls[0].dir != "/some/dir" {
 		t.Errorf("expected dir=/some/dir, got %q", fake.calls[0].dir)
 	}
+
 	if !strings.Contains(out.String(), "[tsc]") {
 		t.Errorf("expected label in output, got: %q", out.String())
 	}
