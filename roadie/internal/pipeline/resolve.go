@@ -65,12 +65,23 @@ func highestSemver(entries []os.DirEntry) string {
 		if !ok {
 			continue
 		}
-		if v[0] > best[0] || (v[0] == best[0] && v[1] > best[1]) || (v[0] == best[0] && v[1] == best[1] && v[2] > best[2]) {
+		if semverGreater(v, best) {
 			best = v
 			bestName = e.Name()
 		}
 	}
 	return bestName
+}
+
+// semverGreater reports whether a is strictly greater than b.
+func semverGreater(a, b [3]int) bool {
+	if a[0] != b[0] {
+		return a[0] > b[0]
+	}
+	if a[1] != b[1] {
+		return a[1] > b[1]
+	}
+	return a[2] > b[2]
 }
 
 // parseSemver parses a directory name of the form vX.Y.Z into [major, minor, patch].
@@ -79,13 +90,15 @@ func parseSemver(name string) ([3]int, bool) {
 	if len(parts) != 3 {
 		return [3]int{}, false
 	}
-	major, err1 := strconv.Atoi(parts[0])
-	minor, err2 := strconv.Atoi(parts[1])
-	patch, err3 := strconv.Atoi(parts[2])
-	if err1 != nil || err2 != nil || err3 != nil {
-		return [3]int{}, false
+	var v [3]int
+	for i, p := range parts {
+		n, err := strconv.Atoi(p)
+		if err != nil {
+			return [3]int{}, false
+		}
+		v[i] = n
 	}
-	return [3]int{major, minor, patch}, true
+	return v, true
 }
 
 // resolvePythonInHome is the testable core of ResolvePython.
