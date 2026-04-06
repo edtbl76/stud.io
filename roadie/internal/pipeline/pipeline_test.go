@@ -338,6 +338,34 @@ func TestPrintSummary_ContainsPassFail(t *testing.T) {
 	}
 }
 
+// ── Script-wrapping step factories ───────────────────────────────────────────
+
+func assertScriptStep(t *testing.T, s ToolStep, wantName, wantScript, wantDir string) {
+	t.Helper()
+	if s.Name != wantName {
+		t.Errorf("Name: got %q, want %q", s.Name, wantName)
+	}
+	if s.Bin != "bash" {
+		t.Errorf("Bin: got %q, want bash", s.Bin)
+	}
+	if s.Dir != wantDir {
+		t.Errorf("Dir: got %q, want %q", s.Dir, wantDir)
+	}
+	if !strings.Contains(strings.Join(s.Args, " "), wantScript) {
+		t.Errorf("Args: expected path containing %q, got %v", wantScript, s.Args)
+	}
+}
+
+func TestE2EStep_Fields(t *testing.T) {
+	assertScriptStep(t, E2EStep("/repo"), "e2e", "test-e2e.sh", "/repo")
+}
+func TestScanStep_Fields(t *testing.T) {
+	assertScriptStep(t, ScanStep("/repo"), "scan", "test-scan.sh", "/repo")
+}
+func TestPerfStep_Fields(t *testing.T) {
+	assertScriptStep(t, PerfStep("/repo"), "perf", "test-perf.sh", "/repo")
+}
+
 // ── Resolvers ─────────────────────────────────────────────────────────────────
 
 func TestResolveNodeInHome_NvmLatest(t *testing.T) {

@@ -40,7 +40,8 @@ type mockDB struct {
 func (m *mockDB) IsReady(_ context.Context, _ providers.DBConfig) (bool, error) {
 	return m.ready, m.checkErr
 }
-func (m *mockDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
+func (m *mockDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error     { return nil }
+func (m *mockDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
 
 type mockHTTP struct {
 	reachable bool
@@ -183,6 +184,85 @@ func (c *capturingDB) IsReady(_ context.Context, cfg providers.DBConfig) (bool, 
 }
 
 func (c *capturingDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
+func (c *capturingDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, _ string) error {
+	return nil
+}
+
+// ── Manager.Build ─────────────────────────────────────────────────────────────
+
+func TestManager_Build_Success(t *testing.T) {
+	var gotCfg providers.UpConfig
+	container := &capturingContainer{fn: func(c providers.UpConfig) { gotCfg = c }}
+	db := &mockDB{ready: true}
+
+	if err := fastManager(container, db, &mockHTTP{}).Build(context.Background(), testConfig(), false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !gotCfg.Build {
+		t.Error("expected Build=true in UpConfig, got false")
+	}
+	if !gotCfg.ForceRecreate {
+		t.Error("expected ForceRecreate=true in UpConfig, got false")
+	}
+}
+
+func TestManager_Build_UpError(t *testing.T) {
+	container := &mockContainer{upErr: errors.New("compose failed")}
+	err := fastManager(container, &mockDB{}, &mockHTTP{}).Build(context.Background(), testConfig(), false)
+	if err == nil {
+		t.Fatal("expected error from Up, got nil")
+	}
+	if !strings.Contains(err.Error(), "compose failed") {
+		t.Errorf("expected error to contain 'compose failed', got: %v", err)
+	}
+}
+
+func TestManager_Build_SetsDevFlag(t *testing.T) {
+	var gotCfg providers.UpConfig
+	container := &capturingContainer{fn: func(c providers.UpConfig) { gotCfg = c }}
+	db := &mockDB{ready: true}
+
+	if err := fastManager(container, db, &mockHTTP{}).Build(context.Background(), testConfig(), true); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !gotCfg.WithDev {
+		t.Error("expected WithDev=true in UpConfig, got false")
+	}
+}
+
+func TestManager_Start_DoesNotSetBuildFlags(t *testing.T) {
+	var gotCfg providers.UpConfig
+	container := &capturingContainer{fn: func(c providers.UpConfig) { gotCfg = c }}
+	db := &mockDB{ready: true}
+
+	if err := fastManager(container, db, &mockHTTP{}).Start(context.Background(), testConfig(), false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotCfg.Build {
+		t.Error("Start must not set Build=true — only Build() should rebuild images")
+	}
+	if gotCfg.ForceRecreate {
+		t.Error("Start must not set ForceRecreate=true")
+	}
+}
+
+// capturingContainer records the UpConfig passed to Up.
+type capturingContainer struct {
+	fn func(providers.UpConfig)
+}
+
+func (c *capturingContainer) Up(_ context.Context, cfg providers.UpConfig) error {
+	if c.fn != nil {
+		c.fn(cfg)
+	}
+	return nil
+}
+func (c *capturingContainer) Down(_ context.Context, _ providers.DownConfig) error { return nil }
+func (c *capturingContainer) IsRunning(_ context.Context, _ string) (bool, error)  { return false, nil }
+func (c *capturingContainer) Status(_ context.Context) ([]providers.ServiceStatus, error) {
+	return nil, nil
+}
+func (c *capturingContainer) Exec(_ context.Context, _ string, _ []string) error { return nil }
 
 func TestManager_Start_WithDev_RunsDevChecks(t *testing.T) {
 	cfg := testConfig()

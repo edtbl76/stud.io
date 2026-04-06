@@ -118,3 +118,42 @@ func TrivyStep(root, imageRef string) ToolStep {
 		},
 	}
 }
+
+// E2EStep returns a step that runs the full sharded E2E suite via
+// scripts/test-e2e.sh. The script manages its own shard setup, parallel
+// Playwright runs, and container teardown — it is not decomposed into
+// individual ToolSteps until Phase 5.
+func E2EStep(root string) ToolStep {
+	return ToolStep{
+		Name: "e2e",
+		Bin:  "bash",
+		Args: []string{filepath.Join(root, "scripts", "test-e2e.sh")},
+		Dir:  root,
+	}
+}
+
+// ScanStep returns a step that runs the full security scan suite via
+// scripts/test-scan.sh (SonarQube, Trivy, detect-secrets, headers). The script
+// manages coverage generation and gate polling — it is not decomposed until
+// Phase 5.
+func ScanStep(root string) ToolStep {
+	return ToolStep{
+		Name: "scan",
+		Bin:  "bash",
+		Args: []string{filepath.Join(root, "scripts", "test-scan.sh")},
+		Dir:  root,
+	}
+}
+
+// PerfStep returns a step that runs the full performance suite via
+// scripts/test-perf.sh (benchmarks, k6, Lighthouse). The script manages the
+// backend container, production Next.js build, and frontend lifecycle — it is
+// not decomposed until Phase 5.
+func PerfStep(root string) ToolStep {
+	return ToolStep{
+		Name: "perf",
+		Bin:  "bash",
+		Args: []string{filepath.Join(root, "scripts", "test-perf.sh")},
+		Dir:  root,
+	}
+}
