@@ -216,7 +216,7 @@ func TestLoad_BuildDatabases_ValidCases(t *testing.T) {
 	}
 }
 
-func TestLoad_TestConfig(t *testing.T) {
+func TestLoad_TestConfig_E2E(t *testing.T) {
 	cfg, err := Load("testdata")
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
@@ -234,12 +234,28 @@ func TestLoad_TestConfig(t *testing.T) {
 	if cfg.Test.E2E.FrontendBasePort != 3001 {
 		t.Errorf("e2e.frontend_base_port: got %d, want 3001", cfg.Test.E2E.FrontendBasePort)
 	}
+}
+
+func TestLoad_TestConfig_Perf(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
 	if cfg.Test.Perf.BackendPort != 5160 {
 		t.Errorf("perf.backend_port: got %d, want 5160", cfg.Test.Perf.BackendPort)
 	}
 	if cfg.Test.Perf.FrontendPort != 3010 {
 		t.Errorf("perf.frontend_port: got %d, want 3010", cfg.Test.Perf.FrontendPort)
 	}
+}
+
+func TestLoad_TestConfig_DB(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
 	if cfg.Test.DB.Container != "studio_db" {
 		t.Errorf("db.container: got %q, want studio_db", cfg.Test.DB.Container)
 	}

@@ -76,24 +76,23 @@ and perf suites. No skipping allowed.`,
 
 // runBuild is the top-level coordinator: rebuild stack, apply schema, run tests.
 func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
-	const root = "."
 	if err := newManager(cfg).Build(ctx, cfg, flags.dev); err != nil {
 		return err
 	}
 	if err := applySchema(ctx, cfg, out); err != nil {
 		return err
 	}
-	return runTests(ctx, cfg, flags, root, out)
+	return runTests(ctx, cfg, flags, out)
 }
 
 // runTests runs the unit pipeline then any enabled optional suites.
-func runTests(ctx context.Context, cfg *config.Config, flags buildFlags, root string, out io.Writer) error {
+func runTests(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	if !flags.skipTests {
-		if err := runUnitTests(ctx, root, out); err != nil {
+		if err := runUnitTests(ctx, ".", out); err != nil {
 			return err
 		}
 	}
-	if err := runSelectedSuites(ctx, cfg, flags, root, out); err != nil {
+	if err := runSelectedSuites(ctx, cfg, flags, out); err != nil {
 		return err
 	}
 	fmt.Fprintln(out, "[roadie] Build complete.")
@@ -152,32 +151,43 @@ func toolFilter(allowed []string) func(string) bool {
 }
 
 // runSelectedSuites runs E2E, scan, and perf suites based on the enabled flags.
-func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags, root string, out io.Writer) error {
-	r := pipeline.Root(root)
+func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
+	r := pipeline.Root(".")
+	if err := maybeRunE2E(ctx, cfg, flags, out); err != nil {
+		return err
+	}
+	if err := maybeRunScan(ctx, flags, r, out); err != nil {
+		return err
+	}
+	return maybeRunPerf(ctx, cfg, flags, out)
+}
 
-	if flags.runE2E() {
-		fmt.Fprintln(out, "[roadie] Running E2E tests...")
-		if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, out); err != nil {
-			return err
-		}
+func maybeRunE2E(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
+	if !flags.runE2E() {
+		return nil
 	}
-	if flags.runScan() {
-		fmt.Fprintln(out, "[roadie] Running security scans...")
-		results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(true), out)
-		pipeline.PrintSummary(out, results)
-		if err != nil {
-			return err
-		}
+	fmt.Fprintln(out, "[roadie] Running E2E tests...")
+	return pipeline.RunE2E(ctx, e2eConfigFrom(cfg), pipeline.Root("."), out)
+}
+
+func maybeRunScan(ctx context.Context, flags buildFlags, r pipeline.Root, out io.Writer) error {
+	if !flags.runScan() {
+		return nil
 	}
-	if flags.runPerf() {
-		fmt.Fprintln(out, "[roadie] Running performance tests...")
-		results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), r, pipeline.PerfFlags{}, out)
-		pipeline.PrintSummary(out, results)
-		if err != nil {
-			return err
-		}
+	fmt.Fprintln(out, "[roadie] Running security scans...")
+	results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(true), out)
+	pipeline.PrintSummary(out, results)
+	return err
+}
+
+func maybeRunPerf(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
+	if !flags.runPerf() {
+		return nil
 	}
-	return nil
+	fmt.Fprintln(out, "[roadie] Running performance tests...")
+	results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, out)
+	pipeline.PrintSummary(out, results)
+	return err
 }
 
 // schemaApplier holds the stable configuration for applying schema files to

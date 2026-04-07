@@ -28,6 +28,20 @@ type E2EConfig struct {
 	DBSource              string
 }
 
+// healthTarget groups the parameters for waitForShards.
+type healthTarget struct {
+	shards   int
+	basePort int
+	path     string
+}
+
+// shardRunner encapsulates the per-shard Playwright execution context.
+type shardRunner struct {
+	cfg         E2EConfig
+	frontendDir string
+	nodeDir     string
+}
+
 // RunE2E orchestrates the full sharded E2E suite: build image → provision DBs
 // → start backends → start frontends → run Playwright shards in parallel →
 // teardown.
@@ -48,20 +62,8 @@ func RunE2E(ctx context.Context, cfg E2EConfig, root Root, out io.Writer) error 
 	}
 	defer cleanup()
 
-	if err := buildBackendImage(ctx, cfg, r, lw); err != nil {
+	if err := setupBackendShards(ctx, cfg, r, lw); err != nil {
 		return err
-	}
-	if err := stopDevBackend(ctx, cfg, r, lw); err != nil {
-		return err
-	}
-	if err := provisionShardDBs(ctx, cfg, lw); err != nil {
-		return err
-	}
-	if err := startBackendShards(ctx, cfg, r, lw); err != nil {
-		return err
-	}
-	if err := waitForShards(ctx, cfg.Shards, cfg.BackendBasePort, "/health", lw); err != nil {
-		return fmt.Errorf("backend health: %w", err)
 	}
 
 	procs, err := startFrontendShards(ctx, cfg, r, lw)
@@ -70,46 +72,60 @@ func RunE2E(ctx context.Context, cfg E2EConfig, root Root, out io.Writer) error 
 	}
 	frontendProcs = procs
 
-	if err := waitForShards(ctx, cfg.Shards, cfg.FrontendBasePort, "", lw); err != nil {
+	if err := waitForShards(ctx, healthTarget{cfg.Shards, cfg.FrontendBasePort, ""}, lw); err != nil {
 		return fmt.Errorf("frontend health: %w", err)
 	}
 
 	return runPlaywrightShards(ctx, cfg, r, lw)
 }
 
-func buildBackendImage(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {
-	fmt.Fprintln(out, "Building backend image...")
-	cmd := exec.CommandContext(ctx, "docker", "compose",
-		"-f", filepath.Join(root, cfg.DevComposeFile),
-		"-p", cfg.BackendComposeProject,
-		"build", cfg.BackendService,
-	)
+// devComposeCmd encapsulates the compose file and project for a single docker
+// compose invocation, removing the need to pass cfg/root/out on every call.
+type devComposeCmd struct {
+	cfg  E2EConfig
+	root string
+}
+
+func (d devComposeCmd) run(ctx context.Context, out io.Writer, verb string, extra ...string) error {
+	args := append([]string{
+		"compose",
+		"-f", filepath.Join(d.root, d.cfg.DevComposeFile),
+		"-p", d.cfg.BackendComposeProject,
+		verb,
+	}, extra...)
+	cmd := exec.CommandContext(ctx, "docker", args...)
 	cmd.Stdout = out
 	cmd.Stderr = out
 	return cmd.Run()
 }
 
-func stopDevBackend(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {
+// setupBackendShards builds the backend image, stops the dev backend to free
+// its port, provisions shard databases, starts backend containers, and waits
+// for all backend health endpoints to respond.
+func setupBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {
+	dc := devComposeCmd{cfg, root}
+
+	fmt.Fprintln(out, "Building backend image...")
+	if err := dc.run(ctx, out, "build", cfg.BackendService); err != nil {
+		return err
+	}
 	fmt.Fprintf(out, "Stopping dev backend (freeing port %d)...\n", cfg.BackendBasePort)
-	cmd := exec.CommandContext(ctx, "docker", "compose",
-		"-f", filepath.Join(root, cfg.DevComposeFile),
-		"-p", cfg.BackendComposeProject,
-		"stop", cfg.BackendService,
-	)
-	cmd.Stdout = out
-	cmd.Stderr = out
-	return cmd.Run()
+	if err := dc.run(ctx, out, "stop", cfg.BackendService); err != nil {
+		return err
+	}
+	if err := provisionShardDBs(ctx, cfg, out); err != nil {
+		return err
+	}
+	if err := startBackendShards(ctx, cfg, root, out); err != nil {
+		return err
+	}
+	return waitForShards(ctx, healthTarget{cfg.Shards, cfg.BackendBasePort, "/health"}, out)
 }
 
 func restoreDevBackend(cfg E2EConfig, root string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "docker", "compose",
-		"-f", filepath.Join(root, cfg.DevComposeFile),
-		"-p", cfg.BackendComposeProject,
-		"up", "-d", cfg.BackendService,
-	)
-	cmd.Run() //nolint — best-effort
+	devComposeCmd{cfg, root}.run(ctx, io.Discard, "up", "-d", cfg.BackendService) //nolint — best-effort
 }
 
 // provisionShardDBs terminates connections to the source DB, then creates N
@@ -182,12 +198,12 @@ func startBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 	return nil
 }
 
-// waitForShards polls health endpoints for all shards.
-// path is the URL path to GET (e.g. "/health" or "" for the root).
-func waitForShards(ctx context.Context, shards, basePort int, path string, out io.Writer) error {
-	for i := 0; i < shards; i++ {
-		port := basePort + i
-		url := fmt.Sprintf("http://localhost:%d%s", port, path)
+// waitForShards polls health endpoints for all shards in target.
+// target.path is the URL path to GET (e.g. "/health" or "" for the root).
+func waitForShards(ctx context.Context, target healthTarget, out io.Writer) error {
+	for i := 0; i < target.shards; i++ {
+		port := target.basePort + i
+		url := fmt.Sprintf("http://localhost:%d%s", port, target.path)
 		fmt.Fprintf(out, "Waiting for shard %d on port %d...\n", i, port)
 		if err := waitForHTTP(ctx, url, 30, 2*time.Second); err != nil {
 			return fmt.Errorf("shard %d: %w", i, err)
@@ -251,8 +267,11 @@ func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io
 
 // runPlaywrightShards runs all Playwright shards in parallel using goroutines.
 func runPlaywrightShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
-	nodeDir := ResolveNode()
+	sr := shardRunner{
+		cfg:         cfg,
+		frontendDir: filepath.Join(root, "app", "controlroom_frontend"),
+		nodeDir:     ResolveNode(),
+	}
 
 	type result struct {
 		shard int
@@ -265,7 +284,7 @@ func runPlaywrightShards(ctx context.Context, cfg E2EConfig, root string, out io
 		wg.Add(1)
 		go func(shard int) {
 			defer wg.Done()
-			err := runOneShard(ctx, cfg, frontendDir, nodeDir, shard, out)
+			err := sr.run(ctx, shard, out)
 			ch <- result{shard, err}
 		}(i)
 	}
@@ -288,18 +307,18 @@ func runPlaywrightShards(ctx context.Context, cfg E2EConfig, root string, out io
 	return nil
 }
 
-func runOneShard(ctx context.Context, cfg E2EConfig, frontendDir, nodeDir string, shard int, out io.Writer) error {
-	port := cfg.FrontendBasePort + shard
-	shardArg := fmt.Sprintf("%d/%d", shard+1, cfg.Shards)
+func (sr shardRunner) run(ctx context.Context, shard int, out io.Writer) error {
+	port := sr.cfg.FrontendBasePort + shard
+	shardArg := fmt.Sprintf("%d/%d", shard+1, sr.cfg.Shards)
 
 	cmd := exec.CommandContext(ctx, "npx", "playwright", "test",
 		"--config", "playwright.test.config.ts",
 		"--shard="+shardArg,
 	)
-	cmd.Dir = frontendDir
+	cmd.Dir = sr.frontendDir
 	cmd.Env = os.Environ()
-	if nodeDir != "" {
-		cmd.Env = append(cmd.Env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
+	if sr.nodeDir != "" {
+		cmd.Env = append(cmd.Env, "PATH="+sr.nodeDir+":"+os.Getenv("PATH"))
 	}
 	cmd.Env = append(cmd.Env, fmt.Sprintf("BASE_URL=http://localhost:%d", port))
 

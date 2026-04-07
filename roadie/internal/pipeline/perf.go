@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// PerfConfig holds everything the perf runner needs.
+// PerfConfig holds everything the perf runner needs, including the repo root.
 type PerfConfig struct {
 	BackendPort    int
 	FrontendPort   int
@@ -21,6 +21,8 @@ type PerfConfig struct {
 	DevComposeFile        string
 	BackendComposeProject string
 	BackendInternalPort   int
+	// Root is the absolute path to the repository root.
+	Root string
 }
 
 // PerfFlags controls which perf suites run. All false means run everything.
@@ -37,62 +39,117 @@ func (f PerfFlags) anySelected() bool {
 	return f.Bundle || f.Benchmarks || f.K6 || f.Lighthouse
 }
 
+// shouldRun reports whether suite should run given the active flag selection.
+// When no specific suite is selected, all suites run.
+func (f PerfFlags) shouldRun(suite string) bool {
+	if !f.anySelected() {
+		return true
+	}
+	switch suite {
+	case "benchmarks":
+		return f.Benchmarks
+	case "k6":
+		return f.K6
+	case "lighthouse":
+		return f.Lighthouse
+	}
+	return false
+}
+
+// perfRunner holds immutable config for the duration of a perf run.
+type perfRunner struct {
+	cfg PerfConfig
+}
+
 // RunPerf orchestrates the full performance test suite: start backend →
 // build frontend → start Next.js prod server → benchmarks → k6 → Lighthouse.
-func RunPerf(ctx context.Context, cfg PerfConfig, root Root, flags PerfFlags, out io.Writer) ([]StepResult, error) {
-	r := string(root)
-	container := cfg.BackendService + "_perf"
+func RunPerf(ctx context.Context, cfg PerfConfig, flags PerfFlags, out io.Writer) ([]StepResult, error) {
+	return perfRunner{cfg}.run(ctx, flags, out)
+}
 
-	if err := startPerfBackend(ctx, cfg, r, container, out); err != nil {
+func (r perfRunner) run(ctx context.Context, flags PerfFlags, out io.Writer) ([]StepResult, error) {
+	container := r.cfg.BackendService + "_perf"
+
+	if err := r.startBackend(ctx, container, out); err != nil {
 		return nil, err
 	}
 	defer stopPerfBackend(container)
 
-	if !flags.NoBundle {
-		if err := buildFrontend(ctx, cfg, r, out); err != nil {
-			return nil, err
-		}
-	} else if !hasPerfBuild(r) {
-		return nil, fmt.Errorf("--no-bundle: .next-perf not found — run without --no-bundle first")
+	if err := r.prepareFrontend(ctx, flags, out); err != nil {
+		return nil, err
 	}
 
-	frontendProc, err := startFrontendProd(ctx, cfg, r, out)
+	frontendProc, err := startFrontendProd(ctx, r.cfg, r.cfg.Root, out)
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		frontendProc.Kill() //nolint
 		if !flags.NoBundle {
-			os.RemoveAll(filepath.Join(r, "app", "controlroom_frontend", ".next-perf"))
+			os.RemoveAll(filepath.Join(r.cfg.Root, "app", "controlroom_frontend", ".next-perf"))
 		}
 	}()
 
-	if err := waitForHTTP(ctx, fmt.Sprintf("http://localhost:%d", cfg.FrontendPort), 30, 2*time.Second); err != nil {
+	url := fmt.Sprintf("http://localhost:%d", r.cfg.FrontendPort)
+	if err := waitForHTTP(ctx, url, 30, 2*time.Second); err != nil {
 		return nil, fmt.Errorf("frontend health: %w", err)
 	}
 
-	return collectPerfResults(ctx, cfg, r, flags, out)
+	return r.collect(ctx, flags, out)
 }
 
-func startPerfBackend(ctx context.Context, cfg PerfConfig, root, container string, out io.Writer) error {
-	fmt.Fprintf(out, "[perf] Starting backend on port %d (DB: %s)...\n", cfg.BackendPort, cfg.DBSource)
+// prepareFrontend either builds the frontend production bundle or verifies an
+// existing build is present when --no-bundle is active.
+func (r perfRunner) prepareFrontend(ctx context.Context, flags PerfFlags, out io.Writer) error {
+	if !flags.NoBundle {
+		return buildFrontend(ctx, r.cfg, r.cfg.Root, out)
+	}
+	if !hasPerfBuild(r.cfg.Root) {
+		return fmt.Errorf("--no-bundle: .next-perf not found — run without --no-bundle first")
+	}
+	return nil
+}
+
+func (r perfRunner) startBackend(ctx context.Context, container string, out io.Writer) error {
+	fmt.Fprintf(out, "[perf] Starting backend on port %d (DB: %s)...\n", r.cfg.BackendPort, r.cfg.DBSource)
 	exec.CommandContext(ctx, "docker", "rm", "-f", container).Run() //nolint
 	cmd := exec.CommandContext(ctx, "docker", "compose",
-		"-f", filepath.Join(root, cfg.DevComposeFile),
-		"-p", cfg.BackendComposeProject,
+		"-f", filepath.Join(r.cfg.Root, r.cfg.DevComposeFile),
+		"-p", r.cfg.BackendComposeProject,
 		"run", "-d",
 		"--name", container,
-		"-p", fmt.Sprintf("%d:%d", cfg.BackendPort, cfg.BackendInternalPort),
-		"-e", "DB_NAME="+cfg.DBSource,
-		cfg.BackendService,
+		"-p", fmt.Sprintf("%d:%d", r.cfg.BackendPort, r.cfg.BackendInternalPort),
+		"-e", "DB_NAME="+r.cfg.DBSource,
+		r.cfg.BackendService,
 	)
 	cmd.Stdout = out
 	cmd.Stderr = out
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("starting perf backend: %w", err)
 	}
-	url := fmt.Sprintf("http://localhost:%d/health", cfg.BackendPort)
+	url := fmt.Sprintf("http://localhost:%d/health", r.cfg.BackendPort)
 	return waitForHTTP(ctx, url, 30, 2*time.Second)
+}
+
+// collect runs the selected perf suites and returns StepResults.
+func (r perfRunner) collect(ctx context.Context, flags PerfFlags, out io.Writer) ([]StepResult, error) {
+	var results []StepResult
+
+	if flags.shouldRun("benchmarks") {
+		results = append(results, runPerfBenchmarks(ctx, r.cfg.Root, out))
+	}
+	if flags.shouldRun("k6") {
+		results = append(results, runPerfK6(ctx, r.cfg, r.cfg.Root, out)...)
+	}
+	if flags.shouldRun("lighthouse") {
+		results = append(results, runPerfLighthouse(ctx, r.cfg, r.cfg.Root, out))
+	}
+
+	if r.cfg.CarbonURL != "" {
+		runCarbonReport(r.cfg.CarbonURL, r.cfg.Root, out)
+	}
+
+	return results, collectErrors(results)
 }
 
 func stopPerfBackend(container string) {
@@ -154,32 +211,6 @@ func startFrontendProd(ctx context.Context, cfg PerfConfig, root string, out io.
 		return nil, fmt.Errorf("starting perf frontend: %w", err)
 	}
 	return cmd.Process, nil
-}
-
-// collectPerfResults runs the selected perf suites and returns StepResults.
-func collectPerfResults(ctx context.Context, cfg PerfConfig, root string, flags PerfFlags, out io.Writer) ([]StepResult, error) {
-	run := func(name string) bool {
-		return !flags.anySelected() || (name == "benchmarks" && flags.Benchmarks) ||
-			(name == "k6" && flags.K6) || (name == "lighthouse" && flags.Lighthouse)
-	}
-
-	var results []StepResult
-
-	if run("benchmarks") {
-		results = append(results, runPerfBenchmarks(ctx, root, out))
-	}
-	if run("k6") {
-		results = append(results, runPerfK6(ctx, cfg, root, out)...)
-	}
-	if run("lighthouse") {
-		results = append(results, runPerfLighthouse(ctx, cfg, root, out))
-	}
-
-	if cfg.CarbonURL != "" {
-		runCarbonReport(cfg.CarbonURL, root, out)
-	}
-
-	return results, collectErrors(results)
 }
 
 func runPerfBenchmarks(ctx context.Context, root string, out io.Writer) StepResult {

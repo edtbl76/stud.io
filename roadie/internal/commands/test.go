@@ -102,7 +102,7 @@ func perfCmd() *cobra.Command {
 			}
 			flags := buildPerfFlags(args, noBundle)
 			fmt.Fprintln(os.Stdout, "[roadie] Running performance tests...")
-			results, err := pipeline.RunPerf(cmd.Context(), perfConfigFrom(cfg), pipeline.Root("."), flags, os.Stdout)
+			results, err := pipeline.RunPerf(cmd.Context(), perfConfigFrom(cfg), flags, os.Stdout)
 			printSummary(os.Stdout, results, jsonOut)
 			return err
 		},
@@ -142,7 +142,7 @@ func fullCmd() *cobra.Command {
 			}
 
 			fmt.Fprintln(os.Stdout, "[roadie] Running performance tests...")
-			perfResults, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), r, pipeline.PerfFlags{}, os.Stdout)
+			perfResults, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, os.Stdout)
 			pipeline.PrintSummary(os.Stdout, perfResults)
 			return err
 		},
@@ -220,6 +220,7 @@ func perfConfigFrom(cfg *config.Config) pipeline.PerfConfig {
 		DevComposeFile:        cfg.Providers.Container.DevComposeFile,
 		BackendComposeProject: e.BackendComposeProject,
 		BackendInternalPort:   e.BackendInternalPort,
+		Root:                  ".",
 	}
 }
 

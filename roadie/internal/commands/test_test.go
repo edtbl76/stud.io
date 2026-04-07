@@ -17,34 +17,34 @@ func stepNames(steps []pipeline.ToolStep) []string {
 	return names
 }
 
-// ── buildUnitPipeline ─────────────────────────────────────────────────────────
-
-func TestBuildUnitPipeline_AllTools(t *testing.T) {
-	steps := buildUnitPipeline("/repo", nil)
-	names := stepNames(steps)
-	want := []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"}
-	if len(names) != len(want) {
-		t.Fatalf("step count: got %d (%v), want %d (%v)", len(names), names, len(want), want)
+// assertSteps verifies that got matches want element-by-element.
+func assertSteps(t *testing.T, got, want []string) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("step count: got %d (%v), want %d (%v)", len(got), got, len(want), want)
 	}
 	for i, n := range want {
-		if names[i] != n {
-			t.Errorf("step[%d]: got %q, want %q", i, names[i], n)
+		if got[i] != n {
+			t.Errorf("step[%d]: got %q, want %q", i, got[i], n)
 		}
 	}
 }
 
+// ── buildUnitPipeline ─────────────────────────────────────────────────────────
+
+func TestBuildUnitPipeline_AllTools(t *testing.T) {
+	assertSteps(t, stepNames(buildUnitPipeline("/repo", nil)),
+		[]string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"})
+}
+
 func TestBuildUnitPipeline_TscOnly(t *testing.T) {
-	names := stepNames(buildUnitPipeline("/repo", []string{"tsc"}))
-	if len(names) != 2 || names[0] != "npm-install" || names[1] != "tsc" {
-		t.Errorf("unexpected steps: %v", names)
-	}
+	assertSteps(t, stepNames(buildUnitPipeline("/repo", []string{"tsc"})),
+		[]string{"npm-install", "tsc"})
 }
 
 func TestBuildUnitPipeline_PytestOnly(t *testing.T) {
-	names := stepNames(buildUnitPipeline("/repo", []string{"pytest"}))
-	if len(names) != 1 || names[0] != "pytest" {
-		t.Errorf("unexpected steps: %v", names)
-	}
+	assertSteps(t, stepNames(buildUnitPipeline("/repo", []string{"pytest"})),
+		[]string{"pytest"})
 }
 
 func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
@@ -62,35 +62,68 @@ func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
 
 func TestBuildScanFlags_AllByDefault(t *testing.T) {
 	f := buildScanFlags(nil, false)
-	if !f.Sonar || !f.Trivy || !f.Secrets || !f.Headers {
-		t.Errorf("expected all flags set for empty args, got %+v", f)
+	if !f.Sonar {
+		t.Errorf("Sonar: expected true, got %+v", f)
+	}
+	if !f.Trivy {
+		t.Errorf("Trivy: expected true, got %+v", f)
+	}
+	if !f.Secrets {
+		t.Errorf("Secrets: expected true, got %+v", f)
+	}
+	if !f.Headers {
+		t.Errorf("Headers: expected true, got %+v", f)
 	}
 }
 
 func TestBuildScanFlags_TrivyOnly(t *testing.T) {
 	f := buildScanFlags([]string{"trivy"}, false)
-	if !f.Trivy || f.Sonar || f.Secrets || f.Headers {
-		t.Errorf("expected only Trivy set, got %+v", f)
+	if !f.Trivy {
+		t.Errorf("Trivy: expected true, got %+v", f)
+	}
+	if f.Sonar {
+		t.Errorf("Sonar: expected false, got %+v", f)
+	}
+	if f.Secrets {
+		t.Errorf("Secrets: expected false, got %+v", f)
+	}
+	if f.Headers {
+		t.Errorf("Headers: expected false, got %+v", f)
 	}
 }
 
 func TestBuildScanFlags_SonarWithGate(t *testing.T) {
 	f := buildScanFlags([]string{"sonar"}, true)
-	if !f.Sonar || !f.Gate {
-		t.Errorf("expected Sonar+Gate, got %+v", f)
+	if !f.Sonar {
+		t.Errorf("Sonar: expected true, got %+v", f)
 	}
-	if f.Trivy || f.Secrets || f.Headers {
-		t.Errorf("expected only Sonar set, got %+v", f)
+	if !f.Gate {
+		t.Errorf("Gate: expected true, got %+v", f)
+	}
+	if f.Trivy {
+		t.Errorf("Trivy: expected false, got %+v", f)
+	}
+	if f.Secrets {
+		t.Errorf("Secrets: expected false, got %+v", f)
+	}
+	if f.Headers {
+		t.Errorf("Headers: expected false, got %+v", f)
 	}
 }
 
 func TestBuildScanFlags_MultipleChecks(t *testing.T) {
 	f := buildScanFlags([]string{"secrets", "headers"}, false)
-	if !f.Secrets || !f.Headers {
-		t.Errorf("expected Secrets+Headers, got %+v", f)
+	if !f.Secrets {
+		t.Errorf("Secrets: expected true, got %+v", f)
 	}
-	if f.Sonar || f.Trivy {
-		t.Errorf("expected only Secrets+Headers, got %+v", f)
+	if !f.Headers {
+		t.Errorf("Headers: expected true, got %+v", f)
+	}
+	if f.Sonar {
+		t.Errorf("Sonar: expected false, got %+v", f)
+	}
+	if f.Trivy {
+		t.Errorf("Trivy: expected false, got %+v", f)
 	}
 }
 
@@ -98,15 +131,33 @@ func TestBuildScanFlags_MultipleChecks(t *testing.T) {
 
 func TestBuildPerfFlags_Empty(t *testing.T) {
 	f := buildPerfFlags(nil, false)
-	if f.Bundle || f.Benchmarks || f.K6 || f.Lighthouse {
-		t.Errorf("expected no suites selected for empty args, got %+v", f)
+	if f.Bundle {
+		t.Errorf("Bundle: expected false, got %+v", f)
+	}
+	if f.Benchmarks {
+		t.Errorf("Benchmarks: expected false, got %+v", f)
+	}
+	if f.K6 {
+		t.Errorf("K6: expected false, got %+v", f)
+	}
+	if f.Lighthouse {
+		t.Errorf("Lighthouse: expected false, got %+v", f)
 	}
 }
 
 func TestBuildPerfFlags_K6(t *testing.T) {
 	f := buildPerfFlags([]string{"k6"}, false)
-	if !f.K6 || f.Bundle || f.Benchmarks || f.Lighthouse {
-		t.Errorf("expected only K6, got %+v", f)
+	if !f.K6 {
+		t.Errorf("K6: expected true, got %+v", f)
+	}
+	if f.Bundle {
+		t.Errorf("Bundle: expected false, got %+v", f)
+	}
+	if f.Benchmarks {
+		t.Errorf("Benchmarks: expected false, got %+v", f)
+	}
+	if f.Lighthouse {
+		t.Errorf("Lighthouse: expected false, got %+v", f)
 	}
 }
 

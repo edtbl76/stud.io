@@ -162,18 +162,34 @@ func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]
 	return results, collectErrors(results)
 }
 
+type gateCondition struct {
+	metric, actual, threshold string
+}
+
+// sonarGateChecker holds the stable HTTP context for CE task polling and gate
+// status queries, eliminating the need to pass client/baseURL/token per call.
+type sonarGateChecker struct {
+	client  *http.Client
+	baseURL string
+	token   string
+}
+
 // checkSonarGate polls the SonarQube API until the CE analysis task completes,
 // then checks the quality gate status.
 func checkSonarGate(ctx context.Context, baseURL, token string, out io.Writer) error {
 	lw := NewLabelWriter("sonar-gate", out)
-	client := &http.Client{Timeout: 15 * time.Second}
+	checker := sonarGateChecker{
+		client:  &http.Client{Timeout: 15 * time.Second},
+		baseURL: baseURL,
+		token:   token,
+	}
 
 	fmt.Fprint(lw, "Waiting for analysis task")
-	if err := waitForCETask(ctx, client, baseURL, token, lw); err != nil {
+	if err := checker.waitForCETask(ctx, lw); err != nil {
 		return err
 	}
 
-	status, conditions, err := fetchGateStatus(ctx, client, baseURL, token)
+	status, conditions, err := checker.fetchGateStatus(ctx)
 	if err != nil {
 		return err
 	}
@@ -188,14 +204,10 @@ func checkSonarGate(ctx context.Context, baseURL, token string, out io.Writer) e
 	return fmt.Errorf("quality gate %s", status)
 }
 
-type gateCondition struct {
-	metric, actual, threshold string
-}
-
 // waitForCETask polls until no IN_PROGRESS/PENDING CE tasks remain.
-func waitForCETask(ctx context.Context, client *http.Client, baseURL, token string, out io.Writer) error {
+func (c sonarGateChecker) waitForCETask(ctx context.Context, out io.Writer) error {
 	for i := 0; i < 100; i++ {
-		pending, err := isCETaskPending(ctx, client, baseURL, token)
+		pending, err := c.isCETaskPending(ctx)
 		if err != nil {
 			return err
 		}
@@ -212,12 +224,12 @@ func waitForCETask(ctx context.Context, client *http.Client, baseURL, token stri
 	return fmt.Errorf("CE task did not complete after 5 minutes")
 }
 
-func isCETaskPending(ctx context.Context, client *http.Client, baseURL, token string) (bool, error) {
-	url := baseURL + "/api/ce/component?component=" + sonarProjectKey
+func (c sonarGateChecker) isCETaskPending(ctx context.Context) (bool, error) {
+	url := c.baseURL + "/api/ce/component?component=" + sonarProjectKey
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+c.token)
 
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return true, nil // treat transient errors as still-pending
 	}
@@ -238,12 +250,12 @@ func isCETaskPending(ctx context.Context, client *http.Client, baseURL, token st
 	return body.Current.Status == "IN_PROGRESS" || body.Current.Status == "PENDING", nil
 }
 
-func fetchGateStatus(ctx context.Context, client *http.Client, baseURL, token string) (string, []gateCondition, error) {
-	url := baseURL + "/api/qualitygates/project_status?projectKey=" + sonarProjectKey
+func (c sonarGateChecker) fetchGateStatus(ctx context.Context) (string, []gateCondition, error) {
+	url := c.baseURL + "/api/qualitygates/project_status?projectKey=" + sonarProjectKey
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Authorization", "Bearer "+c.token)
 
-	resp, err := client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return "", nil, fmt.Errorf("querying quality gate: %w", err)
 	}
