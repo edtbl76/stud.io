@@ -3,6 +3,7 @@ package pipeline
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 const frontendDir = "app/controlroom_frontend"
@@ -179,17 +180,20 @@ func SonarScanStep(root Root, gate bool) ToolStep {
 // CRITICAL CVEs. Uses bash -c to chain inspect + trivy without a staging file.
 func trivyContainerStep(root Root, container string) ToolStep {
 	r := string(root)
+	// Escape any single quotes in r so it can be safely embedded in a
+	// single-quoted shell word (bash '"'"' idiom).
+	rSafe := strings.ReplaceAll(r, "'", `'"'"'`)
 	script := fmt.Sprintf(
 		`set -e; `+
 			`img=$(docker inspect %s --format '{{.Image}}'); `+
 			`docker run --rm `+
 			`-v /var/run/docker.sock:/var/run/docker.sock `+
 			`-v trivy-cache:/root/.cache/trivy `+
-			`-v %s/.trivyignore:/src/.trivyignore:ro `+
+			`-v '%s/.trivyignore:/src/.trivyignore:ro' `+
 			`ghcr.io/aquasecurity/trivy:latest image `+
 			`--severity HIGH,CRITICAL --exit-code 1 --no-progress `+
 			`--ignorefile /src/.trivyignore "$img"`,
-		container, r,
+		container, rSafe,
 	)
 	return ToolStep{
 		Name: "trivy-" + container,
@@ -208,26 +212,42 @@ func TrivyFrontendStep(root Root) ToolStep {
 	return trivyContainerStep(root, "controlroom_frontend")
 }
 
-// DetectSecretsStep runs detect-secrets scan with the project's standard
-// exclusions and compares the result against .secrets.baseline. Exits non-zero
-// if any finding is not in the baseline.
+// DetectSecretsStep runs detect-secrets scan and diffs the result against
+// .secrets.baseline, exiting non-zero if any new finding is present.
+// detect-secrets scan --baseline only imports settings and always exits 0,
+// so we scan without --baseline and compare via an inline Python script.
 func DetectSecretsStep(root Root) ToolStep {
+	r := string(root)
+	rSafe := strings.ReplaceAll(r, "'", `'"'"'`)
+	script := `set -eo pipefail; ` +
+		`cd '` + rSafe + `'; ` +
+		`detect-secrets scan ` +
+		`--exclude-files 'node_modules/.*' ` +
+		`--exclude-files '\.git/.*' ` +
+		`--exclude-files '.*\.lock$' ` +
+		`--exclude-files 'package-lock\.json' ` +
+		`--exclude-files '.*\.next/.*' ` +
+		`--exclude-files '.*__pycache__.*' ` +
+		`--exclude-files '\.secrets\.baseline' ` +
+		`--exclude-files 'structurizr/workspace\.json' ` +
+		`> /tmp/secrets_current.json; ` +
+		`python3 -c '` +
+		`import json, sys; ` +
+		`cur = json.load(open("/tmp/secrets_current.json")); ` +
+		`base = json.load(open(".secrets.baseline")); ` +
+		`added = [f + ":" + str(r["line_number"]) + " [" + r["type"] + "]" ` +
+		`for f, findings in cur.get("results", {}).items() ` +
+		`for r in findings if r not in base.get("results", {}).get(f, [])]; ` +
+		`[print("[secrets] New secrets detected (not in baseline):"), ` +
+		`[print("[secrets]   " + s) for s in added], ` +
+		`print("[secrets] Run: detect-secrets scan --baseline .secrets.baseline"), ` +
+		`sys.exit(1)] if added else ` +
+		`print("[secrets] No new secrets detected (" + str(sum(len(v) for v in cur.get("results", {}).values())) + " findings, all baselined).)' `
 	return ToolStep{
 		Name: "detect-secrets",
-		Bin:  "detect-secrets",
-		Args: []string{
-			"scan",
-			"--exclude-files", `node_modules/.*`,
-			"--exclude-files", `\.git/.*`,
-			"--exclude-files", `.*\.lock$`,
-			"--exclude-files", `package-lock\.json`,
-			"--exclude-files", `.*\.next/.*`,
-			"--exclude-files", `.*__pycache__.*`,
-			"--exclude-files", `\.secrets\.baseline`,
-			"--exclude-files", `structurizr/workspace\.json`,
-			"--baseline", ".secrets.baseline",
-		},
-		Dir: string(root),
+		Bin:  "bash",
+		Args: []string{"-c", script},
+		Dir:  r,
 	}
 }
 

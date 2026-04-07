@@ -34,10 +34,13 @@ func unitCmd() *cobra.Command {
 		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest]",
 		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest)",
 		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest"},
-		Args:      cobra.ArbitraryArgs,
+		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
 			steps := buildUnitPipeline(r, args)
+			if len(args) > 0 && len(steps) == 0 {
+				return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest", args)
+			}
 			fmt.Fprintln(os.Stdout, "[roadie] Running unit tests...")
 			return pipeline.New(steps...).RunSequential(cmd.Context(), os.Stdout)
 		},
@@ -61,10 +64,13 @@ func scanCmd() *cobra.Command {
 		Use:       "scan [sonar] [trivy] [secrets] [headers]",
 		Short:     "Run security scans",
 		ValidArgs: []string{"sonar", "trivy", "secrets", "headers"},
-		Args:      cobra.ArbitraryArgs,
+		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
 			steps := scanSteps(r, args, gate)
+			if len(args) > 0 && len(steps) == 0 {
+				return fmt.Errorf("no steps matched selectors %v; valid: sonar, trivy, secrets, headers", args)
+			}
 			fmt.Fprintln(os.Stdout, "[roadie] Running security scans...")
 			results, err := pipeline.New(steps...).RunCollect(cmd.Context(), os.Stdout)
 			pipeline.PrintSummary(os.Stdout, results)
@@ -86,11 +92,14 @@ var perfFlagMap = map[string]string{
 func perfCmd() *cobra.Command {
 	var noBundle bool
 	cmd := &cobra.Command{
-		Use:       "perf [bundle] [benchmarks] [k6] [lighthouse]",
+		Use:       "perf [bundle|benchmarks|k6|lighthouse]",
 		Short:     "Run performance tests (benchmarks, k6, Lighthouse)",
 		ValidArgs: []string{"bundle", "benchmarks", "k6", "lighthouse"},
-		Args:      cobra.ArbitraryArgs,
+		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 1 {
+				return fmt.Errorf("only one of bundle|benchmarks|k6|lighthouse may be specified")
+			}
 			r := pipeline.Root(".")
 			scriptFlags := subtypesToFlags(args, perfFlagMap)
 			if noBundle {

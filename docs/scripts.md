@@ -39,10 +39,13 @@ roadie release            # full release gate: rebuild dev stack + unit + E2E + 
 Runs the full performance test suite via `roadie test perf`. Not part of the standard build — run on demand when you want to measure performance or validate SLOs.
 
 ```bash
-roadie test perf                           # all suites
-roadie test perf bundle benchmarks         # subset
-roadie test perf --no-bundle               # skip Next.js build (reuse existing)
+roadie test perf                           # all suites (includes production Next.js build)
+roadie test perf bundle                    # bundle analysis only (steps 1–3)
+roadie test perf benchmarks                # pytest benchmarks + EXPLAIN plans only
+roadie test perf --no-bundle               # all suites, skip build (reuse existing .next-perf)
 ```
+
+Note: subtype selectors (`bundle`, `benchmarks`, `k6`, `lighthouse`) are mutually exclusive — each runs only that suite. Pass at most one.
 
 Prerequisites: production stack running (`docker compose up -d`), dev stack running (`./scripts/dev.sh up`), `controlroomdb_test` provisioned (`./scripts/reset-test-db.sh`).
 
