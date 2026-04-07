@@ -96,8 +96,13 @@ This command targets the database named in `providers.database.db_name`. It will
 ### Shell autocompletion
 
 ```bash
-# bash
-roadie completion bash > /etc/bash_completion.d/roadie
+# bash — system-wide (use tee, not >, for the sudo redirect):
+roadie completion bash | sudo tee /etc/bash_completion.d/roadie
+
+# bash — current user only (no sudo needed):
+mkdir -p ~/.local/share/bash-completion/completions
+roadie completion bash > ~/.local/share/bash-completion/completions/roadie
+source ~/.bashrc
 
 # zsh
 roadie completion zsh > "${fpath[1]}/_roadie"
@@ -217,6 +222,7 @@ Go untyped string constants (e.g. `"."`, `"/repo"`) are assignable to these type
 
 | Function | Replaces | Notes |
 |---|---|---|
+| `NpmInstallStep(root Root)` | — | Runs `npm install --include=dev` in the frontend directory |
 | `TscStep(root Root)` | `run-tsc.sh` | Uses `node_modules/.bin/tsc --noEmit` |
 | `JestStep(root Root, coverage bool)` | `run-jest.sh` | Pass `coverage=true` for SonarQube lcov report |
 | `PytestStep(root Root, extraArgs ...string)` | `run-pytest.sh` | Extra args appended after the test dir |

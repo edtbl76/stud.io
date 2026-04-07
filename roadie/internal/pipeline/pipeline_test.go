@@ -362,6 +362,19 @@ func assertScriptStep(t *testing.T, s ToolStep, want wantScriptStep) {
 	}
 }
 
+func TestJestStep_Fields(t *testing.T) {
+	s := JestStep("/repo", false)
+	if s.Name != "jest" {
+		t.Errorf("Name: got %q, want jest", s.Name)
+	}
+	if s.Bin != "node_modules/.bin/jest" {
+		t.Errorf("Bin: got %q, want node_modules/.bin/jest (must be Dir-relative so chdir+exec resolves correctly)", s.Bin)
+	}
+	if s.Dir != "/repo/app/controlroom_frontend" {
+		t.Errorf("Dir: got %q, want /repo/app/controlroom_frontend", s.Dir)
+	}
+}
+
 func TestNpmInstallStep_Fields(t *testing.T) {
 	s := NpmInstallStep("/repo")
 	if s.Name != "npm-install" {
@@ -370,11 +383,11 @@ func TestNpmInstallStep_Fields(t *testing.T) {
 	if s.Bin != "npm" {
 		t.Errorf("Bin: got %q, want npm", s.Bin)
 	}
-	if !strings.Contains(s.Dir, "controlroom_frontend") {
-		t.Errorf("Dir should contain frontend dir, got %q", s.Dir)
+	if s.Dir != "/repo/app/controlroom_frontend" {
+		t.Errorf("Dir: got %q, want /repo/app/controlroom_frontend", s.Dir)
 	}
-	if len(s.Args) == 0 || s.Args[0] != "install" {
-		t.Errorf("Args: expected [install], got %v", s.Args)
+	if got := strings.Join(s.Args, " "); got != "install --include=dev" {
+		t.Errorf("Args: got %q, want %q", got, "install --include=dev")
 	}
 }
 

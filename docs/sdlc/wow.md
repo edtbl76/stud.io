@@ -93,7 +93,7 @@ When to update the perf suite: see the "Performance tests" section of `CLAUDE.md
 
 ### Security scans
 
-The security suite is run on demand — automatically included in `./build.sh --release`:
+The security suite is run on demand — automatically included in `roadie release`:
 
 ```bash
 ./scripts/test-scan.sh
@@ -116,7 +116,7 @@ When to update the security suite: see the "Security scans" section of `CLAUDE.m
 The SonarQube quality gate must pass before handing off any solution:
 
 ```bash
-./build.sh --dev
+roadie build --dev
 ```
 
 Gate thresholds:
@@ -131,7 +131,7 @@ Pre-commit hooks (enforced on every commit): `ruff`, `pytest`, `tsc`, `jest`, `b
 Before tagging a release, run the full gate:
 
 ```bash
-./build.sh --release
+roadie release
 ```
 
 This runs unit tests, all four security scans (Sonar + Trivy + secrets + headers), the SonarQube quality gate, E2E tests, and the performance suite — in that order. Each stage must pass before the next runs.

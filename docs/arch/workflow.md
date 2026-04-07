@@ -31,8 +31,8 @@ Keep branch names short and lowercase with hyphens.
 git checkout -b feat/my-change
 
 # 2. Implement + test
-./scripts/test-unit.sh
-./scripts/test-e2e.sh
+roadie build
+roadie build --e2e
 
 # 3. Commit
 git add <files>

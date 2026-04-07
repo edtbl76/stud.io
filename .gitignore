@@ -375,3 +375,4 @@ app/controlroom_frontend/.next-e2e*/
 app/controlroom_frontend/.next-perf/
 app/controlroom_frontend/perf-reports/
 /app/controlroom_frontend/next-env.d.ts
+!/roadie/roadie
