@@ -69,6 +69,18 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 | `roadie build [--dev] [--skip-tests] [--e2e] [--scan] [--perf] [--full]` | Rebuild images, apply schema to test DBs, run tests | `build.sh` |
 | `roadie release` | Full release gate: rebuild dev stack and run all suites | `build.sh --release` |
 
+#### Test commands
+
+| Command | Description | Replaces |
+|---|---|---|
+| `roadie test unit [tsc\|jest\|pytest]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
+| `roadie test e2e` | Run full sharded Playwright suite | `test-e2e.sh` (delegates internally) |
+| `roadie test scan [sonar\|trivy\|secrets\|headers] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
+| `roadie test perf [bundle\|benchmarks\|k6\|lighthouse] [--no-bundle]` | Run performance suite in collect mode | `test-perf.sh` (delegates internally) |
+| `roadie test full` | Run all suites: unit → e2e → scan (--gate) → perf | — |
+
+`--gate` adds a SonarQube quality gate poll after the sonar scan. `--no-bundle` skips the Next.js production build (reuse existing `.next-perf`).
+
 `--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`.
 
 `roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
@@ -230,6 +242,12 @@ Go untyped string constants (e.g. `"."`, `"/repo"`) are assignable to these type
 | `PipAuditStep(root Root)` | `run-pip-audit.sh` | Ignores CVE-2024-23342 (see script for rationale) |
 | `NpmAuditStep(root Root)` | `run-npm-audit.sh` | `--audit-level=critical` |
 | `TrivyStep(root Root, image ImageRef)` | `run-trivy.sh` scan() | Single image; caller resolves `image` via `docker inspect` |
+| `TrivyBackendStep(root Root)` | — | Resolves `controlroom_backend` image SHA at runtime, then scans |
+| `TrivyFrontendStep(root Root)` | — | Resolves `controlroom_frontend` image SHA at runtime, then scans |
+| `SonarScanStep(root Root, gate bool)` | `test-scan.sh --sonar[‑gate]` | `gate=true` adds quality gate poll |
+| `DetectSecretsStep(root Root)` | `test-scan.sh --secrets` | Scans working tree; compares against `.secrets.baseline` |
+| `SecurityHeadersStep(root Root)` | `test-scan.sh --headers` | Runs `pytest tests/security/test_security_headers.py` |
+| `PerfStep(root Root, extraArgs ...string)` | `test-perf.sh` | Extra args forwarded to the script (e.g. `--bundle`, `--no-bundle`) |
 
 ### Test injection
 
@@ -264,8 +282,9 @@ roadie/
       steps.go               — Root + ImageRef types; ToolStep factory functions
     commands/
       stack.go               — start, stop, restart, status Cobra subcommands
-      build.go               — build, release Cobra subcommands; schemaApplier
+      build.go               — build, release Cobra subcommands; schemaApplier; buildUnitPipeline
       db.go                  — db init Cobra subcommand with confirmation gate
+      test.go                — test unit/e2e/scan/perf/full Cobra subcommands
 ```
 
 ---
@@ -278,7 +297,7 @@ roadie/
 | 2 ✓ | `start`, `stop`, `restart`, `status` | `roadie.sh` |
 | 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
 | 4 ✓ | `build`, `release`, `db init` | `build.sh` |
-| 5 | `test`, `scan`, `perf` (full flag surface) | `test-*.sh`, remaining `scripts/run-*.sh` |
+| 5 ✓ | `test unit/e2e/scan/perf/full` | `test-unit.sh`, `test-scan.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
 | 6 | `doctor`, `--json` flag, summary output | — |
 
 ---

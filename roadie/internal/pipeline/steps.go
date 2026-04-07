@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"fmt"
 	"path/filepath"
 )
 
@@ -145,10 +146,100 @@ func TrivyStep(root Root, image ImageRef) ToolStep {
 	}
 }
 
+// SonarScanStep returns a step that runs scripts/test-scan.sh --sonar or
+// --sonar-gate. gate=true additionally polls the SonarQube API and fails if
+// the quality gate is not OK.
+func SonarScanStep(root Root, gate bool) ToolStep {
+	r := string(root)
+	flag := "--sonar"
+	if gate {
+		flag = "--sonar-gate"
+	}
+	return ToolStep{
+		Name: "sonar",
+		Bin:  "bash",
+		Args: []string{filepath.Join(r, "scripts", "test-scan.sh"), flag},
+		Dir:  r,
+	}
+}
+
+// trivyContainerStep returns a step that resolves a running container's image
+// SHA via docker inspect at runtime, then scans it with Trivy for HIGH and
+// CRITICAL CVEs. Uses bash -c to chain inspect + trivy without a staging file.
+func trivyContainerStep(root Root, container string) ToolStep {
+	r := string(root)
+	script := fmt.Sprintf(
+		`set -e; `+
+			`img=$(docker inspect %s --format '{{.Image}}'); `+
+			`docker run --rm `+
+			`-v /var/run/docker.sock:/var/run/docker.sock `+
+			`-v trivy-cache:/root/.cache/trivy `+
+			`-v %s/.trivyignore:/src/.trivyignore:ro `+
+			`ghcr.io/aquasecurity/trivy:latest image `+
+			`--severity HIGH,CRITICAL --exit-code 1 --no-progress `+
+			`--ignorefile /src/.trivyignore "$img"`,
+		container, r,
+	)
+	return ToolStep{
+		Name: "trivy-" + container,
+		Bin:  "bash",
+		Args: []string{"-c", script},
+	}
+}
+
+// TrivyBackendStep scans the controlroom_backend container image.
+func TrivyBackendStep(root Root) ToolStep {
+	return trivyContainerStep(root, "controlroom_backend")
+}
+
+// TrivyFrontendStep scans the controlroom_frontend container image.
+func TrivyFrontendStep(root Root) ToolStep {
+	return trivyContainerStep(root, "controlroom_frontend")
+}
+
+// DetectSecretsStep runs detect-secrets scan with the project's standard
+// exclusions and compares the result against .secrets.baseline. Exits non-zero
+// if any finding is not in the baseline.
+func DetectSecretsStep(root Root) ToolStep {
+	return ToolStep{
+		Name: "detect-secrets",
+		Bin:  "detect-secrets",
+		Args: []string{
+			"scan",
+			"--exclude-files", `node_modules/.*`,
+			"--exclude-files", `\.git/.*`,
+			"--exclude-files", `.*\.lock$`,
+			"--exclude-files", `package-lock\.json`,
+			"--exclude-files", `.*\.next/.*`,
+			"--exclude-files", `.*__pycache__.*`,
+			"--exclude-files", `\.secrets\.baseline`,
+			"--exclude-files", `structurizr/workspace\.json`,
+			"--baseline", ".secrets.baseline",
+		},
+		Dir: string(root),
+	}
+}
+
+// SecurityHeadersStep runs pytest against the HTTP security header assertions.
+// Requires the production stack to be running at https://localhost:2112.
+func SecurityHeadersStep(root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: "security-headers",
+		Bin:  "python",
+		Args: []string{
+			"-m", "pytest",
+			filepath.Join(r, "tests", "security", "test_security_headers.py"),
+			"-v",
+		},
+		Env: pathEnv(ResolvePython()),
+	}
+}
+
 // E2EStep returns a step that runs the full sharded E2E suite via
 // scripts/test-e2e.sh. The script manages its own shard setup, parallel
-// Playwright runs, and container teardown — it is not decomposed into
-// individual ToolSteps until Phase 5.
+// Playwright runs, and container teardown. Full decomposition is deferred to
+// Phase 6.
 func E2EStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -160,9 +251,9 @@ func E2EStep(root Root) ToolStep {
 }
 
 // ScanStep returns a step that runs the full security scan suite via
-// scripts/test-scan.sh (SonarQube, Trivy, detect-secrets, headers). The script
-// manages coverage generation and gate polling — it is not decomposed until
-// Phase 5.
+// scripts/test-scan.sh. Used by `roadie build --scan` for a single full-suite
+// invocation. Individual checks are available via SonarScanStep,
+// TrivyBackendStep, TrivyFrontendStep, DetectSecretsStep, SecurityHeadersStep.
 func ScanStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -173,16 +264,17 @@ func ScanStep(root Root) ToolStep {
 	}
 }
 
-// PerfStep returns a step that runs the full performance suite via
-// scripts/test-perf.sh (benchmarks, k6, Lighthouse). The script manages the
-// backend container, production Next.js build, and frontend lifecycle — it is
-// not decomposed until Phase 5.
-func PerfStep(root Root) ToolStep {
+// PerfStep returns a step that runs scripts/test-perf.sh. extraArgs are
+// appended to the script invocation to select subsets (e.g. "--bundle",
+// "--k6") or modifiers (e.g. "--no-bundle"). Pass no args to run all suites.
+func PerfStep(root Root, extraArgs ...string) ToolStep {
 	r := string(root)
+	args := []string{filepath.Join(r, "scripts", "test-perf.sh")}
+	args = append(args, extraArgs...)
 	return ToolStep{
 		Name: "perf",
 		Bin:  "bash",
-		Args: []string{filepath.Join(r, "scripts", "test-perf.sh")},
+		Args: args,
 		Dir:  r,
 	}
 }

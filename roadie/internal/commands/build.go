@@ -100,16 +100,49 @@ func runTests(ctx context.Context, flags buildFlags, root string, out io.Writer)
 	return nil
 }
 
-// runUnitTests runs npm install → tsc → jest → pytest in fatal-sequential order.
+// runUnitTests runs the full unit suite in fatal-sequential order.
 func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 	fmt.Fprintln(out, "[roadie] Running unit tests...")
 	r := pipeline.Root(root)
-	return pipeline.New(
-		pipeline.NpmInstallStep(r),
-		pipeline.TscStep(r),
-		pipeline.JestStep(r, false),
-		pipeline.PytestStep(r),
-	).RunSequential(ctx, out)
+	return pipeline.New(buildUnitPipeline(r, nil)...).RunSequential(ctx, out)
+}
+
+// buildUnitPipeline returns unit test steps filtered by tools. If tools is
+// empty, all steps are included: npm-install → tsc → jest → pytest.
+// NpmInstallStep is prepended whenever tsc or jest is selected.
+// PytestStep receives --benchmark-skip to keep benchmarks in the perf suite.
+func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
+	run := toolFilter(tools)
+	var steps []pipeline.ToolStep
+	if run("tsc") || run("jest") {
+		steps = append(steps, pipeline.NpmInstallStep(root))
+	}
+	if run("tsc") {
+		steps = append(steps, pipeline.TscStep(root))
+	}
+	if run("jest") {
+		steps = append(steps, pipeline.JestStep(root, false))
+	}
+	if run("pytest") {
+		steps = append(steps, pipeline.PytestStep(root, "--benchmark-skip"))
+	}
+	return steps
+}
+
+// toolFilter returns a predicate that reports whether name is in allowed.
+// An empty allowed list means all names are accepted.
+func toolFilter(allowed []string) func(string) bool {
+	if len(allowed) == 0 {
+		return func(string) bool { return true }
+	}
+	return func(name string) bool {
+		for _, a := range allowed {
+			if a == name {
+				return true
+			}
+		}
+		return false
+	}
 }
 
 // runSelectedSuites runs E2E, scan, and perf suites based on the enabled flags.

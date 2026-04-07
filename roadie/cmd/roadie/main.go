@@ -30,6 +30,7 @@ Run 'roadie <command> --help' for details on a specific command.`,
 	commands.AddStackCommands(root)
 	commands.AddBuildCommands(root)
 	commands.AddDBCommands(root)
+	commands.AddTestCommands(root)
 
 	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
