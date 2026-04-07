@@ -1,7 +1,9 @@
 package pipeline
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 const frontendDir = "app/controlroom_frontend"
@@ -98,6 +100,17 @@ func BanditStep(root Root) ToolStep {
 	}
 }
 
+// RuffStep returns a step that runs ruff lint against the backend.
+func RuffStep(root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: "ruff",
+		Bin:  "python",
+		Args: []string{"-m", "ruff", "check", filepath.Join(r, backendDir), "--quiet"},
+		Env:  pathEnv(ResolvePython()),
+	}
+}
+
 // PipAuditStep returns a step that audits Python dependencies for known CVEs.
 // Equivalent to scripts/run-pip-audit.sh.
 func PipAuditStep(root Root) ToolStep {
@@ -145,10 +158,119 @@ func TrivyStep(root Root, image ImageRef) ToolStep {
 	}
 }
 
+// SonarScanStep returns a step that runs scripts/test-scan.sh --sonar or
+// --sonar-gate. gate=true additionally polls the SonarQube API and fails if
+// the quality gate is not OK.
+func SonarScanStep(root Root, gate bool) ToolStep {
+	r := string(root)
+	flag := "--sonar"
+	if gate {
+		flag = "--sonar-gate"
+	}
+	return ToolStep{
+		Name: "sonar",
+		Bin:  "bash",
+		Args: []string{filepath.Join(r, "scripts", "test-scan.sh"), flag},
+		Dir:  r,
+	}
+}
+
+// trivyContainerStep returns a step that resolves a running container's image
+// SHA via docker inspect at runtime, then scans it with Trivy for HIGH and
+// CRITICAL CVEs. Uses bash -c to chain inspect + trivy without a staging file.
+func trivyContainerStep(root Root, container string) ToolStep {
+	r := string(root)
+	// Escape any single quotes in r so it can be safely embedded in a
+	// single-quoted shell word (bash '"'"' idiom).
+	rSafe := strings.ReplaceAll(r, "'", `'"'"'`)
+	script := fmt.Sprintf(
+		`set -e; `+
+			`img=$(docker inspect %s --format '{{.Image}}'); `+
+			`docker run --rm `+
+			`-v /var/run/docker.sock:/var/run/docker.sock `+
+			`-v trivy-cache:/root/.cache/trivy `+
+			`-v '%s/.trivyignore:/src/.trivyignore:ro' `+
+			`ghcr.io/aquasecurity/trivy:latest image `+
+			`--severity HIGH,CRITICAL --exit-code 1 --no-progress `+
+			`--ignorefile /src/.trivyignore "$img"`,
+		container, rSafe,
+	)
+	return ToolStep{
+		Name: "trivy-" + container,
+		Bin:  "bash",
+		Args: []string{"-c", script},
+	}
+}
+
+// TrivyBackendStep scans the controlroom_backend container image.
+func TrivyBackendStep(root Root) ToolStep {
+	return trivyContainerStep(root, "controlroom_backend")
+}
+
+// TrivyFrontendStep scans the controlroom_frontend container image.
+func TrivyFrontendStep(root Root) ToolStep {
+	return trivyContainerStep(root, "controlroom_frontend")
+}
+
+// DetectSecretsStep runs detect-secrets scan and diffs the result against
+// .secrets.baseline, exiting non-zero if any new finding is present.
+// detect-secrets scan --baseline only imports settings and always exits 0,
+// so we scan without --baseline and compare via an inline Python script.
+func DetectSecretsStep(root Root) ToolStep {
+	r := string(root)
+	rSafe := strings.ReplaceAll(r, "'", `'"'"'`)
+	script := `set -eo pipefail; ` +
+		`cd '` + rSafe + `'; ` +
+		`detect-secrets scan ` +
+		`--exclude-files 'node_modules/.*' ` +
+		`--exclude-files '\.git/.*' ` +
+		`--exclude-files '.*\.lock$' ` +
+		`--exclude-files 'package-lock\.json' ` +
+		`--exclude-files '.*\.next/.*' ` +
+		`--exclude-files '.*__pycache__.*' ` +
+		`--exclude-files '\.secrets\.baseline' ` +
+		`--exclude-files 'structurizr/workspace\.json' ` +
+		`> /tmp/secrets_current.json; ` +
+		`python3 -c '` +
+		`import json, sys; ` +
+		`cur = json.load(open("/tmp/secrets_current.json")); ` +
+		`base = json.load(open(".secrets.baseline")); ` +
+		`added = [f + ":" + str(r["line_number"]) + " [" + r["type"] + "]" ` +
+		`for f, findings in cur.get("results", {}).items() ` +
+		`for r in findings if r not in base.get("results", {}).get(f, [])]; ` +
+		`[print("[secrets] New secrets detected (not in baseline):"), ` +
+		`[print("[secrets]   " + s) for s in added], ` +
+		`print("[secrets] Run: detect-secrets scan --baseline .secrets.baseline"), ` +
+		`sys.exit(1)] if added else ` +
+		`print("[secrets] No new secrets detected (" + str(sum(len(v) for v in cur.get("results", {}).values())) + " findings, all baselined).)' `
+	return ToolStep{
+		Name: "detect-secrets",
+		Bin:  "bash",
+		Args: []string{"-c", script},
+		Dir:  r,
+	}
+}
+
+// SecurityHeadersStep runs pytest against the HTTP security header assertions.
+// Requires the production stack to be running at https://localhost:2112.
+func SecurityHeadersStep(root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: "security-headers",
+		Bin:  "python",
+		Args: []string{
+			"-m", "pytest",
+			filepath.Join(r, "tests", "security", "test_security_headers.py"),
+			"-v",
+		},
+		Env: pathEnv(ResolvePython()),
+	}
+}
+
 // E2EStep returns a step that runs the full sharded E2E suite via
 // scripts/test-e2e.sh. The script manages its own shard setup, parallel
-// Playwright runs, and container teardown — it is not decomposed into
-// individual ToolSteps until Phase 5.
+// Playwright runs, and container teardown. Full decomposition is deferred to
+// Phase 6.
 func E2EStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -160,9 +282,9 @@ func E2EStep(root Root) ToolStep {
 }
 
 // ScanStep returns a step that runs the full security scan suite via
-// scripts/test-scan.sh (SonarQube, Trivy, detect-secrets, headers). The script
-// manages coverage generation and gate polling — it is not decomposed until
-// Phase 5.
+// scripts/test-scan.sh. Used by `roadie build --scan` for a single full-suite
+// invocation. Individual checks are available via SonarScanStep,
+// TrivyBackendStep, TrivyFrontendStep, DetectSecretsStep, SecurityHeadersStep.
 func ScanStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -173,16 +295,17 @@ func ScanStep(root Root) ToolStep {
 	}
 }
 
-// PerfStep returns a step that runs the full performance suite via
-// scripts/test-perf.sh (benchmarks, k6, Lighthouse). The script manages the
-// backend container, production Next.js build, and frontend lifecycle — it is
-// not decomposed until Phase 5.
-func PerfStep(root Root) ToolStep {
+// PerfStep returns a step that runs scripts/test-perf.sh. extraArgs are
+// appended to the script invocation to select subsets (e.g. "--bundle",
+// "--k6") or modifiers (e.g. "--no-bundle"). Pass no args to run all suites.
+func PerfStep(root Root, extraArgs ...string) ToolStep {
 	r := string(root)
+	args := []string{filepath.Join(r, "scripts", "test-perf.sh")}
+	args = append(args, extraArgs...)
 	return ToolStep{
 		Name: "perf",
 		Bin:  "bash",
-		Args: []string{filepath.Join(r, "scripts", "test-perf.sh")},
+		Args: args,
 		Dir:  r,
 	}
 }

@@ -22,13 +22,30 @@ roadie release            # full release gate: rebuild dev stack + unit + E2E + 
 
 ---
 
+### `scripts/test-unit.sh` *(superseded)*
+
+> **Superseded by `roadie test unit`.** Use `roadie test unit` instead. The script is retained for CI compatibility.
+
+---
+
+### `scripts/test-scan.sh` *(superseded as entry point)*
+
+> **Superseded by `roadie test scan`.** Use `roadie test scan [sonar|trivy|secrets|headers] [--gate]` instead. The script is retained and called internally by Roadie's SonarScanStep.
+
+---
+
 ### `scripts/test-perf.sh`
 
-Runs the full performance test suite. Not part of the standard build — run on demand when you want to measure performance or validate SLOs.
+Runs the full performance test suite via `roadie test perf`. Not part of the standard build — run on demand when you want to measure performance or validate SLOs.
 
 ```bash
-./scripts/test-perf.sh
+roadie test perf                           # all suites (includes production Next.js build)
+roadie test perf bundle                    # bundle analysis only (steps 1–3)
+roadie test perf benchmarks                # pytest benchmarks + EXPLAIN plans only
+roadie test perf --no-bundle               # all suites, skip build (reuse existing .next-perf)
 ```
+
+Note: subtype selectors (`bundle`, `benchmarks`, `k6`, `lighthouse`) are mutually exclusive — each runs only that suite. Pass at most one.
 
 Prerequisites: production stack running (`docker compose up -d`), dev stack running (`./scripts/dev.sh up`), `controlroomdb_test` provisioned (`./scripts/reset-test-db.sh`).
 
@@ -175,13 +192,13 @@ Steps performed:
 
 ### Hook runner scripts
 
-These are called by the pre-commit framework. You can also run them manually during development.
+These are called by the pre-commit framework. `run-pytest.sh`, `run-jest.sh`, and `run-tsc.sh` are superseded as standalone commands by `roadie test unit` — they are retained only for the pre-commit hook runner.
 
 | Script | Command run | Notes |
 |---|---|---|
-| `scripts/run-pytest.sh` | `pytest` (backend tests) | Runs against `controlroomdb_test` — requires the DB to be up |
-| `scripts/run-jest.sh` | `jest --no-coverage` | Runs all frontend unit tests |
-| `scripts/run-tsc.sh` | `tsc --noEmit` | Type-checks the frontend without emitting files |
+| `scripts/run-pytest.sh` *(hook only)* | `pytest` (backend tests) | Use `roadie test unit pytest` outside of hooks |
+| `scripts/run-jest.sh` *(hook only)* | `jest --no-coverage` | Use `roadie test unit jest` outside of hooks |
+| `scripts/run-tsc.sh` *(hook only)* | `tsc --noEmit` | Use `roadie test unit tsc` outside of hooks |
 | `scripts/run-bandit.sh` | `bandit -r app/controlroom_backend` | Python SAST scan; skips B104, B608 (see [setup.md](setup.md)) |
 | `scripts/run-pip-audit.sh` | `pip-audit` | Checks Python dependencies for known CVEs |
 | `scripts/run-npm-audit.sh` | `npm audit --audit-level=critical` | Checks Node dependencies at critical severity only |
