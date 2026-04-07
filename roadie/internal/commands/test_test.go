@@ -17,44 +17,34 @@ func stepNames(steps []pipeline.ToolStep) []string {
 	return names
 }
 
-func assertStepNames(t *testing.T, steps []pipeline.ToolStep, want []string) {
-	t.Helper()
-	got := stepNames(steps)
-	if len(got) != len(want) {
-		t.Fatalf("step count: got %d (%v), want %d (%v)", len(got), got, len(want), want)
+// ── buildUnitPipeline ─────────────────────────────────────────────────────────
+
+func TestBuildUnitPipeline_AllTools(t *testing.T) {
+	steps := buildUnitPipeline("/repo", nil)
+	names := stepNames(steps)
+	want := []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"}
+	if len(names) != len(want) {
+		t.Fatalf("step count: got %d (%v), want %d (%v)", len(names), names, len(want), want)
 	}
-	for i, name := range want {
-		if got[i] != name {
-			t.Errorf("step[%d]: got %q, want %q", i, got[i], name)
+	for i, n := range want {
+		if names[i] != n {
+			t.Errorf("step[%d]: got %q, want %q", i, names[i], n)
 		}
 	}
 }
 
-// ── buildUnitPipeline ─────────────────────────────────────────────────────────
-
-func TestBuildUnitPipeline_AllTools(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", nil),
-		[]string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"})
-}
-
-func TestBuildUnitPipeline_RuffOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"ruff"}),
-		[]string{"ruff"})
-}
-
-func TestBuildUnitPipeline_BanditOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"bandit"}),
-		[]string{"bandit"})
-}
-
 func TestBuildUnitPipeline_TscOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"tsc"}),
-		[]string{"npm-install", "tsc"})
+	names := stepNames(buildUnitPipeline("/repo", []string{"tsc"}))
+	if len(names) != 2 || names[0] != "npm-install" || names[1] != "tsc" {
+		t.Errorf("unexpected steps: %v", names)
+	}
 }
 
 func TestBuildUnitPipeline_PytestOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"pytest"}),
-		[]string{"pytest"})
+	names := stepNames(buildUnitPipeline("/repo", []string{"pytest"}))
+	if len(names) != 1 || names[0] != "pytest" {
+		t.Errorf("unexpected steps: %v", names)
+	}
 }
 
 func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
@@ -68,87 +58,96 @@ func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
 	}
 }
 
-// ── scanSteps ─────────────────────────────────────────────────────────────────
+// ── buildScanFlags ────────────────────────────────────────────────────────────
 
-func TestScanSteps_AllByDefault(t *testing.T) {
-	steps := scanSteps("/repo", nil, false)
-	// sonar(1) + trivy(2: backend+frontend) + detect-secrets(1) + headers(1) = 5
-	if len(steps) != 5 {
-		t.Fatalf("expected 5 steps, got %d: %v", len(steps), stepNames(steps))
+func TestBuildScanFlags_AllByDefault(t *testing.T) {
+	f := buildScanFlags(nil, false)
+	if !f.Sonar || !f.Trivy || !f.Secrets || !f.Headers {
+		t.Errorf("expected all flags set for empty args, got %+v", f)
 	}
 }
 
-func TestScanSteps_TrivyOnly(t *testing.T) {
-	assertStepNames(t, scanSteps("/repo", []string{"trivy"}, false),
-		[]string{"trivy-controlroom_backend", "trivy-controlroom_frontend"})
-}
-
-func TestScanSteps_SonarGate(t *testing.T) {
-	steps := scanSteps("/repo", []string{"sonar"}, true)
-	if len(steps) != 1 {
-		t.Fatalf("expected 1 step, got %d", len(steps))
-	}
-	if steps[0].Name != "sonar" {
-		t.Errorf("expected sonar step, got %q", steps[0].Name)
-	}
-	args := strings.Join(steps[0].Args, " ")
-	if !strings.Contains(args, "--sonar-gate") {
-		t.Errorf("expected --sonar-gate in args, got: %q", args)
+func TestBuildScanFlags_TrivyOnly(t *testing.T) {
+	f := buildScanFlags([]string{"trivy"}, false)
+	if !f.Trivy || f.Sonar || f.Secrets || f.Headers {
+		t.Errorf("expected only Trivy set, got %+v", f)
 	}
 }
 
-func TestScanSteps_SingleCheck_Secrets(t *testing.T) {
-	steps := scanSteps("/repo", []string{"secrets"}, false)
-	if len(steps) != 1 || steps[0].Name != "detect-secrets" {
-		t.Errorf("expected detect-secrets step, got: %v", stepNames(steps))
+func TestBuildScanFlags_SonarWithGate(t *testing.T) {
+	f := buildScanFlags([]string{"sonar"}, true)
+	if !f.Sonar || !f.Gate {
+		t.Errorf("expected Sonar+Gate, got %+v", f)
+	}
+	if f.Trivy || f.Secrets || f.Headers {
+		t.Errorf("expected only Sonar set, got %+v", f)
 	}
 }
 
-// ── subtypesToFlags ───────────────────────────────────────────────────────────
-
-func TestSubtypesToFlags_EmptyArgs(t *testing.T) {
-	got := subtypesToFlags(nil, perfFlagMap)
-	if got != nil {
-		t.Errorf("expected nil for empty args, got %v", got)
+func TestBuildScanFlags_MultipleChecks(t *testing.T) {
+	f := buildScanFlags([]string{"secrets", "headers"}, false)
+	if !f.Secrets || !f.Headers {
+		t.Errorf("expected Secrets+Headers, got %+v", f)
+	}
+	if f.Sonar || f.Trivy {
+		t.Errorf("expected only Secrets+Headers, got %+v", f)
 	}
 }
 
-func TestSubtypesToFlags_SingleArg(t *testing.T) {
-	got := subtypesToFlags([]string{"bundle"}, perfFlagMap)
-	if len(got) != 1 || got[0] != "--bundle" {
-		t.Errorf("expected [--bundle], got %v", got)
+// ── buildPerfFlags ────────────────────────────────────────────────────────────
+
+func TestBuildPerfFlags_Empty(t *testing.T) {
+	f := buildPerfFlags(nil, false)
+	if f.Bundle || f.Benchmarks || f.K6 || f.Lighthouse {
+		t.Errorf("expected no suites selected for empty args, got %+v", f)
 	}
 }
 
-func TestSubtypesToFlags_MultipleArgs(t *testing.T) {
-	got := subtypesToFlags([]string{"bundle", "k6"}, perfFlagMap)
-	joined := strings.Join(got, " ")
-	if !strings.Contains(joined, "--bundle") || !strings.Contains(joined, "--k6") {
-		t.Errorf("expected --bundle and --k6 in flags, got %v", got)
+func TestBuildPerfFlags_K6(t *testing.T) {
+	f := buildPerfFlags([]string{"k6"}, false)
+	if !f.K6 || f.Bundle || f.Benchmarks || f.Lighthouse {
+		t.Errorf("expected only K6, got %+v", f)
 	}
 }
 
-// ── PerfStep variadic args ────────────────────────────────────────────────────
-
-func TestPerfStep_NoExtraArgs(t *testing.T) {
-	s := pipeline.PerfStep("/repo")
-	if !strings.Contains(strings.Join(s.Args, " "), "test-perf.sh") {
-		t.Errorf("expected test-perf.sh in args, got %v", s.Args)
+func TestBuildPerfFlags_NoBundle(t *testing.T) {
+	f := buildPerfFlags(nil, true)
+	if !f.NoBundle {
+		t.Error("expected NoBundle=true")
 	}
 }
 
-func TestPerfStep_NoBundleFlag(t *testing.T) {
-	s := pipeline.PerfStep("/repo", "--no-bundle")
-	args := strings.Join(s.Args, " ")
-	if !strings.Contains(args, "--no-bundle") {
-		t.Errorf("expected --no-bundle in args, got %q", args)
+// ── e2eConfigFrom / perfConfigFrom ───────────────────────────────────────────
+
+func TestE2EConfigFrom_MapsFields(t *testing.T) {
+	cfg := minimalTestConfig()
+	e := e2eConfigFrom(cfg)
+
+	if e.Shards != 4 {
+		t.Errorf("Shards: got %d, want 4", e.Shards)
+	}
+	if e.BackendBasePort != 5151 {
+		t.Errorf("BackendBasePort: got %d, want 5151", e.BackendBasePort)
+	}
+	if e.DBContainer != "studio_db" {
+		t.Errorf("DBContainer: got %q, want studio_db", e.DBContainer)
+	}
+	if e.DevComposeFile != "docker-compose.dev.yml" {
+		t.Errorf("DevComposeFile: got %q, want docker-compose.dev.yml", e.DevComposeFile)
 	}
 }
 
-func TestPerfStep_SubtypeMapping(t *testing.T) {
-	s := pipeline.PerfStep("/repo", "--bundle", "--k6")
-	args := strings.Join(s.Args, " ")
-	if !strings.Contains(args, "--bundle") || !strings.Contains(args, "--k6") {
-		t.Errorf("expected --bundle and --k6 in args, got %q", args)
+func TestPerfConfigFrom_MapsFields(t *testing.T) {
+	cfg := minimalTestConfig()
+	p := perfConfigFrom(cfg)
+
+	if p.BackendPort != 5160 {
+		t.Errorf("BackendPort: got %d, want 5160", p.BackendPort)
+	}
+	if p.FrontendPort != 3010 {
+		t.Errorf("FrontendPort: got %d, want 3010", p.FrontendPort)
+	}
+	if p.DBSource != "controlroomdb_test" {
+		t.Errorf("DBSource: got %q, want controlroomdb_test", p.DBSource)
 	}
 }

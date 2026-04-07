@@ -158,23 +158,6 @@ func TrivyStep(root Root, image ImageRef) ToolStep {
 	}
 }
 
-// SonarScanStep returns a step that runs scripts/test-scan.sh --sonar or
-// --sonar-gate. gate=true additionally polls the SonarQube API and fails if
-// the quality gate is not OK.
-func SonarScanStep(root Root, gate bool) ToolStep {
-	r := string(root)
-	flag := "--sonar"
-	if gate {
-		flag = "--sonar-gate"
-	}
-	return ToolStep{
-		Name: "sonar",
-		Bin:  "bash",
-		Args: []string{filepath.Join(r, "scripts", "test-scan.sh"), flag},
-		Dir:  r,
-	}
-}
-
 // trivyContainerStep returns a step that resolves a running container's image
 // SHA via docker inspect at runtime, then scans it with Trivy for HIGH and
 // CRITICAL CVEs. Uses bash -c to chain inspect + trivy without a staging file.
@@ -264,48 +247,5 @@ func SecurityHeadersStep(root Root) ToolStep {
 			"-v",
 		},
 		Env: pathEnv(ResolvePython()),
-	}
-}
-
-// E2EStep returns a step that runs the full sharded E2E suite via
-// scripts/test-e2e.sh. The script manages its own shard setup, parallel
-// Playwright runs, and container teardown. Full decomposition is deferred to
-// Phase 6.
-func E2EStep(root Root) ToolStep {
-	r := string(root)
-	return ToolStep{
-		Name: "e2e",
-		Bin:  "bash",
-		Args: []string{filepath.Join(r, "scripts", "test-e2e.sh")},
-		Dir:  r,
-	}
-}
-
-// ScanStep returns a step that runs the full security scan suite via
-// scripts/test-scan.sh. Used by `roadie build --scan` for a single full-suite
-// invocation. Individual checks are available via SonarScanStep,
-// TrivyBackendStep, TrivyFrontendStep, DetectSecretsStep, SecurityHeadersStep.
-func ScanStep(root Root) ToolStep {
-	r := string(root)
-	return ToolStep{
-		Name: "scan",
-		Bin:  "bash",
-		Args: []string{filepath.Join(r, "scripts", "test-scan.sh")},
-		Dir:  r,
-	}
-}
-
-// PerfStep returns a step that runs scripts/test-perf.sh. extraArgs are
-// appended to the script invocation to select subsets (e.g. "--bundle",
-// "--k6") or modifiers (e.g. "--no-bundle"). Pass no args to run all suites.
-func PerfStep(root Root, extraArgs ...string) ToolStep {
-	r := string(root)
-	args := []string{filepath.Join(r, "scripts", "test-perf.sh")}
-	args = append(args, extraArgs...)
-	return ToolStep{
-		Name: "perf",
-		Bin:  "bash",
-		Args: args,
-		Dir:  r,
 	}
 }

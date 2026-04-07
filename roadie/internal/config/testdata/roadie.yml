@@ -34,3 +34,21 @@ build:
     - sql/views.sql
   databases:
     - controlroomdb_test
+
+test:
+  e2e:
+    shards: 4
+    backend_compose_project: dev
+    backend_service: controlroom_backend_test
+    backend_internal_port: 5150
+    backend_base_port: 5151
+    frontend_base_port: 3001
+  perf:
+    backend_port: 5160
+    frontend_port: 3010
+    carbon_base_url: ""
+  db:
+    container: studio_db
+    user: studio
+    password: studio  # pragma: allowlist secret
+    source: controlroomdb_test

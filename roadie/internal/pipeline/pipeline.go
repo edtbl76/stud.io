@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -135,10 +136,10 @@ func (s ToolStep) Run(ctx context.Context, out io.Writer) error {
 }
 
 // StepResult records the outcome of a single step in a collect-mode pipeline.
-// It is the building block for Phase 6's --json output (PipelineError).
 type StepResult struct {
 	Name     string
 	Err      error
+	Warn     bool // soft warning (e.g. Lighthouse LCP threshold exceeded)
 	Duration time.Duration
 }
 
@@ -192,17 +193,54 @@ func (p *Pipeline) RunCollect(ctx context.Context, out io.Writer) ([]StepResult,
 	return results, collectErrors(results)
 }
 
-// PrintSummary writes a PASS/FAIL table for a collect-mode run.
+// PrintSummary writes a PASS/WARN/FAIL table for a collect-mode run.
 func PrintSummary(out io.Writer, results []StepResult) {
 	fmt.Fprintln(out, "\n─── Summary ────────────────────────────────")
 	for _, r := range results {
-		status := "PASS"
-		if r.Err != nil {
-			status = "FAIL"
-		}
+		status := stepStatus(r)
 		fmt.Fprintf(out, "  %-20s %s  (%s)\n", r.Name, status, r.Duration.Round(time.Millisecond))
 	}
 	fmt.Fprintln(out, "────────────────────────────────────────────")
+}
+
+// PrintSummaryJSON writes results as a JSON array. Useful for CI parsing.
+func PrintSummaryJSON(out io.Writer, results []StepResult) error {
+	type jResult struct {
+		Name       string `json:"name"`
+		Status     string `json:"status"`
+		DurationMs int64  `json:"duration_ms"`
+	}
+	arr := make([]jResult, 0, len(results))
+	for _, r := range results {
+		arr = append(arr, jResult{
+			Name:       r.Name,
+			Status:     stepStatus(r),
+			DurationMs: r.Duration.Milliseconds(),
+		})
+	}
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	return enc.Encode(arr)
+}
+
+// HasWarnings reports whether any result has Warn=true and no error.
+func HasWarnings(results []StepResult) bool {
+	for _, r := range results {
+		if r.Warn && r.Err == nil {
+			return true
+		}
+	}
+	return false
+}
+
+func stepStatus(r StepResult) string {
+	if r.Err != nil {
+		return "FAIL"
+	}
+	if r.Warn {
+		return "WARN"
+	}
+	return "PASS"
 }
 
 func collectErrors(results []StepResult) error {

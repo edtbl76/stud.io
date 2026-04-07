@@ -83,17 +83,17 @@ func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.
 	if err := applySchema(ctx, cfg, out); err != nil {
 		return err
 	}
-	return runTests(ctx, flags, root, out)
+	return runTests(ctx, cfg, flags, root, out)
 }
 
 // runTests runs the unit pipeline then any enabled optional suites.
-func runTests(ctx context.Context, flags buildFlags, root string, out io.Writer) error {
+func runTests(ctx context.Context, cfg *config.Config, flags buildFlags, root string, out io.Writer) error {
 	if !flags.skipTests {
 		if err := runUnitTests(ctx, root, out); err != nil {
 			return err
 		}
 	}
-	if err := runSelectedSuites(ctx, flags, root, out); err != nil {
+	if err := runSelectedSuites(ctx, cfg, flags, root, out); err != nil {
 		return err
 	}
 	fmt.Fprintln(out, "[roadie] Build complete.")
@@ -152,23 +152,28 @@ func toolFilter(allowed []string) func(string) bool {
 }
 
 // runSelectedSuites runs E2E, scan, and perf suites based on the enabled flags.
-func runSelectedSuites(ctx context.Context, flags buildFlags, root string, out io.Writer) error {
+func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags, root string, out io.Writer) error {
 	r := pipeline.Root(root)
-	suites := []struct {
-		enabled bool
-		label   string
-		step    pipeline.ToolStep
-	}{
-		{flags.runE2E(), "E2E tests", pipeline.E2EStep(r)},
-		{flags.runScan(), "security scans", pipeline.ScanStep(r)},
-		{flags.runPerf(), "performance tests", pipeline.PerfStep(r)},
-	}
-	for _, s := range suites {
-		if !s.enabled {
-			continue
+
+	if flags.runE2E() {
+		fmt.Fprintln(out, "[roadie] Running E2E tests...")
+		if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, out); err != nil {
+			return err
 		}
-		fmt.Fprintf(out, "[roadie] Running %s...\n", s.label)
-		if err := pipeline.New(s.step).RunSequential(ctx, out); err != nil {
+	}
+	if flags.runScan() {
+		fmt.Fprintln(out, "[roadie] Running security scans...")
+		results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(true), out)
+		pipeline.PrintSummary(out, results)
+		if err != nil {
+			return err
+		}
+	}
+	if flags.runPerf() {
+		fmt.Fprintln(out, "[roadie] Running performance tests...")
+		results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), r, pipeline.PerfFlags{}, out)
+		pipeline.PrintSummary(out, results)
+		if err != nil {
 			return err
 		}
 	}
