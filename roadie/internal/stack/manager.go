@@ -146,9 +146,7 @@ func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(
 			fmt.Fprintln(m.out, "ready")
 			return nil
 		}
-		if err != nil {
-			lastErr = err
-		}
+		lastErr = err
 		if time.Now().After(deadline) {
 			fmt.Fprintln(m.out, "TIMED OUT")
 			return m.timeoutError(name, lastErr)
