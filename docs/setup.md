@@ -66,21 +66,21 @@ The `nginx/certs/` directory is git-ignored — certs must be generated locally 
 
 To manage the stack without running tests:
 ```bash
-./roadie.sh start        # start production stack
-./roadie.sh start --dev  # start production stack + dev tools (SonarQube, Structurizr)
-./roadie.sh stop         # stop production stack
-./roadie.sh stop --dev   # stop production stack + dev tools
-./roadie.sh restart      # stop then start
-./roadie.sh status       # show running containers
+roadie start        # start production stack
+roadie start --dev  # start production stack + dev tools (SonarQube, Structurizr)
+roadie stop         # stop production stack
+roadie stop --dev   # stop production stack + dev tools
+roadie restart      # stop then start
+roadie status       # show running containers
 ```
 
 To build and run the full test suite:
 ```bash
-./build.sh              # stack + unit tests + E2E tests
-./build.sh --skip-tests # stack only (rebuild images)
-./build.sh --skip-e2e   # stack + unit tests only
-./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
-./build.sh --release    # full release gate: --dev + Trivy + secrets + headers + perf
+roadie build              # rebuild images, apply schema to test DBs, run unit tests
+roadie build --e2e        # also run Playwright E2E shards
+roadie build --dev        # include dev overlay (SonarQube + Structurizr)
+roadie build --skip-tests # rebuild images and apply schema only
+roadie release            # full release gate: rebuild dev stack + unit + E2E + scan + perf
 ```
 
 This builds and starts four containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`, `controlroom_nginx`), waits for each to be healthy, applies the schema and semantic views to both databases, and runs the test suite.

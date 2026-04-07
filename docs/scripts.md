@@ -8,29 +8,17 @@ For the overall development workflow (branches, PRs, CI gate, pre-merge checklis
 
 ## scripts/
 
-### `build.sh` *(project root)*
+### `build.sh` *(project root — superseded)*
 
-Main entry point. Starts the full Docker stack, runs tests, and optionally runs a SonarQube quality gate or full release gate.
+> **Superseded by `roadie build`.** `build.sh` is retained for CI compatibility but is no longer the recommended local development entry point. Use `roadie build` instead (see [`docs/arch/roadie.md`](arch/roadie.md)).
 
 ```bash
-./build.sh              # stack + unit tests + E2E tests
-./build.sh --skip-tests # stack only
-./build.sh --skip-e2e   # stack + unit tests only
-./build.sh --dev        # stack + unit tests + SonarQube quality gate + E2E tests
-./build.sh --release    # full release gate: --dev + Trivy + secrets + headers + perf
+roadie build              # recommended: rebuild images, apply schema, run unit tests
+roadie build --e2e        # also run Playwright E2E shards
+roadie build --dev        # include dev overlay (SonarQube + Structurizr)
+roadie build --skip-tests # rebuild images and apply schema only
+roadie release            # full release gate: rebuild dev stack + unit + E2E + scan + perf
 ```
-
-Flags can be combined (e.g. `./build.sh --dev --skip-e2e`). With `--dev` or `--release`, E2E is blocked if the SonarQube quality gate fails.
-
-On startup it:
-1. Builds and starts all containers
-2. Waits for PostgreSQL, API, and frontend health checks
-3. Applies `sql/schema.sql` and `sql/views.sql` to `controlroomdb` and `controlroomdb_test`
-4. Runs backend (`pytest`) and frontend (`jest`) unit tests
-5. (With `--dev`) Runs the SonarQube scanner and verifies the quality gate (`--sonar-gate`) — aborts if it fails
-6. (With `--release`) Runs the full security scan (`test-scan.sh`) — aborts if any check fails
-7. Runs the Playwright E2E test suite
-8. (With `--release`) Runs the performance suite (`test-perf.sh`)
 
 ---
 

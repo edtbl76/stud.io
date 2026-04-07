@@ -27,9 +27,10 @@ func npmStep(name string, args []string, root Root) ToolStep {
 }
 
 // NpmInstallStep returns a step that runs npm install in the frontend directory.
-// This is idempotent: npm skips work when package-lock.json is unchanged.
+// --include=dev ensures devDependencies (e.g. jest, tsc) are installed even
+// when NODE_ENV=production is set in the environment.
 func NpmInstallStep(root Root) ToolStep {
-	return npmStep("npm-install", []string{"install"}, root)
+	return npmStep("npm-install", []string{"install", "--include=dev"}, root)
 }
 
 // TscStep returns a step that runs tsc --noEmit against the frontend project.
@@ -57,7 +58,7 @@ func JestStep(root Root, coverage bool) ToolStep {
 	}
 	return ToolStep{
 		Name: "jest",
-		Bin:  filepath.Join(r, frontendDir, "node_modules", ".bin", "jest"),
+		Bin:  filepath.Join("node_modules", ".bin", "jest"),
 		Args: args,
 		Dir:  filepath.Join(r, frontendDir),
 		Env:  pathEnv(ResolveNode()),

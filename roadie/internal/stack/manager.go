@@ -146,7 +146,9 @@ func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(
 			fmt.Fprintln(m.out, "ready")
 			return nil
 		}
-		lastErr = m.logNewWarning(name, err, lastErr)
+		if err != nil {
+			lastErr = err
+		}
 		if time.Now().After(deadline) {
 			fmt.Fprintln(m.out, "TIMED OUT")
 			return m.timeoutError(name, lastErr)
@@ -158,18 +160,6 @@ func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(
 			fmt.Fprint(m.out, ".")
 		}
 	}
-}
-
-func isNewWarning(err, lastErr error) bool {
-	return err != nil && (lastErr == nil || err.Error() != lastErr.Error())
-}
-
-func (m *Manager) logNewWarning(name string, err, lastErr error) error {
-	if isNewWarning(err, lastErr) {
-		fmt.Fprintf(m.out, "\n[roadie] %-12s warning: %v", name, err)
-		return err
-	}
-	return lastErr
 }
 
 func (m *Manager) timeoutError(name string, lastErr error) error {
