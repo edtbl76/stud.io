@@ -11,20 +11,50 @@ import (
 	"testing"
 )
 
+// writeLcov creates the lcov.info file at the standard path under root.
+func writeLcov(t *testing.T, root, content string) {
+	t.Helper()
+	dir := filepath.Join(root, "app", "controlroom_frontend", "coverage")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("creating lcov dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "lcov.info"), []byte(content), 0644); err != nil {
+		t.Fatalf("writing lcov: %v", err)
+	}
+}
+
+// sonarGateSrv returns a test server whose CE-component endpoint reports a
+// completed task and whose quality-gate endpoint returns gateStatus with the
+// given conditions.
+func sonarGateSrv(t *testing.T, gateStatus string, conditions []any) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.Contains(r.URL.Path, "/api/ce/component"):
+			json.NewEncoder(w).Encode(map[string]any{ //nolint
+				"queue":   []any{},
+				"current": map[string]any{"status": "SUCCESS"},
+			})
+		case strings.Contains(r.URL.Path, "/api/qualitygates/project_status"):
+			json.NewEncoder(w).Encode(map[string]any{ //nolint
+				"projectStatus": map[string]any{
+					"status":     gateStatus,
+					"conditions": conditions,
+				},
+			})
+		}
+	}))
+}
+
 func TestFixLcovPaths_AddsPrefixWhenMissing(t *testing.T) {
 	tmp := t.TempDir()
-	lcovDir := filepath.Join(tmp, "app", "controlroom_frontend", "coverage")
-	os.MkdirAll(lcovDir, 0o755)
-	lcovPath := filepath.Join(lcovDir, "lcov.info")
-
-	original := "SF:src/app/layout.tsx\nDA:1,1\n"
-	os.WriteFile(lcovPath, []byte(original), 0644)
+	writeLcov(t, tmp, "SF:src/app/layout.tsx\nDA:1,1\n")
 
 	if err := fixLcovPaths(tmp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	result, _ := os.ReadFile(lcovPath)
+	result, _ := os.ReadFile(filepath.Join(tmp, "app", "controlroom_frontend", "coverage", "lcov.info"))
 	if !strings.Contains(string(result), "SF:app/controlroom_frontend/src/app/layout.tsx") {
 		t.Errorf("expected prefixed SF: line, got:\n%s", result)
 	}
@@ -32,18 +62,14 @@ func TestFixLcovPaths_AddsPrefixWhenMissing(t *testing.T) {
 
 func TestFixLcovPaths_NoOpWhenAlreadyPrefixed(t *testing.T) {
 	tmp := t.TempDir()
-	lcovDir := filepath.Join(tmp, "app", "controlroom_frontend", "coverage")
-	os.MkdirAll(lcovDir, 0o755)
-	lcovPath := filepath.Join(lcovDir, "lcov.info")
-
 	content := "SF:app/controlroom_frontend/src/app/layout.tsx\nDA:1,1\n"
-	os.WriteFile(lcovPath, []byte(content), 0644)
+	writeLcov(t, tmp, content)
 
 	if err := fixLcovPaths(tmp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	result, _ := os.ReadFile(lcovPath)
+	result, _ := os.ReadFile(filepath.Join(tmp, "app", "controlroom_frontend", "coverage", "lcov.info"))
 	if string(result) != content {
 		t.Errorf("expected file unchanged, got:\n%s", result)
 	}
@@ -90,16 +116,7 @@ func TestLoadSonarToken_ErrorWhenMissing(t *testing.T) {
 }
 
 func TestCheckSonarGate_PassesOnOK(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.Contains(r.URL.Path, "/api/ce/component"):
-			json.NewEncoder(w).Encode(map[string]any{"queue": []any{}, "current": map[string]any{"status": "SUCCESS"}})
-		case strings.Contains(r.URL.Path, "/api/qualitygates/project_status"):
-			json.NewEncoder(w).Encode(map[string]any{
-				"projectStatus": map[string]any{"status": "OK", "conditions": []any{}},
-			})
-		}
-	}))
+	srv := sonarGateSrv(t, "OK", []any{})
 	defer srv.Close()
 
 	var out strings.Builder
@@ -112,21 +129,10 @@ func TestCheckSonarGate_PassesOnOK(t *testing.T) {
 }
 
 func TestCheckSonarGate_FailsOnError(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case strings.Contains(r.URL.Path, "/api/ce/component"):
-			json.NewEncoder(w).Encode(map[string]any{"queue": []any{}, "current": map[string]any{"status": "SUCCESS"}})
-		case strings.Contains(r.URL.Path, "/api/qualitygates/project_status"):
-			json.NewEncoder(w).Encode(map[string]any{
-				"projectStatus": map[string]any{
-					"status": "ERROR",
-					"conditions": []any{
-						map[string]any{"status": "ERROR", "metricKey": "coverage", "actualValue": "60", "errorThreshold": "80"},
-					},
-				},
-			})
-		}
-	}))
+	conditions := []any{
+		map[string]any{"status": "ERROR", "metricKey": "coverage", "actualValue": "60", "errorThreshold": "80"},
+	}
+	srv := sonarGateSrv(t, "ERROR", conditions)
 	defer srv.Close()
 
 	var out strings.Builder
