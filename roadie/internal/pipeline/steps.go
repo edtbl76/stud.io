@@ -99,6 +99,17 @@ func BanditStep(root Root) ToolStep {
 	}
 }
 
+// RuffStep returns a step that runs ruff lint against the backend.
+func RuffStep(root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: "ruff",
+		Bin:  "python",
+		Args: []string{"-m", "ruff", "check", filepath.Join(r, backendDir), "--quiet"},
+		Env:  pathEnv(ResolvePython()),
+	}
+}
+
 // PipAuditStep returns a step that audits Python dependencies for known CVEs.
 // Equivalent to scripts/run-pip-audit.sh.
 func PipAuditStep(root Root) ToolStep {

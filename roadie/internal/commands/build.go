@@ -123,6 +123,12 @@ func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
 	if run("jest") {
 		steps = append(steps, pipeline.JestStep(root, false))
 	}
+	if run("ruff") {
+		steps = append(steps, pipeline.RuffStep(root))
+	}
+	if run("bandit") {
+		steps = append(steps, pipeline.BanditStep(root))
+	}
 	if run("pytest") {
 		steps = append(steps, pipeline.PytestStep(root, "--benchmark-skip"))
 	}

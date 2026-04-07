@@ -69,7 +69,7 @@ The individual scripts still work and are used by CI, but `roadie build` is the 
 For security-sensitive changes or before a release:
 
 ```bash
-./scripts/test-scan.sh   # Sonar, Trivy, detect-secrets, headers (Phase 5 will absorb into roadie)
+roadie test scan         # Sonar, Trivy, detect-secrets, security headers
 roadie release           # full release gate: rebuild dev stack + unit + E2E + scan + perf
 ```
 
@@ -94,16 +94,22 @@ The project uses Bazel (via bazelisk, pinned in `.bazelversion`) as the build sy
 
 ### Target quick reference
 
-| Command | What runs |
-|---|---|
-| `bazel test //:unit` | Hermetic checks only — tsc, jest, ruff, bandit (no infrastructure needed) |
-| `bazel test //app/controlroom_backend/tests:pytest` | pytest (requires live PostgreSQL) |
-| `bazel test //app/controlroom_frontend/e2e:playwright` | Playwright E2E (requires Docker stack) |
-| `bazel test //tests:scan_sonar` | SonarQube scan + quality gate |
-| `bazel test //tests:scan_trivy` | Trivy image scan |
-| `bazel test //tests:scan_secrets` | detect-secrets audit |
-| `bazel test //tests:perf` | Full performance suite |
-| `bazel run //:buildifier` | Format all BUILD files |
+Each Bazel target delegates to the equivalent `roadie` command.
+
+| Bazel command | What runs | Roadie equivalent |
+|---|---|---|
+| `bazel test //:unit` | All hermetic checks: tsc · jest · ruff · bandit | `roadie test unit` |
+| `bazel test //app/controlroom_frontend:tsc` | TypeScript type-check | `roadie test unit tsc` |
+| `bazel test //app/controlroom_frontend:jest` | Jest unit tests | `roadie test unit jest` |
+| `bazel test //app/controlroom_backend:ruff` | ruff lint | `roadie test unit ruff` |
+| `bazel test //app/controlroom_backend:bandit` | bandit SAST | `roadie test unit bandit` |
+| `bazel test //app/controlroom_backend/tests:pytest` | pytest (requires live PostgreSQL) | `roadie test unit pytest` |
+| `bazel test //app/controlroom_frontend/e2e:playwright` | Playwright E2E (requires Docker stack) | `roadie test e2e` |
+| `bazel test //tests:scan_sonar` | SonarQube scan + quality gate | `roadie test scan sonar --gate` |
+| `bazel test //tests:scan_trivy` | Trivy image scan | `roadie test scan trivy` |
+| `bazel test //tests:scan_secrets` | detect-secrets audit | `roadie test scan secrets` |
+| `bazel test //tests:perf` | Full performance suite | `roadie test perf` |
+| `bazel run //:buildifier` | Format all BUILD files | — |
 
 Use `--config=dev` locally for disk caching: `bazel test --config=dev //:unit`.
 

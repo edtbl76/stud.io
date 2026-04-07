@@ -34,7 +34,17 @@ func assertStepNames(t *testing.T, steps []pipeline.ToolStep, want []string) {
 
 func TestBuildUnitPipeline_AllTools(t *testing.T) {
 	assertStepNames(t, buildUnitPipeline("/repo", nil),
-		[]string{"npm-install", "tsc", "jest", "pytest"})
+		[]string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"})
+}
+
+func TestBuildUnitPipeline_RuffOnly(t *testing.T) {
+	assertStepNames(t, buildUnitPipeline("/repo", []string{"ruff"}),
+		[]string{"ruff"})
+}
+
+func TestBuildUnitPipeline_BanditOnly(t *testing.T) {
+	assertStepNames(t, buildUnitPipeline("/repo", []string{"bandit"}),
+		[]string{"bandit"})
 }
 
 func TestBuildUnitPipeline_TscOnly(t *testing.T) {

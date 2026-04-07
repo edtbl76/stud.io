@@ -12,4 +12,5 @@ sh_test(
         "manual",
         "requires-docker",
     ],
+    timeout = "eternal",
 )

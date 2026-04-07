@@ -21,7 +21,7 @@ func testCmd() *cobra.Command {
 		Short: "Run test suites",
 		Long: `Run one or more test suites. Use a subcommand to select the suite.
 
-  roadie test unit [tsc|jest|pytest]
+  roadie test unit [tsc|jest|ruff|bandit|pytest]
   roadie test e2e
   roadie test scan [sonar|trivy|secrets|headers] [--gate]
   roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle]
@@ -31,9 +31,9 @@ func testCmd() *cobra.Command {
 
 func unitCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:       "unit [tsc] [jest] [pytest]",
-		Short:     "Run unit tests (tsc, jest, pytest)",
-		ValidArgs: []string{"tsc", "jest", "pytest"},
+		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest]",
+		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest)",
+		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest"},
 		Args:      cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
