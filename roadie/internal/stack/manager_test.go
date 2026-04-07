@@ -249,6 +249,36 @@ func TestManager_Start_DoesNotSetBuildFlags(t *testing.T) {
 	}
 }
 
+func TestManager_HealthCheck_DuplicateWarningsSuppressed(t *testing.T) {
+	cfg := testConfig()
+	cfg.Stack.HealthChecks = []config.HealthCheck{
+		{Name: "SonarQube", Type: "http", URL: "http://localhost:1969"},
+	}
+	http := &funcHTTP{fn: func() (bool, error) {
+		return false, errors.New("EOF") // new error object on every call
+	}}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 150*time.Millisecond)
+	defer cancel()
+
+	var buf strings.Builder
+	m := NewManager(&mockContainer{}, &mockDB{ready: true}, http, &buf)
+	m.checkTimeout = 200 * time.Millisecond
+	m.checkInterval = 10 * time.Millisecond
+
+	_ = m.Start(ctx, cfg, false) // expected to time out
+
+	if count := strings.Count(buf.String(), "EOF"); count != 1 {
+		t.Errorf("expected 1 warning for repeated identical errors, got %d (output: %q)", count, buf.String())
+	}
+}
+
+// funcHTTP is a single-method HTTP checker backed by a function, used to
+// return a fresh error object on every call to test warning deduplication.
+type funcHTTP struct{ fn func() (bool, error) }
+
+func (f *funcHTTP) IsReachable(_ context.Context, _ string) (bool, error) { return f.fn() }
+
 // capturingContainer records the UpConfig passed to Up.
 type capturingContainer struct {
 	fn func(providers.UpConfig)

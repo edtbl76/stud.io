@@ -13,6 +13,25 @@ type Root string
 // ImageRef is a Docker image reference (SHA or tag) for container scanning.
 type ImageRef string
 
+// npmStep builds a ToolStep that runs npm with the given args in the frontend
+// directory. Used by NpmInstallStep and NpmAuditStep to avoid duplication.
+func npmStep(name string, args []string, root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: name,
+		Bin:  "npm",
+		Args: args,
+		Dir:  filepath.Join(r, frontendDir),
+		Env:  pathEnv(ResolveNode()),
+	}
+}
+
+// NpmInstallStep returns a step that runs npm install in the frontend directory.
+// This is idempotent: npm skips work when package-lock.json is unchanged.
+func NpmInstallStep(root Root) ToolStep {
+	return npmStep("npm-install", []string{"install"}, root)
+}
+
 // TscStep returns a step that runs tsc --noEmit against the frontend project.
 // Equivalent to scripts/run-tsc.sh.
 func TscStep(root Root) ToolStep {
@@ -94,17 +113,10 @@ func PipAuditStep(root Root) ToolStep {
 	}
 }
 
-// NpmAuditStep returns a step that runs npm audit at critical severity.
+// NpmAuditStep returns a step that audits npm dependencies for known CVEs.
 // Equivalent to scripts/run-npm-audit.sh.
 func NpmAuditStep(root Root) ToolStep {
-	r := string(root)
-	return ToolStep{
-		Name: "npm-audit",
-		Bin:  "npm",
-		Args: []string{"audit", "--audit-level=critical"},
-		Dir:  filepath.Join(r, frontendDir),
-		Env:  pathEnv(ResolveNode()),
-	}
+	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
 }
 
 // TrivyStep returns a step that scans a single container image with Trivy via

@@ -160,8 +160,12 @@ func (m *Manager) pollUntilReady(ctx context.Context, name string, checkFn func(
 	}
 }
 
+func isNewWarning(err, lastErr error) bool {
+	return err != nil && (lastErr == nil || err.Error() != lastErr.Error())
+}
+
 func (m *Manager) logNewWarning(name string, err, lastErr error) error {
-	if err != nil && err != lastErr {
+	if isNewWarning(err, lastErr) {
 		fmt.Fprintf(m.out, "\n[roadie] %-12s warning: %v", name, err)
 		return err
 	}

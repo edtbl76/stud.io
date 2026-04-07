@@ -100,11 +100,12 @@ func runTests(ctx context.Context, flags buildFlags, root string, out io.Writer)
 	return nil
 }
 
-// runUnitTests runs tsc → jest → pytest in fatal-sequential order.
+// runUnitTests runs npm install → tsc → jest → pytest in fatal-sequential order.
 func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 	fmt.Fprintln(out, "[roadie] Running unit tests...")
 	r := pipeline.Root(root)
 	return pipeline.New(
+		pipeline.NpmInstallStep(r),
 		pipeline.TscStep(r),
 		pipeline.JestStep(r, false),
 		pipeline.PytestStep(r),

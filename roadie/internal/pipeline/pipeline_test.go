@@ -362,6 +362,22 @@ func assertScriptStep(t *testing.T, s ToolStep, want wantScriptStep) {
 	}
 }
 
+func TestNpmInstallStep_Fields(t *testing.T) {
+	s := NpmInstallStep("/repo")
+	if s.Name != "npm-install" {
+		t.Errorf("Name: got %q, want npm-install", s.Name)
+	}
+	if s.Bin != "npm" {
+		t.Errorf("Bin: got %q, want npm", s.Bin)
+	}
+	if !strings.Contains(s.Dir, "controlroom_frontend") {
+		t.Errorf("Dir should contain frontend dir, got %q", s.Dir)
+	}
+	if len(s.Args) == 0 || s.Args[0] != "install" {
+		t.Errorf("Args: expected [install], got %v", s.Args)
+	}
+}
+
 func TestE2EStep_Fields(t *testing.T) {
 	assertScriptStep(t, E2EStep("/repo"), wantScriptStep{"e2e", "test-e2e.sh", "/repo"})
 }
