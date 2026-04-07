@@ -32,19 +32,21 @@ func assertSteps(t *testing.T, got, want []string) {
 
 // ── buildUnitPipeline ─────────────────────────────────────────────────────────
 
-func TestBuildUnitPipeline_AllTools(t *testing.T) {
-	assertSteps(t, stepNames(buildUnitPipeline("/repo", nil)),
-		[]string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"})
-}
-
-func TestBuildUnitPipeline_TscOnly(t *testing.T) {
-	assertSteps(t, stepNames(buildUnitPipeline("/repo", []string{"tsc"})),
-		[]string{"npm-install", "tsc"})
-}
-
-func TestBuildUnitPipeline_PytestOnly(t *testing.T) {
-	assertSteps(t, stepNames(buildUnitPipeline("/repo", []string{"pytest"})),
-		[]string{"pytest"})
+func TestBuildUnitPipeline(t *testing.T) {
+	tests := []struct {
+		name  string
+		tools []string
+		want  []string
+	}{
+		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"}},
+		{"tsc only", []string{"tsc"}, []string{"npm-install", "tsc"}},
+		{"pytest only", []string{"pytest"}, []string{"pytest"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertSteps(t, stepNames(buildUnitPipeline("/repo", tt.tools)), tt.want)
+		})
+	}
 }
 
 func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
@@ -60,111 +62,46 @@ func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
 
 // ── buildScanFlags ────────────────────────────────────────────────────────────
 
-func TestBuildScanFlags_AllByDefault(t *testing.T) {
-	f := buildScanFlags(nil, false)
-	if !f.Sonar {
-		t.Errorf("Sonar: expected true, got %+v", f)
+func TestBuildScanFlags(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		gate bool
+		want pipeline.ScanFlags
+	}{
+		{"all by default", nil, false, pipeline.ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true}},
+		{"trivy only", []string{"trivy"}, false, pipeline.ScanFlags{Trivy: true}},
+		{"sonar with gate", []string{"sonar"}, true, pipeline.ScanFlags{Sonar: true, Gate: true}},
+		{"secrets and headers", []string{"secrets", "headers"}, false, pipeline.ScanFlags{Secrets: true, Headers: true}},
 	}
-	if !f.Trivy {
-		t.Errorf("Trivy: expected true, got %+v", f)
-	}
-	if !f.Secrets {
-		t.Errorf("Secrets: expected true, got %+v", f)
-	}
-	if !f.Headers {
-		t.Errorf("Headers: expected true, got %+v", f)
-	}
-}
-
-func TestBuildScanFlags_TrivyOnly(t *testing.T) {
-	f := buildScanFlags([]string{"trivy"}, false)
-	if !f.Trivy {
-		t.Errorf("Trivy: expected true, got %+v", f)
-	}
-	if f.Sonar {
-		t.Errorf("Sonar: expected false, got %+v", f)
-	}
-	if f.Secrets {
-		t.Errorf("Secrets: expected false, got %+v", f)
-	}
-	if f.Headers {
-		t.Errorf("Headers: expected false, got %+v", f)
-	}
-}
-
-func TestBuildScanFlags_SonarWithGate(t *testing.T) {
-	f := buildScanFlags([]string{"sonar"}, true)
-	if !f.Sonar {
-		t.Errorf("Sonar: expected true, got %+v", f)
-	}
-	if !f.Gate {
-		t.Errorf("Gate: expected true, got %+v", f)
-	}
-	if f.Trivy {
-		t.Errorf("Trivy: expected false, got %+v", f)
-	}
-	if f.Secrets {
-		t.Errorf("Secrets: expected false, got %+v", f)
-	}
-	if f.Headers {
-		t.Errorf("Headers: expected false, got %+v", f)
-	}
-}
-
-func TestBuildScanFlags_MultipleChecks(t *testing.T) {
-	f := buildScanFlags([]string{"secrets", "headers"}, false)
-	if !f.Secrets {
-		t.Errorf("Secrets: expected true, got %+v", f)
-	}
-	if !f.Headers {
-		t.Errorf("Headers: expected true, got %+v", f)
-	}
-	if f.Sonar {
-		t.Errorf("Sonar: expected false, got %+v", f)
-	}
-	if f.Trivy {
-		t.Errorf("Trivy: expected false, got %+v", f)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildScanFlags(tt.args, tt.gate); got != tt.want {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 
 // ── buildPerfFlags ────────────────────────────────────────────────────────────
 
-func TestBuildPerfFlags_Empty(t *testing.T) {
-	f := buildPerfFlags(nil, false)
-	if f.Bundle {
-		t.Errorf("Bundle: expected false, got %+v", f)
+func TestBuildPerfFlags(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		noBundle bool
+		want     pipeline.PerfFlags
+	}{
+		{"empty", nil, false, pipeline.PerfFlags{}},
+		{"k6 only", []string{"k6"}, false, pipeline.PerfFlags{K6: true}},
+		{"no-bundle", nil, true, pipeline.PerfFlags{NoBundle: true}},
 	}
-	if f.Benchmarks {
-		t.Errorf("Benchmarks: expected false, got %+v", f)
-	}
-	if f.K6 {
-		t.Errorf("K6: expected false, got %+v", f)
-	}
-	if f.Lighthouse {
-		t.Errorf("Lighthouse: expected false, got %+v", f)
-	}
-}
-
-func TestBuildPerfFlags_K6(t *testing.T) {
-	f := buildPerfFlags([]string{"k6"}, false)
-	if !f.K6 {
-		t.Errorf("K6: expected true, got %+v", f)
-	}
-	if f.Bundle {
-		t.Errorf("Bundle: expected false, got %+v", f)
-	}
-	if f.Benchmarks {
-		t.Errorf("Benchmarks: expected false, got %+v", f)
-	}
-	if f.Lighthouse {
-		t.Errorf("Lighthouse: expected false, got %+v", f)
-	}
-}
-
-func TestBuildPerfFlags_NoBundle(t *testing.T) {
-	f := buildPerfFlags(nil, true)
-	if !f.NoBundle {
-		t.Error("expected NoBundle=true")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildPerfFlags(tt.args, tt.noBundle); got != tt.want {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 
