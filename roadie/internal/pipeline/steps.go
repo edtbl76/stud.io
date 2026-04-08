@@ -36,7 +36,6 @@ func NpmInstallStep(root Root) ToolStep {
 }
 
 // TscStep returns a step that runs tsc --noEmit against the frontend project.
-// Equivalent to scripts/run-tsc.sh.
 func TscStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -51,7 +50,7 @@ func TscStep(root Root) ToolStep {
 }
 
 // JestStep returns a step that runs Jest. Pass coverage=true to emit an lcov
-// report (used by the SonarQube scan). Equivalent to scripts/run-jest.sh.
+// report (used by the SonarQube scan).
 func JestStep(root Root, coverage bool) ToolStep {
 	r := string(root)
 	args := []string{"--passWithNoTests"}
@@ -68,8 +67,7 @@ func JestStep(root Root, coverage bool) ToolStep {
 }
 
 // PytestStep returns a step that runs pytest. Extra args are appended after the
-// test directory (e.g., "-k", "test_name" to filter). Equivalent to
-// scripts/run-pytest.sh.
+// test directory (e.g., "-k", "test_name" to filter).
 func PytestStep(root Root, extraArgs ...string) ToolStep {
 	r := string(root)
 	args := []string{"-m", "pytest", filepath.Join(r, backendDir, "tests"), "-q", "--tb=short"}
@@ -82,8 +80,7 @@ func PytestStep(root Root, extraArgs ...string) ToolStep {
 	}
 }
 
-// BanditStep returns a step that runs bandit static analysis against the
-// backend. Equivalent to scripts/run-bandit.sh.
+// BanditStep returns a step that runs bandit static analysis against the backend.
 func BanditStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -112,7 +109,6 @@ func RuffStep(root Root) ToolStep {
 }
 
 // PipAuditStep returns a step that audits Python dependencies for known CVEs.
-// Equivalent to scripts/run-pip-audit.sh.
 func PipAuditStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
@@ -128,7 +124,6 @@ func PipAuditStep(root Root) ToolStep {
 }
 
 // NpmAuditStep returns a step that audits npm dependencies for known CVEs.
-// Equivalent to scripts/run-npm-audit.sh.
 func NpmAuditStep(root Root) ToolStep {
 	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
 }

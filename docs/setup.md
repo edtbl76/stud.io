@@ -17,10 +17,18 @@
 pip install pre-commit bandit pip-audit pytest pytest-cov detect-secrets
 ```
 
-### 2. Install git hooks
+### 2. Build the roadie CLI
 
 ```bash
-./scripts/install-hooks.sh
+./build_roadie.sh
+```
+
+This compiles the Go binary and installs it to `/usr/local/bin/roadie`. Pre-commit hooks invoke `roadie` by name and require it on PATH.
+
+### 3. Install git hooks
+
+```bash
+pre-commit install
 ```
 
 This wires up the [pre-commit framework](https://pre-commit.com) to run eight checks before every commit:
@@ -44,7 +52,7 @@ The commit is aborted if any check fails. Hook configuration lives in `.pre-comm
 - `npm-audit` runs at `--audit-level=critical` only. GHSA-9g9p-9gw9-jx7f and GHSA-h25m-26qc-wcjf (Next.js 14.x) are resolved — the app is on Next.js 16.
 - `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). `package-lock.json`, `.secrets.baseline` itself, and `structurizr/workspace.json` (generated file with Base64 layout data) are excluded from scanning. If you add a new legitimate non-secret that triggers a false positive, update the baseline (see `docs/arch/security.md` — Baseline management).
 
-### 3. Generate HTTPS certificates
+### 4. Generate HTTPS certificates
 
 The app runs over HTTPS via an nginx reverse proxy. On each new machine:
 
@@ -128,16 +136,15 @@ Standard username/password login works on any URL (localhost, IP, or sslip.io ho
 A separate Docker project (`dev`) runs SonarQube and Structurizr, completely isolated from the studio stack.
 
 ```bash
-./scripts/dev.sh up      # Start (safe to run every time — idempotent)
-./scripts/dev.sh down    # Stop (preserves data)
-./scripts/dev.sh reset   # Wipe all data and start fresh
-./scripts/dev.sh status  # Show running containers
+roadie start --dev    # Start (safe to run every time — idempotent)
+roadie stop --dev     # Stop (preserves data)
+roadie status         # Show running containers
 ```
 
-Or start it alongside the main stack:
+Or rebuild everything alongside the main stack:
 
 ```bash
-./build.sh --dev
+roadie build --dev
 ```
 
 `up` is idempotent — each setup step only runs if needed:
@@ -153,16 +160,16 @@ Or start it alongside the main stack:
 ### Running a scan
 
 ```bash
-./scripts/test-scan.sh --sonar
+roadie test scan sonar
 ```
 
 Or to run the full security suite (Sonar + Trivy + secrets + headers):
 
 ```bash
-./scripts/test-scan.sh
+roadie test scan
 ```
 
-The scan script:
+The scan:
 1. Runs `pytest --cov` → generates `app/controlroom_backend/coverage.xml` (Cobertura format)
 2. Runs `jest --coverage` → generates `app/controlroom_frontend/coverage/lcov.info`
 3. Rewrites lcov `SF:` paths to be relative to the project root (Jest emits paths relative to the frontend directory; SonarQube resolves from the project root)

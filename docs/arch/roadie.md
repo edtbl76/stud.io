@@ -8,25 +8,13 @@ Source lives in `roadie/` at the repo root.
 
 ## Building
 
-From the repo root:
+Build and install globally (required before `pre-commit install`):
 
 ```bash
-cd roadie
-go build -o ../roadie ./cmd/roadie/
-cd ..
+./build_roadie.sh
 ```
 
-This produces a `roadie` binary at the repo root. To make it available system-wide:
-
-```bash
-sudo cp roadie /usr/local/bin/roadie
-```
-
-Or add the repo root to your `PATH` in `~/.bashrc` / `~/.zshrc`:
-
-```bash
-export PATH="$HOME/Documents/Studio/STUD.io:$PATH"
-```
+This compiles the Go binary and installs it to `/usr/local/bin/roadie`. Pre-commit hooks invoke `roadie` by name and require it on PATH.
 
 To embed the version at build time:
 
@@ -73,7 +61,7 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 
 | Command | Description | Replaces |
 |---|---|---|
-| `roadie test unit [tsc\|jest\|pytest]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
+| `roadie test unit [tsc\|jest\|ruff\|bandit\|pytest\|pip-audit\|npm-audit]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
 | `roadie test e2e` | Run full sharded Playwright suite | `test-e2e.sh` (delegates internally) |
 | `roadie test scan [sonar\|trivy\|secrets\|headers] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
 | `roadie test perf [bundle\|benchmarks\|k6\|lighthouse] [--no-bundle]` | Run performance suite in collect mode | `test-perf.sh` (delegates internally) |
@@ -101,6 +89,7 @@ This command targets the database named in `providers.database.db_name`. It will
 
 | Command | Description |
 |---|---|
+| `roadie doctor` | Check prerequisites (Docker, Node, Python, Go, tools) and print a pass/fail summary |
 | `roadie version` | Print the roadie version |
 | `roadie help` | Show help for any command |
 | `roadie completion` | Generate shell autocompletion script |
@@ -185,7 +174,7 @@ Roadie polls each health check every 2 seconds with a 5-minute timeout. If the c
 
 ## Pipeline engine (`internal/pipeline`)
 
-The pipeline package is the execution layer for all tool invocations. It replaces the `scripts/run-*.sh` wrappers by providing type-safe, testable equivalents in Go.
+The pipeline package is the execution layer for all tool invocations. It provides type-safe, testable equivalents in Go for every tool previously wrapped by shell scripts.
 
 ### Layers
 
@@ -206,7 +195,7 @@ Each `ToolStep` routes its output through a `LabelWriter` before writing to the 
 | Fatal-sequential | `Pipeline.RunSequential` | Stop and return on first failure | `roadie test unit` |
 | Collect | `Pipeline.RunCollect` | Run all steps, accumulate results, return combined error | `roadie test scan`, `roadie test perf` |
 
-`RunCollect` returns `[]StepResult` (name, error, duration). Call `PrintSummary(out, results)` to write the PASS/FAIL table. Phase 6 will add a JSON path via the same results slice.
+`RunCollect` returns `[]StepResult` (name, error, duration). Call `PrintSummary(out, results)` to write the PASS/FAIL table, or `PrintSummaryJSON(out, results)` for machine-readable output. Commands that use `RunCollect` (`scan`, `perf`) expose a `--json` flag that switches between the two.
 
 ### PATH resolution
 
@@ -247,7 +236,6 @@ Go untyped string constants (e.g. `"."`, `"/repo"`) are assignable to these type
 | `SonarScanStep(root Root, gate bool)` | `test-scan.sh --sonar[‑gate]` | `gate=true` adds quality gate poll |
 | `DetectSecretsStep(root Root)` | `test-scan.sh --secrets` | Scans working tree; compares against `.secrets.baseline` |
 | `SecurityHeadersStep(root Root)` | `test-scan.sh --headers` | Runs `pytest tests/security/test_security_headers.py` |
-| `PerfStep(root Root, extraArgs ...string)` | `test-perf.sh` | Extra args forwarded to the script (e.g. `--bundle`, `--no-bundle`) |
 
 ### Test injection
 
@@ -285,6 +273,7 @@ roadie/
       build.go               — build, release Cobra subcommands; schemaApplier; buildUnitPipeline
       db.go                  — db init Cobra subcommand with confirmation gate
       test.go                — test unit/e2e/scan/perf/full Cobra subcommands
+      doctor.go              — doctor Cobra subcommand; prerequisite checks
 ```
 
 ---
@@ -295,10 +284,11 @@ roadie/
 |---|---|---|
 | 1 ✓ | `version` | — |
 | 2 ✓ | `start`, `stop`, `restart`, `status` | `roadie.sh` |
-| 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
+| 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` wrappers |
 | 4 ✓ | `build`, `release`, `db init` | `build.sh` |
 | 5 ✓ | `test unit/e2e/scan/perf/full` | `test-unit.sh`, `test-scan.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
-| 6 | `doctor`, `--json` flag, summary output | — |
+| 6 ✓ | `doctor`, `--json` flag, summary output | — |
+| 7 ✓ | `test unit pip-audit/npm-audit` | `scripts/` directory fully deleted |
 
 ---
 

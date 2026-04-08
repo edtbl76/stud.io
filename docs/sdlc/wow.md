@@ -46,10 +46,10 @@ Format: MAJOR.MINOR.PATCH
 Every change requires tests. Run the full suite before marking work done:
 
 ```bash
-./scripts/test-unit.sh    # tsc + jest + pytest (parallel, 4 workers)
-./scripts/test-e2e.sh     # Playwright E2E (sharded)
-./scripts/test-perf.sh    # performance suite (on demand — not required for every change)
-./scripts/test-scan.sh    # security suite (on demand — Sonar, Trivy, secrets, headers)
+roadie test unit    # tsc + jest + ruff + bandit + pytest
+roadie test e2e     # Playwright E2E (sharded)
+roadie test perf    # performance suite (on demand — not required for every change)
+roadie test scan    # security suite (on demand — Sonar, Trivy, secrets, headers)
 ```
 
 Coverage target is 100% on new code; 80% is the hard floor. Do not game coverage with meaningless assertions.
@@ -77,7 +77,7 @@ The production backend (`controlroom_backend`, port 5150) always points at `cont
 The perf suite is run on demand — not part of the standard build:
 
 ```bash
-./scripts/test-perf.sh
+roadie test perf
 ```
 
 What it covers:
@@ -96,7 +96,7 @@ When to update the perf suite: see the "Performance tests" section of `CLAUDE.md
 The security suite is run on demand — automatically included in `roadie release`:
 
 ```bash
-./scripts/test-scan.sh
+roadie test scan
 ```
 
 What it covers:

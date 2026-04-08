@@ -21,10 +21,10 @@
  *   model (@tgwf/co2). Informational — useful for tracking regressions locally.
  *   For production-accurate data (green hosting, CDN, caching) once the app is
  *   publicly deployed, run:
- *     CARBON_BASE_URL=https://your-app.example.com ./scripts/carbon-report.sh
+ *     CARBON_BASE_URL=https://your-app.example.com roadie test perf
  *
  * Requires playwright.perf.config.ts (--remote-debugging-port=9222, workers=1).
- * Run via: ./scripts/test-perf.sh
+ * Run via: roadie test perf
  */
 import * as fs from 'fs'
 import { test, expect, TestInfo, Browser } from '@playwright/test'

@@ -42,6 +42,8 @@ func TestBuildUnitPipeline(t *testing.T) {
 		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"}},
 		{"tsc only", []string{"tsc"}, []string{"npm-install", "tsc"}},
 		{"pytest only", []string{"pytest"}, []string{"pytest"}},
+		{"pip-audit only", []string{"pip-audit"}, []string{"pip-audit"}},
+		{"npm-audit only", []string{"npm-audit"}, []string{"npm-install", "npm-audit"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

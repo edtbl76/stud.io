@@ -127,7 +127,7 @@ Job 5 (perf) runs only on push to `main` and is non-blocking.
 ### Self-hosted runner prerequisites
 
 The runner is on the same machine as the Docker stack. One-time setup before registering:
-- `./scripts/reset-test-db.sh` — provision `controlroomdb_test` once
+- `roadie build` — provision `controlroomdb_test` and rebuild the stack once
 - `npx playwright install chromium` — install Playwright browsers once
 - `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in security-scans job)
 
