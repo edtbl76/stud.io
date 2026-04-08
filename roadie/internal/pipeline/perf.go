@@ -151,6 +151,17 @@ func (r perfRunner) collect(ctx context.Context, flags PerfFlags, out io.Writer)
 		results = append(results, runPerfK6(ctx, r.cfg, r.cfg.Root, out)...)
 	}
 	if flags.shouldRun("lighthouse") {
+		if flags.shouldRun("k6") {
+			// Wait for the backend to recover after k6 load before running
+			// Lighthouse. k6 saturates the backend connection pool; pages
+			// that proxy API calls render in a loading state until the
+			// backend drains, causing Lighthouse to hit its 30s FCP timeout.
+			fmt.Fprintln(out, "[perf] Waiting for backend to recover after k6...")
+			url := fmt.Sprintf("http://localhost:%d/health", r.cfg.BackendPort)
+			if err := waitForHTTP(ctx, url, 30, 2*time.Second); err != nil {
+				fmt.Fprintf(out, "[perf] WARNING: backend health check failed after k6: %v\n", err)
+			}
+		}
 		results = append(results, runPerfLighthouse(ctx, r.cfg, r.cfg.Root, out))
 	}
 
