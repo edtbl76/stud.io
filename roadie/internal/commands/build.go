@@ -184,21 +184,25 @@ func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags
 	if err := maybeRunScan(ctx, flags, r, out); err != nil {
 		return err
 	}
-	if err := maybeRunE2E(ctx, cfg, flags, out); err != nil {
+	if flags.runE2E() {
+		if err := validateE2EConfig(cfg); err != nil {
+			return err
+		}
+		fmt.Fprintln(out, "[roadie] Running E2E tests...")
+		if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, out); err != nil {
+			return err
+		}
+	}
+	if flags.runPerf() {
+		if err := validatePerfConfig(cfg); err != nil {
+			return err
+		}
+		fmt.Fprintln(out, "[roadie] Running performance tests...")
+		results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, out)
+		pipeline.PrintSummary(out, results)
 		return err
 	}
-	return maybeRunPerf(ctx, cfg, flags, out)
-}
-
-func maybeRunE2E(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
-	if !flags.runE2E() {
-		return nil
-	}
-	if err := validateE2EConfig(cfg); err != nil {
-		return err
-	}
-	fmt.Fprintln(out, "[roadie] Running E2E tests...")
-	return pipeline.RunE2E(ctx, e2eConfigFrom(cfg), pipeline.Root("."), out)
+	return nil
 }
 
 func maybeRunScan(ctx context.Context, flags buildFlags, r pipeline.Root, out io.Writer) error {
@@ -207,19 +211,6 @@ func maybeRunScan(ctx context.Context, flags buildFlags, r pipeline.Root, out io
 	}
 	fmt.Fprintln(out, "[roadie] Running security scans...")
 	results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(flags.dev), out)
-	pipeline.PrintSummary(out, results)
-	return err
-}
-
-func maybeRunPerf(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
-	if !flags.runPerf() {
-		return nil
-	}
-	if err := validatePerfConfig(cfg); err != nil {
-		return err
-	}
-	fmt.Fprintln(out, "[roadie] Running performance tests...")
-	results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, out)
 	pipeline.PrintSummary(out, results)
 	return err
 }
