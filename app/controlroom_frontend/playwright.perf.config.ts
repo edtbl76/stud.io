@@ -10,7 +10,6 @@ export default defineConfig({
     launchOptions: {
       args: [
         '--remote-debugging-port=9222',
-        '--disable-dev-shm-usage', // prevents NO_FCP on Linux CI where /dev/shm is limited
       ],
     },
   },

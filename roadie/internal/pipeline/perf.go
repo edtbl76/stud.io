@@ -215,14 +215,14 @@ func startFrontendProd(ctx context.Context, cfg PerfConfig, root string, out io.
 		"-p", fmt.Sprintf("%d", cfg.FrontendPort), "-H", "127.0.0.1",
 	)
 	cmd.Dir = frontendDir
-	cmd.Env = os.Environ()
-	if nodeDir != "" {
-		cmd.Env = append(cmd.Env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
-	}
-	cmd.Env = append(cmd.Env,
+	overrides := []string{
 		"NEXT_DIST_DIR=.next-perf",
 		fmt.Sprintf("BACKEND_URL=http://localhost:%d", cfg.BackendPort),
-	)
+	}
+	if nodeDir != "" {
+		overrides = append(overrides, "PATH="+nodeDir+":"+os.Getenv("PATH"))
+	}
+	cmd.Env = append(overrides, os.Environ()...)
 	logFile, err := os.Create("/tmp/perf-frontend.log")
 	if err != nil {
 		return nil, fmt.Errorf("creating perf frontend log: %w", err)
