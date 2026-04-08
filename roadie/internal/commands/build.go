@@ -133,36 +133,53 @@ func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 	return pipeline.New(buildUnitPipeline(r, nil)...).RunSequential(ctx, out)
 }
 
+// npmTools is the set of tools that require npm install as a prerequisite.
+var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
+
 // buildUnitPipeline returns unit test steps filtered by tools. If tools is
-// empty, all steps are included: npm-install → tsc → jest → pytest → pip-audit → npm-audit.
+// empty, all steps are included: npm-install → tsc → jest → ruff → bandit →
+// pytest → pip-audit → npm-audit.
 // NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected.
 // PytestStep receives --benchmark-skip to keep benchmarks in the perf suite.
 func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
 	run := toolFilter(tools)
 	var steps []pipeline.ToolStep
-	if run("tsc") || run("jest") || run("npm-audit") {
+	if needsNpmInstall(run) {
 		steps = append(steps, pipeline.NpmInstallStep(root))
 	}
-	if run("tsc") {
-		steps = append(steps, pipeline.TscStep(root))
+	return append(steps, filteredSteps(root, run)...)
+}
+
+// needsNpmInstall reports whether any selected tool requires npm install.
+func needsNpmInstall(run func(string) bool) bool {
+	for tool := range npmTools {
+		if run(tool) {
+			return true
+		}
 	}
-	if run("jest") {
-		steps = append(steps, pipeline.JestStep(root, false))
+	return false
+}
+
+// filteredSteps returns the ordered tool steps matched by run.
+func filteredSteps(root pipeline.Root, run func(string) bool) []pipeline.ToolStep {
+	type entry struct {
+		name string
+		step func() pipeline.ToolStep
 	}
-	if run("ruff") {
-		steps = append(steps, pipeline.RuffStep(root))
+	candidates := []entry{
+		{"tsc", func() pipeline.ToolStep { return pipeline.TscStep(root) }},
+		{"jest", func() pipeline.ToolStep { return pipeline.JestStep(root, false) }},
+		{"ruff", func() pipeline.ToolStep { return pipeline.RuffStep(root) }},
+		{"bandit", func() pipeline.ToolStep { return pipeline.BanditStep(root) }},
+		{"pytest", func() pipeline.ToolStep { return pipeline.PytestStep(root, "--benchmark-skip") }},
+		{"pip-audit", func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
+		{"npm-audit", func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}
-	if run("bandit") {
-		steps = append(steps, pipeline.BanditStep(root))
-	}
-	if run("pytest") {
-		steps = append(steps, pipeline.PytestStep(root, "--benchmark-skip"))
-	}
-	if run("pip-audit") {
-		steps = append(steps, pipeline.PipAuditStep(root))
-	}
-	if run("npm-audit") {
-		steps = append(steps, pipeline.NpmAuditStep(root))
+	var steps []pipeline.ToolStep
+	for _, c := range candidates {
+		if run(c.name) {
+			steps = append(steps, c.step())
+		}
 	}
 	return steps
 }
