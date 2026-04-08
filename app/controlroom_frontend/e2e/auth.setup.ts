@@ -1,8 +1,10 @@
 import { test as setup } from '@playwright/test'
 import * as fs from 'node:fs'
+import * as path from 'node:path'
 
 setup('authenticate', async ({ page }) => {
-  fs.mkdirSync('e2e/.auth', { recursive: true })
+  const authStatePath = process.env.E2E_AUTH_STATE ?? 'e2e/.auth/state.json'
+  fs.mkdirSync(path.dirname(authStatePath), { recursive: true })
   // Navigate first to establish the origin, then authenticate via the API
   // directly. The production server renders null while the auth check is
   // pending, so UI-based login is unreliable in the perf (next start) context.
@@ -17,5 +19,5 @@ setup('authenticate', async ({ page }) => {
       body: form.toString(),
     })
   })
-  await page.context().storageState({ path: 'e2e/.auth/state.json' })
+  await page.context().storageState({ path: authStatePath })
 })

@@ -391,6 +391,7 @@ func (sr shardRunner) run(ctx context.Context, shard int, out io.Writer) error {
 		cmd.Env = append(cmd.Env, "PATH="+sr.nodeDir+":"+os.Getenv("PATH"))
 	}
 	cmd.Env = append(cmd.Env, fmt.Sprintf("BASE_URL=http://localhost:%d", port))
+	cmd.Env = append(cmd.Env, fmt.Sprintf("E2E_AUTH_STATE=e2e/.auth/state-%d.json", shard))
 
 	lw := NewLabelWriter(fmt.Sprintf("shard %s", shardArg), out)
 	cmd.Stdout = lw
@@ -413,6 +414,7 @@ func removeShardNextDirs(cfg E2EConfig, root string) {
 	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
 	for i := 0; i < cfg.Shards; i++ {
 		os.RemoveAll(filepath.Join(frontendDir, fmt.Sprintf(".next-e2e-%d", i)))
+		os.Remove(filepath.Join(frontendDir, fmt.Sprintf("e2e/.auth/state-%d.json", i))) //nolint
 	}
 }
 
