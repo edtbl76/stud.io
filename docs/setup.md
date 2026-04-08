@@ -17,7 +17,15 @@
 pip install pre-commit bandit pip-audit pytest pytest-cov detect-secrets
 ```
 
-### 2. Install git hooks
+### 2. Build the roadie CLI
+
+```bash
+./build_roadie.sh
+```
+
+This compiles the Go binary and installs it to `/usr/local/bin/roadie`. Pre-commit hooks invoke `roadie` by name and require it on PATH.
+
+### 3. Install git hooks
 
 ```bash
 pre-commit install
@@ -44,7 +52,7 @@ The commit is aborted if any check fails. Hook configuration lives in `.pre-comm
 - `npm-audit` runs at `--audit-level=critical` only. GHSA-9g9p-9gw9-jx7f and GHSA-h25m-26qc-wcjf (Next.js 14.x) are resolved — the app is on Next.js 16.
 - `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). `package-lock.json`, `.secrets.baseline` itself, and `structurizr/workspace.json` (generated file with Base64 layout data) are excluded from scanning. If you add a new legitimate non-secret that triggers a false positive, update the baseline (see `docs/arch/security.md` — Baseline management).
 
-### 3. Generate HTTPS certificates
+### 4. Generate HTTPS certificates
 
 The app runs over HTTPS via an nginx reverse proxy. On each new machine:
 

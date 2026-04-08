@@ -39,7 +39,7 @@ func TestBuildUnitPipeline(t *testing.T) {
 		tools []string
 		want  []string
 	}{
-		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest", "pip-audit", "npm-audit"}},
+		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"}},
 		{"tsc only", []string{"tsc"}, []string{"npm-install", "tsc"}},
 		{"pytest only", []string{"pytest"}, []string{"pytest"}},
 		{"pip-audit only", []string{"pip-audit"}, []string{"pip-audit"}},

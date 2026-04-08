@@ -285,18 +285,12 @@ func runPerfLighthouse(ctx context.Context, cfg PerfConfig, root string, out io.
 	const warningFile = "/tmp/perf-lcp-warnings"
 	os.Remove(warningFile)
 
-	env := os.Environ()
-	if nodeDir != "" {
-		env = append(env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
-	}
-	env = append(env, fmt.Sprintf("BASE_URL=http://localhost:%d", cfg.FrontendPort))
-
 	step := ToolStep{
 		Name: "lighthouse",
 		Bin:  "npx",
 		Args: []string{"playwright", "test", "--config", "playwright.perf.config.ts"},
 		Dir:  frontendDir,
-		Env:  env,
+		Env:  append(pathEnv(nodeDir), fmt.Sprintf("BASE_URL=http://localhost:%d", cfg.FrontendPort)),
 	}
 	err := step.Run(ctx, out)
 

@@ -179,9 +179,9 @@ Current suppressions:
 `roadie test scan` orchestrates all four checks:
 
 ```bash
-roadie test scan              # all four checks (includes sonar gate)
+roadie test scan              # all four checks (no gate check)
+roadie test scan --gate       # all four checks + SonarQube quality gate verification
 roadie test scan sonar        # SonarQube scan only (no gate check)
-roadie test scan --gate       # SonarQube scan + quality gate verification
 roadie test scan trivy        # Trivy container scan
 roadie test scan secrets      # detect-secrets working tree audit
 roadie test scan headers      # HTTP security header assertions
@@ -189,7 +189,7 @@ roadie test scan headers      # HTTP security header assertions
 
 Run automatically as part of `roadie release`. Run manually on demand before releases, after base image upgrades, or after adding new dependencies.
 
-Prerequisites: production stack running (`docker compose up -d`). The default (no-subcommand) run and `sonar`/`--gate` require the SonarQube dev stack (`roadie start --dev`) and a valid `.sonar-token` — the gate check runs by default and will fail without them. `trivy`, `secrets`, and `headers` do not require the dev stack.
+Prerequisites: production stack running (`docker compose up -d`). The `sonar` scanner (included in the default run and selectable explicitly) requires the SonarQube dev stack (`roadie start --dev`) and a valid `.sonar-token`. Passing `--gate` additionally polls the SonarQube quality gate API after the scan — this also requires the dev stack and token. `trivy`, `secrets`, and `headers` do not require the dev stack.
 
 ---
 

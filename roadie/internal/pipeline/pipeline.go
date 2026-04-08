@@ -39,7 +39,8 @@ func (realStepRunner) Run(ctx context.Context, out io.Writer, cmd runCmd) error 
 		c.Dir = cmd.dir
 	}
 	if len(cmd.env) > 0 {
-		c.Env = append(os.Environ(), cmd.env...)
+		// Overrides first so getenv() returns the override on duplicate keys.
+		c.Env = append(cmd.env, os.Environ()...)
 	}
 	return c.Run()
 }
@@ -104,7 +105,7 @@ type ToolStep struct {
 	Bin  string
 	Args []string
 	Dir  string   // working directory; empty means inherit
-	Env  []string // additional KEY=VALUE pairs prepended to the environment
+	Env  []string // KEY=VALUE overrides; placed before os.Environ() so they win on duplicate keys
 	run  stepRunner
 }
 

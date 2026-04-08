@@ -137,17 +137,20 @@ func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
 
 // buildUnitPipeline returns unit test steps filtered by tools. If tools is
-// empty, all steps are included: npm-install → tsc → jest → ruff → bandit →
-// pytest → pip-audit → npm-audit.
+// empty, the default suite runs: npm-install → tsc → jest → ruff → bandit → pytest.
+// pip-audit and npm-audit are excluded from the default run and only included
+// when explicitly named (they run as separate pre-commit hooks to avoid double
+// execution and because they make network calls).
 // NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected.
 // PytestStep receives --benchmark-skip to keep benchmarks in the perf suite.
 func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
 	run := toolFilter(tools)
+	explicit := len(tools) > 0
 	var steps []pipeline.ToolStep
 	if needsNpmInstall(run) {
 		steps = append(steps, pipeline.NpmInstallStep(root))
 	}
-	return append(steps, filteredSteps(root, run)...)
+	return append(steps, filteredSteps(root, run, explicit)...)
 }
 
 // needsNpmInstall reports whether any selected tool requires npm install.
@@ -160,23 +163,28 @@ func needsNpmInstall(run func(string) bool) bool {
 	return false
 }
 
-// filteredSteps returns the ordered tool steps matched by run.
-func filteredSteps(root pipeline.Root, run func(string) bool) []pipeline.ToolStep {
+// filteredSteps returns the ordered tool steps matched by run. Steps marked
+// explicitOnly are skipped when explicit is false (i.e. the default all-tools run).
+func filteredSteps(root pipeline.Root, run func(string) bool, explicit bool) []pipeline.ToolStep {
 	type entry struct {
-		name string
-		step func() pipeline.ToolStep
+		name         string
+		explicitOnly bool
+		step         func() pipeline.ToolStep
 	}
 	candidates := []entry{
-		{"tsc", func() pipeline.ToolStep { return pipeline.TscStep(root) }},
-		{"jest", func() pipeline.ToolStep { return pipeline.JestStep(root, false) }},
-		{"ruff", func() pipeline.ToolStep { return pipeline.RuffStep(root) }},
-		{"bandit", func() pipeline.ToolStep { return pipeline.BanditStep(root) }},
-		{"pytest", func() pipeline.ToolStep { return pipeline.PytestStep(root, "--benchmark-skip") }},
-		{"pip-audit", func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
-		{"npm-audit", func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
+		{"tsc", false, func() pipeline.ToolStep { return pipeline.TscStep(root) }},
+		{"jest", false, func() pipeline.ToolStep { return pipeline.JestStep(root, false) }},
+		{"ruff", false, func() pipeline.ToolStep { return pipeline.RuffStep(root) }},
+		{"bandit", false, func() pipeline.ToolStep { return pipeline.BanditStep(root) }},
+		{"pytest", false, func() pipeline.ToolStep { return pipeline.PytestStep(root, "--benchmark-skip") }},
+		{"pip-audit", true, func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
+		{"npm-audit", true, func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}
 	var steps []pipeline.ToolStep
 	for _, c := range candidates {
+		if c.explicitOnly && !explicit {
+			continue
+		}
 		if run(c.name) {
 			steps = append(steps, c.step())
 		}

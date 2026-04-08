@@ -9,6 +9,7 @@ A local web application for managing studio gear, plugins, instruments, and samp
 
 ```bash
 # First time only
+./build_roadie.sh   # installs roadie to /usr/local/bin
 pre-commit install
 
 # Build and test
