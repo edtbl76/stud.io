@@ -69,7 +69,7 @@ Applied to every response in `app/controlroom_frontend/next.config.mjs` via the 
 | `Referrer-Policy` | `strict-origin-when-cross-origin` | Limits referrer leakage — sends origin only on cross-origin HTTPS requests |
 | `Permissions-Policy` | `camera=(), microphone=(), geolocation=()` | Explicitly disables browser APIs the app does not use |
 
-These are asserted on 7 pages by `tests/security/test_security_headers.py` (run via `./scripts/test-scan.sh --headers`). The test hits the live stack at `https://localhost:2112` using `requests` with `verify=False` (self-signed mkcert cert).
+These are asserted on 7 pages by `tests/security/test_security_headers.py` (run via `roadie test scan headers`). The test hits the live stack at `https://localhost:2112` using `requests` with `verify=False` (self-signed mkcert cert).
 
 **When to update:** if a new header is added to `next.config.mjs`, add it to `REQUIRED_HEADERS` in `test_security_headers.py`. If a new page is added, add it to `PAGES`.
 
@@ -77,7 +77,7 @@ These are asserted on 7 pages by `tests/security/test_security_headers.py` (run 
 
 ## Container image scanning (Trivy)
 
-`scripts/run-trivy.sh` scans both container images (`controlroom_backend`, `controlroom_frontend`) for **HIGH** and **CRITICAL** CVEs using [Trivy](https://trivy.dev) from `ghcr.io/aquasecurity/trivy:latest`. It covers OS packages, Python packages, and npm packages installed in each image.
+`roadie test scan trivy` scans both container images (`controlroom_backend`, `controlroom_frontend`) for **HIGH** and **CRITICAL** CVEs using [Trivy](https://trivy.dev) from `ghcr.io/aquasecurity/trivy:latest`. It covers OS packages, Python packages, and npm packages installed in each image.
 
 Trivy runs in an ephemeral container with two mounts:
 - `/var/run/docker.sock` — allows Trivy to inspect local images
@@ -100,7 +100,7 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 | `CVE-2026-26996`, `CVE-2026-27903`, `CVE-2026-27904` | `minimatch` | npm devDeps. Not in the HTTP request path. |
 | `CVE-2026-23745`, `CVE-2026-23950`, `CVE-2026-24842`, `CVE-2026-26960`, `CVE-2026-29786`, `CVE-2026-31802` | `node-tar` | npm devDep. Not in the HTTP request path. |
 
-**When to update:** after upgrading base images or dependencies, re-run `./scripts/test-scan.sh --trivy`. If new CVEs appear, either fix them (preferred) or add a suppression with justification. Revisit existing suppressions whenever the affected package is upgraded — a suppression that was justified by "no fix available" may no longer apply.
+**When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a suppression with justification. Revisit existing suppressions whenever the affected package is upgraded — a suppression that was justified by "no fix available" may no longer apply.
 
 ---
 
@@ -110,7 +110,7 @@ Two layers:
 
 **Pre-commit hook** (`detect-secrets-hook` in `.pre-commit-config.yaml`): scans staged files on every commit against `.secrets.baseline`. Aborts the commit if a new secret is detected. Excludes `package-lock.json`, `.secrets.baseline` itself, and `structurizr/workspace.json` (generated file with Base64 layout data).
 
-**CI check** (`./scripts/test-scan.sh --secrets`): rescans the full working tree (excluding `node_modules`, `.git`, lock files, `.next`, `__pycache__`, `.secrets.baseline`, and `structurizr/workspace.json`) and compares against `.secrets.baseline`. Exits 1 if any finding is not in the baseline.
+**CI check** (`roadie test scan secrets`): rescans the full working tree (excluding `node_modules`, `.git`, lock files, `.next`, `__pycache__`, `.secrets.baseline`, and `structurizr/workspace.json`) and compares against `.secrets.baseline`. Exits 1 if any finding is not in the baseline.
 
 ### Baseline management
 
@@ -176,20 +176,20 @@ Current suppressions:
 
 ## The security test suite
 
-`./scripts/test-scan.sh` orchestrates all four checks:
+`roadie test scan` orchestrates all four checks:
 
 ```bash
-./scripts/test-scan.sh              # all four checks (includes sonar gate)
-./scripts/test-scan.sh --sonar      # SonarQube scan only (no gate check)
-./scripts/test-scan.sh --sonar-gate # SonarQube scan + quality gate verification
-./scripts/test-scan.sh --trivy      # Trivy container scan
-./scripts/test-scan.sh --secrets    # detect-secrets working tree audit
-./scripts/test-scan.sh --headers    # HTTP security header assertions
+roadie test scan              # all four checks (includes sonar gate)
+roadie test scan sonar        # SonarQube scan only (no gate check)
+roadie test scan --gate       # SonarQube scan + quality gate verification
+roadie test scan trivy        # Trivy container scan
+roadie test scan secrets      # detect-secrets working tree audit
+roadie test scan headers      # HTTP security header assertions
 ```
 
 Run automatically as part of `roadie release`. Run manually on demand before releases, after base image upgrades, or after adding new dependencies.
 
-Prerequisites: production stack running (`docker compose up -d`). The default (no-flag) run, `--sonar`, and `--sonar-gate` all require the SonarQube dev stack (`./scripts/dev.sh up`) and a valid `.sonar-token` (generated by `dev.sh up`) — the gate check runs by default and will fail without them. `--trivy`, `--secrets`, and `--headers` do not require the dev stack.
+Prerequisites: production stack running (`docker compose up -d`). The default (no-subcommand) run and `sonar`/`--gate` require the SonarQube dev stack (`roadie start --dev`) and a valid `.sonar-token` — the gate check runs by default and will fail without them. `trivy`, `secrets`, and `headers` do not require the dev stack.
 
 ---
 

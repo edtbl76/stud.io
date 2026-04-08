@@ -185,7 +185,7 @@ Roadie polls each health check every 2 seconds with a 5-minute timeout. If the c
 
 ## Pipeline engine (`internal/pipeline`)
 
-The pipeline package is the execution layer for all tool invocations. It replaces the `scripts/run-*.sh` wrappers by providing type-safe, testable equivalents in Go.
+The pipeline package is the execution layer for all tool invocations. It provides type-safe, testable equivalents in Go for every tool previously wrapped by shell scripts.
 
 ### Layers
 
@@ -295,10 +295,11 @@ roadie/
 |---|---|---|
 | 1 ✓ | `version` | — |
 | 2 ✓ | `start`, `stop`, `restart`, `status` | `roadie.sh` |
-| 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` safety wrappers |
+| 3 ✓ | Pipeline engine (ToolStep, streaming output) | `scripts/run-*.sh` wrappers |
 | 4 ✓ | `build`, `release`, `db init` | `build.sh` |
 | 5 ✓ | `test unit/e2e/scan/perf/full` | `test-unit.sh`, `test-scan.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
-| 6 | `doctor`, `--json` flag, summary output | — |
+| 6 ✓ | `doctor`, `--json` flag, summary output | — |
+| 7 ✓ | `test unit pip-audit/npm-audit` | `scripts/` directory fully deleted |
 
 ---
 

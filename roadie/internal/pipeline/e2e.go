@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -9,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 )
@@ -219,13 +221,22 @@ func provisionOneShard(ctx context.Context, cfg E2EConfig, db string) error {
 
 // dockerPsql runs a SQL statement inside the database container via psql -c.
 // All identifiers in sql must be pre-validated by validateDBIdentifier.
+// Stderr from psql is captured and appended to the error for easier diagnosis.
 func dockerPsql(ctx context.Context, cfg E2EConfig, db, sql string) error {
+	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, "docker", "exec",
 		"-e", "PGPASSWORD="+cfg.DBPassword,
 		cfg.DBContainer,
 		"psql", "-U", cfg.DBUser, "-d", db, "-c", sql, "-q",
 	)
-	return cmd.Run()
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		if msg := strings.TrimSpace(stderr.String()); msg != "" {
+			return fmt.Errorf("%w: %s", err, msg)
+		}
+		return err
+	}
+	return nil
 }
 
 func startBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {

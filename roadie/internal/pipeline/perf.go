@@ -285,18 +285,18 @@ func runPerfLighthouse(ctx context.Context, cfg PerfConfig, root string, out io.
 	const warningFile = "/tmp/perf-lcp-warnings"
 	os.Remove(warningFile)
 
+	env := os.Environ()
+	if nodeDir != "" {
+		env = append(env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
+	}
+	env = append(env, fmt.Sprintf("BASE_URL=http://localhost:%d", cfg.FrontendPort))
+
 	step := ToolStep{
 		Name: "lighthouse",
 		Bin:  "npx",
 		Args: []string{"playwright", "test", "--config", "playwright.perf.config.ts"},
 		Dir:  frontendDir,
-		Env: func() []string {
-			env := []string{fmt.Sprintf("BASE_URL=http://localhost:%d", cfg.FrontendPort)}
-			if nodeDir != "" {
-				env = append(env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
-			}
-			return env
-		}(),
+		Env:  env,
 	}
 	err := step.Run(ctx, out)
 
@@ -313,10 +313,16 @@ func runCarbonReport(carbonURL, root string, out io.Writer) {
 	fmt.Fprintf(out, "[perf] Running CO₂ report against %s...\n", carbonURL)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, "bash",
-		filepath.Join(root, "scripts", "carbon-report.sh"),
+	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	nodeDir := ResolveNode()
+	cmd := exec.CommandContext(ctx, "npx", "playwright", "test",
+		"--config", "playwright.perf.config.ts",
 	)
+	cmd.Dir = frontendDir
 	cmd.Env = append(os.Environ(), "CARBON_BASE_URL="+carbonURL)
+	if nodeDir != "" {
+		cmd.Env = append(cmd.Env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
+	}
 	lw := NewLabelWriter("carbon", out)
 	cmd.Stdout = lw
 	cmd.Stderr = lw

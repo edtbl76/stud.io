@@ -9,29 +9,22 @@ repos:
   - repo: local
     hooks:
       - id: unit-tests
-        name: unit tests (tsc + jest + pytest)
-        entry: bash scripts/test-unit.sh
-        language: system
-        pass_filenames: false
-        always_run: true
-
-      - id: bandit
-        name: bandit
-        entry: bash scripts/run-bandit.sh
+        name: unit tests (tsc + jest + ruff + bandit + pytest)
+        entry: roadie test unit
         language: system
         pass_filenames: false
         always_run: true
 
       - id: pip-audit
         name: pip-audit
-        entry: bash scripts/run-pip-audit.sh
+        entry: roadie test unit pip-audit
         language: system
         pass_filenames: false
         always_run: true
 
       - id: npm-audit
         name: npm-audit
-        entry: bash scripts/run-npm-audit.sh
+        entry: roadie test unit npm-audit
         language: system
         pass_filenames: false
         always_run: true

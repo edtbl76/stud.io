@@ -22,7 +22,7 @@ func testCmd() *cobra.Command {
 		Short: "Run test suites",
 		Long: `Run one or more test suites. Use a subcommand to select the suite.
 
-  roadie test unit [tsc|jest|ruff|bandit|pytest]
+  roadie test unit [tsc|jest|ruff|bandit|pytest|pip-audit|npm-audit]
   roadie test e2e
   roadie test scan [sonar|trivy|secrets|headers] [--gate] [--json]
   roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle] [--json]
@@ -32,15 +32,15 @@ func testCmd() *cobra.Command {
 
 func unitCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest]",
-		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest)",
-		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest"},
+		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest] [pip-audit] [npm-audit]",
+		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit)",
+		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest", "pip-audit", "npm-audit"},
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
 			steps := buildUnitPipeline(r, args)
 			if len(args) > 0 && len(steps) == 0 {
-				return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest", args)
+				return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit", args)
 			}
 			fmt.Fprintln(os.Stdout, "[roadie] Running unit tests...")
 			return pipeline.New(steps...).RunSequential(cmd.Context(), os.Stdout)

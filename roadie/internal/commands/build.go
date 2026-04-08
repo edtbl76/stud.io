@@ -134,13 +134,13 @@ func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 }
 
 // buildUnitPipeline returns unit test steps filtered by tools. If tools is
-// empty, all steps are included: npm-install → tsc → jest → pytest.
-// NpmInstallStep is prepended whenever tsc or jest is selected.
+// empty, all steps are included: npm-install → tsc → jest → pytest → pip-audit → npm-audit.
+// NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected.
 // PytestStep receives --benchmark-skip to keep benchmarks in the perf suite.
 func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
 	run := toolFilter(tools)
 	var steps []pipeline.ToolStep
-	if run("tsc") || run("jest") {
+	if run("tsc") || run("jest") || run("npm-audit") {
 		steps = append(steps, pipeline.NpmInstallStep(root))
 	}
 	if run("tsc") {
@@ -157,6 +157,12 @@ func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
 	}
 	if run("pytest") {
 		steps = append(steps, pipeline.PytestStep(root, "--benchmark-skip"))
+	}
+	if run("pip-audit") {
+		steps = append(steps, pipeline.PipAuditStep(root))
+	}
+	if run("npm-audit") {
+		steps = append(steps, pipeline.NpmAuditStep(root))
 	}
 	return steps
 }
