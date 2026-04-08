@@ -12,7 +12,7 @@ export default defineConfig({
     { name: 'setup', testMatch: /auth\.setup\.ts/ },
     {
       name: 'chromium',
-      use: { browserName: 'chromium', storageState: 'e2e/.auth/state.json' },
+      use: { browserName: 'chromium', storageState: process.env.E2E_AUTH_STATE ?? 'e2e/.auth/state.json' },
       dependencies: ['setup'],
     },
   ],
