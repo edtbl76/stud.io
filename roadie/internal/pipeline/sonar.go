@@ -120,6 +120,8 @@ func RunSonarScan(ctx context.Context, root Root, gate bool, out io.Writer) erro
 		return err
 	}
 
+	fmt.Fprintf(out, "[sonar] Dashboard: %s/dashboard?id=%s\n", sonarURL, sonarProjectKey)
+
 	if gate {
 		return checkSonarGate(ctx, sonarURL, token, out)
 	}

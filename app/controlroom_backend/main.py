@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
+from typing import Annotated
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-import asyncpg
+from asyncpg import Connection
 
 from config import settings
 from database import init_pool, close_pool, get_conn
@@ -55,7 +56,7 @@ async def health():
 
 
 @app.get("/health/ready")
-async def health_ready(conn: asyncpg.Connection = Depends(get_conn)):
+async def health_ready(conn: Annotated[Connection, Depends(get_conn)]):
     await conn.fetchval("SELECT 1")
     return {"status": "ready"}
 

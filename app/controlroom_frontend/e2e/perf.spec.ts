@@ -114,10 +114,29 @@ for (const path of PAGES) {
     const audits     = result.lhr.audits
     const categories = result.lhr.categories
 
+    // ── Lighthouse runtime error (diagnostic) ────────────────────────────
+    // Populated when Lighthouse itself fails: NO_FCP, PAGE_HUNG,
+    // FAILED_DOCUMENT_REQUEST, etc. Always annotate so CI logs show why.
+    const runtimeError = result.lhr.runtimeError
+    if (runtimeError?.code) {
+      testInfo.annotations.push({
+        type: 'lighthouse-runtime-error',
+        description: `${runtimeError.code}: ${runtimeError.message}`,
+      })
+    }
+
     // ── Core Web Vitals (enforced) ────────────────────────────────────────
+    const fcp = audits['first-contentful-paint']?.numericValue ?? Infinity
     const lcp = audits['largest-contentful-paint']?.numericValue ?? Infinity
     const tbt = audits['total-blocking-time']?.numericValue ?? Infinity
     const cls = audits['cumulative-layout-shift']?.numericValue ?? Infinity
+
+    // Always annotate FCP — helps distinguish "nothing painted" (FCP=Infinity)
+    // from "LCP element never appeared" (FCP ok, LCP=Infinity).
+    testInfo.annotations.push({
+      type: 'fcp',
+      description: fcp === Infinity ? 'NO_FCP (nothing painted)' : `${(fcp / 1000).toFixed(2)}s`,
+    })
 
     if (lcp >= LCP_WARN_MS && lcp < LCP_FAIL_MS) {
       testInfo.annotations.push({
@@ -126,6 +145,12 @@ for (const path of PAGES) {
       })
       fs.appendFileSync('/tmp/perf-lcp-warnings', `${path}: ${(lcp / 1000).toFixed(2)}s\n`)
     }
+
+    if (lcp >= LCP_FAIL_MS) {
+      const screenshot = await page.screenshot({ fullPage: false })
+      await testInfo.attach('screenshot-at-failure', { body: screenshot, contentType: 'image/png' })
+    }
+
     expect(lcp, `LCP for ${path} (${(lcp / 1000).toFixed(2)}s)`).toBeLessThan(LCP_FAIL_MS)
     expect(tbt, `TBT for ${path} (${tbt.toFixed(0)}ms)`).toBeLessThan(TBT_FAIL_MS)
     expect(cls, `CLS for ${path} (${cls.toFixed(3)})`).toBeLessThan(CLS_FAIL)
