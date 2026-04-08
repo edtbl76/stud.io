@@ -1,9 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import asyncpg
 
 from config import settings
-from database import init_pool, close_pool
+from database import init_pool, close_pool, get_conn
 from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, users
 from routers import backup_ops, change_review, admin_stats, import_export
@@ -51,6 +52,12 @@ app.include_router(users.router,        prefix="/users",         tags=["users"])
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.get("/health/ready")
+async def health_ready(conn: asyncpg.Connection = Depends(get_conn)):
+    await conn.fetchval("SELECT 1")
+    return {"status": "ready"}
 
 
 if __name__ == "__main__":
