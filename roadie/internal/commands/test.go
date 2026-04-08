@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/studiocontrolroom/roadie/internal/config"
 	"github.com/studiocontrolroom/roadie/internal/pipeline"
 )
 
@@ -23,8 +24,8 @@ func testCmd() *cobra.Command {
 
   roadie test unit [tsc|jest|ruff|bandit|pytest]
   roadie test e2e
-  roadie test scan [sonar|trivy|secrets|headers] [--gate]
-  roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle]
+  roadie test scan [sonar|trivy|secrets|headers] [--gate] [--json]
+  roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle] [--json]
   roadie test full`,
 	}
 }
@@ -52,45 +53,43 @@ func e2eCmd() *cobra.Command {
 		Use:   "e2e",
 		Short: "Run E2E tests (Playwright shards)",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := loadConfig()
+			if err != nil {
+				return err
+			}
+			if err := validateE2EConfig(cfg); err != nil {
+				return err
+			}
 			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
-			return pipeline.New(pipeline.E2EStep(".")).RunSequential(cmd.Context(), os.Stdout)
+			return pipeline.RunE2E(cmd.Context(), e2eConfigFrom(cfg), pipeline.Root("."), os.Stdout)
 		},
 	}
 }
 
 func scanCmd() *cobra.Command {
 	var gate bool
+	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:       "scan [sonar] [trivy] [secrets] [headers]",
 		Short:     "Run security scans",
 		ValidArgs: []string{"sonar", "trivy", "secrets", "headers"},
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			r := pipeline.Root(".")
-			steps := scanSteps(r, args, gate)
-			if len(args) > 0 && len(steps) == 0 {
-				return fmt.Errorf("no steps matched selectors %v; valid: sonar, trivy, secrets, headers", args)
-			}
+			flags := buildScanFlags(args, gate)
 			fmt.Fprintln(os.Stdout, "[roadie] Running security scans...")
-			results, err := pipeline.New(steps...).RunCollect(cmd.Context(), os.Stdout)
-			pipeline.PrintSummary(os.Stdout, results)
+			results, err := pipeline.RunScan(cmd.Context(), pipeline.Root("."), flags, os.Stdout)
+			printSummary(os.Stdout, results, jsonOut)
 			return err
 		},
 	}
 	cmd.Flags().BoolVar(&gate, "gate", false, "verify SonarQube quality gate after scan")
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "emit summary as JSON")
 	return cmd
-}
-
-// perfFlagMap maps perf subtype positional args to test-perf.sh flags.
-var perfFlagMap = map[string]string{
-	"bundle":     "--bundle",
-	"benchmarks": "--benchmarks",
-	"k6":         "--k6",
-	"lighthouse": "--lighthouse",
 }
 
 func perfCmd() *cobra.Command {
 	var noBundle bool
+	var jsonOut bool
 	cmd := &cobra.Command{
 		Use:       "perf [bundle|benchmarks|k6|lighthouse]",
 		Short:     "Run performance tests (benchmarks, k6, Lighthouse)",
@@ -100,27 +99,35 @@ func perfCmd() *cobra.Command {
 			if len(args) > 1 {
 				return fmt.Errorf("only one of bundle|benchmarks|k6|lighthouse may be specified")
 			}
-			r := pipeline.Root(".")
-			scriptFlags := subtypesToFlags(args, perfFlagMap)
-			if noBundle {
-				scriptFlags = append(scriptFlags, "--no-bundle")
+			cfg, err := loadConfig()
+			if err != nil {
+				return err
 			}
+			if err := validatePerfConfig(cfg); err != nil {
+				return err
+			}
+			flags := buildPerfFlags(args, noBundle)
 			fmt.Fprintln(os.Stdout, "[roadie] Running performance tests...")
-			results, err := pipeline.New(pipeline.PerfStep(r, scriptFlags...)).RunCollect(cmd.Context(), os.Stdout)
-			pipeline.PrintSummary(os.Stdout, results)
+			results, err := pipeline.RunPerf(cmd.Context(), perfConfigFrom(cfg), flags, os.Stdout)
+			printSummary(os.Stdout, results, jsonOut)
 			return err
 		},
 	}
 	cmd.Flags().BoolVar(&noBundle, "no-bundle", false, "skip Next.js production build (reuse existing .next-perf)")
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "emit summary as JSON")
 	return cmd
 }
 
 func fullCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "full",
-		Short: "Run all suites: unit → e2e → scan (with gate) → perf",
+		Short: "Run all suites: unit → scan (with gate) → e2e → perf",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
+			cfg, err := loadConfig()
+			if err != nil {
+				return err
+			}
 			r := pipeline.Root(".")
 
 			fmt.Fprintln(os.Stdout, "[roadie] Running unit tests...")
@@ -128,59 +135,153 @@ func fullCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
-			if err := pipeline.New(pipeline.E2EStep(r)).RunSequential(ctx, os.Stdout); err != nil {
+			if err := validateE2EConfig(cfg); err != nil {
+				return err
+			}
+			if err := validatePerfConfig(cfg); err != nil {
 				return err
 			}
 
+			// Scans run before E2E so a failing quality gate blocks E2E,
+			// matching build.sh --dev behaviour.
 			fmt.Fprintln(os.Stdout, "[roadie] Running security scans...")
-			scanResults, err := pipeline.New(scanSteps(r, nil, true)...).RunCollect(ctx, os.Stdout)
+			scanResults, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(true), os.Stdout)
 			pipeline.PrintSummary(os.Stdout, scanResults)
 			if err != nil {
 				return err
 			}
 
+			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
+			if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, os.Stdout); err != nil {
+				return err
+			}
+
 			fmt.Fprintln(os.Stdout, "[roadie] Running performance tests...")
-			perfResults, err := pipeline.New(pipeline.PerfStep(r)).RunCollect(ctx, os.Stdout)
+			perfResults, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, os.Stdout)
 			pipeline.PrintSummary(os.Stdout, perfResults)
 			return err
 		},
 	}
 }
 
-// scanSteps returns ToolSteps for the requested scan checks. checks is the
-// positional-arg list; if empty, all checks are included. gate applies only
-// when sonar is selected and blocks until the quality gate result is known.
-func scanSteps(root pipeline.Root, checks []string, gate bool) []pipeline.ToolStep {
-	run := toolFilter(checks)
-	var steps []pipeline.ToolStep
-	if run("sonar") {
-		steps = append(steps, pipeline.SonarScanStep(root, gate))
-	}
-	if run("trivy") {
-		steps = append(steps, pipeline.TrivyBackendStep(root))
-		steps = append(steps, pipeline.TrivyFrontendStep(root))
-	}
-	if run("secrets") {
-		steps = append(steps, pipeline.DetectSecretsStep(root))
-	}
-	if run("headers") {
-		steps = append(steps, pipeline.SecurityHeadersStep(root))
-	}
-	return steps
-}
-
-// subtypesToFlags maps positional subtype args to their script flag equivalents
-// using flagMap. Args not found in flagMap are silently skipped.
-func subtypesToFlags(args []string, flagMap map[string]string) []string {
+// buildScanFlags maps positional args to ScanFlags. Empty args means all.
+func buildScanFlags(args []string, gate bool) pipeline.ScanFlags {
 	if len(args) == 0 {
-		return nil
+		return pipeline.AllScanFlags(gate)
 	}
-	flags := make([]string, 0, len(args))
-	for _, arg := range args {
-		if f, ok := flagMap[arg]; ok {
-			flags = append(flags, f)
+	var f pipeline.ScanFlags
+	f.Gate = gate
+	for _, a := range args {
+		switch a {
+		case "sonar":
+			f.Sonar = true
+		case "trivy":
+			f.Trivy = true
+		case "secrets":
+			f.Secrets = true // pragma: allowlist secret
+		case "headers":
+			f.Headers = true
 		}
 	}
-	return flags
+	return f
+}
+
+// buildPerfFlags maps positional args to PerfFlags.
+func buildPerfFlags(args []string, noBundle bool) pipeline.PerfFlags {
+	f := pipeline.PerfFlags{NoBundle: noBundle}
+	for _, a := range args {
+		switch a {
+		case "bundle":
+			f.Bundle = true
+		case "benchmarks":
+			f.Benchmarks = true
+		case "k6":
+			f.K6 = true
+		case "lighthouse":
+			f.Lighthouse = true
+		}
+	}
+	return f
+}
+
+// validateE2EConfig returns a clear error if cfg is missing fields required by
+// the E2E runner. Call before e2eConfigFrom/RunE2E so runners never receive
+// zero-valued configs.
+func validateE2EConfig(cfg *config.Config) error {
+	e := cfg.Test.E2E
+	switch {
+	case e.Shards <= 0:
+		return fmt.Errorf("test.e2e.shards must be > 0 (got %d); add a test: e2e: section to roadie.yml", e.Shards)
+	case e.BackendService == "":
+		return fmt.Errorf("test.e2e.backend_service is required for E2E tests")
+	case e.BackendBasePort <= 0:
+		return fmt.Errorf("test.e2e.backend_base_port must be > 0 (got %d)", e.BackendBasePort)
+	case e.FrontendBasePort <= 0:
+		return fmt.Errorf("test.e2e.frontend_base_port must be > 0 (got %d)", e.FrontendBasePort)
+	case cfg.Test.DB.Container == "":
+		return fmt.Errorf("test.db.container is required for E2E tests")
+	case cfg.Test.DB.Source == "":
+		return fmt.Errorf("test.db.source is required for E2E tests")
+	}
+	return nil
+}
+
+// validatePerfConfig returns a clear error if cfg is missing fields required by
+// the perf runner. Call before perfConfigFrom/RunPerf so runners never receive
+// zero-valued configs.
+func validatePerfConfig(cfg *config.Config) error {
+	p := cfg.Test.Perf
+	switch {
+	case p.BackendPort <= 0:
+		return fmt.Errorf("test.perf.backend_port must be > 0 (got %d); add a test: perf: section to roadie.yml", p.BackendPort)
+	case p.FrontendPort <= 0:
+		return fmt.Errorf("test.perf.frontend_port must be > 0 (got %d)", p.FrontendPort)
+	case cfg.Test.E2E.BackendService == "":
+		return fmt.Errorf("test.e2e.backend_service is required for perf tests")
+	}
+	return nil
+}
+
+// e2eConfigFrom builds an E2EConfig from the application config.
+func e2eConfigFrom(cfg *config.Config) pipeline.E2EConfig {
+	e := cfg.Test.E2E
+	return pipeline.E2EConfig{
+		Shards:                e.Shards,
+		DevComposeFile:        cfg.Providers.Container.DevComposeFile,
+		BackendComposeProject: e.BackendComposeProject,
+		BackendService:        e.BackendService,
+		BackendInternalPort:   e.BackendInternalPort,
+		BackendBasePort:       e.BackendBasePort,
+		FrontendBasePort:      e.FrontendBasePort,
+		DBContainer:           cfg.Test.DB.Container,
+		DBUser:                cfg.Test.DB.User,
+		DBPassword:            cfg.Test.DB.Password, // pragma: allowlist secret
+		DBSource:              cfg.Test.DB.Source,
+	}
+}
+
+// perfConfigFrom builds a PerfConfig from the application config.
+func perfConfigFrom(cfg *config.Config) pipeline.PerfConfig {
+	p := cfg.Test.Perf
+	e := cfg.Test.E2E
+	return pipeline.PerfConfig{
+		BackendPort:           p.BackendPort,
+		FrontendPort:          p.FrontendPort,
+		CarbonURL:             p.CarbonURL,
+		BackendService:        e.BackendService,
+		DBSource:              cfg.Test.DB.Source,
+		DevComposeFile:        cfg.Providers.Container.DevComposeFile,
+		BackendComposeProject: e.BackendComposeProject,
+		BackendInternalPort:   e.BackendInternalPort,
+		Root:                  ".",
+	}
+}
+
+// printSummary writes the results table, using JSON format when requested.
+func printSummary(out *os.File, results []pipeline.StepResult, jsonOut bool) {
+	if jsonOut {
+		pipeline.PrintSummaryJSON(out, results) //nolint
+		return
+	}
+	pipeline.PrintSummary(out, results)
 }

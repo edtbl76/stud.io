@@ -216,6 +216,68 @@ func TestLoad_BuildDatabases_ValidCases(t *testing.T) {
 	}
 }
 
+func TestLoad_TestConfig_E2E(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if cfg.Test.E2E.Shards != 4 {
+		t.Errorf("e2e.shards: got %d, want 4", cfg.Test.E2E.Shards)
+	}
+	if cfg.Test.E2E.BackendService != "controlroom_backend_test" {
+		t.Errorf("e2e.backend_service: got %q, want controlroom_backend_test", cfg.Test.E2E.BackendService)
+	}
+	if cfg.Test.E2E.BackendBasePort != 5151 {
+		t.Errorf("e2e.backend_base_port: got %d, want 5151", cfg.Test.E2E.BackendBasePort)
+	}
+	if cfg.Test.E2E.FrontendBasePort != 3001 {
+		t.Errorf("e2e.frontend_base_port: got %d, want 3001", cfg.Test.E2E.FrontendBasePort)
+	}
+}
+
+func TestLoad_TestConfig_Perf(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if cfg.Test.Perf.BackendPort != 5160 {
+		t.Errorf("perf.backend_port: got %d, want 5160", cfg.Test.Perf.BackendPort)
+	}
+	if cfg.Test.Perf.FrontendPort != 3010 {
+		t.Errorf("perf.frontend_port: got %d, want 3010", cfg.Test.Perf.FrontendPort)
+	}
+}
+
+func TestLoad_TestConfig_DB(t *testing.T) {
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if cfg.Test.DB.Container != "studio_db" {
+		t.Errorf("db.container: got %q, want studio_db", cfg.Test.DB.Container)
+	}
+	if cfg.Test.DB.Source != "controlroomdb_test" {
+		t.Errorf("db.source: got %q, want controlroomdb_test", cfg.Test.DB.Source)
+	}
+}
+
+func TestLoad_TestConfig_EmptyIsValid(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(validProvidersYAML), 0644); err != nil {
+		t.Fatalf("writing temp config: %v", err)
+	}
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("expected no error for config without test: section, got: %v", err)
+	}
+	if cfg.Test.E2E.Shards != 0 {
+		t.Errorf("expected zero shards when test: not configured, got %d", cfg.Test.E2E.Shards)
+	}
+}
+
 func TestLoad_ValidationErrors(t *testing.T) {
 	tests := []struct {
 		name    string

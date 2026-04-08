@@ -5,6 +5,40 @@ type Config struct {
 	Providers ProvidersConfig `yaml:"providers"`
 	Stack     StackConfig     `yaml:"stack"`
 	Build     BuildConfig     `yaml:"build"`
+	Test      TestConfig      `yaml:"test"`
+}
+
+// TestConfig holds configuration for the test suites (e2e, perf, shared DB).
+// All fields are optional — omitting the test: section leaves zero values.
+type TestConfig struct {
+	E2E  E2ETestConfig  `yaml:"e2e"`
+	Perf PerfTestConfig `yaml:"perf"`
+	DB   TestDBConfig   `yaml:"db"`
+}
+
+// E2ETestConfig configures the sharded E2E runner.
+type E2ETestConfig struct {
+	Shards                int    `yaml:"shards"`
+	BackendComposeProject string `yaml:"backend_compose_project"`
+	BackendService        string `yaml:"backend_service"`
+	BackendInternalPort   int    `yaml:"backend_internal_port"`
+	BackendBasePort       int    `yaml:"backend_base_port"`
+	FrontendBasePort      int    `yaml:"frontend_base_port"`
+}
+
+// PerfTestConfig configures the performance test runner.
+type PerfTestConfig struct {
+	BackendPort  int    `yaml:"backend_port"`
+	FrontendPort int    `yaml:"frontend_port"`
+	CarbonURL    string `yaml:"carbon_base_url"`
+}
+
+// TestDBConfig holds credentials for provisioning per-shard test databases.
+type TestDBConfig struct {
+	Container string `yaml:"container"`
+	User      string `yaml:"user"`
+	Password  string `yaml:"password"`
+	Source    string `yaml:"source"`
 }
 
 // BuildConfig controls what "roadie build" applies to test databases.

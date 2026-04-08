@@ -338,27 +338,50 @@ func TestPrintSummary_ContainsPassFail(t *testing.T) {
 	}
 }
 
-// ── Script-wrapping step factories ───────────────────────────────────────────
+func TestPrintSummary_ContainsWarn(t *testing.T) {
+	results := []StepResult{
+		{Name: "lighthouse", Warn: true},
+	}
+	var buf strings.Builder
+	PrintSummary(&buf, results)
 
-type wantScriptStep struct {
-	name   string
-	script string
-	dir    string
+	if !strings.Contains(buf.String(), "WARN") {
+		t.Errorf("expected WARN in summary, got: %q", buf.String())
+	}
 }
 
-func assertScriptStep(t *testing.T, s ToolStep, want wantScriptStep) {
-	t.Helper()
-	if s.Name != want.name {
-		t.Errorf("Name: got %q, want %q", s.Name, want.name)
+func TestPrintSummaryJSON_ValidJSON(t *testing.T) {
+	results := []StepResult{
+		{Name: "sonar"},
+		{Name: "lighthouse", Warn: true},
+		{Name: "trivy", Err: errors.New("CVE found")},
 	}
-	if s.Bin != "bash" {
-		t.Errorf("Bin: got %q, want bash", s.Bin)
+	var buf strings.Builder
+	if err := PrintSummaryJSON(&buf, results); err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-	if s.Dir != want.dir {
-		t.Errorf("Dir: got %q, want %q", s.Dir, want.dir)
+	out := buf.String()
+	if !strings.Contains(out, `"PASS"`) {
+		t.Errorf("expected PASS status, got: %q", out)
 	}
-	if !strings.Contains(strings.Join(s.Args, " "), want.script) {
-		t.Errorf("Args: expected path containing %q, got %v", want.script, s.Args)
+	if !strings.Contains(out, `"WARN"`) {
+		t.Errorf("expected WARN status, got: %q", out)
+	}
+	if !strings.Contains(out, `"FAIL"`) {
+		t.Errorf("expected FAIL status, got: %q", out)
+	}
+}
+
+func TestHasWarnings(t *testing.T) {
+	if HasWarnings([]StepResult{{Name: "a"}}) {
+		t.Error("expected no warnings")
+	}
+	if !HasWarnings([]StepResult{{Name: "a", Warn: true}}) {
+		t.Error("expected warnings")
+	}
+	// Warn + Err should not count as a warning (it's a failure).
+	if HasWarnings([]StepResult{{Name: "a", Warn: true, Err: errors.New("x")}}) {
+		t.Error("expected no warning when Err is also set")
 	}
 }
 
@@ -389,16 +412,6 @@ func TestNpmInstallStep_Fields(t *testing.T) {
 	if got := strings.Join(s.Args, " "); got != "install --include=dev" {
 		t.Errorf("Args: got %q, want %q", got, "install --include=dev")
 	}
-}
-
-func TestE2EStep_Fields(t *testing.T) {
-	assertScriptStep(t, E2EStep("/repo"), wantScriptStep{"e2e", "test-e2e.sh", "/repo"})
-}
-func TestScanStep_Fields(t *testing.T) {
-	assertScriptStep(t, ScanStep("/repo"), wantScriptStep{"scan", "test-scan.sh", "/repo"})
-}
-func TestPerfStep_Fields(t *testing.T) {
-	assertScriptStep(t, PerfStep("/repo"), wantScriptStep{"perf", "test-perf.sh", "/repo"})
 }
 
 // ── Resolvers ─────────────────────────────────────────────────────────────────

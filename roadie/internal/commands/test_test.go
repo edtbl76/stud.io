@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/studiocontrolroom/roadie/internal/config"
 	"github.com/studiocontrolroom/roadie/internal/pipeline"
 )
 
@@ -17,44 +18,36 @@ func stepNames(steps []pipeline.ToolStep) []string {
 	return names
 }
 
-func assertStepNames(t *testing.T, steps []pipeline.ToolStep, want []string) {
+// assertSteps verifies that got matches want element-by-element.
+func assertSteps(t *testing.T, got, want []string) {
 	t.Helper()
-	got := stepNames(steps)
 	if len(got) != len(want) {
 		t.Fatalf("step count: got %d (%v), want %d (%v)", len(got), got, len(want), want)
 	}
-	for i, name := range want {
-		if got[i] != name {
-			t.Errorf("step[%d]: got %q, want %q", i, got[i], name)
+	for i, n := range want {
+		if got[i] != n {
+			t.Errorf("step[%d]: got %q, want %q", i, got[i], n)
 		}
 	}
 }
 
 // ── buildUnitPipeline ─────────────────────────────────────────────────────────
 
-func TestBuildUnitPipeline_AllTools(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", nil),
-		[]string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"})
-}
-
-func TestBuildUnitPipeline_RuffOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"ruff"}),
-		[]string{"ruff"})
-}
-
-func TestBuildUnitPipeline_BanditOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"bandit"}),
-		[]string{"bandit"})
-}
-
-func TestBuildUnitPipeline_TscOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"tsc"}),
-		[]string{"npm-install", "tsc"})
-}
-
-func TestBuildUnitPipeline_PytestOnly(t *testing.T) {
-	assertStepNames(t, buildUnitPipeline("/repo", []string{"pytest"}),
-		[]string{"pytest"})
+func TestBuildUnitPipeline(t *testing.T) {
+	tests := []struct {
+		name  string
+		tools []string
+		want  []string
+	}{
+		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest"}},
+		{"tsc only", []string{"tsc"}, []string{"npm-install", "tsc"}},
+		{"pytest only", []string{"pytest"}, []string{"pytest"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assertSteps(t, stepNames(buildUnitPipeline("/repo", tt.tools)), tt.want)
+		})
+	}
 }
 
 func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
@@ -68,87 +61,149 @@ func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
 	}
 }
 
-// ── scanSteps ─────────────────────────────────────────────────────────────────
+// ── buildScanFlags ────────────────────────────────────────────────────────────
 
-func TestScanSteps_AllByDefault(t *testing.T) {
-	steps := scanSteps("/repo", nil, false)
-	// sonar(1) + trivy(2: backend+frontend) + detect-secrets(1) + headers(1) = 5
-	if len(steps) != 5 {
-		t.Fatalf("expected 5 steps, got %d: %v", len(steps), stepNames(steps))
+func TestBuildScanFlags(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		gate bool
+		want pipeline.ScanFlags
+	}{
+		{"all by default", nil, false, pipeline.ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true}},
+		{"trivy only", []string{"trivy"}, false, pipeline.ScanFlags{Trivy: true}},
+		{"sonar with gate", []string{"sonar"}, true, pipeline.ScanFlags{Sonar: true, Gate: true}},
+		{"secrets and headers", []string{"secrets", "headers"}, false, pipeline.ScanFlags{Secrets: true, Headers: true}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildScanFlags(tt.args, tt.gate); got != tt.want {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestScanSteps_TrivyOnly(t *testing.T) {
-	assertStepNames(t, scanSteps("/repo", []string{"trivy"}, false),
-		[]string{"trivy-controlroom_backend", "trivy-controlroom_frontend"})
-}
+// ── buildPerfFlags ────────────────────────────────────────────────────────────
 
-func TestScanSteps_SonarGate(t *testing.T) {
-	steps := scanSteps("/repo", []string{"sonar"}, true)
-	if len(steps) != 1 {
-		t.Fatalf("expected 1 step, got %d", len(steps))
+func TestBuildPerfFlags(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		noBundle bool
+		want     pipeline.PerfFlags
+	}{
+		{"empty", nil, false, pipeline.PerfFlags{}},
+		{"k6 only", []string{"k6"}, false, pipeline.PerfFlags{K6: true}},
+		{"no-bundle", nil, true, pipeline.PerfFlags{NoBundle: true}},
 	}
-	if steps[0].Name != "sonar" {
-		t.Errorf("expected sonar step, got %q", steps[0].Name)
-	}
-	args := strings.Join(steps[0].Args, " ")
-	if !strings.Contains(args, "--sonar-gate") {
-		t.Errorf("expected --sonar-gate in args, got: %q", args)
-	}
-}
-
-func TestScanSteps_SingleCheck_Secrets(t *testing.T) {
-	steps := scanSteps("/repo", []string{"secrets"}, false)
-	if len(steps) != 1 || steps[0].Name != "detect-secrets" {
-		t.Errorf("expected detect-secrets step, got: %v", stepNames(steps))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildPerfFlags(tt.args, tt.noBundle); got != tt.want {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
 	}
 }
 
-// ── subtypesToFlags ───────────────────────────────────────────────────────────
+// ── validateE2EConfig / validatePerfConfig ────────────────────────────────────
 
-func TestSubtypesToFlags_EmptyArgs(t *testing.T) {
-	got := subtypesToFlags(nil, perfFlagMap)
-	if got != nil {
-		t.Errorf("expected nil for empty args, got %v", got)
+func TestValidateE2EConfig_PassesWithFullConfig(t *testing.T) {
+	if err := validateE2EConfig(minimalTestConfig()); err != nil {
+		t.Errorf("unexpected error for full config: %v", err)
 	}
 }
 
-func TestSubtypesToFlags_SingleArg(t *testing.T) {
-	got := subtypesToFlags([]string{"bundle"}, perfFlagMap)
-	if len(got) != 1 || got[0] != "--bundle" {
-		t.Errorf("expected [--bundle], got %v", got)
+func TestValidateE2EConfig_RejectsZeroConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(*config.Config)
+		wantErr string
+	}{
+		{"zero shards", func(c *config.Config) { c.Test.E2E.Shards = 0 }, "shards"},
+		{"empty backend service", func(c *config.Config) { c.Test.E2E.BackendService = "" }, "backend_service"},
+		{"zero backend port", func(c *config.Config) { c.Test.E2E.BackendBasePort = 0 }, "backend_base_port"},
+		{"zero frontend port", func(c *config.Config) { c.Test.E2E.FrontendBasePort = 0 }, "frontend_base_port"},
+		{"empty db container", func(c *config.Config) { c.Test.DB.Container = "" }, "container"},
+		{"empty db source", func(c *config.Config) { c.Test.DB.Source = "" }, "source"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := minimalTestConfig()
+			tt.mutate(cfg)
+			err := validateE2EConfig(cfg)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error %q does not mention %q", err.Error(), tt.wantErr)
+			}
+		})
 	}
 }
 
-func TestSubtypesToFlags_MultipleArgs(t *testing.T) {
-	got := subtypesToFlags([]string{"bundle", "k6"}, perfFlagMap)
-	joined := strings.Join(got, " ")
-	if !strings.Contains(joined, "--bundle") || !strings.Contains(joined, "--k6") {
-		t.Errorf("expected --bundle and --k6 in flags, got %v", got)
+func TestValidatePerfConfig_PassesWithFullConfig(t *testing.T) {
+	if err := validatePerfConfig(minimalTestConfig()); err != nil {
+		t.Errorf("unexpected error for full config: %v", err)
 	}
 }
 
-// ── PerfStep variadic args ────────────────────────────────────────────────────
-
-func TestPerfStep_NoExtraArgs(t *testing.T) {
-	s := pipeline.PerfStep("/repo")
-	if !strings.Contains(strings.Join(s.Args, " "), "test-perf.sh") {
-		t.Errorf("expected test-perf.sh in args, got %v", s.Args)
+func TestValidatePerfConfig_RejectsZeroConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(*config.Config)
+		wantErr string
+	}{
+		{"zero backend port", func(c *config.Config) { c.Test.Perf.BackendPort = 0 }, "backend_port"},
+		{"zero frontend port", func(c *config.Config) { c.Test.Perf.FrontendPort = 0 }, "frontend_port"},
+		{"empty backend service", func(c *config.Config) { c.Test.E2E.BackendService = "" }, "backend_service"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := minimalTestConfig()
+			tt.mutate(cfg)
+			err := validatePerfConfig(cfg)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error %q does not mention %q", err.Error(), tt.wantErr)
+			}
+		})
 	}
 }
 
-func TestPerfStep_NoBundleFlag(t *testing.T) {
-	s := pipeline.PerfStep("/repo", "--no-bundle")
-	args := strings.Join(s.Args, " ")
-	if !strings.Contains(args, "--no-bundle") {
-		t.Errorf("expected --no-bundle in args, got %q", args)
+// ── e2eConfigFrom / perfConfigFrom ───────────────────────────────────────────
+
+func TestE2EConfigFrom_MapsFields(t *testing.T) {
+	cfg := minimalTestConfig()
+	e := e2eConfigFrom(cfg)
+
+	if e.Shards != 4 {
+		t.Errorf("Shards: got %d, want 4", e.Shards)
+	}
+	if e.BackendBasePort != 5151 {
+		t.Errorf("BackendBasePort: got %d, want 5151", e.BackendBasePort)
+	}
+	if e.DBContainer != "studio_db" {
+		t.Errorf("DBContainer: got %q, want studio_db", e.DBContainer)
+	}
+	if e.DevComposeFile != "docker-compose.dev.yml" {
+		t.Errorf("DevComposeFile: got %q, want docker-compose.dev.yml", e.DevComposeFile)
 	}
 }
 
-func TestPerfStep_SubtypeMapping(t *testing.T) {
-	s := pipeline.PerfStep("/repo", "--bundle", "--k6")
-	args := strings.Join(s.Args, " ")
-	if !strings.Contains(args, "--bundle") || !strings.Contains(args, "--k6") {
-		t.Errorf("expected --bundle and --k6 in args, got %q", args)
+func TestPerfConfigFrom_MapsFields(t *testing.T) {
+	cfg := minimalTestConfig()
+	p := perfConfigFrom(cfg)
+
+	if p.BackendPort != 5160 {
+		t.Errorf("BackendPort: got %d, want 5160", p.BackendPort)
+	}
+	if p.FrontendPort != 3010 {
+		t.Errorf("FrontendPort: got %d, want 3010", p.FrontendPort)
+	}
+	if p.DBSource != "controlroomdb_test" {
+		t.Errorf("DBSource: got %q, want controlroomdb_test", p.DBSource)
 	}
 }

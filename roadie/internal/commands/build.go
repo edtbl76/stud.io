@@ -76,28 +76,54 @@ and perf suites. No skipping allowed.`,
 
 // runBuild is the top-level coordinator: rebuild stack, apply schema, run tests.
 func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
-	const root = "."
 	if err := newManager(cfg).Build(ctx, cfg, flags.dev); err != nil {
 		return err
 	}
 	if err := applySchema(ctx, cfg, out); err != nil {
 		return err
 	}
-	return runTests(ctx, flags, root, out)
+	return runTests(ctx, cfg, flags, out)
 }
 
 // runTests runs the unit pipeline then any enabled optional suites.
-func runTests(ctx context.Context, flags buildFlags, root string, out io.Writer) error {
+func runTests(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	if !flags.skipTests {
-		if err := runUnitTests(ctx, root, out); err != nil {
+		if err := runUnitTests(ctx, ".", out); err != nil {
 			return err
 		}
 	}
-	if err := runSelectedSuites(ctx, flags, root, out); err != nil {
+	if err := runSelectedSuites(ctx, cfg, flags, out); err != nil {
 		return err
 	}
-	fmt.Fprintln(out, "[roadie] Build complete.")
+	printBuildSummary(cfg, flags, out)
 	return nil
+}
+
+// printBuildSummary prints the end-of-build summary matching build.sh output.
+func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
+	u := cfg.Stack.URLs
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "============================================================")
+	fmt.Fprintln(out, "  All systems go.")
+	fmt.Fprintln(out, "")
+	fmt.Fprintf(out, "  App:  %s\n", u.App)
+	fmt.Fprintf(out, "  API:  %s\n", u.API)
+	fmt.Fprintf(out, "  Docs: %s\n", u.Docs)
+	if flags.dev {
+		fmt.Fprintln(out, "")
+		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
+		fmt.Fprintf(out, "  Structurizr:  %s\n", u.Structurizr)
+	}
+	if flags.dev && flags.full {
+		fmt.Fprintln(out, "")
+		fmt.Fprintln(out, "  Release gate passed:")
+		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
+		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest")
+		fmt.Fprintln(out, "    E2E:         Playwright")
+		fmt.Fprintln(out, "    Scans:       SonarQube · Trivy · secrets · headers")
+		fmt.Fprintln(out, "    Perf:        benchmarks · k6 · Lighthouse")
+	}
+	fmt.Fprintln(out, "============================================================")
 }
 
 // runUnitTests runs the full unit suite in fatal-sequential order.
@@ -151,28 +177,53 @@ func toolFilter(allowed []string) func(string) bool {
 	}
 }
 
-// runSelectedSuites runs E2E, scan, and perf suites based on the enabled flags.
-func runSelectedSuites(ctx context.Context, flags buildFlags, root string, out io.Writer) error {
-	r := pipeline.Root(root)
-	suites := []struct {
-		enabled bool
-		label   string
-		step    pipeline.ToolStep
-	}{
-		{flags.runE2E(), "E2E tests", pipeline.E2EStep(r)},
-		{flags.runScan(), "security scans", pipeline.ScanStep(r)},
-		{flags.runPerf(), "performance tests", pipeline.PerfStep(r)},
+// runSuite validates then logs label and invokes run. It exists to give
+// runSelectedSuites a single call-site per suite rather than repeating the
+// validate → announce → run pattern inline.
+func runSuite(out io.Writer, label string, validate, run func() error) error {
+	if err := validate(); err != nil {
+		return err
 	}
-	for _, s := range suites {
-		if !s.enabled {
-			continue
-		}
-		fmt.Fprintf(out, "[roadie] Running %s...\n", s.label)
-		if err := pipeline.New(s.step).RunSequential(ctx, out); err != nil {
+	fmt.Fprintln(out, label)
+	return run()
+}
+
+// runSelectedSuites runs scan → E2E → perf, matching build.sh order so that
+// a failing quality gate blocks E2E the same way --dev does in the shell script.
+func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
+	r := pipeline.Root(".")
+	if err := maybeRunScan(ctx, flags, r, out); err != nil {
+		return err
+	}
+	if flags.runE2E() {
+		if err := runSuite(out, "[roadie] Running E2E tests...",
+			func() error { return validateE2EConfig(cfg) },
+			func() error { return pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, out) },
+		); err != nil {
 			return err
 		}
 	}
+	if flags.runPerf() {
+		return runSuite(out, "[roadie] Running performance tests...",
+			func() error { return validatePerfConfig(cfg) },
+			func() error {
+				results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, out)
+				pipeline.PrintSummary(out, results)
+				return err
+			},
+		)
+	}
 	return nil
+}
+
+func maybeRunScan(ctx context.Context, flags buildFlags, r pipeline.Root, out io.Writer) error {
+	if !flags.runScan() {
+		return nil
+	}
+	fmt.Fprintln(out, "[roadie] Running security scans...")
+	results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(flags.dev), out)
+	pipeline.PrintSummary(out, results)
+	return err
 }
 
 // schemaApplier holds the stable configuration for applying schema files to
