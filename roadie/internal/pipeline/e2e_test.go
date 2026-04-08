@@ -81,32 +81,31 @@ func TestE2EConfig_ZeroValue(t *testing.T) {
 }
 
 func TestValidateDBIdentifier(t *testing.T) {
-	valid := []string{
-		"controlroomdb_test",
-		"controlroomdb_test_0",
-		"studio",
-		"_private",
-		"A",
+	cases := []struct {
+		name    string
+		wantErr bool
+	}{
+		{"controlroomdb_test", false},
+		{"controlroomdb_test_0", false},
+		{"studio", false},
+		{"_private", false},
+		{"A", false},
+		{"", true},
+		{"123bad", true},
+		{"has space", true},
+		{"has-dash", true},
+		{"has'quote", true},
+		{"has;semi", true},
+		{"has\"double", true},
+		{"$bad", true},
 	}
-	for _, name := range valid {
-		if err := validateDBIdentifier(name); err != nil {
-			t.Errorf("validateDBIdentifier(%q): unexpected error: %v", name, err)
+	for _, tc := range cases {
+		err := validateDBIdentifier(tc.name)
+		if tc.wantErr && err == nil {
+			t.Errorf("validateDBIdentifier(%q): expected error, got nil", tc.name)
 		}
-	}
-
-	invalid := []string{
-		"",
-		"123bad",
-		"has space",
-		"has-dash",
-		"has'quote",
-		"has;semi",
-		"has\"double",
-		"$bad",
-	}
-	for _, name := range invalid {
-		if err := validateDBIdentifier(name); err == nil {
-			t.Errorf("validateDBIdentifier(%q): expected error, got nil", name)
+		if !tc.wantErr && err != nil {
+			t.Errorf("validateDBIdentifier(%q): unexpected error: %v", tc.name, err)
 		}
 	}
 }

@@ -209,23 +209,34 @@ func checkSonarGate(ctx context.Context, baseURL, token string, out io.Writer) e
 
 const maxConsecutiveCEErrors = 3
 
+// advanceCEPoll processes one poll iteration result. Returns done=true when the
+// CE task has finished. Increments *consecutiveErrors on failure and returns an
+// error once the limit is exceeded; resets the counter on success.
+func advanceCEPoll(pending bool, pollErr error, consecutiveErrors *int) (done bool, err error) {
+	if pollErr == nil {
+		*consecutiveErrors = 0
+		return !pending, nil
+	}
+	*consecutiveErrors++
+	if *consecutiveErrors > maxConsecutiveCEErrors {
+		return false, fmt.Errorf("CE task poll failed %d consecutive times: %w", *consecutiveErrors, pollErr)
+	}
+	return false, nil
+}
+
 // waitForCETask polls until no IN_PROGRESS/PENDING CE tasks remain.
 // Transient network or decode errors are tolerated up to maxConsecutiveCEErrors
 // consecutive failures; beyond that the poll is aborted with an error.
 func (c sonarGateChecker) waitForCETask(ctx context.Context, out io.Writer) error {
 	consecutiveErrors := 0
 	for i := 0; i < 100; i++ {
-		pending, err := c.isCETaskPending(ctx)
+		pending, pollErr := c.isCETaskPending(ctx)
+		done, err := advanceCEPoll(pending, pollErr, &consecutiveErrors)
 		if err != nil {
-			consecutiveErrors++
-			if consecutiveErrors > maxConsecutiveCEErrors {
-				return fmt.Errorf("CE task poll failed %d consecutive times: %w", consecutiveErrors, err)
-			}
-		} else {
-			consecutiveErrors = 0
-			if !pending {
-				return nil
-			}
+			return err
+		}
+		if done {
+			return nil
 		}
 		fmt.Fprint(out, ".")
 		select {
