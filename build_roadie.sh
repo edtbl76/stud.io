@@ -19,7 +19,7 @@ echo "[build_roadie] Building binary..."
 go build -o "$BINARY" ./cmd/roadie
 
 echo "[build_roadie] Installing to /usr/local/bin/roadie..."
-sudo cp "$BINARY" /usr/local/bin/roadie
+sudo cp "$BINARY" /usr/local/bin/roadie.new && sudo mv /usr/local/bin/roadie.new /usr/local/bin/roadie
 rm "$BINARY"
 
 cd "$SCRIPT_DIR"
