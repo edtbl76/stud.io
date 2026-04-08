@@ -96,12 +96,19 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
+      - name: Diagnostics
+        run: |
+          echo "node: $(node --version 2>/dev/null || echo 'not found')"
+          echo "npm:  $(npm --version 2>/dev/null || echo 'not found')"
+          echo "NVM_DIR: ${NVM_DIR:-not set}"
+          echo "PATH: $PATH"
+          roadie version
       - name: Install frontend dependencies
         working-directory: app/controlroom_frontend
         run: npm ci
       - name: Verify production stack is healthy
         run: |
           curl -sfk https://localhost:5150/health || \
-            { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
+            { echo "Production stack is not running. Run roadie start from the workspace."; exit 1; }
       - name: Run performance suite
         run: bazel test --config=ci-infra --test_output=streamed //tests:perf
