@@ -8,7 +8,10 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL ?? 'http://localhost:3010',
     launchOptions: {
-      args: ['--remote-debugging-port=9222'],
+      args: [
+        '--remote-debugging-port=9222',
+        '--disable-dev-shm-usage', // prevents NO_FCP on Linux CI where /dev/shm is limited
+      ],
     },
   },
   projects: [
