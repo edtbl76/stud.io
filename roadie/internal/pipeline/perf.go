@@ -40,12 +40,16 @@ func (f PerfFlags) anySelected() bool {
 }
 
 // shouldRun reports whether suite should run given the active flag selection.
-// When no specific suite is selected, all suites run.
+// When no specific suite is selected, all suites run. "bundle" maps to the
+// frontend build step that runs in prepareFrontend; its result is recorded in
+// collect so that "roadie test perf bundle" produces visible output.
 func (f PerfFlags) shouldRun(suite string) bool {
 	if !f.anySelected() {
 		return true
 	}
 	switch suite {
+	case "bundle":
+		return f.Bundle
 	case "benchmarks":
 		return f.Benchmarks
 	case "k6":
@@ -132,9 +136,14 @@ func (r perfRunner) startBackend(ctx context.Context, container string, out io.W
 }
 
 // collect runs the selected perf suites and returns StepResults.
+// The bundle build ran in prepareFrontend; a success result is recorded here
+// when bundle was selected so "roadie test perf bundle" has visible output.
 func (r perfRunner) collect(ctx context.Context, flags PerfFlags, out io.Writer) ([]StepResult, error) {
 	var results []StepResult
 
+	if flags.shouldRun("bundle") && !flags.NoBundle {
+		results = append(results, StepResult{Name: "bundle"})
+	}
 	if flags.shouldRun("benchmarks") {
 		results = append(results, runPerfBenchmarks(ctx, r.cfg.Root, out))
 	}
@@ -203,13 +212,17 @@ func startFrontendProd(ctx context.Context, cfg PerfConfig, root string, out io.
 		"NEXT_DIST_DIR=.next-perf",
 		fmt.Sprintf("BACKEND_URL=http://localhost:%d", cfg.BackendPort),
 	)
-	logFile, _ := os.Create("/tmp/perf-frontend.log")
+	logFile, err := os.Create("/tmp/perf-frontend.log")
+	if err != nil {
+		return nil, fmt.Errorf("creating perf frontend log: %w", err)
+	}
 	cmd.Stdout = logFile
 	cmd.Stderr = logFile
-
 	if err := cmd.Start(); err != nil {
+		logFile.Close()
 		return nil, fmt.Errorf("starting perf frontend: %w", err)
 	}
+	logFile.Close() // parent's copy; child process holds its own inherited fd
 	return cmd.Process, nil
 }
 

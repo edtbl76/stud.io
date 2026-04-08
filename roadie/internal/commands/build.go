@@ -95,8 +95,35 @@ func runTests(ctx context.Context, cfg *config.Config, flags buildFlags, out io.
 	if err := runSelectedSuites(ctx, cfg, flags, out); err != nil {
 		return err
 	}
-	fmt.Fprintln(out, "[roadie] Build complete.")
+	printBuildSummary(cfg, flags, out)
 	return nil
+}
+
+// printBuildSummary prints the end-of-build summary matching build.sh output.
+func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
+	u := cfg.Stack.URLs
+	fmt.Fprintln(out, "")
+	fmt.Fprintln(out, "============================================================")
+	fmt.Fprintln(out, "  All systems go.")
+	fmt.Fprintln(out, "")
+	fmt.Fprintf(out, "  App:  %s\n", u.App)
+	fmt.Fprintf(out, "  API:  %s\n", u.API)
+	fmt.Fprintf(out, "  Docs: %s\n", u.Docs)
+	if flags.dev {
+		fmt.Fprintln(out, "")
+		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
+		fmt.Fprintf(out, "  Structurizr:  %s\n", u.Structurizr)
+	}
+	if flags.dev && flags.full {
+		fmt.Fprintln(out, "")
+		fmt.Fprintln(out, "  Release gate passed:")
+		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
+		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest")
+		fmt.Fprintln(out, "    E2E:         Playwright")
+		fmt.Fprintln(out, "    Scans:       SonarQube · Trivy · secrets · headers")
+		fmt.Fprintln(out, "    Perf:        benchmarks · k6 · Lighthouse")
+	}
+	fmt.Fprintln(out, "============================================================")
 }
 
 // runUnitTests runs the full unit suite in fatal-sequential order.
@@ -150,13 +177,14 @@ func toolFilter(allowed []string) func(string) bool {
 	}
 }
 
-// runSelectedSuites runs E2E, scan, and perf suites based on the enabled flags.
+// runSelectedSuites runs scan → E2E → perf, matching build.sh order so that
+// a failing quality gate blocks E2E the same way --dev does in the shell script.
 func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	r := pipeline.Root(".")
-	if err := maybeRunE2E(ctx, cfg, flags, out); err != nil {
+	if err := maybeRunScan(ctx, flags, r, out); err != nil {
 		return err
 	}
-	if err := maybeRunScan(ctx, flags, r, out); err != nil {
+	if err := maybeRunE2E(ctx, cfg, flags, out); err != nil {
 		return err
 	}
 	return maybeRunPerf(ctx, cfg, flags, out)
@@ -165,6 +193,9 @@ func runSelectedSuites(ctx context.Context, cfg *config.Config, flags buildFlags
 func maybeRunE2E(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	if !flags.runE2E() {
 		return nil
+	}
+	if err := validateE2EConfig(cfg); err != nil {
+		return err
 	}
 	fmt.Fprintln(out, "[roadie] Running E2E tests...")
 	return pipeline.RunE2E(ctx, e2eConfigFrom(cfg), pipeline.Root("."), out)
@@ -175,7 +206,7 @@ func maybeRunScan(ctx context.Context, flags buildFlags, r pipeline.Root, out io
 		return nil
 	}
 	fmt.Fprintln(out, "[roadie] Running security scans...")
-	results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(true), out)
+	results, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(flags.dev), out)
 	pipeline.PrintSummary(out, results)
 	return err
 }
@@ -183,6 +214,9 @@ func maybeRunScan(ctx context.Context, flags buildFlags, r pipeline.Root, out io
 func maybeRunPerf(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	if !flags.runPerf() {
 		return nil
+	}
+	if err := validatePerfConfig(cfg); err != nil {
+		return err
 	}
 	fmt.Fprintln(out, "[roadie] Running performance tests...")
 	results, err := pipeline.RunPerf(ctx, perfConfigFrom(cfg), pipeline.PerfFlags{}, out)

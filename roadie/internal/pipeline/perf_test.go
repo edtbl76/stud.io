@@ -34,6 +34,36 @@ func TestPerfFlags_AnySelected(t *testing.T) {
 	}
 }
 
+func TestPerfFlags_ShouldRun(t *testing.T) {
+	tests := []struct {
+		name  string
+		flags PerfFlags
+		suite string
+		want  bool
+	}{
+		// No selection: all suites run.
+		{"default runs bundle", PerfFlags{}, "bundle", true},
+		{"default runs benchmarks", PerfFlags{}, "benchmarks", true},
+		{"default runs k6", PerfFlags{}, "k6", true},
+		{"default runs lighthouse", PerfFlags{}, "lighthouse", true},
+		// Bundle-only: only bundle runs, others are skipped.
+		{"bundle-only runs bundle", PerfFlags{Bundle: true}, "bundle", true},
+		{"bundle-only skips benchmarks", PerfFlags{Bundle: true}, "benchmarks", false},
+		{"bundle-only skips k6", PerfFlags{Bundle: true}, "k6", false},
+		{"bundle-only skips lighthouse", PerfFlags{Bundle: true}, "lighthouse", false},
+		// Other single selections.
+		{"k6-only runs k6", PerfFlags{K6: true}, "k6", true},
+		{"k6-only skips bundle", PerfFlags{K6: true}, "bundle", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.flags.shouldRun(tt.suite); got != tt.want {
+				t.Errorf("shouldRun(%q) = %v, want %v", tt.suite, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestPerfConfig_ZeroValue(t *testing.T) {
 	cfg := PerfConfig{}
 	if cfg.BackendPort != 0 || cfg.FrontendPort != 0 {

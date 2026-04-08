@@ -78,18 +78,21 @@ func checkDockerCompose(ctx context.Context) bool {
 	return cmd.Run() == nil
 }
 
-// checkHTTP returns a check that passes when the URL returns a non-5xx response.
+// checkHTTP returns a check that passes when the URL returns a 2xx response.
 func checkHTTP(url string) func(ctx context.Context) bool {
 	return func(ctx context.Context) bool {
 		ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if err != nil {
+			return false
+		}
 		client := &http.Client{Timeout: 5 * time.Second}
 		resp, err := client.Do(req)
 		if err != nil {
 			return false
 		}
-		resp.Body.Close()
-		return resp.StatusCode < 500
+		defer resp.Body.Close()
+		return resp.StatusCode >= 200 && resp.StatusCode < 300
 	}
 }

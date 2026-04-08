@@ -225,7 +225,7 @@ func DetectSecretsStep(root Root) ToolStep {
 		`[print("[secrets]   " + s) for s in added], ` +
 		`print("[secrets] Run: detect-secrets scan --baseline .secrets.baseline"), ` +
 		`sys.exit(1)] if added else ` +
-		`print("[secrets] No new secrets detected (" + str(sum(len(v) for v in cur.get("results", {}).values())) + " findings, all baselined).)' `
+		`print("[secrets] No new secrets detected (" + str(sum(len(v) for v in cur.get("results", {}).values())) + " findings, all baselined).")' `
 	return ToolStep{
 		Name: "detect-secrets",
 		Bin:  "bash",

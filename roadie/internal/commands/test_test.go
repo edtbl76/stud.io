@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/studiocontrolroom/roadie/internal/config"
 	"github.com/studiocontrolroom/roadie/internal/pipeline"
 )
 
@@ -100,6 +101,73 @@ func TestBuildPerfFlags(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := buildPerfFlags(tt.args, tt.noBundle); got != tt.want {
 				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+// ── validateE2EConfig / validatePerfConfig ────────────────────────────────────
+
+func TestValidateE2EConfig_PassesWithFullConfig(t *testing.T) {
+	if err := validateE2EConfig(minimalTestConfig()); err != nil {
+		t.Errorf("unexpected error for full config: %v", err)
+	}
+}
+
+func TestValidateE2EConfig_RejectsZeroConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(*config.Config)
+		wantErr string
+	}{
+		{"zero shards", func(c *config.Config) { c.Test.E2E.Shards = 0 }, "shards"},
+		{"empty backend service", func(c *config.Config) { c.Test.E2E.BackendService = "" }, "backend_service"},
+		{"zero backend port", func(c *config.Config) { c.Test.E2E.BackendBasePort = 0 }, "backend_base_port"},
+		{"zero frontend port", func(c *config.Config) { c.Test.E2E.FrontendBasePort = 0 }, "frontend_base_port"},
+		{"empty db container", func(c *config.Config) { c.Test.DB.Container = "" }, "container"},
+		{"empty db source", func(c *config.Config) { c.Test.DB.Source = "" }, "source"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := minimalTestConfig()
+			tt.mutate(cfg)
+			err := validateE2EConfig(cfg)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error %q does not mention %q", err.Error(), tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestValidatePerfConfig_PassesWithFullConfig(t *testing.T) {
+	if err := validatePerfConfig(minimalTestConfig()); err != nil {
+		t.Errorf("unexpected error for full config: %v", err)
+	}
+}
+
+func TestValidatePerfConfig_RejectsZeroConfig(t *testing.T) {
+	tests := []struct {
+		name    string
+		mutate  func(*config.Config)
+		wantErr string
+	}{
+		{"zero backend port", func(c *config.Config) { c.Test.Perf.BackendPort = 0 }, "backend_port"},
+		{"zero frontend port", func(c *config.Config) { c.Test.Perf.FrontendPort = 0 }, "frontend_port"},
+		{"empty backend service", func(c *config.Config) { c.Test.E2E.BackendService = "" }, "backend_service"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := minimalTestConfig()
+			tt.mutate(cfg)
+			err := validatePerfConfig(cfg)
+			if err == nil {
+				t.Fatal("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tt.wantErr) {
+				t.Errorf("error %q does not mention %q", err.Error(), tt.wantErr)
 			}
 		})
 	}

@@ -57,6 +57,9 @@ func e2eCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := validateE2EConfig(cfg); err != nil {
+				return err
+			}
 			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
 			return pipeline.RunE2E(cmd.Context(), e2eConfigFrom(cfg), pipeline.Root("."), os.Stdout)
 		},
@@ -100,6 +103,9 @@ func perfCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if err := validatePerfConfig(cfg); err != nil {
+				return err
+			}
 			flags := buildPerfFlags(args, noBundle)
 			fmt.Fprintln(os.Stdout, "[roadie] Running performance tests...")
 			results, err := pipeline.RunPerf(cmd.Context(), perfConfigFrom(cfg), flags, os.Stdout)
@@ -115,7 +121,7 @@ func perfCmd() *cobra.Command {
 func fullCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "full",
-		Short: "Run all suites: unit → e2e → scan (with gate) → perf",
+		Short: "Run all suites: unit → scan (with gate) → e2e → perf",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			ctx := cmd.Context()
 			cfg, err := loadConfig()
@@ -129,15 +135,24 @@ func fullCmd() *cobra.Command {
 				return err
 			}
 
-			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
-			if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, os.Stdout); err != nil {
+			if err := validateE2EConfig(cfg); err != nil {
+				return err
+			}
+			if err := validatePerfConfig(cfg); err != nil {
 				return err
 			}
 
+			// Scans run before E2E so a failing quality gate blocks E2E,
+			// matching build.sh --dev behaviour.
 			fmt.Fprintln(os.Stdout, "[roadie] Running security scans...")
 			scanResults, err := pipeline.RunScan(ctx, r, pipeline.AllScanFlags(true), os.Stdout)
 			pipeline.PrintSummary(os.Stdout, scanResults)
 			if err != nil {
+				return err
+			}
+
+			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
+			if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, os.Stdout); err != nil {
 				return err
 			}
 
@@ -187,6 +202,44 @@ func buildPerfFlags(args []string, noBundle bool) pipeline.PerfFlags {
 		}
 	}
 	return f
+}
+
+// validateE2EConfig returns a clear error if cfg is missing fields required by
+// the E2E runner. Call before e2eConfigFrom/RunE2E so runners never receive
+// zero-valued configs.
+func validateE2EConfig(cfg *config.Config) error {
+	e := cfg.Test.E2E
+	switch {
+	case e.Shards <= 0:
+		return fmt.Errorf("test.e2e.shards must be > 0 (got %d); add a test: e2e: section to roadie.yml", e.Shards)
+	case e.BackendService == "":
+		return fmt.Errorf("test.e2e.backend_service is required for E2E tests")
+	case e.BackendBasePort <= 0:
+		return fmt.Errorf("test.e2e.backend_base_port must be > 0 (got %d)", e.BackendBasePort)
+	case e.FrontendBasePort <= 0:
+		return fmt.Errorf("test.e2e.frontend_base_port must be > 0 (got %d)", e.FrontendBasePort)
+	case cfg.Test.DB.Container == "":
+		return fmt.Errorf("test.db.container is required for E2E tests")
+	case cfg.Test.DB.Source == "":
+		return fmt.Errorf("test.db.source is required for E2E tests")
+	}
+	return nil
+}
+
+// validatePerfConfig returns a clear error if cfg is missing fields required by
+// the perf runner. Call before perfConfigFrom/RunPerf so runners never receive
+// zero-valued configs.
+func validatePerfConfig(cfg *config.Config) error {
+	p := cfg.Test.Perf
+	switch {
+	case p.BackendPort <= 0:
+		return fmt.Errorf("test.perf.backend_port must be > 0 (got %d); add a test: perf: section to roadie.yml", p.BackendPort)
+	case p.FrontendPort <= 0:
+		return fmt.Errorf("test.perf.frontend_port must be > 0 (got %d)", p.FrontendPort)
+	case cfg.Test.E2E.BackendService == "":
+		return fmt.Errorf("test.e2e.backend_service is required for perf tests")
+	}
+	return nil
 }
 
 // e2eConfigFrom builds an E2EConfig from the application config.

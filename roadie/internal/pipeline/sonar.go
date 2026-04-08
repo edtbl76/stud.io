@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -62,18 +61,22 @@ func sonarDockerStep(root Root, token string) ToolStep {
 // fixLcovPaths prefixes bare `SF:` lines in the frontend lcov.info with the
 // frontend subdirectory path. SonarQube resolves coverage paths from the
 // project root (/usr/src), not from the frontend directory.
+// Each SF: line is checked independently so mixed files are handled correctly.
 func fixLcovPaths(root string) error {
 	lcovPath := filepath.Join(root, frontendDir, "coverage", "lcov.info")
 	data, err := os.ReadFile(lcovPath)
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", lcovPath, err)
 	}
-	prefix := []byte("SF:app/controlroom_frontend/")
-	if bytes.Contains(data, prefix) {
-		return nil // already prefixed
+	const sfPrefix = "SF:"
+	const wantPrefix = "SF:app/controlroom_frontend/"
+	lines := strings.Split(string(data), "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, sfPrefix) && !strings.HasPrefix(line, wantPrefix) {
+			lines[i] = wantPrefix + line[len(sfPrefix):]
+		}
 	}
-	fixed := bytes.ReplaceAll(data, []byte("SF:"), prefix)
-	return os.WriteFile(lcovPath, fixed, 0644)
+	return os.WriteFile(lcovPath, []byte(strings.Join(lines, "\n")), 0644)
 }
 
 // loadSonarToken returns the SonarQube token from $SONAR_TOKEN or .sonar-token.
@@ -204,15 +207,25 @@ func checkSonarGate(ctx context.Context, baseURL, token string, out io.Writer) e
 	return fmt.Errorf("quality gate %s", status)
 }
 
+const maxConsecutiveCEErrors = 3
+
 // waitForCETask polls until no IN_PROGRESS/PENDING CE tasks remain.
+// Transient network or decode errors are tolerated up to maxConsecutiveCEErrors
+// consecutive failures; beyond that the poll is aborted with an error.
 func (c sonarGateChecker) waitForCETask(ctx context.Context, out io.Writer) error {
+	consecutiveErrors := 0
 	for i := 0; i < 100; i++ {
 		pending, err := c.isCETaskPending(ctx)
 		if err != nil {
-			return err
-		}
-		if !pending {
-			return nil
+			consecutiveErrors++
+			if consecutiveErrors > maxConsecutiveCEErrors {
+				return fmt.Errorf("CE task poll failed %d consecutive times: %w", consecutiveErrors, err)
+			}
+		} else {
+			consecutiveErrors = 0
+			if !pending {
+				return nil
+			}
 		}
 		fmt.Fprint(out, ".")
 		select {
@@ -231,7 +244,7 @@ func (c sonarGateChecker) isCETaskPending(ctx context.Context) (bool, error) {
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return true, nil // treat transient errors as still-pending
+		return false, fmt.Errorf("polling CE task: %w", err)
 	}
 	defer resp.Body.Close()
 
@@ -240,7 +253,7 @@ func (c sonarGateChecker) isCETaskPending(ctx context.Context) (bool, error) {
 		Current struct{ Status string }   `json:"current"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return true, nil
+		return false, fmt.Errorf("decoding CE task response: %w", err)
 	}
 	for _, t := range body.Queue {
 		if t.Status == "IN_PROGRESS" || t.Status == "PENDING" {

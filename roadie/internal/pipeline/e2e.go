@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
 )
@@ -67,10 +68,10 @@ func RunE2E(ctx context.Context, cfg E2EConfig, root Root, out io.Writer) error 
 	}
 
 	procs, err := startFrontendShards(ctx, cfg, r, lw)
+	frontendProcs = procs // assign before error check so deferred cleanup kills partial starts
 	if err != nil {
 		return err
 	}
-	frontendProcs = procs
 
 	if err := waitForShards(ctx, healthTarget{cfg.Shards, cfg.FrontendBasePort, ""}, lw); err != nil {
 		return fmt.Errorf("frontend health: %w", err)
@@ -128,39 +129,96 @@ func restoreDevBackend(cfg E2EConfig, root string) {
 	devComposeCmd{cfg, root}.run(ctx, io.Discard, "up", "-d", cfg.BackendService) //nolint — best-effort
 }
 
+// dbIdentRe is the strict allowlist for PostgreSQL database identifiers:
+// letters, digits, underscores only; starts with a letter or underscore;
+// max 63 characters (PostgreSQL's NAMEDATALEN - 1).
+var dbIdentRe = regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]{0,62}$`)
+
+// validateDBIdentifier rejects any name that could escape safe SQL quoting.
+// Validation is a first line of defence; all SQL also uses psql variables and
+// format('%I',...) so the database itself handles final quoting.
+func validateDBIdentifier(name string) error {
+	if !dbIdentRe.MatchString(name) {
+		return fmt.Errorf("unsafe database identifier %q: must match [a-zA-Z_][a-zA-Z0-9_]* (max 63 chars)", name)
+	}
+	return nil
+}
+
 // provisionShardDBs terminates connections to the source DB, then creates N
 // clone databases using CREATE DATABASE … WITH TEMPLATE.
+// Identifiers are validated by validateDBIdentifier before use, so direct
+// interpolation into SQL is safe (the regex permits only [a-zA-Z_][a-zA-Z0-9_]*).
 func provisionShardDBs(ctx context.Context, cfg E2EConfig, out io.Writer) error {
 	fmt.Fprintf(out, "Provisioning %d test databases...\n", cfg.Shards)
+
+	if err := validateDBIdentifier(cfg.DBSource); err != nil {
+		return err
+	}
+	if err := validateDBIdentifier(cfg.DBUser); err != nil {
+		return err
+	}
+
 	terminateSQL := fmt.Sprintf(
-		"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s' AND pid <> pg_backend_pid();",
+		"SELECT pg_terminate_backend(pid) FROM pg_stat_activity"+
+			" WHERE datname = '%s' AND pid <> pg_backend_pid();",
 		cfg.DBSource,
 	)
 	if err := dockerPsql(ctx, cfg, "postgres", terminateSQL); err != nil {
 		return fmt.Errorf("terminating source connections: %w", err)
 	}
+
 	for i := 0; i < cfg.Shards; i++ {
 		db := fmt.Sprintf("%s_%d", cfg.DBSource, i)
-		dropSQL := fmt.Sprintf("DROP DATABASE IF EXISTS %s;", db)
-		createSQL := fmt.Sprintf("CREATE DATABASE %s WITH TEMPLATE %s OWNER %s;", db, cfg.DBSource, cfg.DBUser)
-		terminateShardSQL := fmt.Sprintf(
-			"SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '%s' AND pid <> pg_backend_pid();",
-			db,
-		)
-		if err := dockerPsql(ctx, cfg, "postgres", terminateShardSQL); err != nil {
-			return err
-		}
-		if err := dockerPsql(ctx, cfg, "postgres", dropSQL); err != nil {
-			return err
-		}
-		if err := dockerPsql(ctx, cfg, "postgres", createSQL); err != nil {
+		if err := provisionOneShard(ctx, cfg, db); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// dockerPsql runs a single SQL statement inside the database container.
+// provisionOneShard terminates connections, drops if present, and clones the
+// source DB into db. format('%I',...) handles identifier quoting in DDL.
+func provisionOneShard(ctx context.Context, cfg E2EConfig, db string) error {
+	if err := validateDBIdentifier(db); err != nil {
+		return err
+	}
+
+	terminateSQL := fmt.Sprintf(
+		"SELECT pg_terminate_backend(pid) FROM pg_stat_activity"+
+			" WHERE datname = '%s' AND pid <> pg_backend_pid();",
+		db,
+	)
+	if err := dockerPsql(ctx, cfg, "postgres", terminateSQL); err != nil {
+		return err
+	}
+
+	// DROP DATABASE and CREATE DATABASE cannot run inside a DO block or
+	// transaction. Use direct SQL with pre-validated identifiers.
+	dropSQL := fmt.Sprintf("DROP DATABASE IF EXISTS %s;", db)
+	if err := dockerPsql(ctx, cfg, "postgres", dropSQL); err != nil {
+		return err
+	}
+
+	// Terminate template connections immediately before CREATE so the window
+	// for new connections to appear is as small as possible.
+	terminateTemplateSQL := fmt.Sprintf(
+		"SELECT pg_terminate_backend(pid) FROM pg_stat_activity"+
+			" WHERE datname = '%s' AND pid <> pg_backend_pid();",
+		cfg.DBSource,
+	)
+	if err := dockerPsql(ctx, cfg, "postgres", terminateTemplateSQL); err != nil {
+		return err
+	}
+
+	createSQL := fmt.Sprintf(
+		"CREATE DATABASE %s WITH TEMPLATE %s OWNER %s;",
+		db, cfg.DBSource, cfg.DBUser,
+	)
+	return dockerPsql(ctx, cfg, "postgres", createSQL)
+}
+
+// dockerPsql runs a SQL statement inside the database container via psql -c.
+// All identifiers in sql must be pre-validated by validateDBIdentifier.
 func dockerPsql(ctx context.Context, cfg E2EConfig, db, sql string) error {
 	cmd := exec.CommandContext(ctx, "docker", "exec",
 		"-e", "PGPASSWORD="+cfg.DBPassword,
@@ -212,14 +270,18 @@ func waitForShards(ctx context.Context, target healthTarget, out io.Writer) erro
 	return nil
 }
 
-// waitForHTTP polls url until it responds 2xx, up to maxAttempts tries.
+// waitForHTTP polls url until it responds with a 2xx status code, up to
+// maxAttempts tries with pause between each. Matches curl -f semantics: any
+// non-2xx (including redirects and 4xx) is treated as not-yet-ready.
 func waitForHTTP(ctx context.Context, url string, maxAttempts int, pause time.Duration) error {
 	client := &http.Client{Timeout: 5 * time.Second}
+	var lastStatus int
 	for attempt := 0; attempt < maxAttempts; attempt++ {
 		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if resp, err := client.Do(req); err == nil {
+			lastStatus = resp.StatusCode
 			resp.Body.Close()
-			if resp.StatusCode < 500 {
+			if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 				return nil
 			}
 		}
@@ -229,7 +291,10 @@ func waitForHTTP(ctx context.Context, url string, maxAttempts int, pause time.Du
 		case <-time.After(pause):
 		}
 	}
-	return fmt.Errorf("%s did not become healthy after %d attempts", url, maxAttempts)
+	if lastStatus != 0 {
+		return fmt.Errorf("%s did not become healthy after %d attempts (last status: %d)", url, maxAttempts, lastStatus)
+	}
+	return fmt.Errorf("%s did not become healthy after %d attempts (no response)", url, maxAttempts)
 }
 
 func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) ([]*os.Process, error) {
@@ -253,13 +318,18 @@ func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io
 		if nodeDir != "" {
 			cmd.Env = append(cmd.Env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
 		}
-		logFile, _ := os.Create(fmt.Sprintf("/tmp/e2e-frontend-%d.log", i))
+		killPortProcess(port)
+		logFile, err := os.Create(fmt.Sprintf("/tmp/e2e-frontend-%d.log", i))
+		if err != nil {
+			return procs, fmt.Errorf("creating log for frontend shard %d: %w", i, err)
+		}
 		cmd.Stdout = logFile
 		cmd.Stderr = logFile
-
 		if err := cmd.Start(); err != nil {
+			logFile.Close()
 			return procs, fmt.Errorf("starting frontend shard %d: %w", i, err)
 		}
+		logFile.Close() // parent's copy; child process holds its own inherited fd
 		procs = append(procs, cmd.Process)
 	}
 	return procs, nil
@@ -344,4 +414,13 @@ func removeShardNextDirs(cfg E2EConfig, root string) {
 	for i := 0; i < cfg.Shards; i++ {
 		os.RemoveAll(filepath.Join(frontendDir, fmt.Sprintf(".next-e2e-%d", i)))
 	}
+}
+
+// killPortProcess sends SIGKILL to any process bound to port via fuser.
+// Errors are silently ignored — this is best-effort pre-start cleanup.
+func killPortProcess(port int) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	// fuser exits non-zero when no process holds the port; that is fine.
+	exec.CommandContext(ctx, "fuser", "-k", fmt.Sprintf("%d/tcp", port)).Run() //nolint
 }

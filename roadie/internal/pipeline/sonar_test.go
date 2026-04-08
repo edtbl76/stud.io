@@ -75,6 +75,29 @@ func TestFixLcovPaths_NoOpWhenAlreadyPrefixed(t *testing.T) {
 	}
 }
 
+func TestFixLcovPaths_FixesMixedFile(t *testing.T) {
+	// A file where some SF: lines are already prefixed and some are not.
+	// The old bytes.Contains short-circuit would skip the whole file.
+	tmp := t.TempDir()
+	writeLcov(t, tmp, "SF:app/controlroom_frontend/src/a.tsx\nSF:src/b.tsx\nDA:1,1\n")
+
+	if err := fixLcovPaths(tmp); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	result, _ := os.ReadFile(filepath.Join(tmp, "app", "controlroom_frontend", "coverage", "lcov.info"))
+	content := string(result)
+	if strings.Contains(content, "SF:src/b.tsx") {
+		t.Errorf("unprefixed SF: line was not fixed:\n%s", content)
+	}
+	if !strings.Contains(content, "SF:app/controlroom_frontend/src/b.tsx") {
+		t.Errorf("expected prefixed line for b.tsx:\n%s", content)
+	}
+	if strings.Count(content, "SF:app/controlroom_frontend/src/a.tsx") != 1 {
+		t.Errorf("already-prefixed line was duplicated or removed:\n%s", content)
+	}
+}
+
 func TestFixLcovPaths_ErrorWhenFileNotFound(t *testing.T) {
 	err := fixLcovPaths(t.TempDir())
 	if err == nil {
@@ -142,6 +165,49 @@ func TestCheckSonarGate_FailsOnError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "ERROR") {
 		t.Errorf("expected ERROR in error message, got: %v", err)
+	}
+}
+
+func TestWaitForCETask_ToleratesTransientErrors(t *testing.T) {
+	// First two requests fail, third succeeds — within the threshold.
+	calls := 0
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if calls <= 2 {
+			http.Error(w, "transient", http.StatusServiceUnavailable)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]any{ //nolint
+			"queue":   []any{},
+			"current": map[string]any{"status": "SUCCESS"},
+		})
+	}))
+	defer srv.Close()
+
+	checker := sonarGateChecker{client: srv.Client(), baseURL: srv.URL, token: "tok"}
+	var out strings.Builder
+	if err := checker.waitForCETask(context.Background(), &out); err != nil {
+		t.Errorf("expected nil for recoverable errors, got: %v", err)
+	}
+}
+
+func TestWaitForCETask_FailsAfterConsecutiveErrors(t *testing.T) {
+	// Every request fails — should abort after maxConsecutiveCEErrors+1 calls.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("not-json")) //nolint
+	}))
+	defer srv.Close()
+
+	checker := sonarGateChecker{client: srv.Client(), baseURL: srv.URL, token: "tok"}
+	var out strings.Builder
+	err := checker.waitForCETask(context.Background(), &out)
+	if err == nil {
+		t.Fatal("expected error after consecutive decode failures, got nil")
+	}
+	if !strings.Contains(err.Error(), "consecutive") {
+		t.Errorf("expected 'consecutive' in error, got: %v", err)
 	}
 }
 
