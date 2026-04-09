@@ -79,16 +79,23 @@ func fixLcovPaths(root string) error {
 	return os.WriteFile(lcovPath, []byte(strings.Join(lines, "\n")), 0644)
 }
 
-// loadSonarToken returns the SonarQube token from $SONAR_TOKEN or .sonar-token.
+// loadSonarToken returns the SonarQube token from $SONAR_TOKEN, a .sonar-token
+// file in the repo root, or a .sonar-token file in $HOME (for self-hosted runner
+// workspaces where the repo root is a fresh checkout without the gitignored file).
 func loadSonarToken(root string) (string, error) {
 	if tok := strings.TrimSpace(os.Getenv("SONAR_TOKEN")); tok != "" {
 		return tok, nil
 	}
-	data, err := os.ReadFile(filepath.Join(root, ".sonar-token"))
-	if err != nil {
-		return "", fmt.Errorf("SONAR_TOKEN not set and .sonar-token not found: %w", err)
+	candidates := []string{
+		filepath.Join(root, ".sonar-token"),
+		filepath.Join(os.Getenv("HOME"), ".sonar-token"),
 	}
-	return strings.TrimSpace(string(data)), nil
+	for _, p := range candidates {
+		if data, err := os.ReadFile(p); err == nil {
+			return strings.TrimSpace(string(data)), nil
+		}
+	}
+	return "", fmt.Errorf("SONAR_TOKEN not set and .sonar-token not found in %s or $HOME", root)
 }
 
 // RunSonarScan runs the full SonarQube pipeline:
