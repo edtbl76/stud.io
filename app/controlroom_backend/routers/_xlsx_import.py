@@ -5,8 +5,10 @@ import json
 from typing import Any
 from uuid import UUID
 
+from asyncpg import Connection
 from openpyxl import load_workbook
 
+from routers._helpers import log_audit, _serializable
 from routers._xlsx_schema import TableConfig, TABLE_CONFIGS, SHEET_TO_KEY
 
 
@@ -68,30 +70,52 @@ def _resolve_col(col_def, raw_val: str, lookup_data: dict, sheet: str, row: int)
     return (ids if ids else None), errors
 
 
+def _prep_col(col, raw: Any, lookup_data: dict, sheet: str, row_num: int) -> tuple[Any, list[dict]]:
+    """Prepare the value for a single column. Returns (value, errors)."""
+    str_val = str(raw).strip() if raw is not None else ""
+    if not str_val:
+        return None, []
+    if col.lookup:
+        return _resolve_col(col, str_val, lookup_data, sheet, row_num)
+    if col.export_key == "attributes":
+        try:
+            return json.dumps(json.loads(str_val)), []
+        except ValueError:
+            err = _err(sheet, row_num, col.header, str_val[:40], None)
+            return None, [{**err, "message": "Invalid JSON"}]
+    return str_val, []
+
+
 def _prep_row(row_dict: dict, config: TableConfig, lookup_data: dict, sheet: str, row_num: int) -> tuple[dict, list[dict]]:
     data: dict[str, Any] = {}
     errors: list[dict] = []
     for col in config.cols:
         if col.id_only or col.write_key is None:
             continue
-        raw = row_dict.get(col.header)
-        str_val = str(raw).strip() if raw is not None else ""
-        if not str_val:
-            data[col.write_key] = None
-            continue
-        if col.lookup:
-            resolved, errs = _resolve_col(col, str_val, lookup_data, sheet, row_num)
-            data[col.write_key] = resolved
-            errors.extend(errs)
-        elif col.export_key == "attributes":
-            try:
-                data[col.write_key] = json.dumps(json.loads(str_val))
-            except ValueError:
-                errors.append(_err(sheet, row_num, col.header, str_val[:40], None))
-                errors[-1] = {**errors[-1], "message": "Invalid JSON"}
-        else:
-            data[col.write_key] = str_val
+        value, errs = _prep_col(col, row_dict.get(col.header), lookup_data, sheet, row_num)
+        data[col.write_key] = value
+        errors.extend(errs)
     return data, errors
+
+
+def _validate_id(sheet: str, row: int, id_val: str) -> dict | None:
+    try:
+        UUID(id_val)
+        return None
+    except ValueError:
+        return _err(sheet, row, "ID", id_val, None) | {"message": "Invalid UUID"}
+
+
+def _validate_row(row: dict, config: TableConfig, lookup_data: dict, sheet: str, row_num: int) -> list[dict]:
+    errors: list[dict] = []
+    id_val = row.get("ID")
+    if id_val is not None:
+        id_err = _validate_id(sheet, row_num, str(id_val))
+        if id_err:
+            errors.append(id_err)
+    _, row_errors = _prep_row(row, config, lookup_data, sheet, row_num)
+    errors.extend(row_errors)
+    return errors
 
 
 def validate_import(parsed: dict[str, list[dict]], lookup_data: dict) -> list[dict]:
@@ -102,12 +126,11 @@ def validate_import(parsed: dict[str, list[dict]], lookup_data: dict) -> list[di
             continue
         config = TABLE_CONFIGS[key]
         for i, row in enumerate(rows, start=2):
-            _, row_errors = _prep_row(row, config, lookup_data, sheet_name, i)
-            errors.extend(row_errors)
+            errors.extend(_validate_row(row, config, lookup_data, sheet_name, i))
     return errors
 
 
-async def _write_row(conn, config: TableConfig, data: dict, record_id: UUID | None) -> UUID:
+async def _write_row(conn: Connection, config: TableConfig, data: dict, record_id: UUID | None) -> UUID:
     write_cols = [c for c in config.cols if not c.id_only and c.write_key]
     col_names = [c.write_key for c in write_cols]
     values = [data.get(c.write_key) for c in write_cols]
@@ -131,7 +154,35 @@ async def _write_row(conn, config: TableConfig, data: dict, record_id: UUID | No
     return row[config.id_col]
 
 
-async def execute_import(conn, parsed: dict[str, list[dict]], lookup_data: dict) -> list[dict]:
+async def _import_row(
+    conn: Connection, config: TableConfig, row: dict, lookup_data: dict,
+    sheet: str, row_num: int, performed_by: str,
+) -> str:
+    """Write one row and record an audit entry. Returns 'create' or 'update'."""
+    data, _ = _prep_row(row, config, lookup_data, sheet, row_num)
+    id_val = row.get("ID")
+    record_id = UUID(str(id_val)) if id_val else None
+    async with conn.transaction():
+        old_row = await conn.fetchrow(
+            f"SELECT * FROM {config.table} WHERE {config.id_col} = $1 FOR UPDATE",  # safe: config constants
+            record_id,
+        ) if record_id is not None else None
+        new_id = await _write_row(conn, config, data, record_id)
+        new_row = await conn.fetchrow(
+            f"SELECT * FROM {config.table} WHERE {config.id_col} = $1",  # safe: config constants
+            new_id,
+        )
+        await log_audit(
+            conn, config.table, new_id,
+            "UPDATE" if record_id else "CREATE",
+            performed_by=performed_by,
+            old_data=_serializable(dict(old_row)) if old_row else None,
+            new_data=_serializable(dict(new_row)) if new_row else None,
+        )
+    return "update" if record_id else "create"
+
+
+async def execute_import(conn: Connection, parsed: dict[str, list[dict]], lookup_data: dict, performed_by: str) -> list[dict]:
     summary: list[dict] = []
     for sheet_name, rows in parsed.items():
         key = SHEET_TO_KEY.get(sheet_name)
@@ -140,12 +191,8 @@ async def execute_import(conn, parsed: dict[str, list[dict]], lookup_data: dict)
         config = TABLE_CONFIGS[key]
         creates = updates = 0
         for i, row in enumerate(rows, start=2):
-            data, _ = _prep_row(row, config, lookup_data, sheet_name, i)
-            id_val = row.get("ID")
-            record_id = UUID(str(id_val)) if id_val else None
-            async with conn.transaction():
-                await _write_row(conn, config, data, record_id)
-            if record_id:
+            result = await _import_row(conn, config, row, lookup_data, sheet_name, i, performed_by)
+            if result == "update":
                 updates += 1
             else:
                 creates += 1
