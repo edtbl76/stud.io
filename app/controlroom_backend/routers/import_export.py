@@ -1,6 +1,6 @@
 """Import/Export endpoints — xlsx download and upload."""
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, TypedDict
 
 from asyncpg import Connection
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
@@ -16,6 +16,18 @@ router = APIRouter()
 
 _MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 _MAX_UPLOAD_MB = 10
+
+
+class _SheetSummary(TypedDict):
+    sheet: str
+    creates: int
+    updates: int
+
+
+class ImportResult(TypedDict):
+    summary: list[_SheetSummary]
+    total_creates: int
+    total_updates: int
 
 
 def _xlsx_response(content: bytes, filename: str) -> StreamingResponse:
@@ -41,7 +53,7 @@ async def export_xlsx(
     tables: Annotated[str, Query(description="Comma-separated table keys")],
     _: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
-):
+) -> StreamingResponse:
     keys = _parse_table_keys(tables)
     lookup_data = await fetch_lookup_data(conn)
     rows_by_key = {k: await fetch_table_rows(conn, TABLE_CONFIGS[k]) for k in keys}
@@ -55,7 +67,7 @@ async def export_template(
     tables: Annotated[str, Query(description="Comma-separated table keys")],
     _: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
-):
+) -> StreamingResponse:
     keys = _parse_table_keys(tables)
     lookup_data = await fetch_lookup_data(conn)
     content = build_workbook(keys, {}, lookup_data, is_template=True)
@@ -75,7 +87,7 @@ async def import_xlsx(
     file: Annotated[UploadFile, File(...)],
     user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
-):
+) -> ImportResult:
     if not file.filename or not file.filename.endswith(".xlsx"):
         raise HTTPException(status_code=400, detail="File must be a .xlsx file")
     raw = await file.read()

@@ -121,6 +121,18 @@ async def test_import_invalid_brand_name_returns_422(client, admin_headers):
     assert any(e["column"] == "Brand" for e in detail["errors"])
 
 
+async def test_import_invalid_id_returns_422(client, admin_headers):
+    data = _make_xlsx({"Brands": [{"ID": "not-a-uuid", "Name": "Bad ID Brand"}]})
+    res = await client.post(
+        "/admin/import/xlsx",
+        headers=admin_headers,
+        files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert res.status_code == 422
+    detail = res.json()["detail"]
+    assert any(e["column"] == "ID" for e in detail["errors"])
+
+
 async def test_import_wrong_extension_returns_400(client, admin_headers):
     res = await client.post(
         "/admin/import/xlsx",

@@ -5,6 +5,7 @@ import json
 from typing import Any
 from uuid import UUID
 
+from asyncpg import Connection
 from openpyxl import load_workbook
 
 from routers._helpers import log_audit, _serializable
@@ -97,6 +98,14 @@ def _prep_row(row_dict: dict, config: TableConfig, lookup_data: dict, sheet: str
     return data, errors
 
 
+def _validate_id(sheet: str, row: int, id_val: str) -> dict | None:
+    try:
+        UUID(id_val)
+        return None
+    except ValueError:
+        return _err(sheet, row, "ID", id_val, None) | {"message": "Invalid UUID"}
+
+
 def validate_import(parsed: dict[str, list[dict]], lookup_data: dict) -> list[dict]:
     errors: list[dict] = []
     for sheet_name, rows in parsed.items():
@@ -105,12 +114,17 @@ def validate_import(parsed: dict[str, list[dict]], lookup_data: dict) -> list[di
             continue
         config = TABLE_CONFIGS[key]
         for i, row in enumerate(rows, start=2):
+            id_val = row.get("ID")
+            if id_val is not None:
+                id_err = _validate_id(sheet_name, i, str(id_val))
+                if id_err:
+                    errors.append(id_err)
             _, row_errors = _prep_row(row, config, lookup_data, sheet_name, i)
             errors.extend(row_errors)
     return errors
 
 
-async def _write_row(conn, config: TableConfig, data: dict, record_id: UUID | None) -> UUID:
+async def _write_row(conn: Connection, config: TableConfig, data: dict, record_id: UUID | None) -> UUID:
     write_cols = [c for c in config.cols if not c.id_only and c.write_key]
     col_names = [c.write_key for c in write_cols]
     values = [data.get(c.write_key) for c in write_cols]
@@ -135,7 +149,7 @@ async def _write_row(conn, config: TableConfig, data: dict, record_id: UUID | No
 
 
 async def _import_row(
-    conn, config: TableConfig, row: dict, lookup_data: dict,
+    conn: Connection, config: TableConfig, row: dict, lookup_data: dict,
     sheet: str, row_num: int, performed_by: str,
 ) -> str:
     """Write one row and record an audit entry. Returns 'create' or 'update'."""
@@ -144,7 +158,7 @@ async def _import_row(
     record_id = UUID(str(id_val)) if id_val else None
     async with conn.transaction():
         old_row = await conn.fetchrow(
-            f"SELECT * FROM {config.table} WHERE {config.id_col} = $1",  # safe: config constants
+            f"SELECT * FROM {config.table} WHERE {config.id_col} = $1 FOR UPDATE",  # safe: config constants
             record_id,
         ) if record_id is not None else None
         new_id = await _write_row(conn, config, data, record_id)
@@ -162,7 +176,7 @@ async def _import_row(
     return "update" if record_id else "create"
 
 
-async def execute_import(conn, parsed: dict[str, list[dict]], lookup_data: dict, performed_by: str) -> list[dict]:
+async def execute_import(conn: Connection, parsed: dict[str, list[dict]], lookup_data: dict, performed_by: str) -> list[dict]:
     summary: list[dict] = []
     for sheet_name, rows in parsed.items():
         key = SHEET_TO_KEY.get(sheet_name)
