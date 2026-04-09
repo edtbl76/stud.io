@@ -7,6 +7,7 @@ from uuid import UUID
 
 from openpyxl import load_workbook
 
+from routers._helpers import log_audit, _serializable
 from routers._xlsx_schema import TableConfig, TABLE_CONFIGS, SHEET_TO_KEY
 
 
@@ -131,7 +132,7 @@ async def _write_row(conn, config: TableConfig, data: dict, record_id: UUID | No
     return row[config.id_col]
 
 
-async def execute_import(conn, parsed: dict[str, list[dict]], lookup_data: dict) -> list[dict]:
+async def execute_import(conn, parsed: dict[str, list[dict]], lookup_data: dict, performed_by: str) -> list[dict]:
     summary: list[dict] = []
     for sheet_name, rows in parsed.items():
         key = SHEET_TO_KEY.get(sheet_name)
@@ -144,7 +145,24 @@ async def execute_import(conn, parsed: dict[str, list[dict]], lookup_data: dict)
             id_val = row.get("ID")
             record_id = UUID(str(id_val)) if id_val else None
             async with conn.transaction():
-                await _write_row(conn, config, data, record_id)
+                old_row = None
+                if record_id is not None:
+                    old_row = await conn.fetchrow(
+                        f"SELECT * FROM {config.table} WHERE {config.id_col} = $1",  # safe: config constants
+                        record_id,
+                    )
+                new_id = await _write_row(conn, config, data, record_id)
+                new_row = await conn.fetchrow(
+                    f"SELECT * FROM {config.table} WHERE {config.id_col} = $1",  # safe: config constants
+                    new_id,
+                )
+                operation = "UPDATE" if record_id else "CREATE"
+                await log_audit(
+                    conn, config.table, new_id, operation,
+                    performed_by=performed_by,
+                    old_data=_serializable(dict(old_row)) if old_row else None,
+                    new_data=_serializable(dict(new_row)) if new_row else None,
+                )
             if record_id:
                 updates += 1
             else:

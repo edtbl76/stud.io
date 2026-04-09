@@ -73,7 +73,7 @@ async def export_template(
 )
 async def import_xlsx(
     file: Annotated[UploadFile, File(...)],
-    _: Annotated[UserOut, Depends(require_admin)],
+    user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
 ):
     if not file.filename or not file.filename.endswith(".xlsx"):
@@ -91,7 +91,7 @@ async def import_xlsx(
     errors = validate_import(parsed, lookup_data)
     if errors:
         raise HTTPException(status_code=422, detail={"errors": errors})
-    summary = await execute_import(conn, parsed, lookup_data)
+    summary = await execute_import(conn, parsed, lookup_data, user.username)
     total_creates = sum(s["creates"] for s in summary)
     total_updates = sum(s["updates"] for s in summary)
     return {"summary": summary, "total_creates": total_creates, "total_updates": total_updates}

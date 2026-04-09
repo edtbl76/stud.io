@@ -195,3 +195,51 @@ async def test_import_unknown_sheet_ignored(client, admin_headers):
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
     assert res.status_code == 200
+
+
+# ---------------------------------------------------------------------------
+# Import — audit log
+# ---------------------------------------------------------------------------
+
+async def test_import_create_writes_audit_entry(client, admin_headers, conn):
+    data = _make_xlsx({"Brands": [{"Name": "Audit Create Brand", "Legal Name": "ACB Legal"}]})
+    res = await client.post(
+        "/admin/import/xlsx",
+        headers=admin_headers,
+        files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert res.status_code == 200
+
+    row = await conn.fetchrow(
+        "SELECT operation, old_data, new_data, performed_by FROM audit_log "
+        "WHERE table_name = 'brands' AND operation = 'CREATE' "
+        "ORDER BY performed_at DESC LIMIT 1"
+    )
+    assert row is not None, "expected a CREATE audit entry"
+    assert row["operation"] == "CREATE"
+    assert row["old_data"] is None
+    assert row["new_data"]["brand_name"] == "Audit Create Brand"
+    assert row["performed_by"] == "adminuser"
+
+
+async def test_import_update_writes_audit_entry(client, admin_headers, conn):
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('Audit Update Before') RETURNING brand_id"
+    )
+    data = _make_xlsx({"Brands": [{"ID": str(brand_id), "Name": "Audit Update After"}]})
+    res = await client.post(
+        "/admin/import/xlsx",
+        headers=admin_headers,
+        files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
+    )
+    assert res.status_code == 200
+
+    row = await conn.fetchrow(
+        "SELECT operation, old_data, new_data, performed_by FROM audit_log "
+        "WHERE table_name = 'brands' AND record_id = $1 AND operation = 'UPDATE'",
+        brand_id,
+    )
+    assert row is not None, "expected an UPDATE audit entry"
+    assert row["old_data"]["brand_name"] == "Audit Update Before"
+    assert row["new_data"]["brand_name"] == "Audit Update After"
+    assert row["performed_by"] == "adminuser"
