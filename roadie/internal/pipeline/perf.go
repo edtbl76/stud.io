@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -172,6 +173,36 @@ func (r perfRunner) collect(ctx context.Context, flags PerfFlags, out io.Writer)
 	return results, collectErrors(results)
 }
 
+// evictPort kills any process listening on port so the caller can bind it.
+// Errors are logged as warnings and never fail the caller.
+func evictPort(port int, out io.Writer) {
+	out2, err := exec.Command("ss", "-tlnpH", fmt.Sprintf("sport = :%d", port)).Output()
+	if err != nil || len(out2) == 0 {
+		return
+	}
+	// ss -tlnpH output contains "pid=<N>" for the listening process.
+	line := string(out2)
+	const pidTag = "pid="
+	idx := strings.Index(line, pidTag)
+	if idx < 0 {
+		return
+	}
+	pidStr := line[idx+len(pidTag):]
+	if comma := strings.IndexAny(pidStr, ",\n "); comma >= 0 {
+		pidStr = pidStr[:comma]
+	}
+	var pid int
+	if _, err := fmt.Sscan(pidStr, &pid); err != nil || pid == 0 {
+		return
+	}
+	fmt.Fprintf(out, "[perf] Port %d in use (pid %d) — evicting...\n", port, pid)
+	proc, err := os.FindProcess(pid)
+	if err != nil {
+		return
+	}
+	proc.Kill() //nolint
+}
+
 func stopPerfBackend(container string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -208,6 +239,7 @@ func hasPerfBuild(root string) bool {
 
 func startFrontendProd(ctx context.Context, cfg PerfConfig, root string, out io.Writer) (*os.Process, error) {
 	fmt.Fprintf(out, "[perf] Starting frontend on port %d...\n", cfg.FrontendPort)
+	evictPort(cfg.FrontendPort, out)
 	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
 	nodeDir := ResolveNode()
 
