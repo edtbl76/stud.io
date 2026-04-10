@@ -2,27 +2,14 @@
 
 import * as React from 'react'
 import { useSearchParams } from 'next/navigation'
-import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, AlertCircle, Search } from 'lucide-react'
 import { api } from '@/lib/api'
+import { SEARCH_TABLE_META } from '@/lib/searchMeta'
+import { SearchRecordModal } from '@/components/SearchRecordModal'
 import type { SearchResult } from '@/lib/types'
 
 const SEARCH_LIMIT = 100
-
-const TABLE_META: Record<string, { label: string; path: string }> = {
-  brands:            { label: 'Brands',            path: '/catalog/brands' },
-  models:            { label: 'Models',            path: '/catalog/models' },
-  effects:           { label: 'Effects',           path: '/session/effects' },
-  instruments:       { label: 'Instruments',       path: '/session/instruments' },
-  libraries:         { label: 'Libraries',         path: '/session/libraries' },
-  workstations:      { label: 'Workstations',      path: '/session/workstations' },
-  workflow_tools:    { label: 'Workflow Tools',     path: '/tools/workflow' },
-  measurement_tools: { label: 'Measurement Tools',  path: '/tools/measurement' },
-  reference_tools:   { label: 'Reference Tools',    path: '/tools/reference' },
-  composition_tools: { label: 'Composition Tools',  path: '/tools/composition' },
-  admin_tools:       { label: 'Admin Tools',        path: '/tools/admin' },
-}
 
 const ALL_TAB = 'all'
 
@@ -35,7 +22,7 @@ function buildTabs(results: SearchResult[], total: number): Tab[] {
   }
   const tableTabs = [...counts.entries()].map(([key, count]) => ({
     key,
-    label: TABLE_META[key]?.label ?? key,
+    label: SEARCH_TABLE_META[key]?.label ?? key,
     count,
   }))
   return [{ key: ALL_TAB, label: 'All', count: total }, ...tableTabs]
@@ -85,14 +72,16 @@ function TabBar({
   )
 }
 
-function SearchResultItem({ result }: Readonly<{ result: SearchResult }>) {
-  const meta = TABLE_META[result.table]
+function SearchResultItem({
+  result,
+  onOpen,
+}: Readonly<{ result: SearchResult; onOpen: (r: SearchResult) => void }>) {
+  const meta = SEARCH_TABLE_META[result.table]
   if (!meta) return null
-  const href = `${meta.path}?open=${result.id}`
   return (
-    <Link
-      href={href}
-      className="flex items-center justify-between px-4 py-3 rounded-md hover:bg-muted/50 transition-colors"
+    <button
+      onClick={() => onOpen(result)}
+      className="w-full flex items-center justify-between px-4 py-3 rounded-md hover:bg-muted/50 transition-colors text-left"
     >
       <div className="min-w-0">
         <p className="text-sm font-medium text-foreground truncate">{result.name}</p>
@@ -101,15 +90,17 @@ function SearchResultItem({ result }: Readonly<{ result: SearchResult }>) {
         )}
       </div>
       <span className="text-xs text-muted-foreground ml-4 shrink-0">{meta.label}</span>
-    </Link>
+    </button>
   )
 }
 
-function SearchContent() {
+function SearchContent(): React.ReactElement | null {
   const searchParams = useSearchParams()
+  const queryClient = useQueryClient()
   const q = searchParams.get('q') ?? ''
   const [notes, setNotes] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState(ALL_TAB)
+  const [activeRecord, setActiveRecord] = React.useState<SearchResult | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['global-search', q, notes],
@@ -117,18 +108,35 @@ function SearchContent() {
     enabled: q.length >= 2,
   })
 
+  // Close any open modal when the search query changes
+  React.useEffect(() => { setActiveRecord(null) }, [q])
+
   const results = data?.results ?? []
   const total = data?.total ?? 0
   const visibleResults = activeTab === ALL_TAB ? results : results.filter((r) => r.table === activeTab)
   const tabs = buildTabs(results, total)
 
   function handleNotesChange(v: boolean) {
+    setActiveRecord(null)
     setNotes(v)
     setActiveTab(ALL_TAB)
   }
 
   function handleTabSelect(key: string) {
+    setActiveRecord(null)
     setActiveTab(key)
+  }
+
+  function handleOpen(result: SearchResult) {
+    setActiveRecord(result)
+  }
+
+  function handleClose() {
+    setActiveRecord(null)
+  }
+
+  function handleMutate() {
+    queryClient.invalidateQueries({ queryKey: ['global-search'] }).catch(() => {})
   }
 
   if (q.length < 2) {
@@ -180,10 +188,20 @@ function SearchContent() {
             {visibleResults.length === 0 ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No results</p>
             ) : (
-              visibleResults.map((r) => <SearchResultItem key={r.id} result={r} />)
+              visibleResults.map((r) => (
+                <SearchResultItem key={r.id} result={r} onOpen={handleOpen} />
+              ))
             )}
           </div>
         </>
+      )}
+
+      {activeRecord && (
+        <SearchRecordModal
+          result={activeRecord}
+          onClose={handleClose}
+          onMutate={handleMutate}
+        />
       )}
     </div>
   )

@@ -11,6 +11,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
+// Context for injecting a leading footer action (e.g. "Go to [Table]" from search).
+// Consumed by RecordModal so callers don't need to thread it through every modal component.
+export const RecordModalLeadingAction = React.createContext<React.ReactNode>(null)
+
 interface RecordModalProps {
   title: string
   isEditing: boolean
@@ -40,6 +44,7 @@ export function RecordModal({
   isDeleting = false,
   children,
 }: Readonly<RecordModalProps>) {
+  const leadingAction = React.useContext(RecordModalLeadingAction)
   const [confirmDelete, setConfirmDelete] = React.useState(false)
 
   function handleDelete() {
@@ -173,6 +178,7 @@ export function RecordModal({
         </div>
 
         <DialogFooter>
+          {leadingAction && <div className="mr-auto">{leadingAction}</div>}
           {renderFooter()}
         </DialogFooter>
       </DialogContent>

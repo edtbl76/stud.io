@@ -37,7 +37,7 @@ test('search: results page renders All tab and per-table tabs', async ({ page })
   await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
   await expect(page.getByRole('button', { name: /^all/i })).toBeVisible()
-  await expect(page.getByRole('button', { name: /brands/i })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^brands/i })).toBeVisible()
 })
 
 test('search: tab filter hides results from other tables', async ({ page }) => {
@@ -55,20 +55,18 @@ test('search: notes toggle is visible', async ({ page }) => {
   await expect(page.getByRole('checkbox')).toBeVisible()
 })
 
-test('search: clicking a result deep-links to the table page and opens the modal', async ({ page }) => {
+test('search: clicking a result opens a modal; Go to button navigates to the table page', async ({ page }) => {
   await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
 
-  // Click the first result link
-  const resultLink = page.getByRole('link', { name: new RegExp(UNIQUE) }).first()
-  await resultLink.click()
+  // Click the result button — opens modal in-place on the search page
+  await page.getByRole('button', { name: new RegExp(UNIQUE) }).first().click()
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8_000 })
+  await expect(page.getByRole('dialog').getByText(UNIQUE).first()).toBeVisible()
 
-  // Should navigate to /catalog/brands (with ?open=<id> cleared after modal opens)
+  // Click "Go to Brands" — navigates to the table page and opens the modal there
+  await page.getByRole('button', { name: /go to brands/i }).click()
   await expect(page).toHaveURL(/\/catalog\/brands/, { timeout: 10_000 })
-
-  // Modal should open automatically
-  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8000 })
-
-  // Modal should show the brand name
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8_000 })
   await expect(page.getByRole('dialog').getByText(UNIQUE).first()).toBeVisible()
 })

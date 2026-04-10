@@ -22,6 +22,13 @@ CVE-2026-29111
 # glibc iconv is not invoked by the application; present only as an OS base image dep.
 CVE-2026-4046
 
+# CVE-2026-28390: openssl — DoS via NULL pointer dereference in CMS
+# Suppressed: fixed version (3.5.5-1~deb13u2) not yet available in debian 13.4 apt repos.
+# openssl is an indirect OS dep in python:3.12-slim; not invoked by the application.
+# CMS code paths are unreachable from this app (no S/MIME, PKCS#7, or CMS processing).
+# Remove when python:3.12-slim base image is updated to include the patched package.
+CVE-2026-28390
+
 # Frontend npm devDependency CVEs
 # The following packages are transitive dependencies of build/test tooling
 # (jest, playwright, next build) installed in the dev container. They are not
