@@ -2,6 +2,7 @@ import * as React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import SearchPage from '@/app/search/page'
+import type { SearchResult } from '@/lib/types'
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => ({ username: 'admin', role: 'admin' }),
@@ -10,17 +11,26 @@ jest.mock('@/lib/auth', () => ({
 const mockSearchGlobal = jest.fn()
 let mockGetSearchParam = (_key: string): string | null => null
 const mockRouterReplace = jest.fn()
+const mockRouterPush = jest.fn()
 
 jest.mock('next/navigation', () => ({
   useSearchParams: () => ({ get: (key: string) => mockGetSearchParam(key) }),
   usePathname: () => '/search',
-  useRouter: () => ({ replace: mockRouterReplace }),
+  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
 }))
 
 jest.mock('@/lib/api', () => ({
   api: {
     searchGlobal: (...args: unknown[]) => mockSearchGlobal(...args),
   },
+}))
+
+jest.mock('@/components/SearchRecordModal', () => ({
+  SearchRecordModal: ({ result, onClose }: { result: SearchResult; onClose: () => void }) => (
+    <div data-testid="search-record-modal" data-result-id={result.id}>
+      <button onClick={onClose}>Close Modal</button>
+    </div>
+  ),
 }))
 
 const EFFECTS_RESULT = {
@@ -63,7 +73,7 @@ describe('SearchPage — empty / short query', () => {
   })
 
   it('shows the empty state prompt when query is 1 character', () => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'x' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'x' : null)
     renderPage()
     expect(screen.getByText(/enter at least 2 characters/i)).toBeInTheDocument()
   })
@@ -71,7 +81,7 @@ describe('SearchPage — empty / short query', () => {
 
 describe('SearchPage — loading and results', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
   })
 
   it('shows loading spinner while fetching', () => {
@@ -99,12 +109,12 @@ describe('SearchPage — loading and results', () => {
     await waitFor(() => expect(screen.getByText('reverb')).toBeInTheDocument())
   })
 
-  it('renders result items as links with ?open= deep-link href', async () => {
+  it('renders result items as buttons (not links)', async () => {
     mockSearchGlobal.mockResolvedValue(makeResponse([EFFECTS_RESULT], 1))
     renderPage()
     await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
-    const link = screen.getByRole('link', { name: /reverb pro/i })
-    expect(link).toHaveAttribute('href', `/session/effects?open=${EFFECTS_RESULT.id}`)
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /reverb pro/i })).toBeInTheDocument()
   })
 
   it('shows brand_name as subtitle when present', async () => {
@@ -126,9 +136,80 @@ describe('SearchPage — loading and results', () => {
   })
 })
 
+describe('SearchPage — modal open/close', () => {
+  beforeEach(() => {
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
+    mockSearchGlobal.mockResolvedValue(makeResponse([EFFECTS_RESULT], 1))
+  })
+
+  it('opens SearchRecordModal when a result is clicked', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /reverb pro/i }))
+    expect(screen.getByTestId('search-record-modal')).toBeInTheDocument()
+    expect(screen.getByTestId('search-record-modal')).toHaveAttribute('data-result-id', EFFECTS_RESULT.id)
+  })
+
+  it('closes the modal when onClose is called', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /reverb pro/i }))
+    expect(screen.getByTestId('search-record-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /close modal/i }))
+    expect(screen.queryByTestId('search-record-modal')).not.toBeInTheDocument()
+  })
+
+  it('closes the modal when the notes toggle changes', async () => {
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /reverb pro/i }))
+    expect(screen.getByTestId('search-record-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect(screen.queryByTestId('search-record-modal')).not.toBeInTheDocument()
+  })
+
+  it('closes the modal when the active tab changes', async () => {
+    mockSearchGlobal.mockResolvedValue(makeResponse())
+    renderPage()
+    await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
+    fireEvent.click(screen.getByRole('button', { name: /reverb pro/i }))
+    expect(screen.getByTestId('search-record-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /^effects/i }))
+    expect(screen.queryByTestId('search-record-modal')).not.toBeInTheDocument()
+  })
+
+  it('closes the modal and resets the tab when the search query changes', async () => {
+    mockSearchGlobal.mockResolvedValue(makeResponse())
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { rerender } = render(
+      <QueryClientProvider client={client}>
+        <SearchPage />
+      </QueryClientProvider>
+    )
+    await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
+    // Select a tab and open the modal
+    fireEvent.click(screen.getByRole('button', { name: /^effects/i }))
+    fireEvent.click(screen.getByRole('button', { name: /reverb pro/i }))
+    expect(screen.getByTestId('search-record-modal')).toBeInTheDocument()
+
+    // Change the query
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'new-query' : null)
+    mockSearchGlobal.mockResolvedValue(makeResponse())
+    rerender(
+      <QueryClientProvider client={client}>
+        <SearchPage />
+      </QueryClientProvider>
+    )
+
+    expect(screen.queryByTestId('search-record-modal')).not.toBeInTheDocument()
+    // All tab should be active again (tab-specific buttons are gone until results load)
+    expect(screen.queryByRole('button', { name: /^effects/i })).not.toBeInTheDocument()
+  })
+})
+
 describe('SearchPage — tabs', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
     mockSearchGlobal.mockResolvedValue(makeResponse())
   })
 
@@ -136,8 +217,8 @@ describe('SearchPage — tabs', () => {
     renderPage()
     await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: /all/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /effects/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /brands/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^effects/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^brands/i })).toBeInTheDocument()
   })
 
   it('filters results when a table tab is selected', async () => {
@@ -157,7 +238,7 @@ describe('SearchPage — tabs', () => {
 
 describe('SearchPage — notes toggle', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
     mockSearchGlobal.mockResolvedValue(makeResponse())
   })
 
