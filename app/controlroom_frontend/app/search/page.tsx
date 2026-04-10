@@ -18,6 +18,28 @@ function buildCountLabel(total: number, resultsLength: number): string {
   return `${total} result${total === 1 ? '' : 's'}`
 }
 
+function filterResults(results: SearchResult[], tab: string): SearchResult[] {
+  if (tab === ALL_TAB) return results
+  return results.filter((r) => r.table === tab)
+}
+
+function SearchCountLabel({
+  data, total, resultsLength,
+}: Readonly<{ data: unknown; total: number; resultsLength: number }>): React.ReactElement | null {
+  if (!data) return null
+  return <p className="text-xs text-muted-foreground">{buildCountLabel(total, resultsLength)}</p>
+}
+
+function SearchErrorMessage({ error }: Readonly<{ error: unknown }>): React.ReactElement | null {
+  if (!error) return null
+  return (
+    <div className="flex items-center gap-2 text-xs text-destructive mb-4">
+      <AlertCircle className="h-3.5 w-3.5" />
+      {error instanceof Error ? error.message : 'Search failed'}
+    </div>
+  )
+}
+
 interface Tab { key: string; label: string; count: number }
 
 function buildTabs(results: SearchResult[], total: number): Tab[] {
@@ -140,12 +162,12 @@ function SearchContent(): React.ReactElement | null {
     enabled: q.length >= 2,
   })
 
-  // Close any open modal when the search query changes
-  React.useEffect(() => { setActiveRecord(null) }, [q])
+  // Reset modal and tab filter when the search query changes
+  React.useEffect(() => { setActiveRecord(null); setActiveTab(ALL_TAB) }, [q])
 
   const results = data?.results ?? []
   const total = data?.total ?? 0
-  const visibleResults = activeTab === ALL_TAB ? results : results.filter((r) => r.table === activeTab)
+  const visibleResults = filterResults(results, activeTab)
   const tabs = buildTabs(results, total)
 
   function handleNotesChange(v: boolean) {
@@ -187,19 +209,12 @@ function SearchContent(): React.ReactElement | null {
           Search: <span className="text-primary">{q}</span>
         </h2>
         <div className="flex items-center justify-between gap-4">
-          {!isLoading && data && (
-            <p className="text-xs text-muted-foreground">{buildCountLabel(total, results.length)}</p>
-          )}
+          <SearchCountLabel data={data} total={total} resultsLength={results.length} />
           <NotesToggle checked={notes} onChange={handleNotesChange} />
         </div>
       </div>
 
-      {error && (
-        <div className="flex items-center gap-2 text-xs text-destructive mb-4">
-          <AlertCircle className="h-3.5 w-3.5" />
-          {error instanceof Error ? error.message : 'Search failed'}
-        </div>
-      )}
+      <SearchErrorMessage error={error} />
 
       {isLoading && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">

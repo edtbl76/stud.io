@@ -73,7 +73,7 @@ describe('SearchPage — empty / short query', () => {
   })
 
   it('shows the empty state prompt when query is 1 character', () => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'x' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'x' : null)
     renderPage()
     expect(screen.getByText(/enter at least 2 characters/i)).toBeInTheDocument()
   })
@@ -81,7 +81,7 @@ describe('SearchPage — empty / short query', () => {
 
 describe('SearchPage — loading and results', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
   })
 
   it('shows loading spinner while fetching', () => {
@@ -138,7 +138,7 @@ describe('SearchPage — loading and results', () => {
 
 describe('SearchPage — modal open/close', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
     mockSearchGlobal.mockResolvedValue(makeResponse([EFFECTS_RESULT], 1))
   })
 
@@ -177,11 +177,39 @@ describe('SearchPage — modal open/close', () => {
     fireEvent.click(screen.getByRole('button', { name: /^effects/i }))
     expect(screen.queryByTestId('search-record-modal')).not.toBeInTheDocument()
   })
+
+  it('closes the modal and resets the tab when the search query changes', async () => {
+    mockSearchGlobal.mockResolvedValue(makeResponse())
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const { rerender } = render(
+      <QueryClientProvider client={client}>
+        <SearchPage />
+      </QueryClientProvider>
+    )
+    await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
+    // Select a tab and open the modal
+    fireEvent.click(screen.getByRole('button', { name: /^effects/i }))
+    fireEvent.click(screen.getByRole('button', { name: /reverb pro/i }))
+    expect(screen.getByTestId('search-record-modal')).toBeInTheDocument()
+
+    // Change the query
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'new-query' : null)
+    mockSearchGlobal.mockResolvedValue(makeResponse())
+    rerender(
+      <QueryClientProvider client={client}>
+        <SearchPage />
+      </QueryClientProvider>
+    )
+
+    expect(screen.queryByTestId('search-record-modal')).not.toBeInTheDocument()
+    // All tab should be active again (tab-specific buttons are gone until results load)
+    expect(screen.queryByRole('button', { name: /^effects/i })).not.toBeInTheDocument()
+  })
 })
 
 describe('SearchPage — tabs', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
     mockSearchGlobal.mockResolvedValue(makeResponse())
   })
 
@@ -210,7 +238,7 @@ describe('SearchPage — tabs', () => {
 
 describe('SearchPage — notes toggle', () => {
   beforeEach(() => {
-    mockGetSearchParam = (k) => (k === 'q' ? 'reverb' : null)
+    mockGetSearchParam = (k: string) => (k === 'q' ? 'reverb' : null)
     mockSearchGlobal.mockResolvedValue(makeResponse())
   })
 

@@ -87,6 +87,13 @@ describe('SearchRecordModal — loading state', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     expect(screen.queryByTestId('brand-modal')).not.toBeInTheDocument()
   })
+
+  it('calls onClose when the fetch fails', async () => {
+    mockGet.mockRejectedValue(new Error('fail'))
+    const onClose = jest.fn()
+    renderModal(makeResult({ table: 'brands' }), onClose)
+    await waitFor(() => expect(onClose).toHaveBeenCalled())
+  })
 })
 
 describe('SearchRecordModal — modal registry', () => {
