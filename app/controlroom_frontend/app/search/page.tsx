@@ -13,6 +13,11 @@ const SEARCH_LIMIT = 100
 
 const ALL_TAB = 'all'
 
+function buildCountLabel(total: number, resultsLength: number): string {
+  if (total > SEARCH_LIMIT) return `Top ${resultsLength} of ${total} results`
+  return `${total} result${total === 1 ? '' : 's'}`
+}
+
 interface Tab { key: string; label: string; count: number }
 
 function buildTabs(results: SearchResult[], total: number): Tab[] {
@@ -94,6 +99,33 @@ function SearchResultItem({
   )
 }
 
+interface SearchResultsBodyProps {
+  activeTab: string
+  tabs: Tab[]
+  visibleResults: SearchResult[]
+  onTabSelect: (key: string) => void
+  onOpen: (r: SearchResult) => void
+}
+
+function SearchResultsBody({
+  activeTab, tabs, visibleResults, onTabSelect, onOpen,
+}: Readonly<SearchResultsBodyProps>): React.ReactElement {
+  return (
+    <>
+      <TabBar activeTab={activeTab} tabs={tabs} onSelect={onTabSelect} />
+      <div className="flex flex-col gap-0.5">
+        {visibleResults.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">No results</p>
+        ) : (
+          visibleResults.map((r) => (
+            <SearchResultItem key={r.id} result={r} onOpen={onOpen} />
+          ))
+        )}
+      </div>
+    </>
+  )
+}
+
 function SearchContent(): React.ReactElement | null {
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
@@ -148,11 +180,6 @@ function SearchContent(): React.ReactElement | null {
     )
   }
 
-  const plural = total === 1 ? '' : 's'
-  const countLabel = total > SEARCH_LIMIT
-    ? `Top ${results.length} of ${total} results`
-    : `${total} result${plural}`
-
   return (
     <div className="flex flex-col h-full px-6 py-6 max-w-2xl">
       <div className="mb-6">
@@ -161,7 +188,7 @@ function SearchContent(): React.ReactElement | null {
         </h2>
         <div className="flex items-center justify-between gap-4">
           {!isLoading && data && (
-            <p className="text-xs text-muted-foreground">{countLabel}</p>
+            <p className="text-xs text-muted-foreground">{buildCountLabel(total, results.length)}</p>
           )}
           <NotesToggle checked={notes} onChange={handleNotesChange} />
         </div>
@@ -182,18 +209,13 @@ function SearchContent(): React.ReactElement | null {
       )}
 
       {data && (
-        <>
-          <TabBar activeTab={activeTab} tabs={tabs} onSelect={handleTabSelect} />
-          <div className="flex flex-col gap-0.5">
-            {visibleResults.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No results</p>
-            ) : (
-              visibleResults.map((r) => (
-                <SearchResultItem key={r.id} result={r} onOpen={handleOpen} />
-              ))
-            )}
-          </div>
-        </>
+        <SearchResultsBody
+          activeTab={activeTab}
+          tabs={tabs}
+          visibleResults={visibleResults}
+          onTabSelect={handleTabSelect}
+          onOpen={handleOpen}
+        />
       )}
 
       {activeRecord && (
