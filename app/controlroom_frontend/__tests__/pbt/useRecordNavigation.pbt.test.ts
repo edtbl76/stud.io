@@ -11,14 +11,15 @@ interface Item {
 
 const getId = (r: Item) => r.id
 
-// Non-empty array of items with unique ids.
 const nonEmptyDataArb = fc
   .array(fc.uuid(), { minLength: 1, maxLength: 50 })
   .map((ids) => [...new Set(ids)])
   .filter((ids) => ids.length > 0)
   .map((ids) => ids.map((id, i) => ({ id, name: `Item ${i}` })))
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+const multiItemArb = nonEmptyDataArb.filter((d) => d.length > 1)
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function runNav(
   data: Item[],
@@ -31,116 +32,91 @@ function runNav(
   return result.current
 }
 
+// Runs a property over a randomly picked record and its nav value.
+// Skips cases where nav is null (record not found).
+function forEachPickedNav(check: (nav: RecordNavigationValue, data: Item[], i: number) => void) {
+  fc.assert(
+    fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
+      const i = pick % data.length
+      const nav = runNav(data, data[i])
+      if (nav !== null) check(nav, data, i)
+    }),
+  )
+}
+
+// Runs runNav with a navigation collector and returns [nav, collected].
+function collectNav(data: Item[], record: Item): [RecordNavigationValue | null, Item[]] {
+  const collected: Item[] = []
+  return [runNav(data, record, (r) => collected.push(r)), collected]
+}
+
 // ── Invariants ────────────────────────────────────────────────────────────────
 
 describe('useRecordNavigation — properties', () => {
   it('hasPrev is true iff index > 0', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const nav = runNav(data, data[pick % data.length])
-        if (nav === null) return
-        expect(nav.hasPrev).toBe(nav.index > 0)
-      }),
-    )
+    forEachPickedNav((nav) => { expect(nav.hasPrev).toBe(nav.index > 0) })
   })
 
   it('hasNext is true iff index < total - 1', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const nav = runNav(data, data[pick % data.length])
-        if (nav === null) return
-        expect(nav.hasNext).toBe(nav.index < nav.total - 1)
-      }),
-    )
+    forEachPickedNav((nav) => { expect(nav.hasNext).toBe(nav.index < nav.total - 1) })
   })
 
   it('index is always in [0, total - 1] when not null', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const nav = runNav(data, data[pick % data.length])
-        if (nav === null) return
-        expect(nav.index).toBeGreaterThanOrEqual(0)
-        expect(nav.index).toBeLessThan(nav.total)
-      }),
-    )
+    forEachPickedNav((nav) => {
+      expect(nav.index).toBeGreaterThanOrEqual(0)
+      expect(nav.index).toBeLessThan(nav.total)
+    })
   })
 
   it('total always equals data.length', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const nav = runNav(data, data[pick % data.length])
-        if (nav === null) return
-        expect(nav.total).toBe(data.length)
-      }),
-    )
+    forEachPickedNav((nav, data) => { expect(nav.total).toBe(data.length) })
   })
 
   it('record not in data always returns null', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, (data) => {
-        const stranger: Item = { id: 'definitely-not-present', name: 'Stranger' }
-        expect(runNav(data, stranger)).toBeNull()
-      }),
-    )
+    fc.assert(fc.property(nonEmptyDataArb, (data) => {
+      expect(runNav(data, { id: 'definitely-not-present', name: 'Stranger' })).toBeNull()
+    }))
   })
 
   it('null currentRecord always returns null', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, (data) => {
-        expect(runNav(data, null)).toBeNull()
-      }),
-    )
+    fc.assert(fc.property(nonEmptyDataArb, (data) => {
+      expect(runNav(data, null)).toBeNull()
+    }))
   })
 
-  it('onPrev calls onNavigate with data[index - 1] when hasPrev', () => {
-    fc.assert(
-      fc.property(
-        nonEmptyDataArb.filter((d) => d.length > 1),
-        fc.nat(),
-        (data, pick) => {
-          const i = (pick % (data.length - 1)) + 1  // not the first element
-          const navigated: Item[] = []
-          runNav(data, data[i], (r) => navigated.push(r))?.onPrev()
-          expect(navigated).toHaveLength(1)
-          expect(navigated[0].id).toBe(data[i - 1].id)
-        },
-      ),
-    )
+  it('onPrev navigates to data[index - 1]', () => {
+    fc.assert(fc.property(multiItemArb, fc.nat(), (data, pick) => {
+      const i = (pick % (data.length - 1)) + 1
+      const [nav, collected] = collectNav(data, data[i])
+      nav?.onPrev()
+      expect(collected).toHaveLength(1)
+      expect(collected[0].id).toBe(data[i - 1].id)
+    }))
   })
 
-  it('onNext calls onNavigate with data[index + 1] when hasNext', () => {
-    fc.assert(
-      fc.property(
-        nonEmptyDataArb.filter((d) => d.length > 1),
-        fc.nat(),
-        (data, pick) => {
-          const i = pick % (data.length - 1)  // not the last element
-          const navigated: Item[] = []
-          runNav(data, data[i], (r) => navigated.push(r))?.onNext()
-          expect(navigated).toHaveLength(1)
-          expect(navigated[0].id).toBe(data[i + 1].id)
-        },
-      ),
-    )
+  it('onNext navigates to data[index + 1]', () => {
+    fc.assert(fc.property(multiItemArb, fc.nat(), (data, pick) => {
+      const i = pick % (data.length - 1)
+      const [nav, collected] = collectNav(data, data[i])
+      nav?.onNext()
+      expect(collected).toHaveLength(1)
+      expect(collected[0].id).toBe(data[i + 1].id)
+    }))
   })
 
-  it('hasPrev=false always means onPrev never calls onNavigate', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, (data) => {
-        const navigated: Item[] = []
-        runNav(data, data[0], (r) => navigated.push(r))?.onPrev()
-        expect(navigated).toHaveLength(0)
-      }),
-    )
+  it('onPrev at first record is a no-op', () => {
+    fc.assert(fc.property(nonEmptyDataArb, (data) => {
+      const [nav, collected] = collectNav(data, data[0])
+      nav?.onPrev()
+      expect(collected).toHaveLength(0)
+    }))
   })
 
-  it('hasNext=false always means onNext never calls onNavigate', () => {
-    fc.assert(
-      fc.property(nonEmptyDataArb, (data) => {
-        const navigated: Item[] = []
-        runNav(data, data[data.length - 1], (r) => navigated.push(r))?.onNext()
-        expect(navigated).toHaveLength(0)
-      }),
-    )
+  it('onNext at last record is a no-op', () => {
+    fc.assert(fc.property(nonEmptyDataArb, (data) => {
+      const [nav, collected] = collectNav(data, data[data.length - 1])
+      nav?.onNext()
+      expect(collected).toHaveLength(0)
+    }))
   })
 })
