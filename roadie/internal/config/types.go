@@ -8,11 +8,12 @@ type Config struct {
 	Test      TestConfig      `yaml:"test"`
 }
 
-// TestConfig holds configuration for the test suites (e2e, perf, shared DB).
+// TestConfig holds configuration for the test suites (e2e, perf, pbt, shared DB).
 // All fields are optional — omitting the test: section leaves zero values.
 type TestConfig struct {
 	E2E  E2ETestConfig  `yaml:"e2e"`
 	Perf PerfTestConfig `yaml:"perf"`
+	PBT  PBTTestConfig  `yaml:"pbt"`
 	DB   TestDBConfig   `yaml:"db"`
 }
 
@@ -24,6 +25,13 @@ type E2ETestConfig struct {
 	BackendInternalPort   int    `yaml:"backend_internal_port"`
 	BackendBasePort       int    `yaml:"backend_base_port"`
 	FrontendBasePort      int    `yaml:"frontend_base_port"`
+}
+
+// PBTTestConfig configures property-based test runners (fast-check, hypothesis).
+type PBTTestConfig struct {
+	// Examples is the number of generated test cases per property for both
+	// fast-check and hypothesis. Zero means use the tool default (100).
+	Examples int `yaml:"examples"`
 }
 
 // PerfTestConfig configures the performance test runner.

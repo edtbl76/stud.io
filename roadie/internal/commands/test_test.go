@@ -47,13 +47,13 @@ func TestBuildUnitPipeline(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assertSteps(t, stepNames(buildUnitPipeline("/repo", tt.tools)), tt.want)
+			assertSteps(t, stepNames(buildUnitPipeline("/repo", tt.tools, true)), tt.want)
 		})
 	}
 }
 
 func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
-	steps := buildUnitPipeline("/repo", []string{"pytest"})
+	steps := buildUnitPipeline("/repo", []string{"pytest"}, true)
 	if len(steps) == 0 {
 		t.Fatal("expected at least one step")
 	}
@@ -172,6 +172,41 @@ func TestValidatePerfConfig_RejectsZeroConfig(t *testing.T) {
 				t.Errorf("error %q does not mention %q", err.Error(), tt.wantErr)
 			}
 		})
+	}
+}
+
+// ── buildPBTFlags ─────────────────────────────────────────────────────────────
+
+func TestBuildPBTFlags(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want pipeline.PBTFlags
+	}{
+		{"empty runs all", nil, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
+		{"fast-check only", []string{"fast-check"}, pipeline.PBTFlags{FastCheck: true}},
+		{"hypothesis only", []string{"hypothesis"}, pipeline.PBTFlags{Hypothesis: true}},
+		{"both explicit", []string{"fast-check", "hypothesis"}, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildPBTFlags(tt.args); got != tt.want {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+// ── pbtConfigFrom ─────────────────────────────────────────────────────────────
+
+func TestPBTConfigFrom_MapsExamples(t *testing.T) {
+	cfg := minimalTestConfig()
+	p := pbtConfigFrom("/repo", cfg)
+	if p.Examples != 50 {
+		t.Errorf("Examples: got %d, want 50", p.Examples)
+	}
+	if p.Root != "/repo" {
+		t.Errorf("Root: got %q, want /repo", p.Root)
 	}
 }
 

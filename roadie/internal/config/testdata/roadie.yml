@@ -47,6 +47,8 @@ test:
     backend_port: 5160
     frontend_port: 3010
     carbon_base_url: ""
+  pbt:
+    examples: 50
   db:
     container: studio_db
     user: studio

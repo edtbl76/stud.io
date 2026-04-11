@@ -50,13 +50,15 @@ func TscStep(root Root) ToolStep {
 }
 
 // JestStep returns a step that runs Jest. Pass coverage=true to emit an lcov
-// report (used by the SonarQube scan).
-func JestStep(root Root, coverage bool) ToolStep {
+// report (used by the SonarQube scan). Extra args are appended after the
+// standard flags (e.g. --testPathIgnorePatterns for the unit runner).
+func JestStep(root Root, coverage bool, extraArgs ...string) ToolStep {
 	r := string(root)
 	args := []string{"--passWithNoTests"}
 	if coverage {
 		args = append(args, "--coverage", "--coverageReporters=lcov")
 	}
+	args = append(args, extraArgs...)
 	return ToolStep{
 		Name: "jest",
 		Bin:  filepath.Join("node_modules", ".bin", "jest"),

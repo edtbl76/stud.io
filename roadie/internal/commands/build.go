@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/studiocontrolroom/roadie/internal/config"
@@ -119,6 +120,7 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 		fmt.Fprintln(out, "  Release gate passed:")
 		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
 		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest")
+		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis")
 		fmt.Fprintln(out, "    E2E:         Playwright")
 		fmt.Fprintln(out, "    Scans:       SonarQube · Trivy · secrets · headers")
 		fmt.Fprintln(out, "    Perf:        benchmarks · k6 · Lighthouse")
@@ -130,7 +132,7 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 	fmt.Fprintln(out, "[roadie] Running unit tests...")
 	r := pipeline.Root(root)
-	return pipeline.New(buildUnitPipeline(r, nil)...).RunSequential(ctx, out)
+	return pipeline.New(buildUnitPipeline(r, nil, true)...).RunSequential(ctx, out)
 }
 
 // npmTools is the set of tools that require npm install as a prerequisite.
@@ -141,13 +143,17 @@ var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
 // pip-audit and npm-audit are excluded from the default run and only included
 // when explicitly named (they run as separate pre-commit hooks to avoid double
 // execution and because they make network calls).
-// NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected.
+// NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected,
+// unless withInstall is false (used by roadie test full, which runs npm-install
+// once before launching unit and PBT goroutines concurrently).
 // PytestStep receives --benchmark-skip to keep benchmarks in the perf suite.
-func buildUnitPipeline(root pipeline.Root, tools []string) []pipeline.ToolStep {
+// Jest receives --testPathIgnorePatterns to exclude PBT tests, which are run
+// separately by roadie test pbt.
+func buildUnitPipeline(root pipeline.Root, tools []string, withInstall bool) []pipeline.ToolStep {
 	run := toolFilter(tools)
 	explicit := len(tools) > 0
 	var steps []pipeline.ToolStep
-	if needsNpmInstall(run) {
+	if withInstall && needsNpmInstall(run) {
 		steps = append(steps, pipeline.NpmInstallStep(root))
 	}
 	return append(steps, filteredSteps(root, run, explicit)...)
@@ -173,10 +179,27 @@ func filteredSteps(root pipeline.Root, run func(string) bool, explicit bool) []p
 	}
 	candidates := []entry{
 		{"tsc", false, func() pipeline.ToolStep { return pipeline.TscStep(root) }},
-		{"jest", false, func() pipeline.ToolStep { return pipeline.JestStep(root, false) }},
+		{"jest", false, func() pipeline.ToolStep {
+			// Exclude PBT tests from the unit Jest run; they are run separately
+			// by roadie test pbt with FC_NUM_RUNS set correctly.
+			// Each --testPathIgnorePatterns flag is a separate CLI arg — Jest
+			// (via yargs) collects them into an array. They replace the config
+			// value, so all existing ignores are included here.
+			return pipeline.JestStep(root, false,
+				"--testPathIgnorePatterns=/__tests__/pbt/",
+				"--testPathIgnorePatterns=/node_modules/",
+				"--testPathIgnorePatterns=/.next/",
+				"--testPathIgnorePatterns=/e2e/",
+			)
+		}},
 		{"ruff", false, func() pipeline.ToolStep { return pipeline.RuffStep(root) }},
 		{"bandit", false, func() pipeline.ToolStep { return pipeline.BanditStep(root) }},
-		{"pytest", false, func() pipeline.ToolStep { return pipeline.PytestStep(root, "--benchmark-skip") }},
+		{"pytest", false, func() pipeline.ToolStep {
+			// Exclude PBT tests from the unit pytest run; they are run separately
+			// by roadie test pbt with HYPOTHESIS_MAX_EXAMPLES set correctly.
+			pbtDir := filepath.Join(string(root), "app", "controlroom_backend", "tests", "pbt")
+			return pipeline.PytestStep(root, "--benchmark-skip", "--ignore="+pbtDir)
+		}},
 		{"pip-audit", true, func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
 		{"npm-audit", true, func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}
