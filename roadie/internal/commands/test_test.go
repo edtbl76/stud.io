@@ -201,9 +201,12 @@ func TestBuildPBTFlags(t *testing.T) {
 
 func TestPBTConfigFrom_MapsExamples(t *testing.T) {
 	cfg := minimalTestConfig()
-	p := pbtConfigFrom(cfg)
+	p := pbtConfigFrom("/repo", cfg)
 	if p.Examples != 50 {
 		t.Errorf("Examples: got %d, want 50", p.Examples)
+	}
+	if p.Root != "/repo" {
+		t.Errorf("Root: got %q, want /repo", p.Root)
 	}
 }
 

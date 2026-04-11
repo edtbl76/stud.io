@@ -1,7 +1,7 @@
 import * as fc from 'fast-check'
 import { computeDiff, formatDiffValue } from '@/lib/computeDiff'
 
-// ── computeDiff ───────────────────────────────────────────────────────────────
+// ── Strategies ────────────────────────────────────────────────────────────────
 
 const recordArb = fc.dictionary(
   fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-z_][a-z0-9_]*$/.test(s)),
@@ -9,27 +9,34 @@ const recordArb = fc.dictionary(
   { minKeys: 0, maxKeys: 10 },
 )
 
+type Record = Parameters<typeof computeDiff>[0]
+type Diff = ReturnType<typeof computeDiff>
+
+// Runs an fc.property over two independent records and the diff between them.
+function forEachDiff(check: (oldData: Record, newData: Record, diff: Diff) => void) {
+  fc.assert(
+    fc.property(recordArb, recordArb, (oldData, newData) => {
+      check(oldData, newData, computeDiff(oldData, newData))
+    }),
+  )
+}
+
+// ── computeDiff ───────────────────────────────────────────────────────────────
+
 describe('computeDiff — properties', () => {
   it('result fields are always a subset of all keys across both records', () => {
-    fc.assert(
-      fc.property(recordArb, recordArb, (oldData, newData) => {
-        const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)])
-        const diff = computeDiff(oldData, newData)
-        for (const entry of diff) {
-          expect(allKeys.has(entry.field)).toBe(true)
-        }
-      }),
-    )
+    forEachDiff((oldData, newData, diff) => {
+      const allKeys = new Set([...Object.keys(oldData), ...Object.keys(newData)])
+      for (const entry of diff) {
+        expect(allKeys.has(entry.field)).toBe(true)
+      }
+    })
   })
 
   it('updated_at and created_at never appear in the diff', () => {
     fc.assert(
       fc.property(recordArb, recordArb, (oldData, newData) => {
-        const withTimestamps = {
-          ...oldData,
-          updated_at: '2024-01-01',
-          created_at: '2024-01-01',
-        }
+        const withTimestamps = { ...oldData, updated_at: '2024-01-01', created_at: '2024-01-01' }
         const diff = computeDiff(withTimestamps, newData)
         for (const entry of diff) {
           expect(entry.field).not.toBe('updated_at')
@@ -48,46 +55,34 @@ describe('computeDiff — properties', () => {
   })
 
   it('each diff entry has from !== to (by JSON equality)', () => {
-    fc.assert(
-      fc.property(recordArb, recordArb, (oldData, newData) => {
-        const diff = computeDiff(oldData, newData)
-        for (const entry of diff) {
-          expect(JSON.stringify(entry.from)).not.toBe(JSON.stringify(entry.to))
-        }
-      }),
-    )
+    forEachDiff((_oldData, _newData, diff) => {
+      for (const entry of diff) {
+        expect(JSON.stringify(entry.from)).not.toBe(JSON.stringify(entry.to))
+      }
+    })
   })
 
   it('from value always matches old record for that field', () => {
-    fc.assert(
-      fc.property(recordArb, recordArb, (oldData, newData) => {
-        const diff = computeDiff(oldData, newData)
-        for (const entry of diff) {
-          expect(JSON.stringify(entry.from)).toBe(JSON.stringify(oldData[entry.field]))
-        }
-      }),
-    )
+    forEachDiff((oldData, _newData, diff) => {
+      for (const entry of diff) {
+        expect(JSON.stringify(entry.from)).toBe(JSON.stringify(oldData[entry.field]))
+      }
+    })
   })
 
   it('to value always matches new record for that field', () => {
-    fc.assert(
-      fc.property(recordArb, recordArb, (oldData, newData) => {
-        const diff = computeDiff(oldData, newData)
-        for (const entry of diff) {
-          expect(JSON.stringify(entry.to)).toBe(JSON.stringify(newData[entry.field]))
-        }
-      }),
-    )
+    forEachDiff((_oldData, newData, diff) => {
+      for (const entry of diff) {
+        expect(JSON.stringify(entry.to)).toBe(JSON.stringify(newData[entry.field]))
+      }
+    })
   })
 
   it('no duplicate fields in the diff', () => {
-    fc.assert(
-      fc.property(recordArb, recordArb, (oldData, newData) => {
-        const diff = computeDiff(oldData, newData)
-        const fields = diff.map((e) => e.field)
-        expect(fields.length).toBe(new Set(fields).size)
-      }),
-    )
+    forEachDiff((_oldData, _newData, diff) => {
+      const fields = diff.map((e) => e.field)
+      expect(fields.length).toBe(new Set(fields).size)
+    })
   })
 })
 

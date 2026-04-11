@@ -135,7 +135,7 @@ func pbtCmd() *cobra.Command {
 			}
 			flags := buildPBTFlags(args)
 			fmt.Fprintln(os.Stdout, "[roadie] Running property-based tests...")
-			results, err := pipeline.RunPBT(cmd.Context(), pipeline.Root("."), pbtConfigFrom(cfg), flags, os.Stdout)
+			results, err := pipeline.RunPBT(cmd.Context(), pbtConfigFrom(pipeline.Root("."), cfg), flags, os.Stdout)
 			printSummary(os.Stdout, results, jsonOut)
 			return err
 		},
@@ -162,8 +162,8 @@ func buildPBTFlags(args []string) pipeline.PBTFlags {
 }
 
 // pbtConfigFrom builds a PBTConfig from the application config.
-func pbtConfigFrom(cfg *config.Config) pipeline.PBTConfig {
-	return pipeline.PBTConfig{Examples: cfg.Test.PBT.Examples}
+func pbtConfigFrom(root pipeline.Root, cfg *config.Config) pipeline.PBTConfig {
+	return pipeline.PBTConfig{Root: root, Examples: cfg.Test.PBT.Examples}
 }
 
 func fullCmd() *cobra.Command {
@@ -202,7 +202,7 @@ func fullCmd() *cobra.Command {
 			}()
 			go func() {
 				defer wg.Done()
-				pbtResults, pbtErr = pipeline.RunPBT(ctx, r, pbtConfigFrom(cfg), pipeline.AllPBTFlags(), os.Stdout)
+				pbtResults, pbtErr = pipeline.RunPBT(ctx, pbtConfigFrom(r, cfg), pipeline.AllPBTFlags(), os.Stdout)
 			}()
 			wg.Wait()
 

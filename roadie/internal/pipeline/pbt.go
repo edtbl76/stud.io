@@ -12,6 +12,7 @@ const pbtExamplesDefault = 100
 
 // PBTConfig holds the configuration for property-based test runners.
 type PBTConfig struct {
+	Root     Root
 	Examples int
 }
 
@@ -49,7 +50,7 @@ func AllPBTFlags() PBTFlags {
 // RunPBT runs fast-check and/or hypothesis property-based tests. Both engines
 // run regardless of individual failure so the full picture is always visible.
 // Returns one StepResult per engine selected and a combined error.
-func RunPBT(ctx context.Context, root Root, cfg PBTConfig, flags PBTFlags, out io.Writer) ([]StepResult, error) {
+func RunPBT(ctx context.Context, cfg PBTConfig, flags PBTFlags, out io.Writer) ([]StepResult, error) {
 	examples := cfg.Examples
 	if examples <= 0 {
 		examples = pbtExamplesDefault
@@ -57,10 +58,10 @@ func RunPBT(ctx context.Context, root Root, cfg PBTConfig, flags PBTFlags, out i
 
 	var steps []ToolStep
 	if flags.shouldRun("fast-check") {
-		steps = append(steps, fastCheckPBTStep(root, examples))
+		steps = append(steps, fastCheckPBTStep(cfg.Root, examples))
 	}
 	if flags.shouldRun("hypothesis") {
-		steps = append(steps, hypothesisPBTStep(root, examples))
+		steps = append(steps, hypothesisPBTStep(cfg.Root, examples))
 	}
 
 	if len(steps) == 0 {
