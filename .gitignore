@@ -196,6 +196,7 @@ eggs/
 lib/
 lib64/
 !app/controlroom_frontend/lib/
+!app/controlroom_frontend/__tests__/lib/
 parts/
 sdist/
 var/
