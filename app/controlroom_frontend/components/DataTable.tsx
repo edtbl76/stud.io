@@ -68,6 +68,8 @@ interface DataTableProps<TData, TValue> {
   readonly externalFilters?: FilterState
   readonly onFilterEntryChange?: (colId: string, entry: FilterEntry | null) => void
   readonly onClearFilters?: () => void
+  // Navigation: called with the post-sort row order so the parent can track position
+  readonly onSortedDataChange?: (data: TData[]) => void
 }
 
 export function DataTable<TData, TValue>({
@@ -89,6 +91,7 @@ export function DataTable<TData, TValue>({
   externalFilters,
   onFilterEntryChange,
   onClearFilters,
+  onSortedDataChange,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>(
     !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
@@ -108,6 +111,15 @@ export function DataTable<TData, TValue>({
       return 0
     })
   }, [data, sorting, manualSorting])
+  // Notify parent of sorted row order without adding onSortedDataChange to
+  // sortedData's deps (which would be circular). The ref holds the latest
+  // callback; the layout effect updates it synchronously before the effect fires.
+  const onSortedDataChangeRef = React.useRef(onSortedDataChange)
+  React.useLayoutEffect(() => { onSortedDataChangeRef.current = onSortedDataChange })
+  React.useEffect(() => {
+    onSortedDataChangeRef.current?.(sortedData)
+  }, [sortedData])
+
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])

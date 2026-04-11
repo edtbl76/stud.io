@@ -7,7 +7,14 @@ import { Loader2, AlertCircle, Search } from 'lucide-react'
 import { api } from '@/lib/api'
 import { SEARCH_TABLE_META } from '@/lib/searchMeta'
 import { SearchRecordModal } from '@/components/SearchRecordModal'
+import { RecordModalNavigation } from '@/components/RecordModal'
+import { useRecordNavigation } from '@/lib/useRecordNavigation'
 import type { SearchResult } from '@/lib/types'
+
+// IDs are only unique within a table, so use a compound key for navigation.
+function getSearchResultId(r: SearchResult): string {
+  return `${r.table}:${r.id}`
+}
 
 const SEARCH_LIMIT = 100
 
@@ -170,6 +177,13 @@ function SearchContent(): React.ReactElement | null {
   const visibleResults = filterResults(results, activeTab)
   const tabs = buildTabs(results, total)
 
+  const navValue = useRecordNavigation({
+    data: visibleResults,
+    currentRecord: activeRecord,
+    getRecordId: getSearchResultId,
+    onNavigate: setActiveRecord,
+  })
+
   function handleNotesChange(v: boolean) {
     setActiveRecord(null)
     setNotes(v)
@@ -234,11 +248,13 @@ function SearchContent(): React.ReactElement | null {
       )}
 
       {activeRecord && (
-        <SearchRecordModal
-          result={activeRecord}
-          onClose={handleClose}
-          onMutate={handleMutate}
-        />
+        <RecordModalNavigation.Provider value={navValue}>
+          <SearchRecordModal
+            result={activeRecord}
+            onClose={handleClose}
+            onMutate={handleMutate}
+          />
+        </RecordModalNavigation.Provider>
       )}
     </div>
   )
