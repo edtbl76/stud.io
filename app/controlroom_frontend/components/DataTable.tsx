@@ -46,6 +46,17 @@ function compareValues(aVal: unknown, bVal: unknown, desc: boolean): number {
   return 0
 }
 
+// Notifies parent of the post-sort row order via a stable-ref callback so
+// onSortedDataChange is never a dependency of the sortedData memo.
+function useNotifySortedData<TData>(
+  sortedData: TData[],
+  onSortedDataChange: ((data: TData[]) => void) | undefined,
+) {
+  const callbackRef = React.useRef(onSortedDataChange)
+  React.useLayoutEffect(() => { callbackRef.current = onSortedDataChange })
+  React.useEffect(() => { callbackRef.current?.(sortedData) }, [sortedData])
+}
+
 interface DataTableProps<TData, TValue> {
   readonly columns: ColumnDef<TData, TValue>[]
   readonly data: TData[]
@@ -111,14 +122,7 @@ export function DataTable<TData, TValue>({
       return 0
     })
   }, [data, sorting, manualSorting])
-  // Notify parent of sorted row order without adding onSortedDataChange to
-  // sortedData's deps (which would be circular). The ref holds the latest
-  // callback; the layout effect updates it synchronously before the effect fires.
-  const onSortedDataChangeRef = React.useRef(onSortedDataChange)
-  React.useLayoutEffect(() => { onSortedDataChangeRef.current = onSortedDataChange })
-  React.useEffect(() => {
-    onSortedDataChangeRef.current?.(sortedData)
-  }, [sortedData])
+  useNotifySortedData(sortedData, onSortedDataChange)
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})

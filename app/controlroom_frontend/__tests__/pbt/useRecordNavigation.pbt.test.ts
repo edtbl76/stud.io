@@ -1,6 +1,6 @@
 import * as fc from 'fast-check'
 import { renderHook } from '@testing-library/react'
-import { useRecordNavigation } from '@/lib/useRecordNavigation'
+import { useRecordNavigation, type RecordNavigationValue } from '@/lib/useRecordNavigation'
 
 // ── Strategies ────────────────────────────────────────────────────────────────
 
@@ -18,18 +18,27 @@ const nonEmptyDataArb = fc
   .filter((ids) => ids.length > 0)
   .map((ids) => ids.map((id, i) => ({ id, name: `Item ${i}` })))
 
+// ── Helper ────────────────────────────────────────────────────────────────────
+
+function runNav(
+  data: Item[],
+  currentRecord: Item | null,
+  onNavigate: (r: Item) => void = () => {},
+): RecordNavigationValue | null {
+  const { result } = renderHook(() =>
+    useRecordNavigation({ data, currentRecord, getRecordId: getId, onNavigate }),
+  )
+  return result.current
+}
+
 // ── Invariants ────────────────────────────────────────────────────────────────
 
 describe('useRecordNavigation — properties', () => {
   it('hasPrev is true iff index > 0', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const i = pick % data.length
-        const { result } = renderHook(() =>
-          useRecordNavigation({ data, currentRecord: data[i], getRecordId: getId, onNavigate: () => {} }),
-        )
-        const nav = result.current
-        if (nav === null) return  // record not found — skip
+        const nav = runNav(data, data[pick % data.length])
+        if (nav === null) return
         expect(nav.hasPrev).toBe(nav.index > 0)
       }),
     )
@@ -38,11 +47,7 @@ describe('useRecordNavigation — properties', () => {
   it('hasNext is true iff index < total - 1', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const i = pick % data.length
-        const { result } = renderHook(() =>
-          useRecordNavigation({ data, currentRecord: data[i], getRecordId: getId, onNavigate: () => {} }),
-        )
-        const nav = result.current
+        const nav = runNav(data, data[pick % data.length])
         if (nav === null) return
         expect(nav.hasNext).toBe(nav.index < nav.total - 1)
       }),
@@ -52,11 +57,7 @@ describe('useRecordNavigation — properties', () => {
   it('index is always in [0, total - 1] when not null', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const i = pick % data.length
-        const { result } = renderHook(() =>
-          useRecordNavigation({ data, currentRecord: data[i], getRecordId: getId, onNavigate: () => {} }),
-        )
-        const nav = result.current
+        const nav = runNav(data, data[pick % data.length])
         if (nav === null) return
         expect(nav.index).toBeGreaterThanOrEqual(0)
         expect(nav.index).toBeLessThan(nav.total)
@@ -67,11 +68,7 @@ describe('useRecordNavigation — properties', () => {
   it('total always equals data.length', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, fc.nat(), (data, pick) => {
-        const i = pick % data.length
-        const { result } = renderHook(() =>
-          useRecordNavigation({ data, currentRecord: data[i], getRecordId: getId, onNavigate: () => {} }),
-        )
-        const nav = result.current
+        const nav = runNav(data, data[pick % data.length])
         if (nav === null) return
         expect(nav.total).toBe(data.length)
       }),
@@ -82,10 +79,7 @@ describe('useRecordNavigation — properties', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, (data) => {
         const stranger: Item = { id: 'definitely-not-present', name: 'Stranger' }
-        const { result } = renderHook(() =>
-          useRecordNavigation({ data, currentRecord: stranger, getRecordId: getId, onNavigate: () => {} }),
-        )
-        expect(result.current).toBeNull()
+        expect(runNav(data, stranger)).toBeNull()
       }),
     )
   })
@@ -93,10 +87,7 @@ describe('useRecordNavigation — properties', () => {
   it('null currentRecord always returns null', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, (data) => {
-        const { result } = renderHook(() =>
-          useRecordNavigation({ data, currentRecord: null, getRecordId: getId, onNavigate: () => {} }),
-        )
-        expect(result.current).toBeNull()
+        expect(runNav(data, null)).toBeNull()
       }),
     )
   })
@@ -107,18 +98,9 @@ describe('useRecordNavigation — properties', () => {
         nonEmptyDataArb.filter((d) => d.length > 1),
         fc.nat(),
         (data, pick) => {
-          // Pick an index that is NOT the first element
-          const i = (pick % (data.length - 1)) + 1
+          const i = (pick % (data.length - 1)) + 1  // not the first element
           const navigated: Item[] = []
-          const { result } = renderHook(() =>
-            useRecordNavigation({
-              data,
-              currentRecord: data[i],
-              getRecordId: getId,
-              onNavigate: (r) => navigated.push(r),
-            }),
-          )
-          result.current?.onPrev()
+          runNav(data, data[i], (r) => navigated.push(r))?.onPrev()
           expect(navigated).toHaveLength(1)
           expect(navigated[0].id).toBe(data[i - 1].id)
         },
@@ -132,18 +114,9 @@ describe('useRecordNavigation — properties', () => {
         nonEmptyDataArb.filter((d) => d.length > 1),
         fc.nat(),
         (data, pick) => {
-          // Pick an index that is NOT the last element
-          const i = pick % (data.length - 1)
+          const i = pick % (data.length - 1)  // not the last element
           const navigated: Item[] = []
-          const { result } = renderHook(() =>
-            useRecordNavigation({
-              data,
-              currentRecord: data[i],
-              getRecordId: getId,
-              onNavigate: (r) => navigated.push(r),
-            }),
-          )
-          result.current?.onNext()
+          runNav(data, data[i], (r) => navigated.push(r))?.onNext()
           expect(navigated).toHaveLength(1)
           expect(navigated[0].id).toBe(data[i + 1].id)
         },
@@ -155,15 +128,7 @@ describe('useRecordNavigation — properties', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, (data) => {
         const navigated: Item[] = []
-        const { result } = renderHook(() =>
-          useRecordNavigation({
-            data,
-            currentRecord: data[0],
-            getRecordId: getId,
-            onNavigate: (r) => navigated.push(r),
-          }),
-        )
-        result.current?.onPrev()
+        runNav(data, data[0], (r) => navigated.push(r))?.onPrev()
         expect(navigated).toHaveLength(0)
       }),
     )
@@ -173,16 +138,7 @@ describe('useRecordNavigation — properties', () => {
     fc.assert(
       fc.property(nonEmptyDataArb, (data) => {
         const navigated: Item[] = []
-        const last = data[data.length - 1]
-        const { result } = renderHook(() =>
-          useRecordNavigation({
-            data,
-            currentRecord: last,
-            getRecordId: getId,
-            onNavigate: (r) => navigated.push(r),
-          }),
-        )
-        result.current?.onNext()
+        runNav(data, data[data.length - 1], (r) => navigated.push(r))?.onNext()
         expect(navigated).toHaveLength(0)
       }),
     )
