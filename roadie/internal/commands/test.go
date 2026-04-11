@@ -1,8 +1,10 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/spf13/cobra"
 	"github.com/studiocontrolroom/roadie/internal/config"
@@ -12,7 +14,7 @@ import (
 // AddTestCommands registers the test command and its subcommands on root.
 func AddTestCommands(root *cobra.Command) {
 	cmd := testCmd()
-	cmd.AddCommand(unitCmd(), e2eCmd(), scanCmd(), perfCmd(), fullCmd())
+	cmd.AddCommand(unitCmd(), e2eCmd(), scanCmd(), perfCmd(), pbtCmd(), fullCmd())
 	root.AddCommand(cmd)
 }
 
@@ -26,6 +28,7 @@ func testCmd() *cobra.Command {
   roadie test e2e
   roadie test scan [sonar|trivy|secrets|headers] [--gate] [--json]
   roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle] [--json]
+  roadie test pbt [fast-check|hypothesis] [--json]
   roadie test full`,
 	}
 }
@@ -118,6 +121,51 @@ func perfCmd() *cobra.Command {
 	return cmd
 }
 
+func pbtCmd() *cobra.Command {
+	var jsonOut bool
+	cmd := &cobra.Command{
+		Use:       "pbt [fast-check|hypothesis]",
+		Short:     "Run property-based tests (fast-check, hypothesis)",
+		ValidArgs: []string{"fast-check", "hypothesis"},
+		Args:      cobra.OnlyValidArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg, err := loadConfig()
+			if err != nil {
+				return err
+			}
+			flags := buildPBTFlags(args)
+			fmt.Fprintln(os.Stdout, "[roadie] Running property-based tests...")
+			results, err := pipeline.RunPBT(cmd.Context(), pipeline.Root("."), pbtConfigFrom(cfg), flags, os.Stdout)
+			printSummary(os.Stdout, results, jsonOut)
+			return err
+		},
+	}
+	cmd.Flags().BoolVar(&jsonOut, "json", false, "emit summary as JSON")
+	return cmd
+}
+
+// buildPBTFlags maps positional args to PBTFlags. Empty args means run all.
+func buildPBTFlags(args []string) pipeline.PBTFlags {
+	if len(args) == 0 {
+		return pipeline.AllPBTFlags()
+	}
+	var f pipeline.PBTFlags
+	for _, a := range args {
+		switch a {
+		case "fast-check":
+			f.FastCheck = true
+		case "hypothesis":
+			f.Hypothesis = true
+		}
+	}
+	return f
+}
+
+// pbtConfigFrom builds a PBTConfig from the application config.
+func pbtConfigFrom(cfg *config.Config) pipeline.PBTConfig {
+	return pipeline.PBTConfig{Examples: cfg.Test.PBT.Examples}
+}
+
 func fullCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "full",
@@ -130,15 +178,36 @@ func fullCmd() *cobra.Command {
 			}
 			r := pipeline.Root(".")
 
-			fmt.Fprintln(os.Stdout, "[roadie] Running unit tests...")
-			if err := pipeline.New(buildUnitPipeline(r, nil)...).RunSequential(ctx, os.Stdout); err != nil {
-				return err
-			}
-
 			if err := validateE2EConfig(cfg); err != nil {
 				return err
 			}
 			if err := validatePerfConfig(cfg); err != nil {
+				return err
+			}
+
+			// Run unit and PBT suites in parallel — they are independent and
+			// share no resources. Output lines are labeled ([jest], [hypothesis],
+			// etc.) so interleaved output remains readable.
+			fmt.Fprintln(os.Stdout, "[roadie] Running unit and property-based tests (parallel)...")
+			var (
+				wg         sync.WaitGroup
+				unitErr    error
+				pbtErr     error
+				pbtResults []pipeline.StepResult
+			)
+			wg.Add(2)
+			go func() {
+				defer wg.Done()
+				unitErr = pipeline.New(buildUnitPipeline(r, nil)...).RunSequential(ctx, os.Stdout)
+			}()
+			go func() {
+				defer wg.Done()
+				pbtResults, pbtErr = pipeline.RunPBT(ctx, r, pbtConfigFrom(cfg), pipeline.AllPBTFlags(), os.Stdout)
+			}()
+			wg.Wait()
+
+			pipeline.PrintSummary(os.Stdout, pbtResults)
+			if err := errors.Join(unitErr, pbtErr); err != nil {
 				return err
 			}
 

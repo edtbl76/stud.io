@@ -65,9 +65,20 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 | `roadie test e2e` | Run full sharded Playwright suite | `test-e2e.sh` (delegates internally) |
 | `roadie test scan [sonar\|trivy\|secrets\|headers] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
 | `roadie test perf [bundle\|benchmarks\|k6\|lighthouse] [--no-bundle]` | Run performance suite in collect mode | `test-perf.sh` (delegates internally) |
-| `roadie test full` | Run all suites: unit → e2e → scan (--gate) → perf | — |
+| `roadie test pbt [fast-check\|hypothesis] [--json]` | Run property-based tests in collect mode | — |
+| `roadie test full` | Run unit + pbt (parallel), then scan (--gate) → e2e → perf | — |
 
 `--gate` adds a SonarQube quality gate poll after the sonar scan. `--no-bundle` skips the Next.js production build (reuse existing `.next-perf`).
+
+**Property-based tests (`roadie test pbt`):** Runs fast-check (frontend, Jest) and hypothesis (backend, pytest) in collect mode — both engines run regardless of individual failure, and a summary table is printed. Configure the number of examples per property in `roadie.yml`:
+
+```yaml
+test:
+  pbt:
+    examples: 100  # default; increase for pre-release thoroughness
+```
+
+Frontend PBT tests live in `app/controlroom_frontend/__tests__/pbt/`. Backend PBT tests live in `app/controlroom_backend/tests/pbt/`. These are excluded from the pre-commit hook — run `roadie test pbt` manually or rely on `roadie test full`.
 
 `--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`.
 
@@ -272,7 +283,7 @@ roadie/
       stack.go               — start, stop, restart, status Cobra subcommands
       build.go               — build, release Cobra subcommands; schemaApplier; buildUnitPipeline
       db.go                  — db init Cobra subcommand with confirmation gate
-      test.go                — test unit/e2e/scan/perf/full Cobra subcommands
+      test.go                — test unit/e2e/scan/perf/pbt/full Cobra subcommands
       doctor.go              — doctor Cobra subcommand; prerequisite checks
 ```
 
@@ -289,6 +300,7 @@ roadie/
 | 5 ✓ | `test unit/e2e/scan/perf/full` | `test-unit.sh`, `test-scan.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
 | 6 ✓ | `doctor`, `--json` flag, summary output | — |
 | 7 ✓ | `test unit pip-audit/npm-audit` | `scripts/` directory fully deleted |
+| 8 ✓ | `test pbt [fast-check\|hypothesis]`, `test full` parallelism | — |
 
 ---
 

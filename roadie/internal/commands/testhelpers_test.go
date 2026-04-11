@@ -29,6 +29,9 @@ func minimalTestConfig() *config.Config {
 				BackendPort:  5160,
 				FrontendPort: 3010,
 			},
+			PBT: config.PBTTestConfig{
+				Examples: 50,
+			},
 			DB: config.TestDBConfig{
 				Container: "studio_db",
 				User:      "studio",

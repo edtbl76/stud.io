@@ -53,6 +53,11 @@ test:
     backend_port: 5160
     frontend_port: 3010
     carbon_base_url: ""
+  pbt:
+    # examples controls how many generated test cases fast-check and hypothesis
+    # each produce per property. Increase for more thorough pre-release runs.
+    # Default: 100
+    examples: 100
   db:
     container: studio_db
     user: studio

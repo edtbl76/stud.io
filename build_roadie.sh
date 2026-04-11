@@ -19,8 +19,17 @@ echo "[build_roadie] Building binary..."
 go build -o "$BINARY" ./cmd/roadie
 
 echo "[build_roadie] Installing to /usr/local/bin/roadie..."
-sudo cp "$BINARY" /usr/local/bin/roadie.new && sudo mv /usr/local/bin/roadie.new /usr/local/bin/roadie
+sudo install -m 0755 "$BINARY" /usr/local/bin/roadie
 rm "$BINARY"
+
+echo "[build_roadie] Installing bash completion..."
+COMPLETION_DIR="$HOME/.local/share/bash-completion/completions"
+mkdir -p "$COMPLETION_DIR"
+roadie completion bash > "$COMPLETION_DIR/roadie"
+
+echo "[build_roadie] Sourcing ~/.bashrc..."
+# shellcheck disable=SC1090
+source "$HOME/.bashrc"
 
 cd "$SCRIPT_DIR"
 echo "[build_roadie] Done."

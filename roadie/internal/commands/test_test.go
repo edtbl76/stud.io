@@ -175,6 +175,38 @@ func TestValidatePerfConfig_RejectsZeroConfig(t *testing.T) {
 	}
 }
 
+// ── buildPBTFlags ─────────────────────────────────────────────────────────────
+
+func TestBuildPBTFlags(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want pipeline.PBTFlags
+	}{
+		{"empty runs all", nil, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
+		{"fast-check only", []string{"fast-check"}, pipeline.PBTFlags{FastCheck: true}},
+		{"hypothesis only", []string{"hypothesis"}, pipeline.PBTFlags{Hypothesis: true}},
+		{"both explicit", []string{"fast-check", "hypothesis"}, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := buildPBTFlags(tt.args); got != tt.want {
+				t.Errorf("got %+v, want %+v", got, tt.want)
+			}
+		})
+	}
+}
+
+// ── pbtConfigFrom ─────────────────────────────────────────────────────────────
+
+func TestPBTConfigFrom_MapsExamples(t *testing.T) {
+	cfg := minimalTestConfig()
+	p := pbtConfigFrom(cfg)
+	if p.Examples != 50 {
+		t.Errorf("Examples: got %d, want 50", p.Examples)
+	}
+}
+
 // ── e2eConfigFrom / perfConfigFrom ───────────────────────────────────────────
 
 func TestE2EConfigFrom_MapsFields(t *testing.T) {
