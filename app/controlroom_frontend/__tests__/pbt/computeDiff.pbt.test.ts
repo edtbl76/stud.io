@@ -4,7 +4,7 @@ import { computeDiff, formatDiffValue } from '@/lib/computeDiff'
 // ── Strategies ────────────────────────────────────────────────────────────────
 
 const recordArb = fc.dictionary(
-  fc.string({ minLength: 1, maxLength: 20 }).filter((s) => /^[a-z_][a-z0-9_]*$/.test(s)),
+  fc.stringMatching(/^[a-z_][a-z0-9_]*$/),
   fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null)),
   { minKeys: 0, maxKeys: 10 },
 )

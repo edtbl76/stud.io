@@ -167,5 +167,11 @@ def test_direction_is_always_asc_or_desc(sort_by, sort_dir, sortable, default_so
 @settings(max_examples=200)
 def test_no_valid_sort_keys_falls_back_to_default(sortable, default_sort):
     """Empty or all-invalid sort_by always falls back to default_sort ASC."""
+    # Empty sort_by
     result = _build_order_clause([], [], sortable, default_sort)
+    assert result == f"ORDER BY {default_sort} ASC"
+
+    # All-invalid sort_by (keys not in sortable) also falls back to default.
+    invalid_keys = ["__invalid1__", "__invalid2__"]
+    result = _build_order_clause(invalid_keys, [], sortable, default_sort)
     assert result == f"ORDER BY {default_sort} ASC"

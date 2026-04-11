@@ -47,13 +47,13 @@ func TestBuildUnitPipeline(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assertSteps(t, stepNames(buildUnitPipeline("/repo", tt.tools)), tt.want)
+			assertSteps(t, stepNames(buildUnitPipeline("/repo", tt.tools, true)), tt.want)
 		})
 	}
 }
 
 func TestBuildUnitPipeline_PytestHasBenchmarkSkip(t *testing.T) {
-	steps := buildUnitPipeline("/repo", []string{"pytest"})
+	steps := buildUnitPipeline("/repo", []string{"pytest"}, true)
 	if len(steps) == 0 {
 		t.Fatal("expected at least one step")
 	}

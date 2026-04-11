@@ -28,7 +28,7 @@ func testCmd() *cobra.Command {
   roadie test e2e
   roadie test scan [sonar|trivy|secrets|headers] [--gate] [--json]
   roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle] [--json]
-  roadie test pbt [fast-check|hypothesis] [--json]
+  roadie test pbt [fast-check] [hypothesis] [--json]
   roadie test full`,
 	}
 }
@@ -41,7 +41,7 @@ func unitCmd() *cobra.Command {
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
-			steps := buildUnitPipeline(r, args)
+			steps := buildUnitPipeline(r, args, true)
 			if len(args) > 0 && len(steps) == 0 {
 				return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit", args)
 			}
@@ -124,7 +124,7 @@ func perfCmd() *cobra.Command {
 func pbtCmd() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
-		Use:       "pbt [fast-check|hypothesis]",
+		Use:       "pbt [fast-check] [hypothesis]",
 		Short:     "Run property-based tests (fast-check, hypothesis)",
 		ValidArgs: []string{"fast-check", "hypothesis"},
 		Args:      cobra.OnlyValidArgs,
@@ -185,8 +185,16 @@ func fullCmd() *cobra.Command {
 				return err
 			}
 
-			// Run unit and PBT suites in parallel — they are independent and
-			// share no resources. Output lines are labeled ([jest], [hypothesis],
+			// npm-install runs once before the parallel phase so that both the
+			// unit Jest step and the PBT fast-check step share the same
+			// node_modules without a race.
+			fmt.Fprintln(os.Stdout, "[roadie] Installing frontend dependencies...")
+			if err := pipeline.New(pipeline.NpmInstallStep(r)).RunSequential(ctx, os.Stdout); err != nil {
+				return err
+			}
+
+			// Run unit and PBT suites in parallel — after npm-install they are
+			// fully independent. Output lines are labeled ([jest], [hypothesis],
 			// etc.) so interleaved output remains readable.
 			fmt.Fprintln(os.Stdout, "[roadie] Running unit and property-based tests (parallel)...")
 			var (
@@ -198,7 +206,7 @@ func fullCmd() *cobra.Command {
 			wg.Add(2)
 			go func() {
 				defer wg.Done()
-				unitErr = pipeline.New(buildUnitPipeline(r, nil)...).RunSequential(ctx, os.Stdout)
+				unitErr = pipeline.New(buildUnitPipeline(r, nil, false)...).RunSequential(ctx, os.Stdout)
 			}()
 			go func() {
 				defer wg.Done()

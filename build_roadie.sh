@@ -27,9 +27,5 @@ COMPLETION_DIR="$HOME/.local/share/bash-completion/completions"
 mkdir -p "$COMPLETION_DIR"
 roadie completion bash > "$COMPLETION_DIR/roadie"
 
-echo "[build_roadie] Sourcing ~/.bashrc..."
-# shellcheck disable=SC1090
-source "$HOME/.bashrc"
-
 cd "$SCRIPT_DIR"
 echo "[build_roadie] Done."
