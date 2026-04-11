@@ -10,21 +10,21 @@ repos:
     hooks:
       - id: unit-tests
         name: unit tests (tsc + jest + ruff + bandit + pytest)
-        entry: roadie test unit
+        entry: bash -c 'source ~/.nvm/nvm.sh 2>/dev/null || true; roadie test unit'
         language: system
         pass_filenames: false
         always_run: true
 
       - id: pip-audit
         name: pip-audit
-        entry: roadie test unit pip-audit
+        entry: bash -c 'source ~/.nvm/nvm.sh 2>/dev/null || true; roadie test unit pip-audit'
         language: system
         pass_filenames: false
         always_run: true
 
       - id: npm-audit
         name: npm-audit
-        entry: roadie test unit npm-audit
+        entry: bash -c 'source ~/.nvm/nvm.sh 2>/dev/null || true; roadie test unit npm-audit'
         language: system
         pass_filenames: false
         always_run: true
