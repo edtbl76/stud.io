@@ -285,6 +285,39 @@ describe('RecordModal — record navigation', () => {
     expect(screen.queryByRole('button', { name: /previous record/i })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /next record/i })).not.toBeInTheDocument()
   })
+
+  it('ArrowLeft does not fire when an input is focused', () => {
+    const { container } = renderWithNav(makeNav())
+    const input = document.createElement('input')
+    container.appendChild(input)
+    fireEvent.keyDown(input, { key: 'ArrowLeft', bubbles: true })
+    expect(onPrev).not.toHaveBeenCalled()
+  })
+
+  it('ArrowRight does not fire when a textarea is focused', () => {
+    const { container } = renderWithNav(makeNav())
+    const textarea = document.createElement('textarea')
+    container.appendChild(textarea)
+    fireEvent.keyDown(textarea, { key: 'ArrowRight', bubbles: true })
+    expect(onNext).not.toHaveBeenCalled()
+  })
+
+  it('ArrowLeft does not fire when a select is focused', () => {
+    const { container } = renderWithNav(makeNav())
+    const select = document.createElement('select')
+    container.appendChild(select)
+    fireEvent.keyDown(select, { key: 'ArrowLeft', bubbles: true })
+    expect(onPrev).not.toHaveBeenCalled()
+  })
+
+  it('ArrowRight does not fire when a contentEditable element is focused', () => {
+    const { container } = renderWithNav(makeNav())
+    const div = document.createElement('div')
+    div.contentEditable = 'true'
+    container.appendChild(div)
+    fireEvent.keyDown(div, { key: 'ArrowRight', bubbles: true })
+    expect(onNext).not.toHaveBeenCalled()
+  })
 })
 
 describe('RecordModal — loading states', () => {

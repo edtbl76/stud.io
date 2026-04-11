@@ -248,7 +248,7 @@ function SearchContent(): React.ReactElement | null {
       )}
 
       {activeRecord && (
-        <RecordModalNavigation.Provider value={navValue}>
+        <RecordModalNavigation.Provider key={getSearchResultId(activeRecord)} value={navValue}>
           <SearchRecordModal
             result={activeRecord}
             onClose={handleClose}

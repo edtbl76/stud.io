@@ -46,15 +46,26 @@ function compareValues(aVal: unknown, bVal: unknown, desc: boolean): number {
   return 0
 }
 
-// Notifies parent of the post-sort row order via a stable-ref callback so
-// onSortedDataChange is never a dependency of the sortedData memo.
-function useNotifySortedData<TData>(
-  sortedData: TData[],
+// Notifies parent of the post-filter visible row order. Uses element-by-reference
+// comparison to skip the callback when the row set is unchanged — prevents an
+// infinite setState loop that would otherwise occur because getRowModel() returns
+// a new array wrapper on every render even when the underlying rows are stable.
+function useNotifyVisibleData<TData>(
+  visibleData: TData[],
   onSortedDataChange: ((data: TData[]) => void) | undefined,
 ) {
   const callbackRef = React.useRef(onSortedDataChange)
-  React.useLayoutEffect(() => { callbackRef.current = onSortedDataChange })
-  React.useEffect(() => { callbackRef.current?.(sortedData) }, [sortedData])
+  const prevRef = React.useRef<TData[]>([])
+  React.useLayoutEffect(() => { callbackRef.current = onSortedDataChange }, [onSortedDataChange])
+  React.useEffect(() => {
+    const prev = prevRef.current
+    if (
+      visibleData.length === prev.length &&
+      visibleData.every((item, i) => item === prev[i])
+    ) return
+    prevRef.current = visibleData
+    callbackRef.current?.(visibleData)
+  }, [visibleData])
 }
 
 interface DataTableProps<TData, TValue> {
@@ -122,7 +133,6 @@ export function DataTable<TData, TValue>({
       return 0
     })
   }, [data, sorting, manualSorting])
-  useNotifySortedData(sortedData, onSortedDataChange)
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
@@ -180,6 +190,10 @@ export function DataTable<TData, TValue>({
   }
 
   const rows = table.getRowModel().rows
+
+  // Notify with post-filter visible rows so navigation follows what the user actually sees.
+  const visibleData = React.useMemo(() => rows.map((r) => r.original), [rows])
+  useNotifyVisibleData(visibleData, onSortedDataChange)
 
   const virtualizer = useVirtualizer({
     count: rows.length,

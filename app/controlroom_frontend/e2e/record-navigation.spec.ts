@@ -36,14 +36,14 @@ test('record navigation: clicking → advances to the next record', async ({ pag
   await page.goto('/catalog/brands')
   const dialog = await openFirstRecord(page)
 
-  const titleBefore = await dialog.getByRole('heading').first().innerText()
+  const heading = dialog.getByRole('heading').first()
+  const titleBefore = await heading.innerText()
 
   await dialog.getByRole('button', { name: /next record/i }).click()
 
   // Dialog should still be open and title should have changed
   await expect(dialog).toBeVisible()
-  const titleAfter = await dialog.getByRole('heading').first().innerText()
-  expect(titleAfter).not.toBe(titleBefore)
+  await expect(heading).not.toHaveText(titleBefore)
 })
 
 test('record navigation: shows position counter (N of M)', async ({ page }) => {
@@ -56,24 +56,25 @@ test('record navigation: pressing ArrowRight navigates to next record', async ({
   await page.goto('/catalog/brands')
   const dialog = await openFirstRecord(page)
 
-  const titleBefore = await dialog.getByRole('heading').first().innerText()
+  const heading = dialog.getByRole('heading').first()
+  const titleBefore = await heading.innerText()
   await page.keyboard.press('ArrowRight')
 
   await expect(dialog).toBeVisible()
-  const titleAfter = await dialog.getByRole('heading').first().innerText()
-  expect(titleAfter).not.toBe(titleBefore)
+  await expect(heading).not.toHaveText(titleBefore)
 })
 
 test('record navigation: pressing ArrowLeft on first record does nothing', async ({ page }) => {
   await page.goto('/catalog/brands')
   const dialog = await openFirstRecord(page)
 
-  const titleBefore = await dialog.getByRole('heading').first().innerText()
+  const heading = dialog.getByRole('heading').first()
+  const titleBefore = await heading.innerText()
   await page.keyboard.press('ArrowLeft')
 
   await expect(dialog).toBeVisible()
-  const titleAfter = await dialog.getByRole('heading').first().innerText()
-  expect(titleAfter).toBe(titleBefore)
+  // Heading should still show the same title after a no-op navigation attempt
+  await expect(heading).toHaveText(titleBefore)
 })
 
 test('record navigation: arrow keys do not fire while in edit mode', async ({ page }) => {
@@ -81,13 +82,13 @@ test('record navigation: arrow keys do not fire while in edit mode', async ({ pa
   const dialog = await openFirstRecord(page)
 
   await dialog.getByRole('button', { name: /^edit$/i }).click()
-  const titleBefore = await dialog.getByRole('heading').first().innerText()
+  const heading = dialog.getByRole('heading').first()
+  const titleBefore = await heading.innerText()
 
   // Pressing right while editing should NOT navigate
   await page.keyboard.press('ArrowRight')
   await expect(dialog).toBeVisible()
-  const titleAfter = await dialog.getByRole('heading').first().innerText()
-  expect(titleAfter).toBe(titleBefore)
+  await expect(heading).toHaveText(titleBefore)
 })
 
 // ── Search page navigation ────────────────────────────────────────────────────
@@ -102,6 +103,10 @@ async function createBrand(request: APIRequestContext, suffix: string): Promise<
     data: { legal_name: name, brand_name: name },
     headers: { 'Content-Type': 'application/json' },
   })
+  if (!res.ok()) {
+    const text = await res.text()
+    throw new Error(`createBrand(${suffix}) failed — HTTP ${res.status()}: ${text}`)
+  }
   const body = await res.json() as { brand_id: string }
   return body.brand_id
 }
@@ -113,7 +118,10 @@ test.beforeAll(async ({ request }) => {
 
 test.afterAll(async ({ request }) => {
   for (const id of brandIds) {
-    await request.delete(`/api/brands/${id}`)
+    const res = await request.delete(`/api/brands/${id}`)
+    if (!res.ok()) {
+      console.error(`afterAll: DELETE /api/brands/${id} failed — HTTP ${res.status()}`)
+    }
   }
 })
 

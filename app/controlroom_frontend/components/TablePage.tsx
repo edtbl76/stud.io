@@ -61,6 +61,10 @@ function makeCheckboxColumn<T>(): ColumnDef<T, unknown> {
   }
 }
 
+function getNavProviderKey<T>(record: T | null, getRowId: (r: T) => string): string {
+  return record === null ? '__new__' : getRowId(record)
+}
+
 function getNextPageParam(
   lastPage: { items: unknown[]; total: number },
   allPages: { items: unknown[]; total: number }[],
@@ -285,14 +289,15 @@ export function TablePage<T>({
   const showBulkEdit = isAdmin && !!bulkEditFields && bulkEditFields.length > 0
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
 
-  // Tracks the post-sort order from DataTable so navigation follows what the user sees.
-  const sortedDataRef = React.useRef<T[]>([])
+  // Tracks the post-filter visible row order from DataTable as state so navValue
+  // recomputes whenever sorting or filtering changes while a modal is open.
+  const [navData, setNavData] = React.useState<T[]>([])
   const handleSortedDataChange = React.useCallback((sorted: T[]) => {
-    sortedDataRef.current = sorted
+    setNavData(sorted)
   }, [])
 
   const navValue = useRecordNavigation({
-    data: sortedDataRef.current,
+    data: navData,
     currentRecord: selectedRecord ?? null,
     getRecordId: getRowId,
     onNavigate: setSelectedRecord,
@@ -376,7 +381,10 @@ export function TablePage<T>({
       </div>
 
       {selectedRecord !== undefined && (
-        <RecordModalNavigation.Provider value={navValue}>
+        <RecordModalNavigation.Provider
+          key={getNavProviderKey(selectedRecord, getRowId)}
+          value={navValue}
+        >
           {renderModal(selectedRecord, handleClose, handleMutate)}
         </RecordModalNavigation.Provider>
       )}

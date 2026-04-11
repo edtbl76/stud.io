@@ -20,6 +20,17 @@ export const RecordModalLeadingAction = React.createContext<React.ReactNode>(nul
 // null means navigation is unavailable (e.g. creating a new record).
 export const RecordModalNavigation = React.createContext<RecordNavigationValue | null>(null)
 
+// Tag names of form controls where arrow keys should not trigger navigation.
+const FORM_ELEMENT_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
+
+// Returns true when the keyboard event originated from a form control or editable
+// element — arrow keys should not trigger record navigation in those contexts.
+function isFocusedInFormElement(e: KeyboardEvent): boolean {
+  const el = e.target instanceof Element ? e.target : document.activeElement
+  if (!(el instanceof HTMLElement)) return false
+  return FORM_ELEMENT_TAGS.has(el.tagName) || el.contentEditable === 'true'
+}
+
 // Renders the ← N of M → navigation strip inside the dialog header.
 function RecordNavigationHeader() {
   const nav = React.useContext(RecordModalNavigation)
@@ -86,10 +97,12 @@ export function RecordModal({
   const nav = React.useContext(RecordModalNavigation)
   const [confirmDelete, setConfirmDelete] = React.useState(false)
 
-  // Arrow-key navigation — blocked while editing to avoid clobbering form input.
+  // Arrow-key navigation — blocked while editing or when focus is inside a
+  // form element / contentEditable area to avoid clobbering user input.
   React.useEffect(() => {
     if (isEditing) return
     function handleKey(e: KeyboardEvent) {
+      if (isFocusedInFormElement(e)) return
       if (e.key === 'ArrowLeft') nav?.onPrev()
       else if (e.key === 'ArrowRight') nav?.onNext()
     }
