@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
-import { RecordModal } from '@/components/RecordModal'
+import { RecordModal, RecordModalNavigation } from '@/components/RecordModal'
+import type { RecordNavigationValue } from '@/lib/useRecordNavigation'
 
 const defaultProps = {
   title: 'Test Record',
@@ -187,6 +188,102 @@ describe('RecordModal — history mode', () => {
     renderModal({ onHistory })
     fireEvent.click(screen.getByRole('button', { name: /^history$/i }))
     expect(onHistory).toHaveBeenCalled()
+  })
+})
+
+describe('RecordModal — record navigation', () => {
+  const onPrev = jest.fn()
+  const onNext = jest.fn()
+
+  function makeNav(overrides: Partial<RecordNavigationValue> = {}): RecordNavigationValue {
+    return {
+      index: 1,
+      total: 3,
+      hasPrev: true,
+      hasNext: true,
+      onPrev,
+      onNext,
+      ...overrides,
+    }
+  }
+
+  function renderWithNav(nav: RecordNavigationValue, isEditing = false) {
+    return render(
+      <RecordModalNavigation.Provider value={nav}>
+        <RecordModal {...defaultProps} isEditing={isEditing}>
+          <div>content</div>
+        </RecordModal>
+      </RecordModalNavigation.Provider>
+    )
+  }
+
+  beforeEach(() => { jest.clearAllMocks() })
+
+  it('renders prev and next buttons when nav context is provided', () => {
+    renderWithNav(makeNav())
+    expect(screen.getByRole('button', { name: /previous record/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next record/i })).toBeInTheDocument()
+  })
+
+  it('shows position counter', () => {
+    renderWithNav(makeNav({ index: 1, total: 3 }))
+    expect(screen.getByText('2 of 3')).toBeInTheDocument()
+  })
+
+  it('disables prev button when hasPrev is false', () => {
+    renderWithNav(makeNav({ hasPrev: false }))
+    expect(screen.getByRole('button', { name: /previous record/i })).toBeDisabled()
+  })
+
+  it('disables next button when hasNext is false', () => {
+    renderWithNav(makeNav({ hasNext: false }))
+    expect(screen.getByRole('button', { name: /next record/i })).toBeDisabled()
+  })
+
+  it('calls onPrev when prev button is clicked', () => {
+    renderWithNav(makeNav())
+    fireEvent.click(screen.getByRole('button', { name: /previous record/i }))
+    expect(onPrev).toHaveBeenCalled()
+  })
+
+  it('calls onNext when next button is clicked', () => {
+    renderWithNav(makeNav())
+    fireEvent.click(screen.getByRole('button', { name: /next record/i }))
+    expect(onNext).toHaveBeenCalled()
+  })
+
+  it('ArrowLeft fires onPrev in view mode', () => {
+    renderWithNav(makeNav())
+    fireEvent.keyDown(document, { key: 'ArrowLeft' })
+    expect(onPrev).toHaveBeenCalled()
+  })
+
+  it('ArrowRight fires onNext in view mode', () => {
+    renderWithNav(makeNav())
+    fireEvent.keyDown(document, { key: 'ArrowRight' })
+    expect(onNext).toHaveBeenCalled()
+  })
+
+  it('ArrowLeft does not fire when in edit mode', () => {
+    renderWithNav(makeNav(), true)
+    fireEvent.keyDown(document, { key: 'ArrowLeft' })
+    expect(onPrev).not.toHaveBeenCalled()
+  })
+
+  it('ArrowRight does not fire when in edit mode', () => {
+    renderWithNav(makeNav(), true)
+    fireEvent.keyDown(document, { key: 'ArrowRight' })
+    expect(onNext).not.toHaveBeenCalled()
+  })
+
+  it('does not render nav buttons when no nav context', () => {
+    render(
+      <RecordModal {...defaultProps}>
+        <div>content</div>
+      </RecordModal>
+    )
+    expect(screen.queryByRole('button', { name: /previous record/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /next record/i })).not.toBeInTheDocument()
   })
 })
 

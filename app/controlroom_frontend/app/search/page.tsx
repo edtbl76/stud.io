@@ -147,7 +147,7 @@ function SearchResultsBody({
           <p className="text-sm text-muted-foreground py-4 text-center">No results</p>
         ) : (
           visibleResults.map((r) => (
-            <SearchResultItem key={r.id} result={r} onOpen={onOpen} />
+            <SearchResultItem key={getSearchResultId(r)} result={r} onOpen={onOpen} />
           ))
         )}
       </div>

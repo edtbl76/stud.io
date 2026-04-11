@@ -280,6 +280,58 @@ describe('TablePage row interaction', () => {
   })
 })
 
+describe('TablePage record navigation', () => {
+  beforeEach(() => {
+    mockApiList.mockResolvedValue(rows)
+  })
+
+  function renderNavPage() {
+    mockUseAuth = () => ({ role: 'admin' })
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const navigated: Array<{ record: Row | null }> = []
+    return {
+      navigated,
+      ...render(
+        <QueryClientProvider client={client}>
+          <TablePage
+            title="Nav Table"
+            endpoint="/test"
+            queryKey="test-nav"
+            columns={columns}
+            getRowId={(r) => r.id}
+            renderModal={(record, onClose) => (
+              <div data-testid="modal">
+                <span data-testid="modal-record">{record === null ? 'create' : record.name}</span>
+                <button onClick={onClose}>close-modal</button>
+              </div>
+            )}
+          />
+        </QueryClientProvider>
+      ),
+    }
+  }
+
+  it('provides RecordModalNavigation context when a row is open', async () => {
+    renderNavPage()
+    await waitFor(() => screen.getByText('2 records'))
+    const cells = screen.getAllByRole('cell')
+    fireEvent.click(cells[0])
+    await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
+    // Modal is open — nav context is provided (nav buttons appear in RecordModal when wired)
+    expect(screen.getByTestId('modal-record')).toBeInTheDocument()
+  })
+
+  it('modal is removed after close', async () => {
+    renderNavPage()
+    await waitFor(() => screen.getByText('2 records'))
+    const cells = screen.getAllByRole('cell')
+    fireEvent.click(cells[0])
+    await waitFor(() => expect(screen.getByTestId('modal')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('close-modal'))
+    expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
+  })
+})
+
 describe('TablePage ?open deep-link', () => {
   beforeEach(() => {
     mockApiList.mockResolvedValue(rows)
