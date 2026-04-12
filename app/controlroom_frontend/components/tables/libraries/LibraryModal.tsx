@@ -159,8 +159,7 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
               value={form.parent_ids}
               selectedParents={form.parent_refs}
               onChange={(ids, parents) => { set('parent_ids', ids); set('parent_refs', parents) }}
-              excludeTable={isCreate ? '' : 'libraries'}
-              excludeId={isCreate ? '' : record?.library_id ?? ''}
+              {...( isCreate ? {} : { excludeTable: 'libraries', excludeId: record!.library_id } )}
             />
           </div>
         </div>

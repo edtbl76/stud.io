@@ -18,6 +18,14 @@ jest.mock('@/lib/parentSelectRecents', () => ({
   pushRecent: (...args: unknown[]) => mockPushRecent(...args),
 }))
 
+async function performSearch(displayText: string) {
+  const input = screen.getByPlaceholderText('Search parents...')
+  fireEvent.focus(input)
+  fireEvent.change(input, { target: { value: 'rev' } })
+  await waitFor(() => screen.getByText(displayText))
+  fireEvent.click(screen.getByText(displayText))
+}
+
 describe('ParentSelect', () => {
   beforeEach(() => {
     mockSearchEntities.mockReset()
@@ -60,11 +68,7 @@ describe('ParentSelect', () => {
     })
     const onChange = jest.fn()
     render(<ParentSelect value={[]} selectedParents={[]} onChange={onChange} />)
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'rev' } })
-    await waitFor(() => screen.getByText('Reverb'))
-    fireEvent.click(screen.getByText('Reverb'))
+    await performSearch('Reverb')
     expect(onChange).toHaveBeenCalledWith(
       [{ table_name: 'effects', id: 'e-1' }],
       [{ table_name: 'effects', id: 'e-1', name: 'Reverb' }],
@@ -76,11 +80,7 @@ describe('ParentSelect', () => {
       results: [{ table_name: 'effects', id: 'e-1', name: 'Reverb', brand_name: 'Lexicon' }],
     })
     render(<ParentSelect value={[]} selectedParents={[]} onChange={jest.fn()} />)
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'rev' } })
-    await waitFor(() => screen.getByText('Lexicon – Reverb'))
-    fireEvent.click(screen.getByText('Lexicon – Reverb'))
+    await performSearch('Lexicon – Reverb')
     expect(mockPushRecent).toHaveBeenCalledWith(
       expect.objectContaining({ table_name: 'effects', id: 'e-1', name: 'Lexicon – Reverb' })
     )
@@ -108,6 +108,44 @@ describe('ParentSelect', () => {
     fireEvent.focus(input)
     await waitFor(() => expect(screen.getByText('Recent')).toBeInTheDocument())
     expect(screen.getByText('Prophet 5')).toBeInTheDocument()
+  })
+
+  it('passes excludeTable and excludeId through to searchEntities', async () => {
+    mockSearchEntities.mockResolvedValue({ results: [] })
+    render(
+      <ParentSelect
+        value={[]}
+        selectedParents={[]}
+        onChange={jest.fn()}
+        excludeTable="effects"
+        excludeId="e-1"
+      />
+    )
+    const input = screen.getByPlaceholderText('Search parents...')
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'rev' } })
+    await waitFor(() => expect(mockSearchEntities).toHaveBeenCalledWith('rev', 'effects', 'e-1'))
+  })
+
+  it('does not crash and shows no dropdown when searchEntities rejects', async () => {
+    mockSearchEntities.mockRejectedValue(new Error('fail'))
+    render(<ParentSelect value={[]} selectedParents={[]} onChange={jest.fn()} />)
+    const input = screen.getByPlaceholderText('Search parents...')
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'rev' } })
+    await waitFor(() => expect(mockSearchEntities).toHaveBeenCalled())
+    expect(input).toBeInTheDocument()
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
+
+  it('shows no result items when api returns empty results', async () => {
+    mockSearchEntities.mockResolvedValue({ results: [] })
+    render(<ParentSelect value={[]} selectedParents={[]} onChange={jest.fn()} />)
+    const input = screen.getByPlaceholderText('Search parents...')
+    fireEvent.focus(input)
+    fireEvent.change(input, { target: { value: 'xyz' } })
+    await waitFor(() => expect(mockSearchEntities).toHaveBeenCalled())
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('does not push to recents when deselecting an existing entry via search results', async () => {

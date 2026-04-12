@@ -184,13 +184,9 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Parents</Label>
-            <ParentSelect
-              value={form.parent_ids}
-              selectedParents={form.parent_refs}
-              onChange={(ids, parents) => { set('parent_ids', ids); set('parent_refs', parents) }}
-              excludeTable={isCreate ? '' : 'instruments'}
-              excludeId={isCreate ? '' : record?.instrument_id ?? ''}
-            />
+            <ParentSelect value={form.parent_ids} selectedParents={form.parent_refs}
+              onChange={(ids, p) => { set('parent_ids', ids); set('parent_refs', p) }}
+              {...(isCreate ? {} : { excludeTable: 'instruments', excludeId: record!.instrument_id })} />
           </div>
         </div>
       ) : (

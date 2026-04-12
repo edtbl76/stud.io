@@ -7,7 +7,15 @@ export function loadRecents(): ParentRef[] {
   try {
     const raw = localStorage.getItem(RECENTS_KEY)
     if (!raw) return []
-    return JSON.parse(raw) as ParentRef[]
+    const parsed: unknown = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    const valid = parsed.filter(
+      (item): item is ParentRef =>
+        typeof item === 'object' && item !== null &&
+        typeof (item as Record<string, unknown>).table_name === 'string' &&
+        typeof (item as Record<string, unknown>).id === 'string'
+    )
+    return valid
   } catch {
     return []
   }

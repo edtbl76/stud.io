@@ -199,13 +199,9 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Parents</Label>
-            <ParentSelect
-              value={form.parent_ids}
-              selectedParents={form.parent_refs}
-              onChange={(ids, parents) => { set('parent_ids', ids); set('parent_refs', parents) }}
-              excludeTable={isCreate ? '' : 'effects'}
-              excludeId={isCreate ? '' : record?.effect_id ?? ''}
-            />
+            <ParentSelect value={form.parent_ids} selectedParents={form.parent_refs}
+              onChange={(ids, p) => { set('parent_ids', ids); set('parent_refs', p) }}
+              {...(isCreate ? {} : { excludeTable: 'effects', excludeId: record!.effect_id })} />
           </div>
         </div>
       ) : (

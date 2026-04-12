@@ -117,6 +117,7 @@ _ENTITY_SOURCES: tuple[_EntitySource, ...] = (
 )
 
 NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")
+ENTITY_SEARCH_LIMIT = 20
 
 
 def _entity_branch_sql(src: _EntitySource) -> str:
@@ -133,7 +134,7 @@ def _build_entity_sql() -> str:
     return (
         f"SELECT table_name, id, name, brand_name FROM ({union}) r "
         "WHERE NOT (table_name = $2 AND id = $3) "
-        "ORDER BY name LIMIT 20"
+        f"ORDER BY name LIMIT {ENTITY_SEARCH_LIMIT}"
     )
 
 

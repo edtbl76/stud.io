@@ -79,4 +79,27 @@ describe('parentSelectRecents — properties', () => {
     localStorage.setItem('parentSelect_recents', '{not valid json[')
     expect(loadRecents()).toEqual([])
   })
+
+  it('loadRecents returns empty array when storage contains a valid JSON object', () => {
+    localStorage.setItem('parentSelect_recents', '{}')
+    expect(loadRecents()).toEqual([])
+  })
+
+  it('loadRecents returns empty array when storage contains a valid JSON number', () => {
+    localStorage.setItem('parentSelect_recents', '123')
+    expect(loadRecents()).toEqual([])
+  })
+
+  it('loadRecents returns empty array when storage contains a valid JSON string', () => {
+    localStorage.setItem('parentSelect_recents', '"x"')
+    expect(loadRecents()).toEqual([])
+  })
+
+  it('loadRecents filters out array items that are not valid ParentRef objects', () => {
+    localStorage.setItem('parentSelect_recents', '[1, null, "bad", {}, {"table_name": "effects"}, {"id": "x"}, {"table_name": "effects", "id": "e-1"}]')
+    const recents = loadRecents()
+    expect(recents).toHaveLength(1)
+    expect(recents[0].table_name).toBe('effects')
+    expect(recents[0].id).toBe('e-1')
+  })
 })
