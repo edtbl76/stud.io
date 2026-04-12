@@ -25,16 +25,69 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-export default function ChangeReviewPage() {
-  const { role } = useAuth()
-  const isAdmin = role === 'admin'
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError'
+}
 
-  const [data, setData] = React.useState<ChangeReviewResponse | null>(null)
-  const [error, setError] = React.useState(false)
-  const [tableFilter, setTableFilter] = React.useState('')
-  const [operationFilter, setOperationFilter] = React.useState('')
-  const [statusFilter, setStatusFilter] = React.useState('pending')
-  const [page, setPage] = React.useState(1)
+interface ListFilters {
+  tableFilter: string
+  operationFilter: string
+  statusFilter: string
+  page: number
+}
+
+function buildListUrl({ tableFilter, operationFilter, statusFilter, page }: ListFilters): string {
+  const params = new URLSearchParams()
+  if (tableFilter) params.set('table', tableFilter)
+  if (operationFilter) params.set('operation', operationFilter)
+  params.set('status', statusFilter)
+  params.set('page', String(page))
+  params.set('page_size', String(PAGE_SIZE))
+  return `/api/admin/change-review?${params}`
+}
+
+interface EntryAction {
+  method: 'POST' | 'DELETE'
+  path: string
+}
+
+const ENTRY_ACTIONS = {
+  undo:        { method: 'POST',   path: 'undo' },
+  acknowledge: { method: 'POST',   path: 'acknowledge' },
+  permanent:   { method: 'DELETE', path: 'permanent' },
+} as const satisfies Record<string, EntryAction>
+
+function fetchChangeReview(
+  filters: ListFilters,
+  signal: AbortSignal,
+  onSuccess: (data: ChangeReviewResponse) => void,
+  onError: () => void,
+): void {
+  void fetch(buildListUrl(filters), { signal })
+    .then((res) => {
+      if (!res.ok) throw new Error('Failed to fetch')
+      return res.json() as Promise<ChangeReviewResponse>
+    })
+    .then(onSuccess)
+    .catch((e: unknown) => {
+      if (isAbortError(e)) return
+      onError()
+    })
+}
+
+function removeEntry(
+  prev: ChangeReviewResponse | null,
+  isMatch: (e: AuditEntry) => boolean,
+): ChangeReviewResponse | null {
+  if (!prev) return prev
+  if (!prev.entries.some(isMatch)) return prev
+  return { ...prev, entries: prev.entries.filter((e) => !isMatch(e)), total: prev.total - 1 }
+}
+
+function useRowActions(
+  setData: React.Dispatch<React.SetStateAction<ChangeReviewResponse | null>>,
+  setRefreshKey: React.Dispatch<React.SetStateAction<number>>,
+) {
   const [rowErrors, setRowErrors] = React.useState<Record<string, string>>({})
   const [pendingActions, setPendingActions] = React.useState<Set<string>>(new Set())
   const [detailEntry, setDetailEntry] = React.useState<AuditEntryWithData | null>(null)
@@ -44,34 +97,6 @@ export default function ChangeReviewPage() {
   React.useEffect(() => {
     return () => { Object.values(errorTimers.current).forEach(clearTimeout) }
   }, [])
-
-  React.useEffect(() => {
-    if (data?.entries.length === 0 && page > 1) setPage((p) => p - 1)
-  }, [data, page])
-
-  React.useEffect(() => {
-    const controller = new AbortController()
-    setError(false)
-    setData(null)
-    const params = new URLSearchParams()
-    if (tableFilter) params.set('table', tableFilter)
-    if (operationFilter) params.set('operation', operationFilter)
-    params.set('status', statusFilter)
-    params.set('page', String(page))
-    params.set('page_size', String(PAGE_SIZE))
-
-    fetch(`/api/admin/change-review?${params}`, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load')
-        return res.json() as Promise<ChangeReviewResponse>
-      })
-      .then(setData)
-      .catch((e: unknown) => {
-        if (e instanceof Error && e.name === 'AbortError') return
-        setError(true)
-      })
-    return () => controller.abort()
-  }, [tableFilter, operationFilter, statusFilter, page])
 
   function setRowError(auditId: string, message: string) {
     setRowErrors((prev) => ({ ...prev, [auditId]: message }))
@@ -100,14 +125,17 @@ export default function ChangeReviewPage() {
     }
   }
 
-  async function handleAction(auditId: string, method: 'POST' | 'DELETE', urlSuffix: string) {
+  function applyRemoval(auditId: string) {
+    setData((prev) => removeEntry(prev, (e) => e.audit_id === auditId))
+    setRefreshKey((k) => k + 1)
+  }
+
+  async function handleAction(auditId: string, action: EntryAction) {
     setPendingActions((prev) => new Set(prev).add(auditId))
     try {
-      const res = await fetch(`/api/admin/change-review/${auditId}/${urlSuffix}`, { method })
+      const res = await fetch(`/api/admin/change-review/${auditId}/${action.path}`, { method: action.method })
       if (res.status === 204) {
-        setData((prev) =>
-          prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev
-        )
+        applyRemoval(auditId)
         return
       }
       const body = await res.json()
@@ -115,15 +143,80 @@ export default function ChangeReviewPage() {
         setRowError(auditId, (body as { detail?: string })?.detail ?? 'Action failed, please try again')
         return
       }
-      setData((prev) =>
-        prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev
-      )
+      applyRemoval(auditId)
     } catch {
       setRowError(auditId, 'Action failed, please try again')
     } finally {
       setPendingActions((prev) => { const next = new Set(prev); next.delete(auditId); return next })
     }
   }
+
+  return { rowErrors, pendingActions, detailEntry, setDetailEntry, loadingDetail, handleRowClick, handleAction }
+}
+
+function useChangeReview() {
+  const [data, setData] = React.useState<ChangeReviewResponse | null>(null)
+  const [error, setError] = React.useState(false)
+  const [refreshError, setRefreshError] = React.useState(false)
+  const [tableFilter, setTableFilter] = React.useState('')
+  const [operationFilter, setOperationFilter] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState('pending')
+  const [page, setPage] = React.useState(1)
+  const [refreshKey, setRefreshKey] = React.useState(0)
+  // Caches the latest filters so the background refresh effect can reuse them
+  // without adding filter/page state to its dependency array.
+  const latestFilters = React.useRef<ListFilters | null>(null)
+  const actions = useRowActions(setData, setRefreshKey)
+
+  React.useEffect(() => {
+    if (data?.entries.length === 0 && page > 1) setPage((p) => p - 1)
+  }, [data, page])
+
+  // Hard reload: clears data and resets error state when filters or page change.
+  React.useEffect(() => {
+    const controller = new AbortController()
+    const filters: ListFilters = { tableFilter, operationFilter, statusFilter, page }
+    latestFilters.current = filters
+    setError(false)
+    setRefreshError(false)
+    setData(null)
+    fetchChangeReview(filters, controller.signal, setData, () => setError(true))
+    return () => controller.abort()
+  }, [tableFilter, operationFilter, statusFilter, page])
+
+  // Background refresh: triggered after a successful action via refreshKey.
+  // Does not clear data — keeps the optimistic state visible if the fetch fails.
+  React.useEffect(() => {
+    if (refreshKey === 0) return
+    const filters = latestFilters.current
+    if (!filters) return
+    const controller = new AbortController()
+    setRefreshError(false)
+    fetchChangeReview(filters, controller.signal, setData, () => setRefreshError(true))
+    return () => controller.abort()
+  }, [refreshKey])
+
+  return {
+    data, error, refreshError, page, setPage,
+    tableFilter, setTableFilter,
+    operationFilter, setOperationFilter,
+    statusFilter, setStatusFilter,
+    ...actions,
+  }
+}
+
+export default function ChangeReviewPage() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
+  const {
+    data, error, refreshError, page, setPage,
+    tableFilter, setTableFilter,
+    operationFilter, setOperationFilter,
+    statusFilter, setStatusFilter,
+    rowErrors, pendingActions,
+    detailEntry, setDetailEntry,
+    loadingDetail, handleRowClick, handleAction,
+  } = useChangeReview()
 
   function renderActionsCell(entry: AuditEntry) {
     const rowError = rowErrors[entry.audit_id]
@@ -139,7 +232,7 @@ export default function ChangeReviewPage() {
     return (
       <div className="flex gap-2">
         <button
-          onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, 'POST', 'undo') }}
+          onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, ENTRY_ACTIONS.undo) }}
           disabled={pendingActions.has(entry.audit_id)}
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -147,7 +240,7 @@ export default function ChangeReviewPage() {
         </button>
         {entry.operation === 'DELETE' ? (
           <button
-            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, 'DELETE', 'permanent') }}
+            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, ENTRY_ACTIONS.permanent) }}
             disabled={pendingActions.has(entry.audit_id)}
             className="text-destructive hover:text-destructive/80 transition-colors"
           >
@@ -155,7 +248,7 @@ export default function ChangeReviewPage() {
           </button>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, 'POST', 'acknowledge') }}
+            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, ENTRY_ACTIONS.acknowledge) }}
             disabled={pendingActions.has(entry.audit_id)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
@@ -182,6 +275,10 @@ export default function ChangeReviewPage() {
   return (
     <div className="px-6 py-6">
       <h2 className="text-lg font-semibold text-foreground mb-4">Change Review</h2>
+
+      {refreshError && (
+        <p className="text-xs text-amber-600 mb-2">Could not refresh — showing last known data.</p>
+      )}
 
       <div className="flex gap-2 mb-4">
         <select

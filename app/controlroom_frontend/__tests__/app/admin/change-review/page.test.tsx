@@ -261,6 +261,85 @@ describe('ChangeReviewPage', () => {
     })
   })
 
+  it('refetches the list after a successful action', async () => {
+    const refreshedResponse = { total: 1, page: 1, page_size: 50, entries: [mockEntry] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
+      .mockResolvedValueOnce(ok(refreshedResponse))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
+    fireEvent.click(ackButtons[0])
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    // Refetch must reuse the exact same URL as the initial load — same path and query params
+    expect(mockFetch.mock.calls[2][0]).toBe(mockFetch.mock.calls[0][0])
+  })
+
+  it('refetches the list after a 204 action (permanently delete)', async () => {
+    const refreshedResponse = { total: 1, page: 1, page_size: 50, entries: [mockUpdateEntry] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
+      .mockResolvedValueOnce(ok(refreshedResponse))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const permButtons = screen.getAllByRole('button', { name: /permanently delete/i })
+    fireEvent.click(permButtons[0])
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    // Refetch must reuse the exact same URL as the initial load — same path and query params
+    expect(mockFetch.mock.calls[2][0]).toBe(mockFetch.mock.calls[0][0])
+  })
+
+  it('keeps list visible and shows inline error when background refresh fails', async () => {
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
+      .mockResolvedValueOnce(err('Service unavailable', 503))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
+    fireEvent.click(ackButtons[0])
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    // Full-page error state must NOT be shown
+    expect(screen.queryByText(/could not load change review/i)).not.toBeInTheDocument()
+    // Inline refresh error banner must be shown
+    expect(screen.getByText(/could not refresh/i)).toBeInTheDocument()
+    // Table and its data rows must still be visible — not wiped by the failed refresh
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getAllByRole('row').length).toBeGreaterThan(1)
+    expect(screen.getByText('DELETE')).toBeInTheDocument()
+  })
+
+  it('clears refresh error banner when a hard reload is triggered', async () => {
+    const reloadResponse = { total: 1, page: 1, page_size: 50, entries: [mockEntry] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))                                           // initial load
+      .mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' })) // action
+      .mockResolvedValueOnce(err('Service unavailable', 503))                            // background refresh fails
+      .mockResolvedValueOnce(ok(reloadResponse))                                         // hard reload after filter change
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    fireEvent.click(screen.getAllByRole('button', { name: /acknowledge/i })[0])
+    await waitFor(() => expect(screen.getByText(/could not refresh/i)).toBeInTheDocument())
+
+    // Change a filter to trigger a hard reload
+    fireEvent.change(screen.getByRole('combobox', { name: /status/i }), { target: { value: 'acknowledged' } })
+
+    await waitFor(() => expect(screen.queryByText(/could not refresh/i)).not.toBeInTheDocument())
+  })
+
   it('shows badge instead of buttons for already-resolved entries', async () => {
     const resolvedEntry = { ...mockEntry, acknowledged_at: '2026-03-18T14:00:00Z', acknowledged_by: 'admin' }
     mockFetch.mockResolvedValue(ok({ total: 1, page: 1, page_size: 50, entries: [resolvedEntry] }))
