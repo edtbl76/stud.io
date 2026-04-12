@@ -35,6 +35,7 @@ export default function ChangeReviewPage() {
   const [operationFilter, setOperationFilter] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState('pending')
   const [page, setPage] = React.useState(1)
+  const [refreshKey, setRefreshKey] = React.useState(0)
   const [rowErrors, setRowErrors] = React.useState<Record<string, string>>({})
   const [pendingActions, setPendingActions] = React.useState<Set<string>>(new Set())
   const [detailEntry, setDetailEntry] = React.useState<AuditEntryWithData | null>(null)
@@ -71,7 +72,7 @@ export default function ChangeReviewPage() {
         setError(true)
       })
     return () => controller.abort()
-  }, [tableFilter, operationFilter, statusFilter, page])
+  }, [tableFilter, operationFilter, statusFilter, page, refreshKey])
 
   function setRowError(auditId: string, message: string) {
     setRowErrors((prev) => ({ ...prev, [auditId]: message }))
@@ -108,6 +109,7 @@ export default function ChangeReviewPage() {
         setData((prev) =>
           prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev
         )
+        setRefreshKey((k) => k + 1)
         return
       }
       const body = await res.json()
@@ -118,6 +120,7 @@ export default function ChangeReviewPage() {
       setData((prev) =>
         prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev
       )
+      setRefreshKey((k) => k + 1)
     } catch {
       setRowError(auditId, 'Action failed, please try again')
     } finally {

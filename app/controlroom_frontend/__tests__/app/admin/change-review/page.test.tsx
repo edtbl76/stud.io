@@ -261,6 +261,25 @@ describe('ChangeReviewPage', () => {
     })
   })
 
+  it('refetches the list after a successful action', async () => {
+    const refreshedResponse = { total: 1, page: 1, page_size: 50, entries: [mockEntry] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
+      .mockResolvedValueOnce(ok(refreshedResponse))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
+    fireEvent.click(ackButtons[0])
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    // Third call is the refetch — verify it hits the list endpoint
+    expect(mockFetch.mock.calls[2][0]).toContain('/api/admin/change-review')
+    expect(mockFetch.mock.calls[2][0]).not.toContain('/acknowledge')
+  })
+
   it('shows badge instead of buttons for already-resolved entries', async () => {
     const resolvedEntry = { ...mockEntry, acknowledged_at: '2026-03-18T14:00:00Z', acknowledged_by: 'admin' }
     mockFetch.mockResolvedValue(ok({ total: 1, page: 1, page_size: 50, entries: [resolvedEntry] }))
