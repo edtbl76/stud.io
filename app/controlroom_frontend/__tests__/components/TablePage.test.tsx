@@ -280,6 +280,7 @@ describe('TablePage row interaction', () => {
   })
 })
 
+
 describe('TablePage ?open deep-link', () => {
   beforeEach(() => {
     mockApiList.mockResolvedValue(rows)

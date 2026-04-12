@@ -10,9 +10,11 @@ import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/DataTable'
 import { BulkEditBar } from '@/components/BulkEditBar'
+import { RecordModalNavigation } from '@/components/RecordModal'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import { useTableFilters } from '@/lib/useTableFilters'
+import { useRecordNavigation } from '@/lib/useRecordNavigation'
 import type { FilterState, FilterEntry } from '@/lib/filterOperators'
 import '@/lib/columnMeta'
 
@@ -57,6 +59,10 @@ function makeCheckboxColumn<T>(): ColumnDef<T, unknown> {
       </div>
     ),
   }
+}
+
+function getNavProviderKey<T>(record: T | null, getRowId: (r: T) => string): string {
+  return record === null ? '__new__' : getRowId(record)
 }
 
 function getNextPageParam(
@@ -283,6 +289,20 @@ export function TablePage<T>({
   const showBulkEdit = isAdmin && !!bulkEditFields && bulkEditFields.length > 0
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
 
+  // Tracks the post-filter visible row order from DataTable as state so navValue
+  // recomputes whenever sorting or filtering changes while a modal is open.
+  const [navData, setNavData] = React.useState<T[]>([])
+  const handleSortedDataChange = React.useCallback((sorted: T[]) => {
+    setNavData(sorted)
+  }, [])
+
+  const navValue = useRecordNavigation({
+    data: navData,
+    currentRecord: selectedRecord ?? null,
+    getRecordId: getRowId,
+    onNavigate: setSelectedRecord,
+  })
+
   const { data, isLoading, error, recordCountLabel, pagedTableProps } =
     useTableData<T>(endpoint, queryKey, paginated, columns, sortFields?.[0]?.key)
 
@@ -354,12 +374,20 @@ export function TablePage<T>({
           isLoading={isLoading}
           getRowId={getRowId}
           sortFields={sortFields}
+          onSortedDataChange={handleSortedDataChange}
           {...rowSelectionProps}
           {...pagedTableProps}
         />
       </div>
 
-      {selectedRecord !== undefined && renderModal(selectedRecord, handleClose, handleMutate)}
+      {selectedRecord !== undefined && (
+        <RecordModalNavigation.Provider
+          key={getNavProviderKey(selectedRecord, getRowId)}
+          value={navValue}
+        >
+          {renderModal(selectedRecord, handleClose, handleMutate)}
+        </RecordModalNavigation.Provider>
+      )}
     </div>
   )
 }
