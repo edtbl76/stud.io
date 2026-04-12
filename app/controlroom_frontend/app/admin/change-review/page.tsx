@@ -25,80 +25,65 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-function useChangeReview() {
-  const [data, setData] = React.useState<ChangeReviewResponse | null>(null)
-  const [error, setError] = React.useState(false)
-  const [refreshError, setRefreshError] = React.useState(false)
-  const [tableFilter, setTableFilter] = React.useState('')
-  const [operationFilter, setOperationFilter] = React.useState('')
-  const [statusFilter, setStatusFilter] = React.useState('pending')
-  const [page, setPage] = React.useState(1)
-  const [refreshKey, setRefreshKey] = React.useState(0)
+function isAbortError(e: unknown): boolean {
+  return e instanceof Error && e.name === 'AbortError'
+}
+
+function buildListUrl(
+  tableFilter: string,
+  operationFilter: string,
+  statusFilter: string,
+  page: number,
+): string {
+  const params = new URLSearchParams()
+  if (tableFilter) params.set('table', tableFilter)
+  if (operationFilter) params.set('operation', operationFilter)
+  params.set('status', statusFilter)
+  params.set('page', String(page))
+  params.set('page_size', String(PAGE_SIZE))
+  return `/api/admin/change-review?${params}`
+}
+
+function fetchChangeReview(
+  url: string,
+  signal: AbortSignal,
+  onSuccess: (data: ChangeReviewResponse) => void,
+  onError: () => void,
+): void {
+  void fetch(url, { signal })
+    .then((res) => {
+      if (!res.ok) throw new Error('Failed to fetch')
+      return res.json() as Promise<ChangeReviewResponse>
+    })
+    .then(onSuccess)
+    .catch((e: unknown) => {
+      if (isAbortError(e)) return
+      onError()
+    })
+}
+
+function removeEntry(
+  prev: ChangeReviewResponse | null,
+  auditId: string,
+): ChangeReviewResponse | null {
+  return prev
+    ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 }
+    : prev
+}
+
+function useRowActions(
+  setData: React.Dispatch<React.SetStateAction<ChangeReviewResponse | null>>,
+  setRefreshKey: React.Dispatch<React.SetStateAction<number>>,
+) {
   const [rowErrors, setRowErrors] = React.useState<Record<string, string>>({})
   const [pendingActions, setPendingActions] = React.useState<Set<string>>(new Set())
   const [detailEntry, setDetailEntry] = React.useState<AuditEntryWithData | null>(null)
   const [loadingDetail, setLoadingDetail] = React.useState<string | null>(null)
   const errorTimers = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({})
-  // Caches the last fetched URL so the background refresh effect can reuse it
-  // without adding filter/page state to its dependency array.
-  const queryUrl = React.useRef('')
 
   React.useEffect(() => {
     return () => { Object.values(errorTimers.current).forEach(clearTimeout) }
   }, [])
-
-  React.useEffect(() => {
-    if (data?.entries.length === 0 && page > 1) setPage((p) => p - 1)
-  }, [data, page])
-
-  // Hard reload: clears data and resets error state when filters or page change.
-  React.useEffect(() => {
-    const controller = new AbortController()
-    setError(false)
-    setData(null)
-    const params = new URLSearchParams()
-    if (tableFilter) params.set('table', tableFilter)
-    if (operationFilter) params.set('operation', operationFilter)
-    params.set('status', statusFilter)
-    params.set('page', String(page))
-    params.set('page_size', String(PAGE_SIZE))
-    const url = `/api/admin/change-review?${params}`
-    queryUrl.current = url
-
-    fetch(url, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load')
-        return res.json() as Promise<ChangeReviewResponse>
-      })
-      .then(setData)
-      .catch((e: unknown) => {
-        if (e instanceof Error && e.name === 'AbortError') return
-        setError(true)
-      })
-    return () => controller.abort()
-  }, [tableFilter, operationFilter, statusFilter, page])
-
-  // Background refresh: triggered after a successful action via refreshKey.
-  // Does not clear data — keeps the optimistic state visible if the fetch fails.
-  React.useEffect(() => {
-    if (refreshKey === 0) return
-    const url = queryUrl.current
-    if (!url) return
-    const controller = new AbortController()
-    setRefreshError(false)
-
-    fetch(url, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to refresh')
-        return res.json() as Promise<ChangeReviewResponse>
-      })
-      .then(setData)
-      .catch((e: unknown) => {
-        if (e instanceof Error && e.name === 'AbortError') return
-        setRefreshError(true)
-      })
-    return () => controller.abort()
-  }, [refreshKey])
 
   function setRowError(auditId: string, message: string) {
     setRowErrors((prev) => ({ ...prev, [auditId]: message }))
@@ -132,9 +117,7 @@ function useChangeReview() {
     try {
       const res = await fetch(`/api/admin/change-review/${auditId}/${urlSuffix}`, { method })
       if (res.status === 204) {
-        setData((prev) =>
-          prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev
-        )
+        setData((prev) => removeEntry(prev, auditId))
         setRefreshKey((k) => k + 1)
         return
       }
@@ -143,9 +126,7 @@ function useChangeReview() {
         setRowError(auditId, (body as { detail?: string })?.detail ?? 'Action failed, please try again')
         return
       }
-      setData((prev) =>
-        prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev
-      )
+      setData((prev) => removeEntry(prev, auditId))
       setRefreshKey((k) => k + 1)
     } catch {
       setRowError(auditId, 'Action failed, please try again')
@@ -154,14 +135,56 @@ function useChangeReview() {
     }
   }
 
+  return { rowErrors, pendingActions, detailEntry, setDetailEntry, loadingDetail, handleRowClick, handleAction }
+}
+
+function useChangeReview() {
+  const [data, setData] = React.useState<ChangeReviewResponse | null>(null)
+  const [error, setError] = React.useState(false)
+  const [refreshError, setRefreshError] = React.useState(false)
+  const [tableFilter, setTableFilter] = React.useState('')
+  const [operationFilter, setOperationFilter] = React.useState('')
+  const [statusFilter, setStatusFilter] = React.useState('pending')
+  const [page, setPage] = React.useState(1)
+  const [refreshKey, setRefreshKey] = React.useState(0)
+  // Caches the last fetched URL so the background refresh effect can reuse it
+  // without adding filter/page state to its dependency array.
+  const queryUrl = React.useRef('')
+  const actions = useRowActions(setData, setRefreshKey)
+
+  React.useEffect(() => {
+    if (data?.entries.length === 0 && page > 1) setPage((p) => p - 1)
+  }, [data, page])
+
+  // Hard reload: clears data and resets error state when filters or page change.
+  React.useEffect(() => {
+    const controller = new AbortController()
+    setError(false)
+    setData(null)
+    const url = buildListUrl(tableFilter, operationFilter, statusFilter, page)
+    queryUrl.current = url
+    fetchChangeReview(url, controller.signal, setData, () => setError(true))
+    return () => controller.abort()
+  }, [tableFilter, operationFilter, statusFilter, page])
+
+  // Background refresh: triggered after a successful action via refreshKey.
+  // Does not clear data — keeps the optimistic state visible if the fetch fails.
+  React.useEffect(() => {
+    if (refreshKey === 0) return
+    const url = queryUrl.current
+    if (!url) return
+    const controller = new AbortController()
+    setRefreshError(false)
+    fetchChangeReview(url, controller.signal, setData, () => setRefreshError(true))
+    return () => controller.abort()
+  }, [refreshKey])
+
   return {
     data, error, refreshError, page, setPage,
     tableFilter, setTableFilter,
     operationFilter, setOperationFilter,
     statusFilter, setStatusFilter,
-    rowErrors, pendingActions,
-    detailEntry, setDetailEntry,
-    loadingDetail, handleRowClick, handleAction,
+    ...actions,
   }
 }
 
