@@ -1,7 +1,7 @@
 """
-Global full-text search across all major tables using PostgreSQL FTS.
-GET /search?q=<query>[&notes=true][&limit=N]
-Returns: {results: list[SearchResult], total: int}
+Search routers:
+  GET /search           — full-text search across all tables (FTS)
+  GET /search/entities  — ILIKE typeahead across effects/instruments/libraries
 """
 from typing import Annotated, NamedTuple, Optional
 from uuid import UUID
@@ -88,6 +88,74 @@ def _build_sql(include_notes: bool) -> str:
 
 _SQL_CORE = _build_sql(include_notes=False)
 _SQL_NOTES = _build_sql(include_notes=True)
+
+
+# ── Entity typeahead (ILIKE) ──────────────────────────────────────────────────
+
+class EntityResult(BaseModel):
+    table_name: str
+    id: UUID
+    name: str
+    brand_name: Optional[str] = None
+
+
+class EntityResponse(BaseModel):
+    results: list[EntityResult]
+
+
+class _EntitySource(NamedTuple):
+    label: str
+    view: str
+    id_col: str
+    name_col: str
+
+
+_ENTITY_SOURCES: tuple[_EntitySource, ...] = (
+    _EntitySource("effects",     "effects_view",     "effect_id",     "effect_name"),
+    _EntitySource("instruments", "instruments_view", "instrument_id", "instrument_name"),
+    _EntitySource("libraries",   "libraries_view",   "library_id",    "library_name"),
+)
+
+NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")
+
+
+def _entity_branch_sql(src: _EntitySource) -> str:
+    return (
+        f"SELECT '{src.label}' AS table_name, "
+        f"{src.id_col} AS id, {src.name_col} AS name, brand_name "
+        f"FROM {src.view} "
+        f"WHERE ({src.name_col} ILIKE $1 OR coalesce(brand_name, '') ILIKE $1)"
+    )
+
+
+def _build_entity_sql() -> str:
+    union = " UNION ALL ".join(_entity_branch_sql(s) for s in _ENTITY_SOURCES)
+    return (
+        f"SELECT table_name, id, name, brand_name FROM ({union}) r "
+        "WHERE NOT (table_name = $2 AND id = $3) "
+        "ORDER BY name LIMIT 20"
+    )
+
+
+_SQL_ENTITY_SEARCH = _build_entity_sql()
+
+
+@router.get("/entities")
+async def search_entities(
+    conn: Annotated[Connection, Depends(get_conn)],
+    q: str = "",
+    exclude_table: str = "",
+    exclude_id: UUID = NIL_UUID,
+) -> EntityResponse:
+    if not q.strip():
+        return EntityResponse(results=[])
+    rows = await conn.fetch(_SQL_ENTITY_SEARCH, f"%{q.strip()}%", exclude_table, exclude_id)
+    return EntityResponse(
+        results=[
+            EntityResult(table_name=r["table_name"], id=r["id"], name=r["name"], brand_name=r["brand_name"])
+            for r in rows
+        ]
+    )
 
 
 @router.get(
