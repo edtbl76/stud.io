@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0 -p 2112",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p 2112",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "e2e": "playwright test"
