@@ -275,9 +275,8 @@ describe('ChangeReviewPage', () => {
     fireEvent.click(ackButtons[0])
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
-    // Third call is the refetch — verify it hits the list endpoint
-    expect(mockFetch.mock.calls[2][0]).toContain('/api/admin/change-review')
-    expect(mockFetch.mock.calls[2][0]).not.toContain('/acknowledge')
+    // Refetch must reuse the exact same URL as the initial load — same path and query params
+    expect(mockFetch.mock.calls[2][0]).toBe(mockFetch.mock.calls[0][0])
   })
 
   it('refetches the list after a 204 action (permanently delete)', async () => {
@@ -294,8 +293,8 @@ describe('ChangeReviewPage', () => {
     fireEvent.click(permButtons[0])
 
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
-    expect(mockFetch.mock.calls[2][0]).toContain('/api/admin/change-review')
-    expect(mockFetch.mock.calls[2][0]).not.toContain('/permanent')
+    // Refetch must reuse the exact same URL as the initial load — same path and query params
+    expect(mockFetch.mock.calls[2][0]).toBe(mockFetch.mock.calls[0][0])
   })
 
   it('keeps list visible and shows inline error when background refresh fails', async () => {
@@ -315,8 +314,30 @@ describe('ChangeReviewPage', () => {
     expect(screen.queryByText(/could not load change review/i)).not.toBeInTheDocument()
     // Inline refresh error banner must be shown
     expect(screen.getByText(/could not refresh/i)).toBeInTheDocument()
-    // Existing table content must still be visible
-    expect(screen.getByText('Change Review')).toBeInTheDocument()
+    // Table and its data rows must still be visible — not wiped by the failed refresh
+    expect(screen.getByRole('table')).toBeInTheDocument()
+    expect(screen.getAllByRole('row').length).toBeGreaterThan(1)
+    expect(screen.getByText('DELETE')).toBeInTheDocument()
+  })
+
+  it('clears refresh error banner when a hard reload is triggered', async () => {
+    const reloadResponse = { total: 1, page: 1, page_size: 50, entries: [mockEntry] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))                                           // initial load
+      .mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' })) // action
+      .mockResolvedValueOnce(err('Service unavailable', 503))                            // background refresh fails
+      .mockResolvedValueOnce(ok(reloadResponse))                                         // hard reload after filter change
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    fireEvent.click(screen.getAllByRole('button', { name: /acknowledge/i })[0])
+    await waitFor(() => expect(screen.getByText(/could not refresh/i)).toBeInTheDocument())
+
+    // Change a filter to trigger a hard reload
+    fireEvent.change(screen.getByRole('combobox', { name: /status/i }), { target: { value: 'acknowledged' } })
+
+    await waitFor(() => expect(screen.queryByText(/could not refresh/i)).not.toBeInTheDocument())
   })
 
   it('shows badge instead of buttons for already-resolved entries', async () => {

@@ -75,6 +75,15 @@ function fetchChangeReview(
     })
 }
 
+function removeEntry(
+  prev: ChangeReviewResponse | null,
+  isMatch: (e: AuditEntry) => boolean,
+): ChangeReviewResponse | null {
+  if (!prev) return prev
+  if (!prev.entries.some(isMatch)) return prev
+  return { ...prev, entries: prev.entries.filter((e) => !isMatch(e)), total: prev.total - 1 }
+}
+
 function useRowActions(
   setData: React.Dispatch<React.SetStateAction<ChangeReviewResponse | null>>,
   setRefreshKey: React.Dispatch<React.SetStateAction<number>>,
@@ -116,13 +125,17 @@ function useRowActions(
     }
   }
 
+  function applyRemoval(auditId: string) {
+    setData((prev) => removeEntry(prev, (e) => e.audit_id === auditId))
+    setRefreshKey((k) => k + 1)
+  }
+
   async function handleAction(auditId: string, action: EntryAction) {
     setPendingActions((prev) => new Set(prev).add(auditId))
     try {
       const res = await fetch(`/api/admin/change-review/${auditId}/${action.path}`, { method: action.method })
       if (res.status === 204) {
-        setData((prev) => prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev)
-        setRefreshKey((k) => k + 1)
+        applyRemoval(auditId)
         return
       }
       const body = await res.json()
@@ -130,8 +143,7 @@ function useRowActions(
         setRowError(auditId, (body as { detail?: string })?.detail ?? 'Action failed, please try again')
         return
       }
-      setData((prev) => prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev)
-      setRefreshKey((k) => k + 1)
+      applyRemoval(auditId)
     } catch {
       setRowError(auditId, 'Action failed, please try again')
     } finally {
@@ -166,6 +178,7 @@ function useChangeReview() {
     const filters: ListFilters = { tableFilter, operationFilter, statusFilter, page }
     latestFilters.current = filters
     setError(false)
+    setRefreshError(false)
     setData(null)
     fetchChangeReview(filters, controller.signal, setData, () => setError(true))
     return () => controller.abort()
