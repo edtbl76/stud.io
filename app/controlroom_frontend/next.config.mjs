@@ -12,6 +12,7 @@ const SECURITY_HEADERS = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  allowedDevOrigins: ['192.168.1.230', '192.168.1.230.sslip.io'],
   distDir: process.env.NEXT_DIST_DIR ?? '.next',
   experimental: {
     serverActions: {
