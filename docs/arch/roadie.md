@@ -24,6 +24,31 @@ go build -ldflags "-X main.version=1.0.0" -o ../roadie ./cmd/roadie/
 
 ---
 
+## Pre-commit hooks
+
+The pre-commit framework runs automatically when you `git commit`. To run hooks manually without making a commit — for example to diagnose a failure or check your working tree before committing:
+
+```bash
+# Run all hooks against staged files only (mirrors what git commit triggers)
+pre-commit run
+
+# Run all hooks against every file in the repo
+pre-commit run --all-files
+
+# Run a single hook by its ID (faster when debugging one specific check)
+pre-commit run ruff
+pre-commit run bandit
+pre-commit run detect-secrets
+pre-commit run jest
+pre-commit run pytest
+```
+
+Hook IDs are defined in `.pre-commit-config.yaml` at the repo root. `pre-commit run --all-files` is the most thorough check and is the right command to reach for before pushing.
+
+Note: PBT tests (`roadie test pbt`) and E2E tests (`roadie test e2e`) are excluded from the pre-commit hook intentionally — they are too slow to run on every commit. Run them manually or via `roadie test full`.
+
+---
+
 ## Running
 
 ```text
