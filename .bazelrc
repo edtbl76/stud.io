@@ -2,6 +2,9 @@
 # STUD.io ControlRoom — Bazel configuration
 # =============================================================================
 
+# Inject JAVA_HOME so Bazel finds the JDK regardless of how the shell was launched (e.g. IDE, sdkman)
+build --action_env=JAVA_HOME=/home/edwardmangini/.sdkman/candidates/java/current
+
 # Default: exclude infra-dependent and manually-invoked targets from bazel test //...
 test --test_tag_filters=-external,-manual
 
