@@ -25,12 +25,10 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`
 }
 
-export default function ChangeReviewPage() {
-  const { role } = useAuth()
-  const isAdmin = role === 'admin'
-
+function useChangeReview() {
   const [data, setData] = React.useState<ChangeReviewResponse | null>(null)
   const [error, setError] = React.useState(false)
+  const [refreshError, setRefreshError] = React.useState(false)
   const [tableFilter, setTableFilter] = React.useState('')
   const [operationFilter, setOperationFilter] = React.useState('')
   const [statusFilter, setStatusFilter] = React.useState('pending')
@@ -41,6 +39,9 @@ export default function ChangeReviewPage() {
   const [detailEntry, setDetailEntry] = React.useState<AuditEntryWithData | null>(null)
   const [loadingDetail, setLoadingDetail] = React.useState<string | null>(null)
   const errorTimers = React.useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+  // Caches the last fetched URL so the background refresh effect can reuse it
+  // without adding filter/page state to its dependency array.
+  const queryUrl = React.useRef('')
 
   React.useEffect(() => {
     return () => { Object.values(errorTimers.current).forEach(clearTimeout) }
@@ -50,6 +51,7 @@ export default function ChangeReviewPage() {
     if (data?.entries.length === 0 && page > 1) setPage((p) => p - 1)
   }, [data, page])
 
+  // Hard reload: clears data and resets error state when filters or page change.
   React.useEffect(() => {
     const controller = new AbortController()
     setError(false)
@@ -60,8 +62,10 @@ export default function ChangeReviewPage() {
     params.set('status', statusFilter)
     params.set('page', String(page))
     params.set('page_size', String(PAGE_SIZE))
+    const url = `/api/admin/change-review?${params}`
+    queryUrl.current = url
 
-    fetch(`/api/admin/change-review?${params}`, { signal: controller.signal })
+    fetch(url, { signal: controller.signal })
       .then((res) => {
         if (!res.ok) throw new Error('Failed to load')
         return res.json() as Promise<ChangeReviewResponse>
@@ -72,7 +76,29 @@ export default function ChangeReviewPage() {
         setError(true)
       })
     return () => controller.abort()
-  }, [tableFilter, operationFilter, statusFilter, page, refreshKey])
+  }, [tableFilter, operationFilter, statusFilter, page])
+
+  // Background refresh: triggered after a successful action via refreshKey.
+  // Does not clear data — keeps the optimistic state visible if the fetch fails.
+  React.useEffect(() => {
+    if (refreshKey === 0) return
+    const url = queryUrl.current
+    if (!url) return
+    const controller = new AbortController()
+    setRefreshError(false)
+
+    fetch(url, { signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error('Failed to refresh')
+        return res.json() as Promise<ChangeReviewResponse>
+      })
+      .then(setData)
+      .catch((e: unknown) => {
+        if (e instanceof Error && e.name === 'AbortError') return
+        setRefreshError(true)
+      })
+    return () => controller.abort()
+  }, [refreshKey])
 
   function setRowError(auditId: string, message: string) {
     setRowErrors((prev) => ({ ...prev, [auditId]: message }))
@@ -127,6 +153,30 @@ export default function ChangeReviewPage() {
       setPendingActions((prev) => { const next = new Set(prev); next.delete(auditId); return next })
     }
   }
+
+  return {
+    data, error, refreshError, page, setPage,
+    tableFilter, setTableFilter,
+    operationFilter, setOperationFilter,
+    statusFilter, setStatusFilter,
+    rowErrors, pendingActions,
+    detailEntry, setDetailEntry,
+    loadingDetail, handleRowClick, handleAction,
+  }
+}
+
+export default function ChangeReviewPage() {
+  const { role } = useAuth()
+  const isAdmin = role === 'admin'
+  const {
+    data, error, refreshError, page, setPage,
+    tableFilter, setTableFilter,
+    operationFilter, setOperationFilter,
+    statusFilter, setStatusFilter,
+    rowErrors, pendingActions,
+    detailEntry, setDetailEntry,
+    loadingDetail, handleRowClick, handleAction,
+  } = useChangeReview()
 
   function renderActionsCell(entry: AuditEntry) {
     const rowError = rowErrors[entry.audit_id]
@@ -185,6 +235,10 @@ export default function ChangeReviewPage() {
   return (
     <div className="px-6 py-6">
       <h2 className="text-lg font-semibold text-foreground mb-4">Change Review</h2>
+
+      {refreshError && (
+        <p className="text-xs text-amber-600 mb-2">Could not refresh — showing last known data.</p>
+      )}
 
       <div className="flex gap-2 mb-4">
         <select

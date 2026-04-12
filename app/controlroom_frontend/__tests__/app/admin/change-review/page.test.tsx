@@ -280,6 +280,45 @@ describe('ChangeReviewPage', () => {
     expect(mockFetch.mock.calls[2][0]).not.toContain('/acknowledge')
   })
 
+  it('refetches the list after a 204 action (permanently delete)', async () => {
+    const refreshedResponse = { total: 1, page: 1, page_size: 50, entries: [mockUpdateEntry] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce({ ok: true, status: 204, json: () => Promise.resolve({}) })
+      .mockResolvedValueOnce(ok(refreshedResponse))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const permButtons = screen.getAllByRole('button', { name: /permanently delete/i })
+    fireEvent.click(permButtons[0])
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    expect(mockFetch.mock.calls[2][0]).toContain('/api/admin/change-review')
+    expect(mockFetch.mock.calls[2][0]).not.toContain('/permanent')
+  })
+
+  it('keeps list visible and shows inline error when background refresh fails', async () => {
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok({ ...mockUpdateEntry, acknowledged_at: '2026-03-18T14:01:00Z', acknowledged_by: 'admin' }))
+      .mockResolvedValueOnce(err('Service unavailable', 503))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const ackButtons = screen.getAllByRole('button', { name: /acknowledge/i })
+    fireEvent.click(ackButtons[0])
+
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    // Full-page error state must NOT be shown
+    expect(screen.queryByText(/could not load change review/i)).not.toBeInTheDocument()
+    // Inline refresh error banner must be shown
+    expect(screen.getByText(/could not refresh/i)).toBeInTheDocument()
+    // Existing table content must still be visible
+    expect(screen.getByText('Change Review')).toBeInTheDocument()
+  })
+
   it('shows badge instead of buttons for already-resolved entries', async () => {
     const resolvedEntry = { ...mockEntry, acknowledged_at: '2026-03-18T14:00:00Z', acknowledged_by: 'admin' }
     mockFetch.mockResolvedValue(ok({ total: 1, page: 1, page_size: 50, entries: [resolvedEntry] }))
