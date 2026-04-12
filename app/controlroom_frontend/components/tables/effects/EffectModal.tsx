@@ -120,6 +120,7 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
       onClose,
       onMutate,
     })
+  const excludeProps = isCreate ? {} : { excludeTable: 'effects' as const, excludeId: record!.effect_id }
 
   return (
     <RecordModal {...recordModalProps}>
@@ -201,7 +202,7 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
             <Label>Parents</Label>
             <ParentSelect value={form.parent_ids} selectedParents={form.parent_refs}
               onChange={(ids, p) => { set('parent_ids', ids); set('parent_refs', p) }}
-              {...(isCreate ? {} : { excludeTable: 'effects', excludeId: record!.effect_id })} />
+              {...excludeProps} />
           </div>
         </div>
       ) : (

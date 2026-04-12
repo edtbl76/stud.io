@@ -18,10 +18,15 @@ jest.mock('@/lib/parentSelectRecents', () => ({
   pushRecent: (...args: unknown[]) => mockPushRecent(...args),
 }))
 
-async function performSearch(displayText: string) {
+function typeQuery(value = 'rev') {
   const input = screen.getByPlaceholderText('Search parents...')
   fireEvent.focus(input)
-  fireEvent.change(input, { target: { value: 'rev' } })
+  fireEvent.change(input, { target: { value } })
+  return input
+}
+
+async function performSearch(displayText: string) {
+  typeQuery()
   await waitFor(() => screen.getByText(displayText))
   fireEvent.click(screen.getByText(displayText))
 }
@@ -44,9 +49,7 @@ describe('ParentSelect', () => {
       results: [{ table_name: 'effects', id: 'e-1', name: 'Reverb', brand_name: 'Lexicon' }],
     })
     render(<ParentSelect value={[]} selectedParents={[]} onChange={jest.fn()} />)
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'rev' } })
+    typeQuery()
     await waitFor(() => expect(screen.getByText('Lexicon – Reverb')).toBeInTheDocument())
     expect(screen.getByText('effects')).toBeInTheDocument()
   })
@@ -121,18 +124,14 @@ describe('ParentSelect', () => {
         excludeId="e-1"
       />
     )
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'rev' } })
+    typeQuery()
     await waitFor(() => expect(mockSearchEntities).toHaveBeenCalledWith('rev', 'effects', 'e-1'))
   })
 
   it('does not crash and shows no dropdown when searchEntities rejects', async () => {
     mockSearchEntities.mockRejectedValue(new Error('fail'))
     render(<ParentSelect value={[]} selectedParents={[]} onChange={jest.fn()} />)
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'rev' } })
+    const input = typeQuery()
     await waitFor(() => expect(mockSearchEntities).toHaveBeenCalled())
     expect(input).toBeInTheDocument()
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
@@ -141,9 +140,7 @@ describe('ParentSelect', () => {
   it('shows no result items when api returns empty results', async () => {
     mockSearchEntities.mockResolvedValue({ results: [] })
     render(<ParentSelect value={[]} selectedParents={[]} onChange={jest.fn()} />)
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'xyz' } })
+    typeQuery('xyz')
     await waitFor(() => expect(mockSearchEntities).toHaveBeenCalled())
     expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
@@ -159,9 +156,7 @@ describe('ParentSelect', () => {
         onChange={jest.fn()}
       />
     )
-    const input = screen.getByPlaceholderText('Search parents...')
-    fireEvent.focus(input)
-    fireEvent.change(input, { target: { value: 'rev' } })
+    typeQuery()
     await waitFor(() => screen.getByText('Reverb'))
     fireEvent.click(screen.getByText('Reverb'))
     expect(mockPushRecent).not.toHaveBeenCalled()

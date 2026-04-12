@@ -100,6 +100,7 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
       onClose,
       onMutate,
     })
+  const excludeProps = isCreate ? {} : { excludeTable: 'libraries' as const, excludeId: record!.library_id }
 
   return (
     <RecordModal {...recordModalProps}>
@@ -159,7 +160,7 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
               value={form.parent_ids}
               selectedParents={form.parent_refs}
               onChange={(ids, parents) => { set('parent_ids', ids); set('parent_refs', parents) }}
-              {...( isCreate ? {} : { excludeTable: 'libraries', excludeId: record!.library_id } )}
+              {...excludeProps}
             />
           </div>
         </div>

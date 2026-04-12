@@ -113,6 +113,7 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
       onClose,
       onMutate,
     })
+  const excludeProps = isCreate ? {} : { excludeTable: 'instruments' as const, excludeId: record!.instrument_id }
 
   return (
     <RecordModal {...recordModalProps}>
@@ -186,7 +187,7 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
             <Label>Parents</Label>
             <ParentSelect value={form.parent_ids} selectedParents={form.parent_refs}
               onChange={(ids, p) => { set('parent_ids', ids); set('parent_refs', p) }}
-              {...(isCreate ? {} : { excludeTable: 'instruments', excludeId: record!.instrument_id })} />
+              {...excludeProps} />
           </div>
         </div>
       ) : (
