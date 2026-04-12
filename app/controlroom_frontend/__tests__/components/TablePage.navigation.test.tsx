@@ -200,6 +200,26 @@ describe('TablePage navigation context', () => {
     fireEvent.click(screen.getByText('close-modal'))
     expect(screen.queryByTestId('modal')).not.toBeInTheDocument()
   })
+
+  it('nav context updates when a client-side filter changes the visible row set', async () => {
+    renderPage()
+    await waitFor(() => screen.getByText('3 records'))
+
+    // Open Alpha (first row) — starts at 1 of 3, next enabled
+    const cells = screen.getAllByRole('cell')
+    fireEvent.click(cells[0])
+    await waitFor(() => expect(screen.getByTestId('nav-position')).toHaveTextContent('1 of 3'))
+    expect(screen.getByRole('button', { name: /next record/i })).toBeEnabled()
+
+    // Filter the Name column to "al" — matches only "Alpha" (Beta and Gamma have no "al")
+    // Columns in order: ID (index 0), Name (index 1). Both get a "2+ chars…" filter input.
+    const filterInputs = screen.getAllByPlaceholderText('2+ chars…')
+    fireEvent.change(filterInputs[1], { target: { value: 'al' } })
+
+    // navData shrinks to [Alpha] → Alpha is now 1 of 1, next disabled
+    await waitFor(() => expect(screen.getByTestId('nav-position')).toHaveTextContent('1 of 1'))
+    expect(screen.getByRole('button', { name: /next record/i })).toBeDisabled()
+  })
 })
 
 describe('TablePage navigation context — RecordNavigationValue shape', () => {
