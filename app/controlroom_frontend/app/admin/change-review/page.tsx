@@ -29,12 +29,14 @@ function isAbortError(e: unknown): boolean {
   return e instanceof Error && e.name === 'AbortError'
 }
 
-function buildListUrl(
-  tableFilter: string,
-  operationFilter: string,
-  statusFilter: string,
-  page: number,
-): string {
+interface ListFilters {
+  tableFilter: string
+  operationFilter: string
+  statusFilter: string
+  page: number
+}
+
+function buildListUrl({ tableFilter, operationFilter, statusFilter, page }: ListFilters): string {
   const params = new URLSearchParams()
   if (tableFilter) params.set('table', tableFilter)
   if (operationFilter) params.set('operation', operationFilter)
@@ -161,7 +163,7 @@ function useChangeReview() {
     const controller = new AbortController()
     setError(false)
     setData(null)
-    const url = buildListUrl(tableFilter, operationFilter, statusFilter, page)
+    const url = buildListUrl({ tableFilter, operationFilter, statusFilter, page })
     queryUrl.current = url
     fetchChangeReview(url, controller.signal, setData, () => setError(true))
     return () => controller.abort()
