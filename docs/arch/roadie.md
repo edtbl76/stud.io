@@ -37,10 +37,10 @@ pre-commit run --all-files
 
 # Run a single hook by its ID (faster when debugging one specific check)
 pre-commit run ruff
-pre-commit run bandit
+pre-commit run unit-tests
+pre-commit run pip-audit
+pre-commit run npm-audit
 pre-commit run detect-secrets
-pre-commit run jest
-pre-commit run pytest
 ```
 
 Hook IDs are defined in `.pre-commit-config.yaml` at the repo root. `pre-commit run --all-files` is the most thorough check and is the right command to reach for before pushing.
