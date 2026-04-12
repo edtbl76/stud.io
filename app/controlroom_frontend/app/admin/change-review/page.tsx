@@ -46,13 +46,24 @@ function buildListUrl({ tableFilter, operationFilter, statusFilter, page }: List
   return `/api/admin/change-review?${params}`
 }
 
+interface EntryAction {
+  method: 'POST' | 'DELETE'
+  path: string
+}
+
+const ENTRY_ACTIONS = {
+  undo:        { method: 'POST',   path: 'undo' },
+  acknowledge: { method: 'POST',   path: 'acknowledge' },
+  permanent:   { method: 'DELETE', path: 'permanent' },
+} as const satisfies Record<string, EntryAction>
+
 function fetchChangeReview(
-  url: string,
+  filters: ListFilters,
   signal: AbortSignal,
   onSuccess: (data: ChangeReviewResponse) => void,
   onError: () => void,
 ): void {
-  void fetch(url, { signal })
+  void fetch(buildListUrl(filters), { signal })
     .then((res) => {
       if (!res.ok) throw new Error('Failed to fetch')
       return res.json() as Promise<ChangeReviewResponse>
@@ -62,15 +73,6 @@ function fetchChangeReview(
       if (isAbortError(e)) return
       onError()
     })
-}
-
-function removeEntry(
-  prev: ChangeReviewResponse | null,
-  auditId: string,
-): ChangeReviewResponse | null {
-  return prev
-    ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 }
-    : prev
 }
 
 function useRowActions(
@@ -114,12 +116,12 @@ function useRowActions(
     }
   }
 
-  async function handleAction(auditId: string, method: 'POST' | 'DELETE', urlSuffix: string) {
+  async function handleAction(auditId: string, action: EntryAction) {
     setPendingActions((prev) => new Set(prev).add(auditId))
     try {
-      const res = await fetch(`/api/admin/change-review/${auditId}/${urlSuffix}`, { method })
+      const res = await fetch(`/api/admin/change-review/${auditId}/${action.path}`, { method: action.method })
       if (res.status === 204) {
-        setData((prev) => removeEntry(prev, auditId))
+        setData((prev) => prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev)
         setRefreshKey((k) => k + 1)
         return
       }
@@ -128,7 +130,7 @@ function useRowActions(
         setRowError(auditId, (body as { detail?: string })?.detail ?? 'Action failed, please try again')
         return
       }
-      setData((prev) => removeEntry(prev, auditId))
+      setData((prev) => prev ? { ...prev, entries: prev.entries.filter((e) => e.audit_id !== auditId), total: prev.total - 1 } : prev)
       setRefreshKey((k) => k + 1)
     } catch {
       setRowError(auditId, 'Action failed, please try again')
@@ -149,9 +151,9 @@ function useChangeReview() {
   const [statusFilter, setStatusFilter] = React.useState('pending')
   const [page, setPage] = React.useState(1)
   const [refreshKey, setRefreshKey] = React.useState(0)
-  // Caches the last fetched URL so the background refresh effect can reuse it
+  // Caches the latest filters so the background refresh effect can reuse them
   // without adding filter/page state to its dependency array.
-  const queryUrl = React.useRef('')
+  const latestFilters = React.useRef<ListFilters | null>(null)
   const actions = useRowActions(setData, setRefreshKey)
 
   React.useEffect(() => {
@@ -161,11 +163,11 @@ function useChangeReview() {
   // Hard reload: clears data and resets error state when filters or page change.
   React.useEffect(() => {
     const controller = new AbortController()
+    const filters: ListFilters = { tableFilter, operationFilter, statusFilter, page }
+    latestFilters.current = filters
     setError(false)
     setData(null)
-    const url = buildListUrl({ tableFilter, operationFilter, statusFilter, page })
-    queryUrl.current = url
-    fetchChangeReview(url, controller.signal, setData, () => setError(true))
+    fetchChangeReview(filters, controller.signal, setData, () => setError(true))
     return () => controller.abort()
   }, [tableFilter, operationFilter, statusFilter, page])
 
@@ -173,11 +175,11 @@ function useChangeReview() {
   // Does not clear data — keeps the optimistic state visible if the fetch fails.
   React.useEffect(() => {
     if (refreshKey === 0) return
-    const url = queryUrl.current
-    if (!url) return
+    const filters = latestFilters.current
+    if (!filters) return
     const controller = new AbortController()
     setRefreshError(false)
-    fetchChangeReview(url, controller.signal, setData, () => setRefreshError(true))
+    fetchChangeReview(filters, controller.signal, setData, () => setRefreshError(true))
     return () => controller.abort()
   }, [refreshKey])
 
@@ -217,7 +219,7 @@ export default function ChangeReviewPage() {
     return (
       <div className="flex gap-2">
         <button
-          onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, 'POST', 'undo') }}
+          onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, ENTRY_ACTIONS.undo) }}
           disabled={pendingActions.has(entry.audit_id)}
           className="text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -225,7 +227,7 @@ export default function ChangeReviewPage() {
         </button>
         {entry.operation === 'DELETE' ? (
           <button
-            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, 'DELETE', 'permanent') }}
+            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, ENTRY_ACTIONS.permanent) }}
             disabled={pendingActions.has(entry.audit_id)}
             className="text-destructive hover:text-destructive/80 transition-colors"
           >
@@ -233,7 +235,7 @@ export default function ChangeReviewPage() {
           </button>
         ) : (
           <button
-            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, 'POST', 'acknowledge') }}
+            onClick={(e) => { e.stopPropagation(); void handleAction(entry.audit_id, ENTRY_ACTIONS.acknowledge) }}
             disabled={pendingActions.has(entry.audit_id)}
             className="text-muted-foreground hover:text-foreground transition-colors"
           >
