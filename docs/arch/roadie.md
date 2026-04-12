@@ -26,7 +26,7 @@ go build -ldflags "-X main.version=1.0.0" -o ../roadie ./cmd/roadie/
 
 ## Pre-commit hooks
 
-The pre-commit framework runs automatically when you `git commit`. To run hooks manually without making a commit — for example to diagnose a failure or check your working tree before committing:
+After `pre-commit install`, the pre-commit framework runs automatically when you `git commit`. To run hooks manually without making a commit — for example to diagnose a failure or check your working tree before committing:
 
 ```bash
 # Run all hooks against staged files only (mirrors what git commit triggers)
