@@ -135,7 +135,16 @@ export function DataTable<TData, TValue>({
   }, [data, sorting, manualSorting])
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({})
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
+    const initial: VisibilityState = {}
+    for (const col of columns) {
+      if (col.meta?.defaultHidden) {
+        const id = col.id ?? (col as { accessorKey?: string }).accessorKey
+        if (id) initial[id] = false
+      }
+    }
+    return initial
+  })
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [draggingId, setDraggingId] = React.useState<string | null>(null)
   const scrollRef = React.useRef<HTMLDivElement>(null)

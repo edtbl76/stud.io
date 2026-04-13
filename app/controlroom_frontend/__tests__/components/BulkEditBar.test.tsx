@@ -35,6 +35,42 @@ jest.mock('@/components/ui/MultiSelect', () => ({
   ),
 }))
 
+// ParentSelect mock: renders current parentValue as chips and an add button for testing.
+jest.mock('@/components/ui/ParentSelect', () => ({
+  ParentSelect: ({
+    value,
+    selectedParents,
+    onChange,
+  }: {
+    value: Array<{ table_name: string; id: string }>
+    selectedParents: Array<{ table_name: string; id: string; name: string | null }>
+    onChange: (ids: Array<{ table_name: string; id: string }>, refs: Array<{ table_name: string; id: string; name: string | null }>) => void
+  }) => (
+    <div data-testid="parent-select-mock">
+      {selectedParents.map((p) => (
+        <span key={`${p.table_name}:${p.id}`} data-testid={`chip-${p.id}`}>
+          {p.name ?? p.id}
+          <button
+            onClick={() => {
+              const next = value.filter((v) => !(v.table_name === p.table_name && v.id === p.id))
+              const nextRefs = selectedParents.filter((r) => !(r.table_name === p.table_name && r.id === p.id))
+              onChange(next, nextRefs)
+            }}
+            aria-label={`Remove ${p.name ?? p.id}`}
+          >×</button>
+        </span>
+      ))}
+      <button
+        data-testid="add-parent"
+        onClick={() => {
+          const newP = { table_name: 'effects', id: 'new-1', name: 'New Effect' }
+          onChange([...value, { table_name: newP.table_name, id: newP.id }], [...selectedParents, newP])
+        }}
+      >Add Parent</button>
+    </div>
+  ),
+}))
+
 const textField: BulkEditField = { key: 'version', label: 'Version', type: 'text' }
 const multiField: BulkEditField = {
   key: 'tag_ids',
@@ -48,10 +84,16 @@ const singleField: BulkEditField = {
   type: 'singleselect',
   configSlug: 'entity-types',
 }
+const parentField: BulkEditField = { key: 'parent_ids', label: 'Parents', type: 'parentsearch' }
 
 const rows: Record<string, unknown>[] = [
-  { id: '1', version: null, tag_ids: [], entity_type_id: null },
-  { id: '2', version: '1.0', tag_ids: ['t1'], entity_type_id: 'e1' },
+  { id: '1', version: null, tag_ids: [], entity_type_id: null, parents: [] },
+  { id: '2', version: '1.0', tag_ids: ['t1'], entity_type_id: 'e1', parents: [{ table_name: 'effects', id: 'e-1', name: 'Reverb' }] },
+]
+
+const parentRows: Record<string, unknown>[] = [
+  { id: '1', parents: [{ table_name: 'effects', id: 'e-1', name: 'Reverb' }] },
+  { id: '2', parents: [{ table_name: 'effects', id: 'e-1', name: 'Reverb' }, { table_name: 'instruments', id: 'i-1', name: 'Prophet 5' }] },
 ]
 
 function renderBar(
@@ -251,6 +293,45 @@ describe('BulkEditBar', () => {
     fireEvent.click(screen.getByRole('button', { name: /delete selected/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
     await waitFor(() => expect(screen.getByText(/1 deleted, 1 failed/i)).toBeInTheDocument())
+  })
+
+  it('parentsearch: pre-populates with union of existing parents as chips', () => {
+    renderBar([parentField], parentRows)
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), { target: { value: 'parent_ids' } })
+    expect(screen.getByTestId('chip-e-1')).toBeInTheDocument()
+    expect(screen.getByTestId('chip-i-1')).toBeInTheDocument()
+  })
+
+  it('parentsearch: Apply button is enabled immediately with no changes', () => {
+    renderBar([parentField], parentRows)
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), { target: { value: 'parent_ids' } })
+    expect(screen.getByRole('button', { name: /apply/i })).not.toBeDisabled()
+  })
+
+  it('parentsearch: adding a new parent merges it with each row\'s existing parents', async () => {
+    const { onApply } = renderBar([parentField], parentRows)
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), { target: { value: 'parent_ids' } })
+    fireEvent.click(screen.getByTestId('add-parent'))
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }))
+    await waitFor(() => expect(mockApiUpdate).toHaveBeenCalledTimes(2))
+    expect(mockApiUpdate).toHaveBeenCalledWith('/test', '1', {
+      parent_ids: [{ table_name: 'effects', id: 'e-1' }, { table_name: 'effects', id: 'new-1' }],
+    })
+    expect(mockApiUpdate).toHaveBeenCalledWith('/test', '2', {
+      parent_ids: [{ table_name: 'effects', id: 'e-1' }, { table_name: 'instruments', id: 'i-1' }, { table_name: 'effects', id: 'new-1' }],
+    })
+    await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
+  })
+
+  it('parentsearch: removing a parent removes it from all rows that had it', async () => {
+    const { onApply } = renderBar([parentField], parentRows)
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), { target: { value: 'parent_ids' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Reverb' }))
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }))
+    await waitFor(() => expect(mockApiUpdate).toHaveBeenCalledTimes(2))
+    expect(mockApiUpdate).toHaveBeenCalledWith('/test', '1', { parent_ids: [] })
+    expect(mockApiUpdate).toHaveBeenCalledWith('/test', '2', { parent_ids: [{ table_name: 'instruments', id: 'i-1' }] })
+    await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
   })
 
   it('applies singleselect value to all selected rows via PATCH', async () => {

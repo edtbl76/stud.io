@@ -5,6 +5,7 @@ import { Effect } from '@/lib/types'
 import '@/lib/columnMeta'
 import { ARRAY_FILTER_OPERATORS, DATE_FILTER_OPERATORS } from '@/lib/filterOperators'
 import { TypeBadges } from '@/components/TypeBadges'
+import { ParentLinks } from '@/components/ParentLinks'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import { formatDate } from '@/lib/utils'
@@ -23,6 +24,7 @@ export const effectBulkEditFields: BulkEditField[] = [
   { key: 'plugin_format_ids', label: 'Plugin Formats', type: 'multiselect', configSlug: 'plugin-formats' },
   { key: 'tag_ids', label: 'Tags', type: 'multiselect', configSlug: 'tag-types' },
   { key: 'version', label: 'Version', type: 'text' },
+  { key: 'parent_ids', label: 'Parents', type: 'parentsearch' },
 ]
 
 export const effectColumns: ColumnDef<Effect, unknown>[] = [
@@ -112,5 +114,14 @@ export const effectColumns: ColumnDef<Effect, unknown>[] = [
     enableSorting: false,
     meta: { filterParam: 'tags', filterOperators: ARRAY_FILTER_OPERATORS },
     cell: ({ row }) => <TypeBadges types={row.original.tags} limit={3} />,
+  },
+  {
+    id: 'parents',
+    accessorFn: (row) => row.parents?.map((p) => p.name ?? p.id).join(' ') ?? '',
+    header: 'Parents',
+    size: 220,
+    enableSorting: false,
+    meta: { defaultHidden: true },
+    cell: ({ row }) => <ParentLinks parents={row.original.parents} />,
   },
 ]

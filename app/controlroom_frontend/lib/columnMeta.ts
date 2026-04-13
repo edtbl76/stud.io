@@ -16,5 +16,6 @@ declare module '@tanstack/react-table' {
   interface ColumnMeta<TData, TValue> {
     filterParam?: string
     filterOperators?: FilterOperator[]
+    defaultHidden?: boolean
   }
 }

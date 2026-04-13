@@ -8,7 +8,7 @@ export interface BulkEditField {
    * singleselect — single-value lookup; overwrites on apply.
    * text         — free-text input; overwrites on apply.
    */
-  type: 'multiselect' | 'singleselect' | 'text'
+  type: 'multiselect' | 'singleselect' | 'text' | 'parentsearch'
   /** Config slug for MultiSelect — required when type is multiselect or singleselect. */
   configSlug?: string
 }
