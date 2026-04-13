@@ -108,7 +108,7 @@ Query parameters:
 
 Multiple `filter_*` params are AND-combined. Unknown filter keys are silently ignored. Filter keys must match `[a-z_]+`.
 
-Array/relational columns (types, tags, models, formats) use `empty_expr` (e.g. `cardinality(col) = 0`) to support `is_empty`/`is_not_empty`. EXISTS subquery fields only support `contains`.
+Array/relational columns (types, tags, models, parents, formats) use `empty_expr` (e.g. `cardinality(col) = 0`) to support `is_empty`/`is_not_empty`. EXISTS subquery fields only support `contains`.
 
 Response model: `{ items: [...], total: <int> }` (`PagedResponse`).
 

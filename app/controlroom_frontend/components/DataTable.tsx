@@ -6,6 +6,7 @@ import {
   ColumnFiltersState,
   ColumnOrderState,
   ColumnResizeMode,
+  ColumnSizingState,
   RowSelectionState,
   VisibilityState,
   getCoreRowModel,
@@ -92,13 +93,13 @@ function useInfiniteScroll(
   lastIndex: number | undefined,
   rowCount: number,
   hasNextPage: boolean | undefined,
-  isFetchingNextPage: boolean | undefined,
+  isFetching: boolean | undefined,
   fetchNextPage: (() => void) | undefined,
 ) {
   React.useEffect(() => {
-    if (lastIndex === undefined || !hasNextPage || isFetchingNextPage) return
-    if (lastIndex >= rowCount - 5) fetchNextPage?.()
-  }, [lastIndex, rowCount, hasNextPage, isFetchingNextPage, fetchNextPage])
+    if (lastIndex === undefined || !hasNextPage || isFetching) return
+    if (rowCount > 0 && lastIndex >= rowCount - 5) fetchNextPage?.()
+  }, [lastIndex, rowCount, hasNextPage, isFetching, fetchNextPage])
 }
 
 function compareValues(aVal: unknown, bVal: unknown, desc: boolean): number {
@@ -146,6 +147,7 @@ interface DataTableProps<TData, TValue> {
   readonly hasNextPage?: boolean
   readonly fetchNextPage?: () => void
   readonly isFetchingNextPage?: boolean
+  readonly isFetching?: boolean
   // Server-side sort (paginated tables)
   readonly manualSorting?: boolean
   readonly externalSorting?: SortingState
@@ -158,6 +160,14 @@ interface DataTableProps<TData, TValue> {
   readonly onClearFilters?: () => void
   // Navigation: called with the post-sort row order so the parent can track position
   readonly onSortedDataChange?: (data: TData[]) => void
+  // Controlled visibility + sizing (from session state)
+  readonly columnVisibility?: VisibilityState
+  readonly onColumnVisibilityChange?: React.Dispatch<React.SetStateAction<VisibilityState>>
+  readonly columnSizing?: ColumnSizingState
+  readonly onColumnSizingChange?: React.Dispatch<React.SetStateAction<ColumnSizingState>>
+  // Reset View
+  readonly isDirty?: boolean
+  readonly onResetView?: () => void
 }
 
 export function DataTable<TData, TValue>({
@@ -171,6 +181,7 @@ export function DataTable<TData, TValue>({
   hasNextPage,
   fetchNextPage,
   isFetchingNextPage,
+  isFetching,
   manualSorting = false,
   externalSorting,
   onExternalSortChange,
@@ -180,6 +191,12 @@ export function DataTable<TData, TValue>({
   onFilterEntryChange,
   onClearFilters,
   onSortedDataChange,
+  columnVisibility: externalVisibility,
+  onColumnVisibilityChange: externalSetVisibility,
+  columnSizing: externalSizing,
+  onColumnSizingChange: externalSetSizing,
+  isDirty,
+  onResetView,
 }: DataTableProps<TData, TValue>) {
   const { sorting, setSorting, activeSorting, handleSortAdd, handleSortRemove, handleSortToggleDir } =
     useSortHandlers(manualSorting, sortFields, externalSorting, onExternalSortChange)
@@ -200,17 +217,16 @@ export function DataTable<TData, TValue>({
   }, [data, sorting, manualSorting])
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
-    const initial: VisibilityState = {}
-    for (const col of columns) {
-      if (col.meta?.defaultHidden) {
-        const id = col.id ?? (col as { accessorKey?: string }).accessorKey
-        if (id) initial[id] = false
-      }
-    }
-    return initial
-  })
+  const [internalVisibility, setInternalVisibility] = React.useState<VisibilityState>({})
+  const [internalSizing, setInternalSizing] = React.useState<ColumnSizingState>({})
 
+  const columnVisibility = externalVisibility ?? internalVisibility
+  const setColumnVisibility = externalSetVisibility ?? setInternalVisibility
+  const columnSizing = externalSizing ?? internalSizing
+  const setColumnSizing = externalSetSizing ?? setInternalSizing
+
+  // Applies defaultHidden to any column not yet in the visibility map.
+  // When controlled, this adds new defaultHidden columns to the persisted state.
   useDefaultHiddenColumns(columns as ColumnDef<unknown, unknown>[], setColumnVisibility)
 
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
@@ -224,6 +240,7 @@ export function DataTable<TData, TValue>({
       sorting: activeSorting,
       columnFilters,
       columnVisibility,
+      columnSizing,
       columnOrder,
       rowSelection: rowSelection ?? {},
     },
@@ -237,6 +254,7 @@ export function DataTable<TData, TValue>({
       : setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onColumnSizingChange: setColumnSizing,
     onColumnOrderChange: setColumnOrder,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -263,7 +281,7 @@ export function DataTable<TData, TValue>({
   const paddingBottom = virtualItems.length > 0 ? totalSize - virtualItems.at(-1)!.end : 0
 
   const lastVirtualItem = virtualItems.at(-1)
-  useInfiniteScroll(lastVirtualItem?.index, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage)
+  useInfiniteScroll(lastVirtualItem?.index, rows.length, hasNextPage, isFetching ?? isFetchingNextPage, fetchNextPage)
 
   function handleDragStart(e: React.DragEvent, colId: string) {
     setDraggingId(colId)
@@ -303,6 +321,8 @@ export function DataTable<TData, TValue>({
         onSortAdd={handleSortAdd}
         onSortRemove={handleSortRemove}
         onSortToggleDir={handleSortToggleDir}
+        isDirty={isDirty}
+        onResetView={onResetView}
       />
       <div ref={scrollRef} className="flex-1 overflow-auto">
         <table

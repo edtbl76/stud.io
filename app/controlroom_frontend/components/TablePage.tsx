@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
-import { ColumnDef, RowSelectionState, SortingState } from '@tanstack/react-table'
+import { useQueryClient } from '@tanstack/react-query'
+import { ColumnDef, RowSelectionState } from '@tanstack/react-table'
 import { Plus } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useAuth } from '@/lib/auth'
@@ -13,9 +13,9 @@ import { BulkEditBar } from '@/components/BulkEditBar'
 import { RecordModalNavigation } from '@/components/RecordModal'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
-import { useTableFilters } from '@/lib/useTableFilters'
 import { useRecordNavigation } from '@/lib/useRecordNavigation'
-import type { FilterState, FilterEntry } from '@/lib/filterOperators'
+import { useSessionState } from '@/lib/useSessionState'
+import { useTableData } from '@/lib/useTableData'
 import '@/lib/columnMeta'
 
 // Checkbox column defined at module level with no external dependencies.
@@ -65,138 +65,6 @@ function getNavProviderKey<T>(record: T | null, getRowId: (r: T) => string): str
   return record === null ? '__new__' : getRowId(record)
 }
 
-function getNextPageParam(
-  lastPage: { items: unknown[]; total: number },
-  allPages: { items: unknown[]; total: number }[],
-): number | undefined {
-  const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0)
-  return loaded < lastPage.total ? loaded : undefined
-}
-
-// ── Internal hooks ──
-
-interface PagedTableProps {
-  hasNextPage?: boolean
-  fetchNextPage?: () => void
-  isFetchingNextPage?: boolean
-  manualSorting?: true
-  externalSorting?: SortingState
-  onExternalSortChange?: (s: SortingState) => void
-  manualFiltering?: true
-  externalFilters?: FilterState
-  onFilterEntryChange?: (colId: string, entry: FilterEntry | null) => void
-  onClearFilters?: () => void
-}
-
-interface UseTableDataResult<T> {
-  data: T[]
-  isLoading: boolean
-  error: Error | null
-  recordCountLabel: string
-  pagedTableProps: PagedTableProps
-}
-
-function resolveFilterParams<T>(
-  columns: ColumnDef<T, unknown>[],
-  inputFilters: FilterState,
-): FilterState {
-  const paramMap = new Map<string, string>()
-  for (const col of columns) {
-    const id = col.id ?? (col as { accessorKey?: string }).accessorKey
-    if (!id) continue
-    const filterParam = col.meta?.filterParam ?? id
-    paramMap.set(id, filterParam)
-  }
-  const resolved: FilterState = {}
-  for (const [colId, entry] of Object.entries(inputFilters)) {
-    const param = paramMap.get(colId) ?? colId
-    resolved[param] = entry
-  }
-  return resolved
-}
-
-function useTableData<T>(
-  endpoint: string,
-  queryKey: string,
-  paginated: boolean,
-  columns: ColumnDef<T, unknown>[],
-  defaultSort?: string,
-): UseTableDataResult<T> {
-  const [externalSorting, setExternalSorting] = React.useState<SortingState>(
-    defaultSort ? [{ id: defaultSort, desc: false }] : [],
-  )
-  const { inputFilters, activeFilters, setFilterEntry, clearFilters } = useTableFilters()
-
-  const sortBy = externalSorting.map((s) => s.id)
-  const sortDir = externalSorting.map((s) => (s.desc ? 'desc' : 'asc'))
-  const resolvedFilters = React.useMemo(
-    () => resolveFilterParams(columns, activeFilters),
-    [columns, activeFilters],
-  )
-
-  const { data: listData = [], isLoading: isListLoading, error: listError } = useQuery({
-    queryKey: [queryKey],
-    queryFn: () => api.list<T>(endpoint),
-    enabled: !paginated,
-  })
-
-  const {
-    data: infiniteData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    isLoading: isInfiniteLoading,
-    error: infiniteError,
-  } = useInfiniteQuery({
-    queryKey: [queryKey, externalSorting, resolvedFilters],
-    queryFn: ({ pageParam }) =>
-      api.listPaged<T>(endpoint, {
-        limit: 100,
-        offset: pageParam,
-        sort_by: sortBy.length > 0 ? sortBy : undefined,
-        sort_dir: sortDir.length > 0 ? sortDir : undefined,
-        filters: Object.keys(resolvedFilters).length > 0 ? resolvedFilters : undefined,
-      }),
-    initialPageParam: 0,
-    getNextPageParam,
-    enabled: paginated,
-    placeholderData: keepPreviousData,
-  })
-
-  const pagedItems = React.useMemo(
-    () => infiniteData?.pages.flatMap((p) => p.items) ?? [],
-    [infiniteData],
-  )
-
-  const data = paginated ? pagedItems : listData
-  const isLoading = paginated ? isInfiniteLoading : isListLoading
-  const error = paginated ? infiniteError : listError
-  const pagedTotal = infiniteData?.pages.at(-1)?.total
-  const totalRecords = paginated ? pagedTotal : data.length
-  const plural = totalRecords === 1 ? '' : 's'
-  const recordCountLabel =
-    paginated && pagedTotal === undefined
-      ? ''
-      : `${totalRecords} record${plural}`
-
-  const pagedTableProps: PagedTableProps = paginated
-    ? {
-        hasNextPage,
-        fetchNextPage: () => { fetchNextPage?.() },
-        isFetchingNextPage,
-        manualSorting: true,
-        externalSorting,
-        onExternalSortChange: setExternalSorting,
-        manualFiltering: true,
-        externalFilters: inputFilters,
-        onFilterEntryChange: setFilterEntry,
-        onClearFilters: clearFilters,
-      }
-    : {}
-
-  return { data, isLoading, error, recordCountLabel, pagedTableProps }
-}
-
 interface UseCheckboxSelectionResult<T> {
   rowSelection: RowSelectionState
   setRowSelection: React.Dispatch<React.SetStateAction<RowSelectionState>>
@@ -219,14 +87,9 @@ function useCheckboxSelection<T>(
 
   // Empty dep array: column definition is stable because it reads selection
   // state from TanStack Table's row/table context, not from closed-over state.
-  const checkboxColumn = React.useMemo<ColumnDef<T, unknown>>(
-    () => makeCheckboxColumn<T>(),
-    [],
-  )
+  const checkboxColumn = React.useMemo<ColumnDef<T, unknown>>(() => makeCheckboxColumn<T>(), [])
 
-  const effectiveColumns = enabled ? [checkboxColumn, ...columns] : columns
-
-  return { rowSelection, setRowSelection, selectedRows, effectiveColumns }
+  return { rowSelection, setRowSelection, selectedRows, effectiveColumns: enabled ? [checkboxColumn, ...columns] : columns }
 }
 
 // ── OpenIdHandler ──
@@ -242,7 +105,6 @@ function OpenIdHandler({
   const pathname = usePathname()
   const router = useRouter()
   const openId = searchParams.get('open')
-  // Guard against React Strict Mode double-invocation: track which id was already handled.
   const processedRef = React.useRef<string | null>(null)
 
   React.useEffect(() => {
@@ -284,17 +146,13 @@ export function TablePage<T>({
   paginated = false,
 }: Readonly<TablePageProps<T>>) {
   const queryClient = useQueryClient()
-  const { role } = useAuth()
+  const { role, username } = useAuth()
   const isAdmin = role === 'admin'
   const showBulkEdit = isAdmin && !!bulkEditFields && bulkEditFields.length > 0
   const [selectedRecord, setSelectedRecord] = React.useState<T | null | undefined>(undefined)
 
-  // Tracks the post-filter visible row order from DataTable as state so navValue
-  // recomputes whenever sorting or filtering changes while a modal is open.
   const [navData, setNavData] = React.useState<T[]>([])
-  const handleSortedDataChange = React.useCallback((sorted: T[]) => {
-    setNavData(sorted)
-  }, [])
+  const handleSortedDataChange = React.useCallback((sorted: T[]) => setNavData(sorted), [])
 
   const navValue = useRecordNavigation({
     data: navData,
@@ -303,8 +161,16 @@ export function TablePage<T>({
     onNavigate: setSelectedRecord,
   })
 
+  const defaultSort = sortFields?.[0]?.key
+  const session = useSessionState(
+    username ?? 'guest',
+    queryKey,
+    columns as ColumnDef<unknown, unknown>[],
+    defaultSort,
+  )
+
   const { data, isLoading, error, recordCountLabel, pagedTableProps } =
-    useTableData<T>(endpoint, queryKey, paginated, columns, sortFields?.[0]?.key)
+    useTableData<T>(endpoint, queryKey, paginated, columns, session)
 
   const { rowSelection, setRowSelection, selectedRows, effectiveColumns } =
     useCheckboxSelection(data, getRowId, columns, showBulkEdit)
@@ -312,11 +178,9 @@ export function TablePage<T>({
   const handleOpenById = React.useCallback((id: string, cleanup: () => void) => {
     void api.get<T>(endpoint, id).then((record) => {
       setSelectedRecord(record)
-      // Defer URL cleanup so React commits the state update before router.replace
-      // triggers any re-render that could unmount the modal.
       setTimeout(cleanup, 0)
     }).catch(() => {})
-  }, [endpoint, setSelectedRecord])
+  }, [endpoint])
 
   function handleMutate() { queryClient.invalidateQueries({ queryKey: [queryKey] }).catch(() => {}) }
   function handleAdd() { setSelectedRecord(null) }
@@ -327,7 +191,6 @@ export function TablePage<T>({
   const rowSelectionProps = showBulkEdit
     ? { rowSelection, onRowSelectionChange: setRowSelection }
     : { rowSelection: undefined, onRowSelectionChange: undefined }
-  const fields = bulkEditFields ?? []
 
   return (
     <div className="flex flex-col h-full">
@@ -358,7 +221,7 @@ export function TablePage<T>({
       {showBulkEdit && selectedRows.length > 0 && (
         <BulkEditBar
           selectedRows={selectedRows as unknown as Record<string, unknown>[]}
-          fields={fields}
+          fields={bulkEditFields ?? []}
           endpoint={endpoint}
           getRowId={(row) => getRowId(row as unknown as T)}
           onApply={handleBulkApply}
@@ -375,6 +238,12 @@ export function TablePage<T>({
           getRowId={getRowId}
           sortFields={sortFields}
           onSortedDataChange={handleSortedDataChange}
+          columnVisibility={session.columnVisibility}
+          onColumnVisibilityChange={session.setColumnVisibility}
+          columnSizing={session.columnSizing}
+          onColumnSizingChange={session.setColumnSizing}
+          isDirty={session.isDirty}
+          onResetView={session.resetView}
           {...rowSelectionProps}
           {...pagedTableProps}
         />

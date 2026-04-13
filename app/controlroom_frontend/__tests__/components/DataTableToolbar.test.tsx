@@ -281,3 +281,39 @@ describe('DataTableToolbar', () => {
     expect(onSortToggleDir).toHaveBeenCalledWith(0)
   })
 })
+
+describe('DataTableToolbar — Reset View', () => {
+  function renderResetView(isDirty: boolean | undefined, onResetView?: () => void) {
+    return render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        isDirty={isDirty}
+        onResetView={onResetView}
+      />
+    )
+  }
+
+  it('does not show Reset View when isDirty is false', () => {
+    renderResetView(false, jest.fn())
+    expect(screen.queryByText('Reset View')).not.toBeInTheDocument()
+  })
+
+  it('does not show Reset View when onResetView is not provided', () => {
+    renderResetView(true)
+    expect(screen.queryByText('Reset View')).not.toBeInTheDocument()
+  })
+
+  it('shows Reset View when isDirty is true and onResetView is provided', () => {
+    renderResetView(true, jest.fn())
+    expect(screen.getByText('Reset View')).toBeInTheDocument()
+  })
+
+  it('calls onResetView when Reset View is clicked', () => {
+    const onResetView = jest.fn()
+    renderResetView(true, onResetView)
+    fireEvent.click(screen.getByText('Reset View'))
+    expect(onResetView).toHaveBeenCalledTimes(1)
+  })
+})

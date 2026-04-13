@@ -1,3 +1,4 @@
+import pytest
 from uuid import uuid4
 
 
@@ -160,3 +161,28 @@ async def test_delete_library(client, conn, admin_headers):
 async def test_delete_library_not_found(client, admin_headers):
     response = await client.delete(f"/libraries/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# FILTER — parents is_empty / is_not_empty
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("op,suffix,expected_in,expected_out", [
+    ("is_empty",     "",  "OrphanLib",  "ChildLib"),
+    ("is_not_empty", "2", "ChildLib2",  "OrphanLib2"),
+])
+async def test_filter_libraries_parents(client, conn, admin_headers, op, suffix, expected_in, expected_out):
+    parent = await conn.fetchrow(
+        f"INSERT INTO instruments (instrument_name) VALUES ('ParentInstLib{suffix}') RETURNING instrument_id"
+    )
+    await conn.execute(f"INSERT INTO libraries (library_name) VALUES ('OrphanLib{suffix}')")
+    resp = await client.post("/libraries", json={
+        "library_name": f"ChildLib{suffix}",
+        "parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}],
+    }, headers=admin_headers)
+    assert resp.status_code == 201
+    response = await client.get(f"/libraries?filter_parents_op={op}&limit=9999")
+    assert response.status_code == 200
+    names = [i["library_name"] for i in response.json()["items"]]
+    assert expected_in in names
+    assert expected_out not in names

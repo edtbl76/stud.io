@@ -1,3 +1,4 @@
+import pytest
 from uuid import uuid4
 
 
@@ -204,3 +205,28 @@ async def test_delete_effect(client, conn, admin_headers):
 async def test_delete_effect_not_found(client, admin_headers):
     response = await client.delete(f"/effects/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# FILTER — parents is_empty / is_not_empty
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("op,suffix,expected_in,expected_out", [
+    ("is_empty",     "",  "OrphanFX",  "ChildFX"),
+    ("is_not_empty", "2", "ChildFX2",  "OrphanFX2"),
+])
+async def test_filter_effects_parents(client, conn, admin_headers, op, suffix, expected_in, expected_out):
+    parent = await conn.fetchrow(
+        f"INSERT INTO effects (effect_name) VALUES ('ParentFX{suffix}') RETURNING effect_id"
+    )
+    await conn.execute(f"INSERT INTO effects (effect_name) VALUES ('OrphanFX{suffix}')")
+    resp = await client.post("/effects", json={
+        "effect_name": f"ChildFX{suffix}",
+        "parent_ids": [{"table_name": "effects", "id": str(parent["effect_id"])}],
+    }, headers=admin_headers)
+    assert resp.status_code == 201
+    response = await client.get(f"/effects?filter_parents_op={op}&limit=9999")
+    assert response.status_code == 200
+    names = [i["effect_name"] for i in response.json()["items"]]
+    assert expected_in in names
+    assert expected_out not in names
