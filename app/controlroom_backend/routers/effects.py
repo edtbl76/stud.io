@@ -11,7 +11,7 @@ from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.effects import EffectCreate, EffectUpdate, EffectOut
 from schemas.common import PagedResponse, ListParams
-from routers._helpers import parent_ref_sql, encode_parent_refs, _serializable, log_audit, AuditEntryWithData
+from routers._helpers import parent_ref_sql, encode_parent_refs, build_update_parts, _serializable, log_audit, AuditEntryWithData
 
 router = APIRouter()
 
@@ -118,19 +118,7 @@ async def update_effect(effect_id: UUID, payload: EffectUpdate, conn: Annotated[
     if not updates:
         return await get_effect(effect_id, conn)
 
-    set_parts, values, i = [], [], 2
-    for col, val in updates.items():
-        if col == "parent_ids":
-            set_parts.append(f"{col} = {parent_ref_sql(f'${i}')}")
-            values.append(encode_parent_refs(val))
-        elif col == "attributes" and val is not None:
-            set_parts.append(f"{col} = ${i}")
-            values.append(json.dumps(val))
-        else:
-            set_parts.append(f"{col} = ${i}")
-            values.append(val)
-        i += 1
-
+    set_parts, values = build_update_parts(updates, payload.parent_ids)
     set_parts.append("updated_at = NOW()")
     # col is a Pydantic field name from model_dump(), not user input — not a SQL injection risk
     async with conn.transaction():

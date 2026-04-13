@@ -121,6 +121,25 @@ async def test_update_library(client, conn, admin_headers):
     assert response.json()["library_name"] == "Update Me"
 
 
+async def test_update_library_parent_ids(client, conn, admin_headers):
+    parent = await conn.fetchrow(
+        "INSERT INTO instruments (instrument_name) VALUES ('Parent Sampler Update') RETURNING instrument_id"
+    )
+    child = await conn.fetchrow(
+        "INSERT INTO libraries (library_name) VALUES ('Child Library Update') RETURNING library_id"
+    )
+    response = await client.patch(
+        f"/libraries/{child['library_id']}",
+        json={"parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["parents"]) == 1
+    assert data["parents"][0]["table_name"] == "instruments"
+    assert data["parents"][0]["id"] == str(parent["instrument_id"])
+
+
 async def test_update_library_not_found(client, admin_headers):
     response = await client.patch(f"/libraries/{uuid4()}", json={"description": "Ghost"}, headers=admin_headers)
     assert response.status_code == 404

@@ -147,6 +147,25 @@ async def test_update_instrument(client, conn, admin_headers):
     assert response.json()["instrument_name"] == "Update Me"
 
 
+async def test_update_instrument_parent_ids(client, conn, admin_headers):
+    parent = await conn.fetchrow(
+        "INSERT INTO instruments (instrument_name) VALUES ('Parent Synth Update') RETURNING instrument_id"
+    )
+    child = await conn.fetchrow(
+        "INSERT INTO instruments (instrument_name) VALUES ('Child Synth Update') RETURNING instrument_id"
+    )
+    response = await client.patch(
+        f"/instruments/{child['instrument_id']}",
+        json={"parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["parents"]) == 1
+    assert data["parents"][0]["table_name"] == "instruments"
+    assert data["parents"][0]["id"] == str(parent["instrument_id"])
+
+
 async def test_update_instrument_not_found(client, admin_headers):
     response = await client.patch(f"/instruments/{uuid4()}", json={"version": "2.0"}, headers=admin_headers)
     assert response.status_code == 404
