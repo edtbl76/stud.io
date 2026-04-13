@@ -49,4 +49,10 @@ export const api = {
   delete: (ep: string, id: string) => req<void>(`${ep}/${id}`, { method: 'DELETE' }),
   searchGlobal: (q: string, notes = false) =>
     req<SearchResponse>(`/search?q=${encodeURIComponent(q)}&notes=${notes}`),
+  searchEntities: (q: string, excludeTable = '', excludeId = '') => {
+    const p = new URLSearchParams({ q })
+    if (excludeTable) p.set('exclude_table', excludeTable)
+    if (excludeId) p.set('exclude_id', excludeId)
+    return req<{ results: Array<{ table_name: string; id: string; name: string; brand_name: string | null }> }>(`/search/entities?${p}`)
+  },
 }

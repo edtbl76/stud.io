@@ -36,6 +36,10 @@ jest.mock('@/components/ModelLinks', () => ({
   ModelLinks: () => null,
 }))
 
+jest.mock('@/components/ui/ParentSelect', () => ({
+  ParentSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -170,6 +174,20 @@ describe('InstrumentModal — edit mode', () => {
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
       '/instruments', 'inst-1',
       expect.objectContaining({ model_ids: [] }),
+    ))
+  })
+
+  it('includes parent_ids in update payload even when empty', async () => {
+    mockUpdate.mockResolvedValue(mockInstrument)
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByDisplayValue('Grand Piano'), { target: { value: 'Grand Piano 2' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/instruments', 'inst-1',
+      expect.objectContaining({ parent_ids: [] }),
     ))
   })
 

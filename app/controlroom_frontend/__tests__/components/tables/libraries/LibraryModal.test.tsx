@@ -36,6 +36,10 @@ jest.mock('@/components/ModelLinks', () => ({
   ModelLinks: () => null,
 }))
 
+jest.mock('@/components/ui/ParentSelect', () => ({
+  ParentSelect: () => null,
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -162,6 +166,20 @@ describe('LibraryModal — edit mode', () => {
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
       '/libraries', 'lib-1',
       expect.objectContaining({ model_ids: [] }),
+    ))
+  })
+
+  it('includes parent_ids in update payload even when empty', async () => {
+    mockUpdate.mockResolvedValue(mockLibrary)
+    renderWithClient(<LibraryModal record={mockLibrary} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByDisplayValue('Orchestral Essentials'), { target: { value: 'Orchestral Pro' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/libraries', 'lib-1',
+      expect.objectContaining({ parent_ids: [] }),
     ))
   })
 

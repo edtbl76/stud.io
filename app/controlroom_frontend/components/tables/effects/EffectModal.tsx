@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Effect, ModelRef } from '@/lib/types'
+import { Effect, ModelRef, ParentRef } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 import { ModelSelect } from '@/components/ui/ModelSelect'
+import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
 const ENDPOINT = '/effects'
@@ -32,6 +33,8 @@ interface FormState {
   collection: string
   model_ids: string[]
   model_refs: ModelRef[]
+  parent_ids: ParentId[]
+  parent_refs: ParentRef[]
   effect_type_ids: string[]
   tool_type_ids: string[]
   plugin_format_ids: string[]
@@ -57,6 +60,7 @@ function buildEffectPayload(form: FormState): Record<string, unknown> {
   if (form.version) body.version = form.version
   if (form.collection) body.collection = form.collection
   body.model_ids = form.model_ids
+  body.parent_ids = form.parent_ids
   if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
@@ -73,7 +77,7 @@ function toForm(record: Effect | null): FormState {
   if (!record) {
     return {
       effect_name: '', brand_id: '', brand_name: '', version: '', collection: '',
-      model_ids: [], model_refs: [],
+      model_ids: [], model_refs: [], parent_ids: [], parent_refs: [],
       effect_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
       description: '', workflow_notes: '', recording_notes: '', artist_reference: '',
       attributes: '',
@@ -87,6 +91,8 @@ function toForm(record: Effect | null): FormState {
     collection: record.collection ?? '',
     model_ids: record.model_ids ?? [],
     model_refs: record.models ?? [],
+    parent_ids: (record.parents ?? []).map(p => ({ table_name: p.table_name, id: p.id })),
+    parent_refs: record.parents ?? [],
     effect_type_ids: record.effect_type_ids ?? [],
     tool_type_ids: record.tool_type_ids ?? [],
     plugin_format_ids: record.plugin_format_ids ?? [],
@@ -112,6 +118,7 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
       onClose,
       onMutate,
     })
+  const excludeProps = isCreate ? {} : { excludeTable: 'effects' as const, excludeId: record!.effect_id }
 
   return (
     <RecordModal {...recordModalProps}>
@@ -189,11 +196,12 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
             <Label htmlFor="attributes">Attributes (JSON)</Label>
             <Textarea id="attributes" value={form.attributes} onChange={(e) => set('attributes', e.target.value)} rows={4} className="font-mono text-xs" placeholder="{}" />
           </div>
-          {!isCreate && (
-            <div className="col-span-2">
-              <FieldRow label="Parents (read-only)" value={<ParentLinks parents={record?.parents} />} />
-            </div>
-          )}
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Parents</Label>
+            <ParentSelect value={form.parent_ids} selectedParents={form.parent_refs}
+              onChange={(ids, p) => { set('parent_ids', ids); set('parent_refs', p) }}
+              {...excludeProps} />
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">

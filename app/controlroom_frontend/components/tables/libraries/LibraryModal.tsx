@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Library, ModelRef } from '@/lib/types'
+import { Library, ModelRef, ParentRef } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 import { ModelSelect } from '@/components/ui/ModelSelect'
+import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
 const ENDPOINT = '/libraries'
@@ -30,6 +31,8 @@ interface FormState {
   brand_name: string
   model_ids: string[]
   model_refs: ModelRef[]
+  parent_ids: ParentId[]
+  parent_refs: ParentRef[]
   tag_ids: string[]
   description: string
   instrument_notes: string
@@ -49,6 +52,7 @@ function buildLibraryPayload(form: FormState): Record<string, unknown> {
   if (form.library_name) body.library_name = form.library_name
   if (form.brand_id) body.brand_id = form.brand_id
   body.model_ids = form.model_ids
+  body.parent_ids = form.parent_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
   if (form.description) body.description = form.description
   if (form.instrument_notes) body.instrument_notes = form.instrument_notes
@@ -61,7 +65,7 @@ function toForm(record: Library | null): FormState {
   if (!record) {
     return {
       library_name: '', brand_id: '', brand_name: '',
-      model_ids: [], model_refs: [], tag_ids: [],
+      model_ids: [], model_refs: [], parent_ids: [], parent_refs: [], tag_ids: [],
       description: '', instrument_notes: '', recording_notes: '', attributes: '',
     }
   }
@@ -71,6 +75,8 @@ function toForm(record: Library | null): FormState {
     brand_name: record.brand_name ?? '',
     model_ids: record.model_ids ?? [],
     model_refs: record.models ?? [],
+    parent_ids: (record.parents ?? []).map(p => ({ table_name: p.table_name, id: p.id })),
+    parent_refs: record.parents ?? [],
     tag_ids: record.tag_ids ?? [],
     description: record.description ?? '',
     instrument_notes: record.instrument_notes ?? '',
@@ -92,6 +98,11 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
       onClose,
       onMutate,
     })
+  const excludeProps = isCreate ? {} : { excludeTable: 'libraries' as const, excludeId: record!.library_id }
+  function handleParentsChange(ids: ParentId[], parents: ParentRef[]) {
+    set('parent_ids', ids)
+    set('parent_refs', parents)
+  }
 
   return (
     <RecordModal {...recordModalProps}>
@@ -145,11 +156,15 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
             <Label htmlFor="attributes">Attributes (JSON)</Label>
             <Textarea id="attributes" value={form.attributes} onChange={(e) => set('attributes', e.target.value)} rows={4} className="font-mono text-xs" placeholder="{}" />
           </div>
-          {!isCreate && (
-            <div className="col-span-2">
-              <FieldRow label="Parents (read-only)" value={<ParentLinks parents={record?.parents} />} />
-            </div>
-          )}
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Parents</Label>
+            <ParentSelect
+              value={form.parent_ids}
+              selectedParents={form.parent_refs}
+              onChange={handleParentsChange}
+              {...excludeProps}
+            />
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
