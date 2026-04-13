@@ -127,6 +127,30 @@ def encode_parent_refs(parents) -> list:
     return [{"table_name": p.table_name, "id": str(p.id)} for p in parents]
 
 
+def build_update_parts(updates: dict, parent_ids: list | None) -> tuple[list[str], list]:
+    """Build (set_parts, values) for a PATCH update, with positional params starting at $2.
+
+    Handles the parent_ids and attributes fields specially; all other fields are
+    passed through as-is. Callers must append 'updated_at = NOW()' and the record
+    ID ($1) separately.
+    """
+    set_parts: list[str] = []
+    values: list = []
+    i = 2
+    for col, val in updates.items():
+        if col == "parent_ids":
+            set_parts.append(f"{col} = {parent_ref_sql(f'${i}')}")
+            values.append(encode_parent_refs(parent_ids))
+        elif col == "attributes" and val is not None:
+            set_parts.append(f"{col} = ${i}")
+            values.append(json.dumps(val))
+        else:
+            set_parts.append(f"{col} = ${i}")
+            values.append(val)
+        i += 1
+    return set_parts, values
+
+
 async def fetch_mutable_entry(
     conn: asyncpg.Connection,
     audit_id: UUID,

@@ -165,6 +165,25 @@ async def test_update_effect(client, conn, admin_headers):
     assert response.json()["effect_name"] == "Update Me"
 
 
+async def test_update_effect_parent_ids(client, conn, admin_headers):
+    parent = await conn.fetchrow(
+        "INSERT INTO effects (effect_name) VALUES ('Parent FX') RETURNING effect_id"
+    )
+    child = await conn.fetchrow(
+        "INSERT INTO effects (effect_name) VALUES ('Child FX') RETURNING effect_id"
+    )
+    response = await client.patch(
+        f"/effects/{child['effect_id']}",
+        json={"parent_ids": [{"table_name": "effects", "id": str(parent["effect_id"])}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data["parents"]) == 1
+    assert data["parents"][0]["table_name"] == "effects"
+    assert data["parents"][0]["id"] == str(parent["effect_id"])
+
+
 async def test_update_effect_not_found(client, admin_headers):
     response = await client.patch(f"/effects/{uuid4()}", json={"version": "2.0"}, headers=admin_headers)
     assert response.status_code == 404
