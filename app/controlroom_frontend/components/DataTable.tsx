@@ -33,16 +33,65 @@ function makeSortingChangeHandler(
   }
 }
 
+function applyDirection(magnitude: number, desc: boolean): number {
+  return desc ? -magnitude : magnitude
+}
+
+function useSortHandlers(
+  manualSorting: boolean,
+  sortFields: SortField[] | undefined,
+  externalSorting: SortingState | undefined,
+  onExternalSortChange: ((s: SortingState) => void) | undefined,
+) {
+  const [sorting, setSorting] = React.useState<SortingState>(
+    !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
+  )
+  const activeSorting = manualSorting ? (externalSorting ?? []) : sorting
+
+  function handleSortAdd(id: string) {
+    if (activeSorting.length >= MAX_SORT_LEVELS) return
+    if (activeSorting.some((s) => s.id === id)) return
+    const next: SortingState = [...activeSorting, { id, desc: false }]
+    onExternalSortChange?.(next)
+    setSorting(next)
+  }
+
+  function handleSortRemove(index: number) {
+    const next = activeSorting.filter((_, i) => i !== index)
+    onExternalSortChange?.(next)
+    setSorting(next)
+  }
+
+  function handleSortToggleDir(index: number) {
+    const next = activeSorting.map((s, i) => (i === index ? { ...s, desc: !s.desc } : s))
+    onExternalSortChange?.(next)
+    setSorting(next)
+  }
+
+  return { sorting, setSorting, activeSorting, handleSortAdd, handleSortRemove, handleSortToggleDir }
+}
+
+function useInfiniteScroll(
+  lastIndex: number | undefined,
+  rowCount: number,
+  hasNextPage: boolean | undefined,
+  isFetchingNextPage: boolean | undefined,
+  fetchNextPage: (() => void) | undefined,
+) {
+  React.useEffect(() => {
+    if (lastIndex === undefined || !hasNextPage || isFetchingNextPage) return
+    if (lastIndex >= rowCount - 5) fetchNextPage?.()
+  }, [lastIndex, rowCount, hasNextPage, isFetchingNextPage, fetchNextPage])
+}
+
 function compareValues(aVal: unknown, bVal: unknown, desc: boolean): number {
-  if (aVal == null && bVal == null) return 0
-  if (aVal == null) return 1
+  if (aVal == null) return bVal == null ? 0 : 1
   if (bVal == null) return -1
   if (typeof aVal === 'string' && typeof bVal === 'string') {
-    const cmp = aVal.localeCompare(bVal, undefined, { sensitivity: 'base' })
-    return desc ? -cmp : cmp
+    return applyDirection(aVal.localeCompare(bVal, undefined, { sensitivity: 'base' }), desc)
   }
-  if (aVal < bVal) return desc ? 1 : -1
-  if (aVal > bVal) return desc ? -1 : 1
+  if (aVal < bVal) return applyDirection(-1, desc)
+  if (aVal > bVal) return applyDirection(1, desc)
   return 0
 }
 
@@ -115,9 +164,8 @@ export function DataTable<TData, TValue>({
   onClearFilters,
   onSortedDataChange,
 }: DataTableProps<TData, TValue>) {
-  const [sorting, setSorting] = React.useState<SortingState>(
-    !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
-  )
+  const { sorting, setSorting, activeSorting, handleSortAdd, handleSortRemove, handleSortToggleDir } =
+    useSortHandlers(manualSorting, sortFields, externalSorting, onExternalSortChange)
 
   const sortedData = React.useMemo(() => {
     if (manualSorting || sorting.length === 0) return data
@@ -176,28 +224,6 @@ export function DataTable<TData, TValue>({
     enableColumnResizing: true,
   })
 
-  const activeSorting = manualSorting ? (externalSorting ?? []) : sorting
-
-  function handleSortAdd(id: string) {
-    if (activeSorting.length >= MAX_SORT_LEVELS) return
-    if (activeSorting.some((s) => s.id === id)) return
-    const next: SortingState = [...activeSorting, { id, desc: false }]
-    onExternalSortChange?.(next)
-    setSorting(next)
-  }
-
-  function handleSortRemove(index: number) {
-    const next = activeSorting.filter((_, i) => i !== index)
-    onExternalSortChange?.(next)
-    setSorting(next)
-  }
-
-  function handleSortToggleDir(index: number) {
-    const next = activeSorting.map((s, i) => (i === index ? { ...s, desc: !s.desc } : s))
-    onExternalSortChange?.(next)
-    setSorting(next)
-  }
-
   const rows = table.getRowModel().rows
 
   // Notify with post-filter visible rows so navigation follows what the user actually sees.
@@ -217,12 +243,7 @@ export function DataTable<TData, TValue>({
   const paddingBottom = virtualItems.length > 0 ? totalSize - virtualItems.at(-1)!.end : 0
 
   const lastVirtualItem = virtualItems.at(-1)
-  React.useEffect(() => {
-    if (!lastVirtualItem || !hasNextPage || isFetchingNextPage) return
-    if (lastVirtualItem.index >= rows.length - 5) {
-      fetchNextPage?.()
-    }
-  }, [lastVirtualItem?.index, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage])
+  useInfiniteScroll(lastVirtualItem?.index, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage)
 
   function handleDragStart(e: React.DragEvent, colId: string) {
     setDraggingId(colId)

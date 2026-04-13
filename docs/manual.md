@@ -49,7 +49,7 @@ Each table opens as a full-page data table with:
 - **Per-column filters** — a filter input appears beneath each column header. Type at least 2 characters to filter (debounced 350 ms). Wrap a value in double quotes (e.g. `"ab"`) to bypass the 2-character minimum. Click the **×** inside a filter input to clear that column. The **Clear filters** button in the toolbar removes all active filters at once.
 - **Sort controls** — a sort dropdown and direction toggle in the toolbar (see below)
 - **Resizable columns** — drag column borders to resize
-- **Column picker** — the **Columns** button toggles individual columns on/off
+- **Column picker** — the **Columns** button toggles individual columns on/off. Some columns (e.g. **Parents**) are hidden by default to keep the table uncluttered — enable them here when needed for bulk work or sorting
 - **Row virtualization** — all content tables render only visible rows for performance
 - **Record count** — shown below the table title
 
@@ -87,6 +87,8 @@ For **single-select fields** (entity type, model type, etc.), the selected value
 
 For **text fields** (version, collection, etc.), the typed value replaces the existing value.
 
+For **Parents**, a search box appears. Existing parents across all selected records are shown as chips — remove a chip to unassign that parent from all selected records, or search to add a new parent to all of them. Apply merges additions and applies removals per-record non-destructively (parents unique to one record and not shown in the union are left untouched).
+
 ### Bulk delete (admin only)
 
 A **Delete N** button appears on the right side of the bulk edit bar. Clicking it shows an "Are you sure?" confirmation — click **Confirm Delete N** to proceed. Records are deleted concurrently; if any individual delete fails (e.g. the record is still referenced elsewhere), the rest continue and a summary of failures is shown.
@@ -103,7 +105,7 @@ Clicking a row opens a read-only modal showing all fields for that record.
 
 - **Lookup fields** (types, formats, tags) display as labeled badges
 - **Models** (Effects, Instruments, Libraries) — associated hardware models display as clickable chips. Click any chip to open that model's full detail modal as an overlay — no page navigation.
-- **Parent references** show the table name and record name
+- **Parents** (Effects, Instruments, Libraries) — parent records display with their table name and record name
 - **Dates** are formatted to local time
 
 ### Editing (admin only)
@@ -114,6 +116,7 @@ In edit mode:
 - Text fields become inputs
 - **Brand** — typeahead search field: start typing to search existing brands and select one. If the brand doesn't exist yet, a **Create "..."** option appears. Clicking it opens an inline form to create the brand on the spot.
 - **Models** (Effects, Instruments, Libraries) — typeahead multi-select: start typing a model name (or brand prefix, e.g. "Universal Audio") to search. Click a result to add it; click again to remove it. Selected models appear as removable badges below the search field. To create a new model, use the Models table first.
+- **Parents** (Effects, Instruments, Libraries) — typeahead multi-select: search for any effect, instrument, or library to assign as a parent. Recently used parents appear when the field is focused with an empty query. Selected parents appear as removable chips. A record cannot select itself as a parent.
 - Lookup fields (types, formats, tags) become multi-select dropdowns populated from the CONFIG tables
 - `attributes` is a freeform JSON field
 

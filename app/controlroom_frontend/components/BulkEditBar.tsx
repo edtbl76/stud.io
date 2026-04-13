@@ -149,6 +149,38 @@ export function BulkEditBar({
 
   const canApply = field !== null && canApplyField(field, text, value)
 
+  function renderFieldInput(f: BulkEditField) {
+    if (f.type === 'text') {
+      return (
+        <Input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={`Set ${f.label}…`}
+          className="h-8 text-xs"
+        />
+      )
+    }
+    if (f.type === 'parentsearch') {
+      return (
+        <ParentSelect
+          value={parentValue}
+          selectedParents={parentRefs}
+          onChange={(ids, refs) => { setParentValue(ids); setParentRefs(refs) }}
+        />
+      )
+    }
+    return (
+      <MultiSelect
+        configSlug={f.configSlug!}
+        value={value}
+        onChange={setValue}
+        singleSelect={f.type === 'singleselect'}
+        placeholder={`Set ${f.label}…`}
+        hideBadges
+      />
+    )
+  }
+
   return (
     <div
       data-testid="bulk-edit-bar"
@@ -188,29 +220,7 @@ export function BulkEditBar({
       {/* Value input */}
       {field && (
         <div className={field.type === 'parentsearch' ? 'w-80' : 'w-56'}>
-          {field.type === 'text' ? (
-            <Input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={`Set ${field.label}…`}
-              className="h-8 text-xs"
-            />
-          ) : field.type === 'parentsearch' ? (
-            <ParentSelect
-              value={parentValue}
-              selectedParents={parentRefs}
-              onChange={(ids, refs) => { setParentValue(ids); setParentRefs(refs) }}
-            />
-          ) : (
-            <MultiSelect
-              configSlug={field.configSlug!}
-              value={value}
-              onChange={setValue}
-              singleSelect={field.type === 'singleselect'}
-              placeholder={`Set ${field.label}…`}
-              hideBadges
-            />
-          )}
+          {renderFieldInput(field)}
         </div>
       )}
 
