@@ -1,5 +1,13 @@
 import pytest
+from typing import NamedTuple
 from uuid import uuid4
+
+
+class _ParentsCase(NamedTuple):
+    op: str
+    suffix: str
+    expected_in: str
+    expected_out: str
 
 
 # ---------------------------------------------------------------------------
@@ -211,22 +219,22 @@ async def test_delete_effect_not_found(client, admin_headers):
 # FILTER — parents is_empty / is_not_empty
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("op,suffix,expected_in,expected_out", [
-    ("is_empty",     "",  "OrphanFX",  "ChildFX"),
-    ("is_not_empty", "2", "ChildFX2",  "OrphanFX2"),
+@pytest.mark.parametrize("case", [
+    _ParentsCase("is_empty",     "",  "OrphanFX",  "ChildFX"),
+    _ParentsCase("is_not_empty", "2", "ChildFX2",  "OrphanFX2"),
 ])
-async def test_filter_effects_parents(client, conn, admin_headers, op, suffix, expected_in, expected_out):
+async def test_filter_effects_parents(client, conn, admin_headers, case):
     parent = await conn.fetchrow(
-        f"INSERT INTO effects (effect_name) VALUES ('ParentFX{suffix}') RETURNING effect_id"
+        f"INSERT INTO effects (effect_name) VALUES ('ParentFX{case.suffix}') RETURNING effect_id"
     )
-    await conn.execute(f"INSERT INTO effects (effect_name) VALUES ('OrphanFX{suffix}')")
+    await conn.execute(f"INSERT INTO effects (effect_name) VALUES ('OrphanFX{case.suffix}')")
     resp = await client.post("/effects", json={
-        "effect_name": f"ChildFX{suffix}",
+        "effect_name": f"ChildFX{case.suffix}",
         "parent_ids": [{"table_name": "effects", "id": str(parent["effect_id"])}],
     }, headers=admin_headers)
     assert resp.status_code == 201
-    response = await client.get(f"/effects?filter_parents_op={op}&limit=9999")
+    response = await client.get(f"/effects?filter_parents_op={case.op}&limit=9999")
     assert response.status_code == 200
     names = [i["effect_name"] for i in response.json()["items"]]
-    assert expected_in in names
-    assert expected_out not in names
+    assert case.expected_in in names
+    assert case.expected_out not in names

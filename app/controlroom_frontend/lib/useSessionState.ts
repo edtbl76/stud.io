@@ -14,6 +14,12 @@ const DEBOUNCE_MS = 350
 const MIN_CHARS = 2
 const STORAGE_PREFIX = 'cr:'
 
+export interface SessionConfig {
+  username: string
+  queryKey: string
+  defaultSort?: string
+}
+
 export interface SessionState {
   inputFilters: FilterState
   activeFilters: FilterState
@@ -71,15 +77,19 @@ function buildDefaultSorting(defaultSort: string | undefined): SortingState {
   return defaultSort ? [{ id: defaultSort, desc: false }] : []
 }
 
+function isEntryActive(entry: FilterEntry): boolean {
+  const { value, operator } = entry
+  if (VALUE_FREE_OPERATORS.has(operator)) return true
+  if (!value) return false
+  if (DATE_OPERATORS.has(operator)) return true
+  const isQuoted = value.startsWith('"') && value.endsWith('"') && value.length >= 2
+  return isQuoted || value.length >= MIN_CHARS
+}
+
 function buildActive(inputs: FilterState): FilterState {
   const active: FilterState = {}
   for (const [key, entry] of Object.entries(inputs)) {
-    const { value, operator } = entry
-    if (VALUE_FREE_OPERATORS.has(operator)) { active[key] = entry; continue }
-    if (!value) continue
-    if (DATE_OPERATORS.has(operator)) { active[key] = entry; continue }
-    const isQuoted = value.startsWith('"') && value.endsWith('"') && value.length >= 2
-    if (isQuoted || value.length >= MIN_CHARS) active[key] = entry
+    if (isEntryActive(entry)) active[key] = entry
   }
   return active
 }
@@ -101,11 +111,10 @@ export function makeDefaultEntry(value: string): FilterEntry {
 }
 
 export function useSessionState(
-  username: string,
-  queryKey: string,
+  config: SessionConfig,
   columns: ColumnDef<unknown, unknown>[],
-  defaultSort: string | undefined,
 ): SessionState {
+  const { username, queryKey, defaultSort } = config
   const key = storageKey(username, queryKey)
   const defaultSorting = React.useMemo(() => buildDefaultSorting(defaultSort), [defaultSort])
   const defaultVisibility = React.useMemo(

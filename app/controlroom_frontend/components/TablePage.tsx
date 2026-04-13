@@ -161,12 +161,9 @@ export function TablePage<T>({
     onNavigate: setSelectedRecord,
   })
 
-  const defaultSort = sortFields?.[0]?.key
   const session = useSessionState(
-    username ?? 'guest',
-    queryKey,
+    { username: username ?? 'guest', queryKey, defaultSort: sortFields?.[0]?.key },
     columns as ColumnDef<unknown, unknown>[],
-    defaultSort,
   )
 
   const { data, isLoading, error, recordCountLabel, pagedTableProps } =

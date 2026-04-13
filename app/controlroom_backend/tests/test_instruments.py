@@ -1,5 +1,13 @@
 import pytest
+from typing import NamedTuple
 from uuid import uuid4
+
+
+class _ParentsCase(NamedTuple):
+    op: str
+    suffix: str
+    expected_in: str
+    expected_out: str
 
 
 # ---------------------------------------------------------------------------
@@ -193,22 +201,22 @@ async def test_delete_instrument_not_found(client, admin_headers):
 # FILTER — parents is_empty / is_not_empty
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("op,suffix,expected_in,expected_out", [
-    ("is_empty",     "",  "OrphanInst",  "ChildInst"),
-    ("is_not_empty", "2", "ChildInst2",  "OrphanInst2"),
+@pytest.mark.parametrize("case", [
+    _ParentsCase("is_empty",     "",  "OrphanInst",  "ChildInst"),
+    _ParentsCase("is_not_empty", "2", "ChildInst2",  "OrphanInst2"),
 ])
-async def test_filter_instruments_parents(client, conn, admin_headers, op, suffix, expected_in, expected_out):
+async def test_filter_instruments_parents(client, conn, admin_headers, case):
     parent = await conn.fetchrow(
-        f"INSERT INTO instruments (instrument_name) VALUES ('ParentInst{suffix}') RETURNING instrument_id"
+        f"INSERT INTO instruments (instrument_name) VALUES ('ParentInst{case.suffix}') RETURNING instrument_id"
     )
-    await conn.execute(f"INSERT INTO instruments (instrument_name) VALUES ('OrphanInst{suffix}')")
+    await conn.execute(f"INSERT INTO instruments (instrument_name) VALUES ('OrphanInst{case.suffix}')")
     resp = await client.post("/instruments", json={
-        "instrument_name": f"ChildInst{suffix}",
+        "instrument_name": f"ChildInst{case.suffix}",
         "parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}],
     }, headers=admin_headers)
     assert resp.status_code == 201
-    response = await client.get(f"/instruments?filter_parents_op={op}&limit=9999")
+    response = await client.get(f"/instruments?filter_parents_op={case.op}&limit=9999")
     assert response.status_code == 200
     names = [i["instrument_name"] for i in response.json()["items"]]
-    assert expected_in in names
-    assert expected_out not in names
+    assert case.expected_in in names
+    assert case.expected_out not in names
