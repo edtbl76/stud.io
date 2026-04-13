@@ -46,7 +46,7 @@ function useSortHandlers(
   const [sorting, setSorting] = React.useState<SortingState>(
     !manualSorting && sortFields?.[0] ? [{ id: sortFields[0].key, desc: false }] : [],
   )
-  const activeSorting = manualSorting ? (externalSorting ?? []) : sorting
+  const activeSorting = manualSorting ? (externalSorting ?? sorting) : sorting
 
   function handleSortAdd(id: string) {
     if (activeSorting.length >= MAX_SORT_LEVELS) return
@@ -69,6 +69,23 @@ function useSortHandlers(
   }
 
   return { sorting, setSorting, activeSorting, handleSortAdd, handleSortRemove, handleSortToggleDir }
+}
+
+function useDefaultHiddenColumns(
+  columns: ColumnDef<unknown, unknown>[],
+  setColumnVisibility: React.Dispatch<React.SetStateAction<VisibilityState>>,
+) {
+  React.useEffect(() => {
+    for (const col of columns) {
+      if (!col.meta?.defaultHidden) continue
+      const id = col.id ?? (col as { accessorKey?: string }).accessorKey
+      if (!id) continue
+      setColumnVisibility((prev) => {
+        if (id in prev) return prev
+        return { ...prev, [id]: false }
+      })
+    }
+  }, [columns, setColumnVisibility])
 }
 
 function useInfiniteScroll(
@@ -193,6 +210,9 @@ export function DataTable<TData, TValue>({
     }
     return initial
   })
+
+  useDefaultHiddenColumns(columns as ColumnDef<unknown, unknown>[], setColumnVisibility)
+
   const [columnOrder, setColumnOrder] = React.useState<ColumnOrderState>([])
   const [draggingId, setDraggingId] = React.useState<string | null>(null)
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -201,7 +221,7 @@ export function DataTable<TData, TValue>({
     data: sortedData,
     columns,
     state: {
-      sorting: manualSorting ? (externalSorting ?? []) : sorting,
+      sorting: activeSorting,
       columnFilters,
       columnVisibility,
       columnOrder,

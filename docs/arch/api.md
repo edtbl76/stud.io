@@ -169,11 +169,11 @@ ILIKE substring search across effects, instruments, and libraries. Used by the `
 
 | Parameter | Default | Description |
 |---|---|---|
-| `q` | required | Search query — returns empty results if blank or whitespace-only |
-| `exclude_table` | `""` | Table name to exclude from results (prevents a record from selecting itself as a parent) |
-| `exclude_id` | nil UUID | Record ID to exclude from results — combined with `exclude_table` |
+| `q` | required | Search query — required, but may be blank or whitespace-only, which yields 200 with empty results |
+| `exclude_table` | `""` (optional) | Table name to exclude from results (prevents a record from selecting itself as a parent) |
+| `exclude_id` | `00000000-0000-0000-0000-000000000000` (optional) | Record ID to exclude from results — combined with `exclude_table` |
 
-Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results are ordered by name. Capped at 20 results (`ENTITY_SEARCH_LIMIT`). Returns 200 with empty results for a blank query — does not return 422.
+Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results are ordered by name. Capped at 20 results (`ENTITY_SEARCH_LIMIT = 20` in `routers/search.py`). Returns 200 with empty results for a blank query — does not return 422.
 
 ### Dynamic router: tools
 

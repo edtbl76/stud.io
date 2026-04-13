@@ -69,9 +69,6 @@ export function BulkEditBar({
 
   const field = fields.find((f) => f.key === fieldKey) ?? null
 
-  const selectedRowsRef = React.useRef(selectedRows)
-  React.useLayoutEffect(() => { selectedRowsRef.current = selectedRows }, [selectedRows])
-
   React.useEffect(() => {
     setValue([])
     setText('')
@@ -80,7 +77,7 @@ export function BulkEditBar({
     if (currentField?.type === 'parentsearch') {
       const seen = new Set<string>()
       const union: ParentRef[] = []
-      for (const row of selectedRowsRef.current) {
+      for (const row of selectedRows) {
         for (const p of ((row.parents as ParentRef[] | null) ?? [])) {
           const key = `${p.table_name}:${p.id}`
           if (!seen.has(key)) { seen.add(key); union.push(p) }
@@ -94,7 +91,7 @@ export function BulkEditBar({
       setParentValue([])
       setParentRefs([])
     }
-  }, [fieldKey, fields])
+  }, [fieldKey, fields, selectedRows])
 
   async function handleApply() {
     if (!field) return

@@ -103,19 +103,33 @@ function renderBar(
   const onApply = jest.fn()
   const onClear = jest.fn()
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
-  render(
+  const getRowId = (r: Record<string, unknown>) => r.id as string
+  const { rerender } = render(
     <QueryClientProvider client={client}>
       <BulkEditBar
         selectedRows={selectedRows}
         fields={fields}
         endpoint="/test"
-        getRowId={(r) => r.id as string}
+        getRowId={getRowId}
         onApply={onApply}
         onClear={onClear}
       />
     </QueryClientProvider>
   )
-  return { onApply, onClear }
+  const rerenderWithRows = (nextRows: Record<string, unknown>[]) =>
+    rerender(
+      <QueryClientProvider client={client}>
+        <BulkEditBar
+          selectedRows={nextRows}
+          fields={fields}
+          endpoint="/test"
+          getRowId={getRowId}
+          onApply={onApply}
+          onClear={onClear}
+        />
+      </QueryClientProvider>
+    )
+  return { onApply, onClear, rerenderWithRows }
 }
 
 describe('BulkEditBar', () => {
@@ -331,6 +345,34 @@ describe('BulkEditBar', () => {
     await waitFor(() => expect(mockApiUpdate).toHaveBeenCalledTimes(2))
     expect(mockApiUpdate).toHaveBeenCalledWith('/test', '1', { parent_ids: [] })
     expect(mockApiUpdate).toHaveBeenCalledWith('/test', '2', { parent_ids: [{ table_name: 'instruments', id: 'i-1' }] })
+    await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
+  })
+
+  it('parentsearch: chips and Apply payload recompute when selectedRows changes while parent_ids is active', async () => {
+    const newRows: Record<string, unknown>[] = [
+      { id: '3', parents: [{ table_name: 'instruments', id: 'i-2', name: 'Juno-106' }] },
+    ]
+    const { onApply, rerenderWithRows } = renderBar([parentField], parentRows)
+
+    // Select parent_ids: chips show union of original parentRows (e-1 and i-1)
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), { target: { value: 'parent_ids' } })
+    expect(screen.getByTestId('chip-e-1')).toBeInTheDocument()
+    expect(screen.getByTestId('chip-i-1')).toBeInTheDocument()
+
+    // Change selectedRows while parent_ids is still active
+    rerenderWithRows(newRows)
+
+    // Chips should reflect the new row's parents only
+    await waitFor(() => expect(screen.queryByTestId('chip-e-1')).not.toBeInTheDocument())
+    expect(screen.queryByTestId('chip-i-1')).not.toBeInTheDocument()
+    expect(screen.getByTestId('chip-i-2')).toBeInTheDocument()
+
+    // Apply should compute payloads from the new selectedRows
+    fireEvent.click(screen.getByRole('button', { name: /apply/i }))
+    await waitFor(() => expect(mockApiUpdate).toHaveBeenCalledTimes(1))
+    expect(mockApiUpdate).toHaveBeenCalledWith('/test', '3', {
+      parent_ids: [{ table_name: 'instruments', id: 'i-2' }],
+    })
     await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
   })
 
