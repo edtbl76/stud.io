@@ -3,6 +3,7 @@ import json
 import re
 import uuid
 from datetime import datetime, timezone
+from typing import Any, Mapping, Optional, Sequence
 from uuid import UUID
 
 import asyncpg
@@ -127,7 +128,7 @@ def encode_parent_refs(parents) -> list:
     return [{"table_name": p.table_name, "id": str(p.id)} for p in parents]
 
 
-def build_update_parts(updates: dict, parent_ids: list | None) -> tuple[list[str], list]:
+def build_update_parts(updates: Mapping[str, Any], parent_ids: Optional[Sequence[Any]]) -> tuple[list[str], list[Any]]:
     """Build (set_parts, values) for a PATCH update, with positional params starting at $2.
 
     Handles the parent_ids and attributes fields specially; all other fields are
