@@ -6,7 +6,38 @@ import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { MultiSelect } from '@/components/ui/MultiSelect'
+import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
+import type { ParentRef } from '@/lib/types'
 import type { BulkEditField } from '@/lib/bulkEdit'
+
+function canApplyField(field: BulkEditField, text: string, value: string[]): boolean {
+  if (field.type === 'text') return text.trim().length > 0
+  if (field.type === 'parentsearch') return true
+  return value.length > 0
+}
+
+function buildParentsearchPayload(
+  row: Record<string, unknown>,
+  parentValue: ParentId[],
+  unionParents: ParentRef[],
+): Record<string, unknown> {
+  const unionKeys = new Set(unionParents.map((p) => `${p.table_name}:${p.id}`))
+  const finalKeys = new Set(parentValue.map((p) => `${p.table_name}:${p.id}`))
+  const added = parentValue.filter((p) => !unionKeys.has(`${p.table_name}:${p.id}`))
+  const removedKeys = new Set(
+    unionParents.filter((p) => !finalKeys.has(`${p.table_name}:${p.id}`)).map((p) => `${p.table_name}:${p.id}`)
+  )
+  const rowParents = (row.parents as ParentRef[] | null) ?? []
+  const kept = rowParents.filter((p) => !removedKeys.has(`${p.table_name}:${p.id}`))
+  const keptKeys = new Set(kept.map((p) => `${p.table_name}:${p.id}`))
+  const newAdded = added.filter((p) => !keptKeys.has(`${p.table_name}:${p.id}`))
+  return {
+    parent_ids: [
+      ...kept.map((p) => ({ table_name: p.table_name, id: p.id })),
+      ...newAdded.map((p) => ({ table_name: p.table_name, id: p.id })),
+    ],
+  }
+}
 
 interface BulkEditBarProps {
   selectedRows: Record<string, unknown>[]
@@ -28,6 +59,9 @@ export function BulkEditBar({
   const [fieldKey, setFieldKey] = React.useState('')
   const [value, setValue] = React.useState<string[]>([])
   const [text, setText] = React.useState('')
+  const [parentValue, setParentValue] = React.useState<ParentId[]>([])
+  const [parentRefs, setParentRefs] = React.useState<ParentRef[]>([])
+  const [unionParents, setUnionParents] = React.useState<ParentRef[]>([])
   const [applying, setApplying] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
   const [confirmBulkDelete, setConfirmBulkDelete] = React.useState(false)
@@ -39,7 +73,25 @@ export function BulkEditBar({
     setValue([])
     setText('')
     setResult(null)
-  }, [fieldKey])
+    const currentField = fields.find((f) => f.key === fieldKey)
+    if (currentField?.type === 'parentsearch') {
+      const seen = new Set<string>()
+      const union: ParentRef[] = []
+      for (const row of selectedRows) {
+        for (const p of ((row.parents as ParentRef[] | null) ?? [])) {
+          const key = `${p.table_name}:${p.id}`
+          if (!seen.has(key)) { seen.add(key); union.push(p) }
+        }
+      }
+      setUnionParents(union)
+      setParentValue(union.map((p) => ({ table_name: p.table_name, id: p.id })))
+      setParentRefs(union)
+    } else {
+      setUnionParents([])
+      setParentValue([])
+      setParentRefs([])
+    }
+  }, [fieldKey, fields, selectedRows])
 
   async function handleApply() {
     if (!field) return
@@ -56,6 +108,8 @@ export function BulkEditBar({
           payload = { [field.key]: [...new Set([...existing, ...value])] }
         } else if (field.type === 'singleselect') {
           payload = { [field.key]: value[0] ?? null }
+        } else if (field.type === 'parentsearch') {
+          payload = buildParentsearchPayload(row, parentValue, unionParents)
         } else {
           payload = { [field.key]: text.trim() || null }
         }
@@ -90,8 +144,39 @@ export function BulkEditBar({
     }
   }
 
-  const canApply =
-    field !== null && (field.type === 'text' ? text.trim().length > 0 : value.length > 0)
+  const canApply = field !== null && canApplyField(field, text, value)
+
+  function renderFieldInput(f: BulkEditField) {
+    if (f.type === 'text') {
+      return (
+        <Input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder={`Set ${f.label}…`}
+          className="h-8 text-xs"
+        />
+      )
+    }
+    if (f.type === 'parentsearch') {
+      return (
+        <ParentSelect
+          value={parentValue}
+          selectedParents={parentRefs}
+          onChange={(ids, refs) => { setParentValue(ids); setParentRefs(refs) }}
+        />
+      )
+    }
+    return (
+      <MultiSelect
+        configSlug={f.configSlug!}
+        value={value}
+        onChange={setValue}
+        singleSelect={f.type === 'singleselect'}
+        placeholder={`Set ${f.label}…`}
+        hideBadges
+      />
+    )
+  }
 
   return (
     <div
@@ -131,24 +216,8 @@ export function BulkEditBar({
 
       {/* Value input */}
       {field && (
-        <div className="w-56">
-          {field.type === 'text' ? (
-            <Input
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder={`Set ${field.label}…`}
-              className="h-8 text-xs"
-            />
-          ) : (
-            <MultiSelect
-              configSlug={field.configSlug!}
-              value={value}
-              onChange={setValue}
-              singleSelect={field.type === 'singleselect'}
-              placeholder={`Set ${field.label}…`}
-              hideBadges
-            />
-          )}
+        <div className={field.type === 'parentsearch' ? 'w-80' : 'w-56'}>
+          {renderFieldInput(field)}
         </div>
       )}
 

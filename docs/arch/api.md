@@ -159,6 +159,22 @@ Response model: `{ results: [{ table, id, name, brand_name, rank }], total }`.
 
 Results are ranked by `ts_rank` descending. `total` reflects the full match count before the limit is applied. `brand_name` is `null` for tables that have no brand relationship (brands itself).
 
+### Entity typeahead endpoint
+
+```
+GET /search/entities?q=<query>[&exclude_table=<table>][&exclude_id=<uuid>]
+```
+
+ILIKE substring search across effects, instruments, and libraries. Used by the `ParentSelect` component to populate parent assignment dropdowns in edit mode and bulk edit.
+
+| Parameter | Default | Description |
+|---|---|---|
+| `q` | required | Search query — required, but may be blank or whitespace-only, which yields 200 with empty results |
+| `exclude_table` | `""` (optional) | Table name to exclude from results (prevents a record from selecting itself as a parent) |
+| `exclude_id` | `00000000-0000-0000-0000-000000000000` (optional) | Record ID to exclude from results — combined with `exclude_table` |
+
+Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results are ordered by name. Capped at 20 results (`ENTITY_SEARCH_LIMIT = 20` in `routers/search.py`). Returns 200 with empty results for a blank query — does not return 422.
+
 ### Dynamic router: tools
 
 `/tools/{category}` maps to one of five base tables based on the category path parameter:

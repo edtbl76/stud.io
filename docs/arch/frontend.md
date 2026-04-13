@@ -51,13 +51,15 @@ app/controlroom_frontend/
 │   │   └── config/         # ConfigModal, columns (shared by all 7 lookup tables)
 │   └── ui/                 # shadcn/ui primitives (Button, Input, Dialog, etc.)
 ├── lib/
-│   ├── api.ts              # Typed fetch wrapper — calls relative /api/... paths
-│   ├── auth.tsx            # AuthContext, useAuth hook, session management
-│   ├── columnMeta.ts       # TypeScript module augmentation — adds filterParam and defaultHidden to TanStack ColumnMeta
-│   ├── computeDiff.ts      # Field-level diff between two JSON snapshots (for history view)
-│   ├── types.ts            # TypeScript interfaces for all API response shapes
-│   ├── useTableFilters.ts  # Hook: per-column filter state with 350 ms debounce and 2-char minimum
-│   └── utils.ts            # Tailwind class merge utility (cn), formatSlug, formatDate
+│   ├── api.ts                   # Typed fetch wrapper — calls relative /api/... paths
+│   ├── auth.tsx                 # AuthContext, useAuth hook, session management
+│   ├── bulkEdit.ts              # BulkEditField interface — type union: multiselect, singleselect, text, parentsearch
+│   ├── columnMeta.ts            # TypeScript module augmentation — adds filterParam and defaultHidden to TanStack ColumnMeta
+│   ├── computeDiff.ts           # Field-level diff between two JSON snapshots (for history view)
+│   ├── parentSelectRecents.ts   # localStorage utility for recent ParentSelect picks — max 10, deduplicated by (table_name, id)
+│   ├── types.ts                 # TypeScript interfaces for all API response shapes
+│   ├── useTableFilters.ts       # Hook: per-column filter state with 350 ms debounce and 2-char minimum
+│   └── utils.ts                 # Tailwind class merge utility (cn), formatSlug, formatDate
 ├── __tests__/              # Jest + React Testing Library unit tests
 └── e2e/                    # Playwright end-to-end tests (run against test stack on port 3001)
 ```
@@ -74,7 +76,7 @@ The generic page component used by every catalog/session/tools/config page. Acce
 - `getRowId` — extracts the primary key from a row
 - `renderModal` — callback that renders the appropriate modal for the table
 - `paginated` — enables server-side pagination, sorting, and per-column filtering (all content tables use this)
-- `bulkEditFields` — enables the checkbox column and bulk edit bar (admin only)
+- `bulkEditFields` — enables the checkbox column and bulk edit bar (admin only). Each entry is a `BulkEditField` (`lib/bulkEdit.ts`) with a `type` of `multiselect`, `singleselect`, `text`, or `parentsearch`. The `parentsearch` type renders a `ParentSelect` pre-populated with the union of existing parents across all selected rows; apply logic merges additions and removes explicit deletions per-record.
 
 Handles: data fetching via `useInfiniteQuery` (paginated) or `useQuery` (non-paginated), per-column filtering via `useTableFilters` (350 ms debounce, 2-char minimum), row click → modal open, modal close + query invalidation on mutation.
 
@@ -105,7 +107,7 @@ Each modal composes `RecordModal` and owns:
 - View-mode field layout using `FieldRow`, `TypeBadges`, `ModelLinks`, `ParentLinks`
 - Edit-mode form with `Input`, `Textarea`, `BrandSelect`, `ModelSelect`, and `MultiSelect` fields
 
-`EffectModal`, `InstrumentModal`, and `LibraryModal` include a **Models** field: `ModelSelect` in edit mode (stores `model_ids: string[]` in form state, always sent to the API even when empty to allow clearing) and `ModelLinks` in view mode.
+`EffectModal`, `InstrumentModal`, and `LibraryModal` include a **Models** field (`ModelSelect` in edit mode, `ModelLinks` in view mode) and a **Parents** field (`ParentSelect` in edit mode, `ParentLinks` in view mode). `model_ids` and `parent_ids` are always sent to the API even when empty to allow clearing. The `excludeTable`/`excludeId` props on `ParentSelect` prevent a record from selecting itself as a parent.
 
 ### `ModelLinks`
 
@@ -122,6 +124,24 @@ A dropdown component for selecting multiple values from a lookup table. Fetches 
 A multi-value typeahead component for associating hardware models with an effect, instrument, or library. Debounces search input (300 ms) and calls `GET /models?filter_name=<query>` via `api.listPaged`. Results display with a checkbox indicator for already-selected items. Clicking a result toggles it; selected models appear as removable badges below the input. No inline creation — models must be created via the Models table first.
 
 Props: `value: string[]` (selected `model_id`s), `selectedModels: ModelRef[]` (display names), `onChange: (ids, models) => void`.
+
+### `ParentSelect`
+
+A multi-value entity search component for assigning parent records (effects, instruments, or libraries) to a record. Debounces search input (300 ms) and calls `GET /search/entities?q=<query>` via `api.searchEntities`. When the query is empty and the input is focused, shows recently used parents from `localStorage` (managed by `lib/parentSelectRecents.ts`, max 10, deduplicated by `table_name + id`). Selected parents appear as removable badge chips. Display name is formatted as "Brand – Name" when a brand is present.
+
+Props: `value: ParentId[]` (wire format — `{table_name, id}[]`), `selectedParents: ParentRef[]` (display — includes `name`), `onChange: (ids, refs) => void`, `excludeTable?: string`, `excludeId?: string`.
+
+`ParentId` is exported from `components/ui/ParentSelect.tsx` and shared by `EffectModal`, `InstrumentModal`, and `LibraryModal`.
+
+### `BulkEditBar`
+
+The bulk action toolbar rendered above the table when one or more rows are selected (admin only). Shows the selection count, a field picker dropdown, a value input, an Apply button, and a two-stage bulk Delete control.
+
+Field types supported:
+- `multiselect` — renders `MultiSelect`; merges selected values into each row's existing array (non-destructive, deduplicates)
+- `singleselect` — renders `MultiSelect` in single-select mode; replaces existing value
+- `text` — renders a plain text `Input`; replaces existing value
+- `parentsearch` — renders `ParentSelect` pre-populated with the union of all selected rows' existing parents as chips. Adding parents merges them into each row; removing a chip removes that parent from any row that had it. Apply is always enabled (allows clearing all parents).
 
 ### Search page (`app/search/page.tsx`)
 
