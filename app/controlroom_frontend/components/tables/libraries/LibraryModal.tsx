@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 import { ModelSelect } from '@/components/ui/ModelSelect'
-import { ParentSelect } from '@/components/ui/ParentSelect'
+import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
 const ENDPOINT = '/libraries'
@@ -24,8 +24,6 @@ interface LibraryModalProps {
   onClose: () => void
   onMutate: () => void
 }
-
-interface ParentId { table_name: string; id: string }
 
 interface FormState {
   library_name: string

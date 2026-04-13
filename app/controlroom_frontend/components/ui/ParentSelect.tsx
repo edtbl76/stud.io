@@ -16,7 +16,7 @@ interface EntityResult {
   brand_name: string | null
 }
 
-interface ParentId {
+export interface ParentId {
   table_name: string
   id: string
 }
