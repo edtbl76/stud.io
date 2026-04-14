@@ -39,6 +39,7 @@ function ColumnMenu<TData>({ table }: Readonly<{ table: Table<TData> }>) {
   return (
     <div className="relative" ref={colMenuRef}>
       <button
+        type="button"
         onClick={() => setShowColMenu((v) => !v)}
         className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground rounded border border-border hover:border-muted-foreground transition-colors"
       >
@@ -75,6 +76,7 @@ function ResetViewButton({ isDirty, onResetView }: Readonly<{ isDirty?: boolean;
   if (!isDirty || !onResetView) return null
   return (
     <button
+      type="button"
       onClick={onResetView}
       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
       title="Reset filters, sort, columns, and widths to defaults"
@@ -124,6 +126,7 @@ export function DataTableToolbar<TData>({
       <div className="flex items-center gap-2">
         {activeFilterCount > 0 && (
           <button
+            type="button"
             onClick={onClearFilters}
             className="text-xs text-muted-foreground hover:text-destructive transition-colors"
           >

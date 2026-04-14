@@ -15,8 +15,7 @@ const MIN_CHARS = 2
 const STORAGE_PREFIX = 'cr:'
 
 export interface SessionConfig {
-  username: string
-  queryKey: string
+  storageKey: string
   defaultSort?: string
 }
 
@@ -110,8 +109,8 @@ export function useSessionState(
   config: SessionConfig,
   columns: ColumnDef<unknown, unknown>[],
 ): SessionState {
-  const { username, queryKey, defaultSort } = config
-  const key = `${STORAGE_PREFIX}${username}:${queryKey}`
+  const { storageKey, defaultSort } = config
+  const key = `${STORAGE_PREFIX}${storageKey}`
   const defaultSorting = React.useMemo(() => buildDefaultSorting(defaultSort), [defaultSort])
   const defaultVisibility = React.useMemo(
     () => buildDefaultVisibility(columns),
@@ -134,8 +133,16 @@ export function useSessionState(
     stored.sizing ?? {},
   )
 
+  // Refs hold the latest defaults so the sync effect can use them as fallbacks
+  // without listing them as dependencies (avoids spurious rehydration on column changes).
+  const defaultSortingRef = React.useRef(defaultSorting)
+  defaultSortingRef.current = defaultSorting
+  const defaultVisibilityRef = React.useRef(defaultVisibility)
+  defaultVisibilityRef.current = defaultVisibility
+
   // Sync state when the storage key changes (e.g. username changes without unmount).
   // Skips first render: useState already initialized from stored on mount.
+  // Depends only on `stored` so changes to defaults alone never overwrite live state.
   const hasMounted = React.useRef(false)
   React.useEffect(() => {
     if (!hasMounted.current) {
@@ -144,10 +151,10 @@ export function useSessionState(
     }
     setInputFilters(stored.filters ?? {})
     setActiveFilters(() => buildActive(stored.filters ?? {}))
-    setExternalSorting(stored.sorting ?? defaultSorting)
-    setColumnVisibility(stored.visibility ?? defaultVisibility)
+    setExternalSorting(stored.sorting ?? defaultSortingRef.current)
+    setColumnVisibility(stored.visibility ?? defaultVisibilityRef.current)
     setColumnSizing(stored.sizing ?? {})
-  }, [stored, defaultSorting, defaultVisibility])
+  }, [stored])
 
   // Debounce filters → activeFilters
   React.useEffect(() => {

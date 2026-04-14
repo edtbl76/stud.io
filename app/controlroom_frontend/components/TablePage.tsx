@@ -162,7 +162,7 @@ export function TablePage<T>({
   })
 
   const session = useSessionState(
-    { username: username ?? 'guest', queryKey, defaultSort: sortFields?.[0]?.key },
+    { storageKey: `${username ?? 'guest'}:${queryKey}`, defaultSort: sortFields?.[0]?.key },
     columns as ColumnDef<unknown, unknown>[],
   )
 

@@ -15,7 +15,7 @@ function storageKey(username: string, queryKey: string) {
 
 function makeHook(defaultSort?: string) {
   return renderHook(() =>
-    useSessionState({ username: 'alice', queryKey: 'effects', defaultSort }, columns),
+    useSessionState({ storageKey: 'alice:effects', defaultSort }, columns),
   )
 }
 
@@ -122,7 +122,7 @@ describe('useSessionState — persistence', () => {
   it('isolates storage by username and queryKey', () => {
     const { result: alice } = makeHook()
     const { result: bob } = renderHook(() =>
-      useSessionState({ username: 'bob', queryKey: 'effects' }, columns),
+      useSessionState({ storageKey: 'bob:effects' }, columns),
     )
     act(() => {
       alice.current.setExternalSorting([{ id: 'name', desc: false }])
@@ -140,7 +140,7 @@ describe('useSessionState — persistence', () => {
     }))
     let queryKey = 'effects'
     const { result, rerender } = renderHook(() =>
-      useSessionState({ username: 'alice', queryKey }, columns),
+      useSessionState({ storageKey: `alice:${queryKey}` }, columns),
     )
     act(() => { result.current.setExternalSorting([{ id: 'name', desc: false }]) })
     expect(result.current.externalSorting).toEqual([{ id: 'name', desc: false }])
@@ -161,14 +161,17 @@ describe('useSessionState — resetView', () => {
       result.current.setFilterEntry('name', { value: 'test', operator: 'contains' })
       result.current.setExternalSorting([{ id: 'name', desc: true }])
       result.current.setColumnSizing({ name: 300 })
+      result.current.setColumnVisibility({ hidden: true })
     })
     expect(result.current.isDirty).toBe(true)
+    expect(result.current.columnVisibility).toMatchObject({ hidden: true })
 
     act(() => { result.current.resetView() })
 
     expect(result.current.inputFilters).toEqual({})
     expect(result.current.externalSorting).toEqual([{ id: 'effect_name', desc: false }])
     expect(result.current.columnSizing).toEqual({})
+    expect(result.current.columnVisibility).toMatchObject({ hidden: false })
     expect(result.current.isDirty).toBe(false)
   })
 
