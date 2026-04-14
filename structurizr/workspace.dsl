@@ -76,8 +76,8 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                 }
 
                 tablePageFramework = component "TablePage Framework" {
-                    description "Generic CRUD page container used by all 18 data tables. Manages server-side pagination via useInfiniteQuery, per-column filtering (350ms debounce, 2-char minimum), sorting, bulk edit bar (admin only), and modal dispatch on row click. Query invalidation on mutation triggers automatic refetch."
-                    technology "components/TablePage.tsx + DataTable.tsx"
+                    description "Generic CRUD page container used by all 18 data tables. Manages server-side pagination via useInfiniteQuery (paginated) or useQuery (non-paginated) through useTableData. Per-column filtering with 350ms debounce and 2-char minimum. Sorting, bulk edit bar (admin only), and modal dispatch on row click. Session state (filters, sorting, column visibility, column sizing) is persisted to localStorage per user and query key via useSessionState; a Reset View button appears in the DataTableToolbar when state differs from defaults. Record navigation (prev/next) across the visible table row order is provided by useRecordNavigation. Query invalidation on mutation triggers automatic refetch."
+                    technology "components/TablePage.tsx + DataTable.tsx + DataTableToolbar.tsx + lib/useSessionState.ts + lib/useTableData.ts"
                     tags "UI"
                 }
 

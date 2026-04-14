@@ -106,7 +106,7 @@ export const instrumentColumns: ColumnDef<Instrument, unknown>[] = [
     header: 'Parents',
     size: 220,
     enableSorting: false,
-    meta: { defaultHidden: true },
+    meta: { defaultHidden: true, filterParam: 'parents', filterOperators: ['is_empty', 'is_not_empty'] as const },
     cell: ({ row }) => <ParentLinks parents={row.original.parents} />,
   },
 ]

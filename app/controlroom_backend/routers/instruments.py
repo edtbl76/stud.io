@@ -40,6 +40,9 @@ _FILTERABLE: dict[str, FilterableField] = {
         " JOIN tag_types t ON t.type_id = uid WHERE t.type_name ILIKE {val})",
         empty_expr="(tag_ids IS NULL OR cardinality(tag_ids) = 0)",
     ),
+    "parents": FilterableField(
+        empty_expr="(parent_ids IS NULL OR cardinality(parent_ids) = 0)",
+    ),
     "created_at": FilterableField(col_expr="created_at"),
     "updated_at": FilterableField(col_expr="updated_at"),
 }

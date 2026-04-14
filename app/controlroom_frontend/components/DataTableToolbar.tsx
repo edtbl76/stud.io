@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { Table, SortingState } from '@tanstack/react-table'
-import { ArrowDown, ArrowUp, Plus, SlidersHorizontal, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Plus, RotateCcw, SlidersHorizontal, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { SortField } from '@/lib/sort'
 
@@ -17,22 +17,13 @@ interface DataTableToolbarProps<TData> {
   readonly onSortAdd?: (id: string) => void
   readonly onSortRemove?: (index: number) => void
   readonly onSortToggleDir?: (index: number) => void
+  readonly isDirty?: boolean
+  readonly onResetView?: () => void
 }
 
-export function DataTableToolbar<TData>({
-  table,
-  activeFilterCount,
-  onClearFilters,
-  sortFields,
-  sorting = [],
-  onSortAdd,
-  onSortRemove,
-  onSortToggleDir,
-}: Readonly<DataTableToolbarProps<TData>>) {
+function ColumnMenu<TData>({ table }: Readonly<{ table: Table<TData> }>) {
   const [showColMenu, setShowColMenu] = React.useState(false)
-  const [showAddMenu, setShowAddMenu] = React.useState(false)
   const colMenuRef = React.useRef<HTMLDivElement>(null)
-  const addMenuRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (!showColMenu) return
@@ -44,6 +35,72 @@ export function DataTableToolbar<TData>({
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [showColMenu])
+
+  return (
+    <div className="relative" ref={colMenuRef}>
+      <button
+        type="button"
+        onClick={() => setShowColMenu((v) => !v)}
+        className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground rounded border border-border hover:border-muted-foreground transition-colors"
+      >
+        <SlidersHorizontal className="h-3.5 w-3.5" />
+        Columns
+      </button>
+      {showColMenu && (
+        <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded border border-border bg-card shadow-lg py-1">
+          {table.getAllLeafColumns().filter((col) => col.getCanHide()).map((col) => {
+            const header = col.columnDef.header
+            const label = typeof header === 'string' ? header : col.id
+            return (
+              <label
+                key={col.id}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-muted/50 select-none"
+              >
+                <input
+                  type="checkbox"
+                  checked={col.getIsVisible()}
+                  onChange={col.getToggleVisibilityHandler()}
+                  className="accent-primary"
+                />
+                {label}
+              </label>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ResetViewButton({ isDirty, onResetView }: Readonly<{ isDirty?: boolean; onResetView?: () => void }>) {
+  if (!isDirty || !onResetView) return null
+  return (
+    <button
+      type="button"
+      onClick={onResetView}
+      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      title="Reset filters, sort, columns, and widths to defaults"
+    >
+      <RotateCcw className="h-3 w-3" />
+      Reset View
+    </button>
+  )
+}
+
+export function DataTableToolbar<TData>({
+  table,
+  activeFilterCount,
+  onClearFilters,
+  sortFields,
+  sorting = [],
+  onSortAdd,
+  onSortRemove,
+  onSortToggleDir,
+  isDirty,
+  onResetView,
+}: Readonly<DataTableToolbarProps<TData>>) {
+  const [showAddMenu, setShowAddMenu] = React.useState(false)
+  const addMenuRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     if (!showAddMenu) return
@@ -69,12 +126,14 @@ export function DataTableToolbar<TData>({
       <div className="flex items-center gap-2">
         {activeFilterCount > 0 && (
           <button
+            type="button"
             onClick={onClearFilters}
             className="text-xs text-muted-foreground hover:text-destructive transition-colors"
           >
             Clear {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
           </button>
         )}
+        <ResetViewButton isDirty={isDirty} onResetView={onResetView} />
       </div>
 
       <div className="flex items-center gap-2">
@@ -142,37 +201,7 @@ export function DataTableToolbar<TData>({
           </div>
         )}
 
-        <div className="relative" ref={colMenuRef}>
-          <button
-            onClick={() => setShowColMenu((v) => !v)}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground rounded border border-border hover:border-muted-foreground transition-colors"
-          >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
-            Columns
-          </button>
-          {showColMenu && (
-            <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded border border-border bg-card shadow-lg py-1">
-              {table.getAllLeafColumns().filter((col) => col.id !== '__select__').map((col) => {
-                const header = col.columnDef.header
-                const label = typeof header === 'string' ? header : col.id
-                return (
-                  <label
-                    key={col.id}
-                    className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-muted/50 select-none"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={col.getIsVisible()}
-                      onChange={col.getToggleVisibilityHandler()}
-                      className="accent-primary"
-                    />
-                    {label}
-                  </label>
-                )
-              })}
-            </div>
-          )}
-        </div>
+        <ColumnMenu table={table} />
       </div>
     </div>
   )

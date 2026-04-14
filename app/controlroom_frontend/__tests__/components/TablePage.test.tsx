@@ -58,7 +58,7 @@ jest.mock('@/lib/auth', () => ({
   useAuth: () => mockUseAuth(),
 }))
 
-let mockUseAuth = () => ({ role: 'admin' as string })
+let mockUseAuth = () => ({ role: 'admin' as string, username: 'testuser' as string | null })
 
 type Row = { id: string; name: string }
 
@@ -74,7 +74,7 @@ const bulkEditFields: BulkEditField[] = [
 ]
 
 function renderPagedPage(roleOverride?: string) {
-  mockUseAuth = () => ({ role: roleOverride ?? 'admin' })
+  mockUseAuth = () => ({ role: roleOverride ?? 'admin', username: 'testuser' })
 
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -102,9 +102,9 @@ function renderPagedPage(roleOverride?: string) {
 
 function renderPage(roleOverride?: string, withBulkEdit = false) {
   if (roleOverride !== undefined) {
-    mockUseAuth = () => ({ role: roleOverride })
+    mockUseAuth = () => ({ role: roleOverride, username: 'testuser' })
   } else {
-    mockUseAuth = () => ({ role: 'admin' })
+    mockUseAuth = () => ({ role: 'admin', username: 'testuser' })
   }
 
   const client = new QueryClient({
@@ -133,6 +133,7 @@ function renderPage(roleOverride?: string, withBulkEdit = false) {
 
 describe('TablePage', () => {
   beforeEach(() => {
+    localStorage.clear()
     mockApiList.mockResolvedValue(rows)
   })
 
@@ -309,6 +310,7 @@ describe('TablePage ?open deep-link', () => {
 
 describe('TablePage paginated', () => {
   beforeEach(() => {
+    localStorage.clear()
     // total equals items loaded so getNextPageParam returns undefined (no more pages)
     mockApiListPaged.mockResolvedValue({ items: rows, total: 2 })
     mockApiListPaged.mockClear()
@@ -343,6 +345,7 @@ describe('TablePage paginated', () => {
 
 describe('TablePage paginated filter integration', () => {
   beforeEach(() => {
+    localStorage.clear()
     jest.useFakeTimers()
     mockApiListPaged.mockResolvedValue({ items: rows, total: 2 })
     mockApiListPaged.mockClear()

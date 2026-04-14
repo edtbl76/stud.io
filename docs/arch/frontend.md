@@ -31,7 +31,8 @@ app/controlroom_frontend/
 │   ├── search/             # Global search results page (/search?q=...)
 │   └── admin/              # Stats, Change Review, Import/Export, Backup/Restore, Users
 ├── components/
-│   ├── DataTable.tsx        # Virtualized TanStack Table wrapper
+│   ├── DataTable.tsx        # Virtualized TanStack Table wrapper; accepts controlled visibility/sizing from useSessionState
+│   ├── DataTableToolbar.tsx # Toolbar: sort pills, column picker (ColumnMenu), filter clear, Reset View button
 │   ├── TablePage.tsx        # Generic page: search + table + modal
 │   ├── RecordModal.tsx      # Generic modal shell: view/edit/history/delete lifecycle
 │   ├── RecordHistoryView.tsx # Audit history view: operation badges, diff table, undo
@@ -58,7 +59,9 @@ app/controlroom_frontend/
 │   ├── computeDiff.ts           # Field-level diff between two JSON snapshots (for history view)
 │   ├── parentSelectRecents.ts   # localStorage utility for recent ParentSelect picks — max 10, deduplicated by (table_name, id)
 │   ├── types.ts                 # TypeScript interfaces for all API response shapes
-│   ├── useTableFilters.ts       # Hook: per-column filter state with 350 ms debounce and 2-char minimum
+│   ├── useSessionState.ts       # Hook: per-user, per-table localStorage persistence for filters, sorting, column visibility, and column sizing. Exposes isDirty and resetView.
+│   ├── useTableData.ts          # Hook: data fetching for TablePage — handles paginated (useInfiniteQuery) and non-paginated (useQuery) modes, resolves filter params
+│   ├── useTableFilters.ts       # Hook: per-column filter state with 350 ms debounce and 2-char minimum (used standalone; session state supersedes this for TablePage)
 │   └── utils.ts                 # Tailwind class merge utility (cn), formatSlug, formatDate
 ├── __tests__/              # Jest + React Testing Library unit tests
 └── e2e/                    # Playwright end-to-end tests (run against test stack on port 3001)
@@ -78,9 +81,9 @@ The generic page component used by every catalog/session/tools/config page. Acce
 - `paginated` — enables server-side pagination, sorting, and per-column filtering (all content tables use this)
 - `bulkEditFields` — enables the checkbox column and bulk edit bar (admin only). Each entry is a `BulkEditField` (`lib/bulkEdit.ts`) with a `type` of `multiselect`, `singleselect`, `text`, or `parentsearch`. The `parentsearch` type renders a `ParentSelect` pre-populated with the union of existing parents across all selected rows; apply logic merges additions and removes explicit deletions per-record.
 
-Handles: data fetching via `useInfiniteQuery` (paginated) or `useQuery` (non-paginated), per-column filtering via `useTableFilters` (350 ms debounce, 2-char minimum), row click → modal open, modal close + query invalidation on mutation.
+Handles: data fetching via `useTableData` (which delegates to `useInfiniteQuery` for paginated tables or `useQuery` for non-paginated), per-column filtering with 350 ms debounce and 2-char minimum, row click → modal open, modal close + query invalidation on mutation.
 
-Per-column filter state is lifted from `DataTableHeader` through `DataTable` to `TablePage`. Filter values are mapped to backend `filter_*` query params using `resolveFilterParams`, which reads `col.meta?.filterParam` to translate column ids to the correct param suffix.
+Session state (filters, sorting, column visibility, column sizing) is managed by `useSessionState` and persisted to `localStorage` under the key `cr:<username>:<queryKey>`. State is restored on page reload. A **Reset View** button appears in the toolbar whenever any state differs from the page defaults (`isDirty = true`) and resets all state to defaults when clicked. Filter values are mapped to backend `filter_*` query params using `resolveFilterParams` inside `useTableData`, which reads `col.meta?.filterParam` to translate column ids to the correct param suffix.
 
 ### `RecordModal`
 
@@ -237,6 +240,7 @@ Unit tests use [Jest](https://jestjs.io/) + [React Testing Library](https://test
 - `@tanstack/react-query` mutations are tested by mocking `lib/api` and wrapping renders in a `QueryClientProvider`
 - `lib/auth` is mocked globally in all component tests
 - `useTableFilters` is unit-tested in `__tests__/lib/useTableFilters.test.ts` using `jest.useFakeTimers()` to verify debounce and 2-char minimum behavior
+- `useSessionState` is unit-tested in `__tests__/lib/useSessionState.test.ts` — covers default initialisation, `isDirty` computation, localStorage persistence and restoration, per-user/queryKey isolation, `resetView`, and filter debounce
 - `DataTableHeader` manual filtering is tested in `__tests__/components/DataTableHeader.manualFilter.test.tsx`
 - The search page is tested in `__tests__/app/search/page.test.tsx`
 - Google SSO paths are not tested — they require mocking the Google Identity Services API and a module-level env var that requires `jest.resetModules()`. Documented with a `NOTE:` comment in the relevant test files.

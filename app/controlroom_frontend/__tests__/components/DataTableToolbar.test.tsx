@@ -9,6 +9,7 @@ function makeCol(overrides: Partial<Column<Row, unknown>> = {}): Column<Row, unk
   return {
     id: 'name',
     columnDef: { header: 'Name' },
+    getCanHide: () => true,
     getIsVisible: () => true,
     getToggleVisibilityHandler: () => jest.fn(),
     ...overrides,
@@ -97,9 +98,9 @@ describe('DataTableToolbar', () => {
     expect(screen.getByText('Name')).toBeInTheDocument()
   })
 
-  it('excludes __select__ column from the column menu', () => {
+  it('excludes columns where getCanHide() returns false from the column menu', () => {
     const cols = [
-      makeCol({ id: '__select__', columnDef: { header: 'Select' } as never }),
+      makeCol({ id: 'select', columnDef: { header: 'Select' } as never, getCanHide: () => false }),
       makeCol({ id: 'name', columnDef: { header: 'Name' } as never }),
     ]
     render(
@@ -279,5 +280,41 @@ describe('DataTableToolbar', () => {
     const dirButtons = screen.getAllByLabelText(/Sort (ascending|descending)/)
     fireEvent.click(dirButtons[0]) // toggle Name (index 0)
     expect(onSortToggleDir).toHaveBeenCalledWith(0)
+  })
+})
+
+describe('DataTableToolbar — Reset View', () => {
+  function renderResetView(isDirty: boolean | undefined, onResetView?: () => void) {
+    return render(
+      <DataTableToolbar
+        table={makeTable()}
+        activeFilterCount={0}
+        onClearFilters={jest.fn()}
+        isDirty={isDirty}
+        onResetView={onResetView}
+      />
+    )
+  }
+
+  it('does not show Reset View when isDirty is false', () => {
+    renderResetView(false, jest.fn())
+    expect(screen.queryByText('Reset View')).not.toBeInTheDocument()
+  })
+
+  it('does not show Reset View when onResetView is not provided', () => {
+    renderResetView(true)
+    expect(screen.queryByText('Reset View')).not.toBeInTheDocument()
+  })
+
+  it('shows Reset View when isDirty is true and onResetView is provided', () => {
+    renderResetView(true, jest.fn())
+    expect(screen.getByText('Reset View')).toBeInTheDocument()
+  })
+
+  it('calls onResetView when Reset View is clicked', () => {
+    const onResetView = jest.fn()
+    renderResetView(true, onResetView)
+    fireEvent.click(screen.getByText('Reset View'))
+    expect(onResetView).toHaveBeenCalledTimes(1)
   })
 })
