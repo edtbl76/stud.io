@@ -47,7 +47,7 @@ function ColumnMenu<TData>({ table }: Readonly<{ table: Table<TData> }>) {
       </button>
       {showColMenu && (
         <div className="absolute right-0 top-full mt-1 z-50 min-w-[180px] rounded border border-border bg-card shadow-lg py-1">
-          {table.getAllLeafColumns().filter((col) => col.id !== '__select__').map((col) => {
+          {table.getAllLeafColumns().filter((col) => col.getCanHide()).map((col) => {
             const header = col.columnDef.header
             const label = typeof header === 'string' ? header : col.id
             return (

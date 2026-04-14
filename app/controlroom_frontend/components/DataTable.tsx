@@ -217,7 +217,15 @@ export function DataTable<TData, TValue>({
   }, [data, sorting, manualSorting])
 
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [internalVisibility, setInternalVisibility] = React.useState<VisibilityState>({})
+  const [internalVisibility, setInternalVisibility] = React.useState<VisibilityState>(() => {
+    const vis: VisibilityState = {}
+    for (const col of columns as ColumnDef<unknown, unknown>[]) {
+      if (!col.meta?.defaultHidden) continue
+      const id = col.id ?? (col as { accessorKey?: string }).accessorKey
+      if (id) vis[id] = false
+    }
+    return vis
+  })
   const [internalSizing, setInternalSizing] = React.useState<ColumnSizingState>({})
 
   const columnVisibility = externalVisibility ?? internalVisibility

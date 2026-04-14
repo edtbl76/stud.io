@@ -42,10 +42,6 @@ interface StoredSession {
   sizing?: ColumnSizingState
 }
 
-function storageKey(username: string, queryKey: string): string {
-  return `${STORAGE_PREFIX}${username}:${queryKey}`
-}
-
 function readStorage(key: string): StoredSession {
   try {
     const raw = localStorage.getItem(key)
@@ -115,12 +111,11 @@ export function useSessionState(
   columns: ColumnDef<unknown, unknown>[],
 ): SessionState {
   const { username, queryKey, defaultSort } = config
-  const key = storageKey(username, queryKey)
+  const key = `${STORAGE_PREFIX}${username}:${queryKey}`
   const defaultSorting = React.useMemo(() => buildDefaultSorting(defaultSort), [defaultSort])
   const defaultVisibility = React.useMemo(
     () => buildDefaultVisibility(columns),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [queryKey],
+    [columns],
   )
 
   const stored = React.useMemo(() => readStorage(key), [key])
@@ -138,6 +133,21 @@ export function useSessionState(
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
     stored.sizing ?? {},
   )
+
+  // Sync state when the storage key changes (e.g. username changes without unmount).
+  // Skips first render: useState already initialized from stored on mount.
+  const hasMounted = React.useRef(false)
+  React.useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true
+      return
+    }
+    setInputFilters(stored.filters ?? {})
+    setActiveFilters(() => buildActive(stored.filters ?? {}))
+    setExternalSorting(stored.sorting ?? defaultSorting)
+    setColumnVisibility(stored.visibility ?? defaultVisibility)
+    setColumnSizing(stored.sizing ?? {})
+  }, [stored, defaultSorting, defaultVisibility])
 
   // Debounce filters → activeFilters
   React.useEffect(() => {

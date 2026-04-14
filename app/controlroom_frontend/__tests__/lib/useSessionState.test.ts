@@ -129,6 +129,29 @@ describe('useSessionState — persistence', () => {
     })
     expect(bob.current.externalSorting).toEqual([])
   })
+
+  it('reloads state from localStorage when the key changes', () => {
+    const key2 = storageKey('alice', 'instruments')
+    localStorage.setItem(key2, JSON.stringify({
+      sorting: [{ id: 'instrument_name', desc: true }],
+      sizing: { name: 400 },
+      filters: { name: { value: 'bass', operator: 'contains' } },
+      visibility: {},
+    }))
+    let queryKey = 'effects'
+    const { result, rerender } = renderHook(() =>
+      useSessionState({ username: 'alice', queryKey }, columns),
+    )
+    act(() => { result.current.setExternalSorting([{ id: 'name', desc: false }]) })
+    expect(result.current.externalSorting).toEqual([{ id: 'name', desc: false }])
+
+    queryKey = 'instruments'
+    rerender()
+
+    expect(result.current.externalSorting).toEqual([{ id: 'instrument_name', desc: true }])
+    expect(result.current.columnSizing).toEqual({ name: 400 })
+    expect(result.current.inputFilters).toEqual({ name: { value: 'bass', operator: 'contains' } })
+  })
 })
 
 describe('useSessionState — resetView', () => {

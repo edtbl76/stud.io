@@ -9,6 +9,7 @@ function makeCol(overrides: Partial<Column<Row, unknown>> = {}): Column<Row, unk
   return {
     id: 'name',
     columnDef: { header: 'Name' },
+    getCanHide: () => true,
     getIsVisible: () => true,
     getToggleVisibilityHandler: () => jest.fn(),
     ...overrides,
@@ -97,9 +98,9 @@ describe('DataTableToolbar', () => {
     expect(screen.getByText('Name')).toBeInTheDocument()
   })
 
-  it('excludes __select__ column from the column menu', () => {
+  it('excludes columns where getCanHide() returns false from the column menu', () => {
     const cols = [
-      makeCol({ id: '__select__', columnDef: { header: 'Select' } as never }),
+      makeCol({ id: 'select', columnDef: { header: 'Select' } as never, getCanHide: () => false }),
       makeCol({ id: 'name', columnDef: { header: 'Name' } as never }),
     ]
     render(
