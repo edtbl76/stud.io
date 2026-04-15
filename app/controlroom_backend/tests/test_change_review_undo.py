@@ -73,27 +73,25 @@ async def test_undo_returns_409_if_already_undone(client, admin_headers, conn):
     assert "already undone" in response.json()["detail"]
 
 
-async def test_undo_create_soft_deletes_record(client, admin_headers, conn):
-    """Undo a CREATE soft-deletes the record (sets deleted_at) rather than hard-deleting."""
-    brand_id = await conn.fetchval(
-        "INSERT INTO brands (brand_name) VALUES ('__undo_create__') RETURNING brand_id"
-    )
-    audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
+@pytest.mark.parametrize("brand_sql,operation,expect_null", [
+    pytest.param(
+        "INSERT INTO brands (brand_name) VALUES ('__undo_create__') RETURNING brand_id",
+        "CREATE", False, id="create_soft_deletes",
+    ),
+    pytest.param(
+        "INSERT INTO brands (brand_name, deleted_at) VALUES ('__undo_del__', NOW()) RETURNING brand_id",
+        "DELETE", True, id="delete_unsets_deleted_at",
+    ),
+])
+async def test_undo_modifies_deleted_at(
+    client, admin_headers, conn, brand_sql, operation, expect_null
+):
+    brand_id = await conn.fetchval(brand_sql)
+    audit_id, _ = await insert_audit(conn, table="brands", operation=operation,
                                      record_id=brand_id)
     row = await _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id)
     assert row is not None
-    assert row["deleted_at"] is not None
-
-
-async def test_undo_delete_unsets_deleted_at(client, admin_headers, conn):
-    """Undo a DELETE restores the record (clears deleted_at)."""
-    brand_id = await conn.fetchval(
-        "INSERT INTO brands (brand_name, deleted_at) VALUES ('__undo_del__', NOW()) RETURNING brand_id"
-    )
-    audit_id, _ = await insert_audit(conn, table="brands", operation="DELETE",
-                                     record_id=brand_id)
-    row = await _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id)
-    assert row["deleted_at"] is None
+    assert (row["deleted_at"] is None) == expect_null
 
 
 async def test_undo_update_restores_old_data(client, admin_headers, conn):
