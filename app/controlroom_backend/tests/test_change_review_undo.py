@@ -1,8 +1,15 @@
 import json
+from typing import NamedTuple
 import pytest
 from fastapi import HTTPException
 from routers.change_review_undo import _resolve_old_data
 from tests.conftest import insert_audit, insert_acknowledged_audit, insert_undone_audit
+
+
+class _UndoDeletedAtCase(NamedTuple):
+    brand_sql: str
+    operation: str
+    expect_null: bool
 
 
 async def _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id):
@@ -73,25 +80,21 @@ async def test_undo_returns_409_if_already_undone(client, admin_headers, conn):
     assert "already undone" in response.json()["detail"]
 
 
-@pytest.mark.parametrize("brand_sql,operation,expect_null", [
-    pytest.param(
+@pytest.mark.parametrize("case", [
+    pytest.param(_UndoDeletedAtCase(
         "INSERT INTO brands (brand_name) VALUES ('__undo_create__') RETURNING brand_id",
-        "CREATE", False, id="create_soft_deletes",
-    ),
-    pytest.param(
+        "CREATE", False), id="create_soft_deletes"),
+    pytest.param(_UndoDeletedAtCase(
         "INSERT INTO brands (brand_name, deleted_at) VALUES ('__undo_del__', NOW()) RETURNING brand_id",
-        "DELETE", True, id="delete_unsets_deleted_at",
-    ),
+        "DELETE", True), id="delete_unsets_deleted_at"),
 ])
-async def test_undo_modifies_deleted_at(
-    client, admin_headers, conn, brand_sql, operation, expect_null
-):
-    brand_id = await conn.fetchval(brand_sql)
-    audit_id, _ = await insert_audit(conn, table="brands", operation=operation,
+async def test_undo_modifies_deleted_at(client, admin_headers, conn, case):
+    brand_id = await conn.fetchval(case.brand_sql)
+    audit_id, _ = await insert_audit(conn, table="brands", operation=case.operation,
                                      record_id=brand_id)
     row = await _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id)
     assert row is not None
-    assert (row["deleted_at"] is None) == expect_null
+    assert (row["deleted_at"] is None) == case.expect_null
 
 
 async def test_undo_update_restores_old_data(client, admin_headers, conn):
