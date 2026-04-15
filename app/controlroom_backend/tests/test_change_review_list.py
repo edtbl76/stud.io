@@ -1,5 +1,5 @@
 import pytest
-from tests.conftest import insert_audit
+from tests.conftest import insert_audit, insert_acknowledged_audit
 
 
 async def test_change_review_requires_auth(client):
@@ -23,7 +23,7 @@ async def test_change_review_returns_pending_by_default(client, admin_headers, c
 
 
 async def test_change_review_excludes_acknowledged_from_pending(client, admin_headers, conn):
-    audit_id, _ = await insert_audit(conn, operation="DELETE", acknowledged_at=True)
+    audit_id, _ = await insert_acknowledged_audit(conn, operation="DELETE")
     response = await client.get("/admin/change-review", headers=admin_headers)
     data = response.json()
     ids = [e["audit_id"] for e in data["entries"]]
@@ -31,7 +31,7 @@ async def test_change_review_excludes_acknowledged_from_pending(client, admin_he
 
 
 async def test_change_review_status_all_includes_acknowledged(client, admin_headers, conn):
-    audit_id, _ = await insert_audit(conn, operation="DELETE", acknowledged_at=True)
+    audit_id, _ = await insert_acknowledged_audit(conn, operation="DELETE")
     response = await client.get("/admin/change-review?status=all", headers=admin_headers)
     data = response.json()
     ids = [e["audit_id"] for e in data["entries"]]
@@ -45,7 +45,7 @@ async def test_change_review_filter_by_table(client, admin_headers, conn):
            VALUES ('__fx_test__', NOW()) RETURNING effect_id"""
     )
     effects_id, _ = await insert_audit(conn, table="effects", operation="DELETE",
-                                       brand_id=effect_id)
+                                       record_id=effect_id)
     response = await client.get("/admin/change-review?table=brands", headers=admin_headers)
     data = response.json()
     ids = [e["audit_id"] for e in data["entries"]]
@@ -58,7 +58,7 @@ async def test_change_review_filter_by_operation(client, admin_headers, conn):
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__upd_test2__') RETURNING brand_id"
     )
-    update_id, _ = await insert_audit(conn, operation="UPDATE", brand_id=brand_id)
+    update_id, _ = await insert_audit(conn, operation="UPDATE", record_id=brand_id)
     response = await client.get("/admin/change-review?operation=DELETE", headers=admin_headers)
     data = response.json()
     ids = [e["audit_id"] for e in data["entries"]]
@@ -72,7 +72,7 @@ async def test_change_review_pagination(client, admin_headers, conn):
         brand_id = await conn.fetchval(
             "INSERT INTO brands (brand_name) VALUES ('__pg_test__') RETURNING brand_id"
         )
-        await insert_audit(conn, operation="CREATE", brand_id=brand_id)
+        await insert_audit(conn, operation="CREATE", record_id=brand_id)
     response = await client.get(
         "/admin/change-review?page=1&page_size=2", headers=admin_headers
     )

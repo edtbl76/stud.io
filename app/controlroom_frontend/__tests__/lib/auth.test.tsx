@@ -48,9 +48,8 @@ describe('AuthProvider', () => {
       </AuthProvider>,
     )
 
-    const status = container.querySelector('[role="status"]')
-    expect(status).not.toBeNull()
-    expect(status).toHaveAttribute('aria-live', 'polite')
+    const status = screen.getByRole('status')
+    expect(status.tagName.toLowerCase()).toBe('output')
     expect(status).toHaveAttribute('aria-busy', 'true')
     expect(screen.getByText('Loading…')).toBeInTheDocument()
     expect(screen.queryByTestId('child')).not.toBeInTheDocument()

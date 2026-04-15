@@ -1,4 +1,4 @@
-from tests.conftest import insert_audit
+from tests.conftest import insert_audit, insert_acknowledged_audit, insert_undone_audit
 
 
 async def test_acknowledge_requires_admin(client, auth_headers, conn):
@@ -39,7 +39,7 @@ async def test_acknowledge_returns_404_if_not_found(client, admin_headers):
 
 
 async def test_acknowledge_returns_409_if_already_acknowledged(client, admin_headers, conn):
-    audit_id, _ = await insert_audit(conn, operation="UPDATE", acknowledged_at=True)
+    audit_id, _ = await insert_acknowledged_audit(conn, operation="UPDATE")
     response = await client.post(
         f"/admin/change-review/{audit_id}/acknowledge", headers=admin_headers
     )
@@ -48,7 +48,7 @@ async def test_acknowledge_returns_409_if_already_acknowledged(client, admin_hea
 
 
 async def test_acknowledge_returns_409_if_already_undone(client, admin_headers, conn):
-    audit_id, _ = await insert_audit(conn, operation="UPDATE", undone_at=True)
+    audit_id, _ = await insert_undone_audit(conn, operation="UPDATE")
     response = await client.post(
         f"/admin/change-review/{audit_id}/acknowledge", headers=admin_headers
     )

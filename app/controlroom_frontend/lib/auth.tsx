@@ -109,15 +109,10 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
   )
 
   if (!checked) return (
-    <div
-      className="flex items-center justify-center h-screen"
-      role="status"
-      aria-live="polite"
-      aria-busy="true"
-    >
+    <output className="flex items-center justify-center h-screen" aria-busy="true">
       <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
       <span className="sr-only">Loading…</span>
-    </div>
+    </output>
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

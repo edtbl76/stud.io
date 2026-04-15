@@ -2,7 +2,30 @@ import json
 import pytest
 from fastapi import HTTPException
 from routers.change_review_undo import _resolve_old_data
-from tests.conftest import insert_audit
+from tests.conftest import insert_audit, insert_acknowledged_audit, insert_undone_audit
+
+
+async def _insert_brand_update_audit(conn, brand_name: str, old_data_json=None,
+                                     new_data_json=None):
+    """Insert a brand row and an UPDATE audit entry; return (audit_id, brand_id)."""
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ($1) RETURNING brand_id", brand_name
+    )
+    cols = "table_name, record_id, operation, performed_by"
+    vals = "$1, $2, 'UPDATE', 'admin'"
+    params = ["brands", brand_id]
+    if old_data_json is not None:
+        cols += ", old_data"
+        vals += f", ${len(params) + 1}"
+        params.append(old_data_json)
+    if new_data_json is not None:
+        cols += ", new_data"
+        vals += f", ${len(params) + 1}"
+        params.append(new_data_json)
+    row = await conn.fetchrow(
+        f"INSERT INTO audit_log ({cols}) VALUES ({vals}) RETURNING audit_id", *params
+    )
+    return row["audit_id"], brand_id
 
 
 async def test_undo_requires_admin(client, auth_headers, conn):
@@ -22,7 +45,7 @@ async def test_undo_returns_404_if_not_found(client, admin_headers):
 
 
 async def test_undo_returns_409_if_already_acknowledged(client, admin_headers, conn):
-    audit_id, _ = await insert_audit(conn, operation="UPDATE", acknowledged_at=True)
+    audit_id, _ = await insert_acknowledged_audit(conn, operation="UPDATE")
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
@@ -31,7 +54,7 @@ async def test_undo_returns_409_if_already_acknowledged(client, admin_headers, c
 
 
 async def test_undo_returns_409_if_already_undone(client, admin_headers, conn):
-    audit_id, _ = await insert_audit(conn, operation="UPDATE", undone_at=True)
+    audit_id, _ = await insert_undone_audit(conn, operation="UPDATE")
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
@@ -45,7 +68,7 @@ async def test_undo_create_soft_deletes_record(client, admin_headers, conn):
         "INSERT INTO brands (brand_name) VALUES ('__undo_create__') RETURNING brand_id"
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
-                                     brand_id=brand_id)
+                                     record_id=brand_id)
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
@@ -61,7 +84,7 @@ async def test_undo_delete_unsets_deleted_at(client, admin_headers, conn):
         "INSERT INTO brands (brand_name, deleted_at) VALUES ('__undo_del__', NOW()) RETURNING brand_id"
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="DELETE",
-                                     brand_id=brand_id)
+                                     record_id=brand_id)
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
@@ -72,19 +95,15 @@ async def test_undo_delete_unsets_deleted_at(client, admin_headers, conn):
 
 async def test_undo_update_restores_old_data(client, admin_headers, conn):
     """Undo an UPDATE restores the brand_name from old_data."""
-    brand_id = await conn.fetchval(
-        "INSERT INTO brands (brand_name) VALUES ('NewName') RETURNING brand_id"
+    audit_id, brand_id = await _insert_brand_update_audit(
+        conn, "NewName", new_data_json="{}"
     )
-    old_data = {"brand_name": "OldName", "brand_id": str(brand_id)}
-    row = await conn.fetchrow(
-        """INSERT INTO audit_log
-               (table_name, record_id, operation, performed_by, old_data, new_data)
-           VALUES ('brands', $1, 'UPDATE', 'admin', $2, '{}')
-           RETURNING audit_id""",
-        brand_id, json.dumps(old_data),
+    old = json.dumps({"brand_name": "OldName", "brand_id": str(brand_id)})
+    await conn.execute(
+        "UPDATE audit_log SET old_data = $1 WHERE audit_id = $2", old, audit_id
     )
     response = await client.post(
-        f"/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
+        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 200
     row = await conn.fetchrow("SELECT brand_name FROM brands WHERE brand_id = $1", brand_id)
@@ -93,18 +112,9 @@ async def test_undo_update_restores_old_data(client, admin_headers, conn):
 
 async def test_undo_update_returns_409_when_old_data_missing(client, admin_headers, conn):
     """Undo an UPDATE with no old_data returns 409 instead of silently no-oping."""
-    brand_id = await conn.fetchval(
-        "INSERT INTO brands (brand_name) VALUES ('__undo_null_old__') RETURNING brand_id"
-    )
-    row = await conn.fetchrow(
-        """INSERT INTO audit_log
-               (table_name, record_id, operation, performed_by)
-           VALUES ('brands', $1, 'UPDATE', 'admin')
-           RETURNING audit_id""",
-        brand_id,
-    )
+    audit_id, _ = await _insert_brand_update_audit(conn, "__undo_null_old__")
     response = await client.post(
-        f"/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
+        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 409
     assert "old_data" in response.json()["detail"]
@@ -116,18 +126,10 @@ async def test_undo_update_returns_409_when_old_data_not_a_dict(
     client, admin_headers, conn, bad_old_data
 ):
     """Undo an UPDATE whose old_data is valid JSON but not an object returns 409."""
-    brand_id = await conn.fetchval(
-        "INSERT INTO brands (brand_name) VALUES ('__undo_bad_old__') RETURNING brand_id"
-    )
-    row = await conn.fetchrow(
-        """INSERT INTO audit_log
-               (table_name, record_id, operation, performed_by, old_data)
-           VALUES ('brands', $1, 'UPDATE', 'admin', $2)
-           RETURNING audit_id""",
-        brand_id, bad_old_data,
-    )
+    audit_id, _ = await _insert_brand_update_audit(conn, "__undo_bad_old__",
+                                                   old_data_json=bad_old_data)
     response = await client.post(
-        f"/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
+        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 409
     assert "old_data" in response.json()["detail"]
@@ -167,7 +169,7 @@ async def test_undo_sets_undone_fields(client, admin_headers, conn):
         "INSERT INTO brands (brand_name) VALUES ('__undo_fields__') RETURNING brand_id"
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
-                                     brand_id=brand_id)
+                                     record_id=brand_id)
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
@@ -177,11 +179,7 @@ async def test_undo_sets_undone_fields(client, admin_headers, conn):
 
 
 async def test_undo_create_soft_deletes_even_when_referenced(client, admin_headers, conn):
-    """Undo CREATE soft-deletes the record even when it is referenced by other records.
-
-    Soft-delete does not violate FK constraints — the row remains in the DB so
-    referencing records are unaffected.  Hard-delete would fail with 409; soft-delete succeeds.
-    """
+    """Undo CREATE soft-deletes the record even when it is referenced by other records."""
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__fk_test__') RETURNING brand_id"
     )
@@ -189,7 +187,7 @@ async def test_undo_create_soft_deletes_even_when_referenced(client, admin_heade
         "INSERT INTO models (model_name, brand_id) VALUES ('__fk_model__', $1)", brand_id
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
-                                     brand_id=brand_id)
+                                     record_id=brand_id)
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
@@ -204,7 +202,7 @@ async def test_undo_does_not_create_new_audit_entry(client, admin_headers, conn)
         "INSERT INTO brands (brand_name) VALUES ('__undo_no_log__') RETURNING brand_id"
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
-                                     brand_id=brand_id)
+                                     record_id=brand_id)
     count_before = await conn.fetchval("SELECT COUNT(*) FROM audit_log")
     await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
