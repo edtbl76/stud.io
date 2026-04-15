@@ -128,3 +128,12 @@ func (d *DockerProvider) Exec(ctx context.Context, service string, cmd []string)
 	args = append(args, cmd...)
 	return d.run.Run(ctx, d.out, "docker", args...)
 }
+
+// RemoveContainers runs docker rm -f for each name. Errors per container are
+// silently ignored — containers may not exist if e2e cleanup already ran.
+func (d *DockerProvider) RemoveContainers(ctx context.Context, names []string) error {
+	for _, name := range names {
+		d.run.Run(ctx, d.out, "docker", "rm", "-f", name) //nolint — best-effort
+	}
+	return nil
+}

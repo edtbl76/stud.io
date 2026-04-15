@@ -1,4 +1,6 @@
+from collections import namedtuple
 from uuid import uuid4
+import pytest
 
 
 # ---------------------------------------------------------------------------
@@ -173,3 +175,23 @@ async def test_delete_brand_blocked_when_referenced(client, conn, admin_headers)
     brand_id = str(row["brand_id"])
     response = await client.delete(f"/brands/{brand_id}", headers=admin_headers)
     assert response.status_code == 409
+
+
+_BrandRefCase = namedtuple("_BrandRefCase", ["table", "name_col", "name_val"])
+
+@pytest.mark.parametrize("case", [
+    _BrandRefCase("instruments", "instrument_name", "__ref_inst__"),
+    _BrandRefCase("effects",     "effect_name",     "__ref_fx__"),
+    _BrandRefCase("libraries",   "library_name",    "__ref_lib__"),
+], ids=["instruments", "effects", "libraries"])
+async def test_delete_brand_blocked_when_referenced_by_entity(client, conn, admin_headers, case):
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('__del_brand_ref__') RETURNING brand_id"
+    )
+    await conn.execute(
+        f"INSERT INTO {case.table} ({case.name_col}, brand_id) VALUES ($1, $2)",  # safe: case fields from test constants
+        case.name_val, brand_id,
+    )
+    response = await client.delete(f"/brands/{brand_id}", headers=admin_headers)
+    assert response.status_code == 409
+    assert case.table in response.json()["detail"]

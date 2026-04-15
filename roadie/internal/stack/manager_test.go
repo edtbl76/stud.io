@@ -15,9 +15,10 @@ import (
 // ── Mock providers ───────────────────────────────────────────────────────────
 
 type mockContainer struct {
-	upErr   error
-	downErr error
-	upCalls int
+	upErr          error
+	downErr        error
+	upCalls        int
+	removedNames   []string
 }
 
 func (m *mockContainer) Up(_ context.Context, _ providers.UpConfig) error {
@@ -31,6 +32,10 @@ func (m *mockContainer) Status(_ context.Context) ([]providers.ServiceStatus, er
 	return nil, nil
 }
 func (m *mockContainer) Exec(_ context.Context, _ string, _ []string) error { return nil }
+func (m *mockContainer) RemoveContainers(_ context.Context, names []string) error {
+	m.removedNames = append(m.removedNames, names...)
+	return nil
+}
 
 type mockDB struct {
 	ready    bool
@@ -262,6 +267,7 @@ func (c *capturingContainer) Status(_ context.Context) ([]providers.ServiceStatu
 	return nil, nil
 }
 func (c *capturingContainer) Exec(_ context.Context, _ string, _ []string) error { return nil }
+func (c *capturingContainer) RemoveContainers(_ context.Context, _ []string) error { return nil }
 
 func TestManager_Start_WithDev_RunsDevChecks(t *testing.T) {
 	cfg := testConfig()
@@ -286,5 +292,47 @@ func TestManager_Start_WithDev_RunsDevChecks(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "SonarQube") {
 		t.Errorf("expected dev check 'SonarQube' in output, got: %q", buf.String())
+	}
+}
+
+// ── Manager.Stop test container pruning ───────────────────────────────────────
+
+func testConfigWithE2E(shards int, service string) *config.Config {
+	cfg := testConfig()
+	cfg.Test.E2E.BackendService = service
+	cfg.Test.E2E.Shards = shards
+	return cfg
+}
+
+func TestManager_Stop_PrunesTestContainers(t *testing.T) {
+	container := &mockContainer{}
+	m := NewManager(container, &mockDB{}, &mockHTTP{}, io.Discard)
+
+	cfg := testConfigWithE2E(2, "controlroom_backend_test")
+	if err := m.Stop(context.Background(), cfg, false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	want := []string{"controlroom_backend_test_0", "controlroom_backend_test_1"}
+	if len(container.removedNames) != len(want) {
+		t.Fatalf("expected %d removed containers, got %d: %v", len(want), len(container.removedNames), container.removedNames)
+	}
+	for i, name := range want {
+		if container.removedNames[i] != name {
+			t.Errorf("removed[%d]: want %q, got %q", i, name, container.removedNames[i])
+		}
+	}
+}
+
+func TestManager_Stop_SkipsPruneWhenNoE2EConfig(t *testing.T) {
+	container := &mockContainer{}
+	m := NewManager(container, &mockDB{}, &mockHTTP{}, io.Discard)
+
+	// testConfig() has no E2E settings — pruning should be a no-op.
+	if err := m.Stop(context.Background(), testConfig(), false); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(container.removedNames) != 0 {
+		t.Errorf("expected no containers removed, got: %v", container.removedNames)
 	}
 }

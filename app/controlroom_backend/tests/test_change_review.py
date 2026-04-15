@@ -280,8 +280,8 @@ async def test_undo_returns_409_if_already_undone(client, admin_headers, conn):
     assert "already undone" in response.json()["detail"]
 
 
-async def test_undo_create_hard_deletes_record(client, admin_headers, conn):
-    """Undo a CREATE removes the record from the DB."""
+async def test_undo_create_soft_deletes_record(client, admin_headers, conn):
+    """Undo a CREATE soft-deletes the record (sets deleted_at) rather than hard-deleting."""
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__undo_create__') RETURNING brand_id"
     )
@@ -291,8 +291,9 @@ async def test_undo_create_hard_deletes_record(client, admin_headers, conn):
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 200
-    row = await conn.fetchrow("SELECT brand_id FROM brands WHERE brand_id = $1", brand_id)
-    assert row is None
+    row = await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
+    assert row is not None
+    assert row["deleted_at"] is not None
 
 
 async def test_undo_delete_unsets_deleted_at(client, admin_headers, conn):
@@ -331,6 +332,25 @@ async def test_undo_update_restores_old_data(client, admin_headers, conn):
     assert response.status_code == 200
     row = await conn.fetchrow("SELECT brand_name FROM brands WHERE brand_id = $1", brand_id)
     assert row["brand_name"] == "OldName"
+
+
+async def test_undo_update_returns_409_when_old_data_missing(client, admin_headers, conn):
+    """Undo an UPDATE with no old_data returns 409 instead of silently no-oping."""
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('__undo_null_old__') RETURNING brand_id"
+    )
+    row = await conn.fetchrow(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by)
+           VALUES ('brands', $1, 'UPDATE', 'admin')
+           RETURNING audit_id""",
+        brand_id,
+    )
+    response = await client.post(
+        f"/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
+    )
+    assert response.status_code == 409
+    assert "old_data" in response.json()["detail"]
 
 
 async def test_undo_update_restores_old_data_with_parent_ids(client, admin_headers, conn):
@@ -374,8 +394,12 @@ async def test_undo_sets_undone_fields(client, admin_headers, conn):
     assert data["undone_by"] == "adminuser"
 
 
-async def test_undo_create_fk_violation_returns_409(client, admin_headers, conn):
-    """Undo CREATE returns 409 when the created record is referenced by other records."""
+async def test_undo_create_soft_deletes_even_when_referenced(client, admin_headers, conn):
+    """Undo CREATE soft-deletes the record even when it is referenced by other records.
+
+    Soft-delete does not violate FK constraints — the row remains in the DB so
+    referencing records are unaffected.  Hard-delete would fail with 409; soft-delete succeeds.
+    """
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__fk_test__') RETURNING brand_id"
     )
@@ -387,8 +411,9 @@ async def test_undo_create_fk_violation_returns_409(client, admin_headers, conn)
     response = await client.post(
         f"/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
-    assert response.status_code == 409
-    assert "referenced" in response.json()["detail"]
+    assert response.status_code == 200
+    row = await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
+    assert row["deleted_at"] is not None
 
 
 async def test_undo_does_not_create_new_audit_entry(client, admin_headers, conn):

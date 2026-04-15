@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 
 	"github.com/spf13/cobra"
 	"github.com/studiocontrolroom/roadie/internal/config"
@@ -63,8 +65,13 @@ func e2eCmd() *cobra.Command {
 			if err := validateE2EConfig(cfg); err != nil {
 				return err
 			}
+			// Wrap in a signal-aware context so Ctrl-C / SIGTERM cancel the
+			// context, which causes RunE2E to exit and run its deferred cleanup
+			// (removeBackendShards) rather than leaving containers orphaned.
+			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
+			defer stop()
 			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
-			return pipeline.RunE2E(cmd.Context(), e2eConfigFrom(cfg), pipeline.Root("."), os.Stdout)
+			return pipeline.RunE2E(ctx, e2eConfigFrom(cfg), pipeline.Root("."), os.Stdout)
 		},
 	}
 }
@@ -229,8 +236,11 @@ func fullCmd() *cobra.Command {
 			}
 
 			fmt.Fprintln(os.Stdout, "[roadie] Running E2E tests...")
-			if err := pipeline.RunE2E(ctx, e2eConfigFrom(cfg), r, os.Stdout); err != nil {
-				return err
+			e2eCtx, stopE2E := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+			e2eErr := pipeline.RunE2E(e2eCtx, e2eConfigFrom(cfg), r, os.Stdout)
+			stopE2E()
+			if e2eErr != nil {
+				return e2eErr
 			}
 
 			fmt.Fprintln(os.Stdout, "[roadie] Running performance tests...")

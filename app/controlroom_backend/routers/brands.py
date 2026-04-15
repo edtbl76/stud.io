@@ -16,7 +16,7 @@ router = APIRouter()
 
 _SELECT_ONE = "SELECT * FROM brands WHERE brand_id = $1"
 _NOT_FOUND = "Brand not found"
-_REF_TABLES = ["models"]
+_REF_TABLES = ["models", "instruments", "effects", "libraries"]
 _SORTABLE = frozenset({"brand_name", "legal_name", "entity_type_name", "created_at", "updated_at"})
 _DEFAULT_SORT = "brand_name"
 _FILTERABLE: dict[str, FilterableField] = {
