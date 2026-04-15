@@ -213,7 +213,7 @@ async def apply_old_data(
             continue
         if col == "parent_ids":
             set_parts.append(f"{col} = {parent_ref_sql(f'${i}')}")
-            values.append(json.dumps(val))
+            values.append(val)
         else:
             set_parts.append(f"{col} = ${i}")
             values.append(_coerce_value(val))
