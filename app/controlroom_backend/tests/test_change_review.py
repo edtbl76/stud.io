@@ -333,6 +333,33 @@ async def test_undo_update_restores_old_data(client, admin_headers, conn):
     assert row["brand_name"] == "OldName"
 
 
+async def test_undo_update_restores_old_data_with_parent_ids(client, admin_headers, conn):
+    """Undo an UPDATE on an entity with parent_ids restores correctly without double-encoding."""
+    import json as _json
+    effect_id = await conn.fetchval(
+        "INSERT INTO effects (effect_name) VALUES ('NewName') RETURNING effect_id"
+    )
+    old_data = {
+        "effect_id": str(effect_id),
+        "effect_name": "OldName",
+        "parent_ids": [],
+    }
+    row = await conn.fetchrow(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by, old_data, new_data)
+           VALUES ('effects', $1, 'UPDATE', 'admin', $2, '{}')
+           RETURNING audit_id""",
+        effect_id, _json.dumps(old_data),
+    )
+    audit_id = row["audit_id"]
+    response = await client.post(
+        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+    )
+    assert response.status_code == 200
+    row = await conn.fetchrow("SELECT effect_name FROM effects WHERE effect_id = $1", effect_id)
+    assert row["effect_name"] == "OldName"
+
+
 async def test_undo_sets_undone_fields(client, admin_headers, conn):
     brand_id = await conn.fetchval(
         "INSERT INTO brands (brand_name) VALUES ('__undo_fields__') RETURNING brand_id"
