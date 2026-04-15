@@ -16,8 +16,8 @@ from routers._helpers import (
     _VALID_STATUSES,
     _NOT_FOUND,
     fetch_mutable_entry,
-    apply_old_data,
 )
+from routers.change_review_undo import apply_undo_operation, UndoTarget
 
 router = APIRouter()
 
@@ -183,21 +183,7 @@ async def undo_change(
 
     try:
         async with conn.transaction():
-            if operation == "CREATE":
-                await conn.execute(
-                    f"DELETE FROM {table} WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
-                )
-            elif operation == "UPDATE":
-                old_data = row["old_data"] or {}
-                if isinstance(old_data, str):
-                    old_data = json.loads(old_data)
-                await apply_old_data(conn, table, pk_col, record_id, old_data)
-            elif operation == "DELETE":
-                await conn.execute(
-                    f"UPDATE {table} SET deleted_at = NULL WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
-                )
-            else:
-                raise HTTPException(status_code=500, detail="Unrecognized operation in audit log")
+            await apply_undo_operation(conn, UndoTarget(table, pk_col, record_id), operation, row["old_data"])
 
             updated = await conn.fetchrow(
                 """UPDATE audit_log

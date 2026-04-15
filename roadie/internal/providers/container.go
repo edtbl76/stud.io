@@ -34,4 +34,8 @@ type ContainerProvider interface {
 	IsRunning(ctx context.Context, service string) (bool, error)
 	Status(ctx context.Context) ([]ServiceStatus, error)
 	Exec(ctx context.Context, service string, cmd []string) error
+	// RemoveContainers forcibly removes each named container (docker rm -f).
+	// Errors for individual containers are silently ignored — the intent is
+	// best-effort cleanup of potentially non-existent containers.
+	RemoveContainers(ctx context.Context, names []string) error
 }

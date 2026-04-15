@@ -90,7 +90,7 @@ func (m *Manager) bringUp(ctx context.Context, cfg *config.Config, withDev, rebu
 	return nil
 }
 
-// Stop brings the stack down.
+// Stop brings the stack down and removes any orphaned e2e test containers.
 func (m *Manager) Stop(ctx context.Context, cfg *config.Config, withDev bool) error {
 	fmt.Fprintln(m.out, "[roadie] Stopping stack...")
 	if err := m.container.Down(ctx, providers.DownConfig{
@@ -100,8 +100,29 @@ func (m *Manager) Stop(ctx context.Context, cfg *config.Config, withDev bool) er
 	}); err != nil {
 		return fmt.Errorf("stopping stack: %w", err)
 	}
+	m.pruneTestContainers(ctx, cfg)
 	fmt.Fprintln(m.out, "[roadie] Done.")
 	return nil
+}
+
+// pruneTestContainers removes any leftover e2e backend shard containers.
+// It is a no-op when no e2e config is present and silently ignores removal
+// errors — containers may not exist if a prior cleanup already ran.
+func (m *Manager) pruneTestContainers(ctx context.Context, cfg *config.Config) {
+	svc := cfg.Test.E2E.BackendService
+	n := cfg.Test.E2E.Shards
+	if svc == "" || n <= 0 {
+		return
+	}
+	names := make([]string, n)
+	for i := range n {
+		names[i] = fmt.Sprintf("%s_%d", svc, i)
+	}
+	ctxClean, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := m.container.RemoveContainers(ctxClean, names); err != nil {
+		fmt.Fprintf(m.out, "[roadie] warning: could not remove test containers: %v\n", err)
+	}
 }
 
 // Status prints running services to m.out, labelled by stack.
