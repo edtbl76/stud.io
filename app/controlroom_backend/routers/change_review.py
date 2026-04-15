@@ -41,7 +41,7 @@ async def _apply_undo_operation(
     elif operation == "UPDATE":
         if isinstance(old_data, str):
             old_data = json.loads(old_data)
-        if not old_data:
+        if not isinstance(old_data, dict) or not old_data:
             raise HTTPException(status_code=409, detail=_MISSING_OLD_DATA)
         await apply_old_data(conn, table, pk_col, record_id, old_data)
     elif operation == "DELETE":

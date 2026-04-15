@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -129,11 +130,15 @@ func (d *DockerProvider) Exec(ctx context.Context, service string, cmd []string)
 	return d.run.Run(ctx, d.out, "docker", args...)
 }
 
-// RemoveContainers runs docker rm -f for each name. Errors per container are
-// silently ignored — containers may not exist if e2e cleanup already ran.
+// RemoveContainers runs docker rm -f for each name and returns a combined error
+// if any removal fails. docker rm -f exits 0 for non-existent containers, so
+// any non-zero exit is a genuine failure worth surfacing.
 func (d *DockerProvider) RemoveContainers(ctx context.Context, names []string) error {
+	var errs []error
 	for _, name := range names {
-		d.run.Run(ctx, d.out, "docker", "rm", "-f", name) //nolint — best-effort
+		if err := d.run.Run(ctx, d.out, "docker", "rm", "-f", name); err != nil {
+			errs = append(errs, fmt.Errorf("remove %s: %w", name, err))
+		}
 	}
-	return nil
+	return errors.Join(errs...)
 }

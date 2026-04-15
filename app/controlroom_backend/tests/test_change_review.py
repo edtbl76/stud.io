@@ -353,6 +353,27 @@ async def test_undo_update_returns_409_when_old_data_missing(client, admin_heade
     assert "old_data" in response.json()["detail"]
 
 
+@pytest.mark.parametrize("bad_old_data", ['"a string"', "42", "[1,2,3]"],
+                         ids=["string", "number", "array"])
+async def test_undo_update_returns_409_when_old_data_not_a_dict(client, admin_headers, conn, bad_old_data):
+    """Undo an UPDATE whose old_data is valid JSON but not an object returns 409."""
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ('__undo_bad_old__') RETURNING brand_id"
+    )
+    row = await conn.fetchrow(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by, old_data)
+           VALUES ('brands', $1, 'UPDATE', 'admin', $2)
+           RETURNING audit_id""",
+        brand_id, bad_old_data,
+    )
+    response = await client.post(
+        f"/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
+    )
+    assert response.status_code == 409
+    assert "old_data" in response.json()["detail"]
+
+
 async def test_undo_update_restores_old_data_with_parent_ids(client, admin_headers, conn):
     """Undo an UPDATE on an entity with parent_ids restores correctly without double-encoding."""
     import json as _json

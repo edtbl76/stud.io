@@ -118,7 +118,9 @@ func (m *Manager) pruneTestContainers(ctx context.Context, cfg *config.Config) {
 	for i := range n {
 		names[i] = fmt.Sprintf("%s_%d", svc, i)
 	}
-	if err := m.container.RemoveContainers(ctx, names); err != nil {
+	ctxClean, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := m.container.RemoveContainers(ctxClean, names); err != nil {
 		fmt.Fprintf(m.out, "[roadie] warning: could not remove test containers: %v\n", err)
 	}
 }

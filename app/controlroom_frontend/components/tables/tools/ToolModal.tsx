@@ -27,7 +27,7 @@ interface FormState {
   brand_id: string
   brand_name: string
   version: string
-  model_ids: string[]
+  model_ids: string[] | null  // null preserves "not set" from the original record; [] means explicitly empty
   model_refs: ModelRef[]
   tool_type_ids: string[]
   plugin_format_ids: string[]
@@ -48,7 +48,7 @@ function buildToolPayload(form: FormState): Record<string, unknown> {
   if (form.tool_name) body.tool_name = form.tool_name
   if (form.brand_id) body.brand_id = form.brand_id
   if (form.version) body.version = form.version
-  body.model_ids = form.model_ids
+  if (form.model_ids !== null) body.model_ids = form.model_ids
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
@@ -71,7 +71,7 @@ function toForm(record: Tool | null): FormState {
     brand_id: record.brand_id ?? '',
     brand_name: record.brand_name ?? '',
     version: record.version ?? '',
-    model_ids: record.model_ids ?? [],
+    model_ids: record.model_ids,
     model_refs: record.models ?? [],
     tool_type_ids: record.tool_type_ids ?? [],
     plugin_format_ids: record.plugin_format_ids ?? [],
@@ -104,7 +104,7 @@ function ToolEditForm({ form, set }: Readonly<ToolEditFormProps>) {
       <div className="col-span-2 flex flex-col gap-1.5">
         <Label>Models</Label>
         <ModelSelect
-          value={form.model_ids}
+          value={form.model_ids ?? []}
           selectedModels={form.model_refs}
           onChange={(ids, models) => { set('model_ids', ids); set('model_refs', models) }}
         />
