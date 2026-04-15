@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
+import { formatDate } from '@/lib/utils'
 import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
@@ -44,16 +45,20 @@ function getToolTitle(mode: 'view' | 'edit' | 'history', record: Tool | null, ca
 }
 
 function buildToolPayload(form: FormState): Record<string, unknown> {
-  const body: Record<string, unknown> = {}
-  if (form.tool_name) body.tool_name = form.tool_name
-  if (form.brand_id) body.brand_id = form.brand_id
-  if (form.version) body.version = form.version
+  const strings: Record<string, string> = {
+    tool_name: form.tool_name, brand_id: form.brand_id, version: form.version,
+    description: form.description, workflow_notes: form.workflow_notes,
+  }
+  const arrays: Record<string, string[]> = {
+    tool_type_ids: form.tool_type_ids,
+    plugin_format_ids: form.plugin_format_ids,
+    tag_ids: form.tag_ids,
+  }
+  const body: Record<string, unknown> = {
+    ...Object.fromEntries(Object.entries(strings).filter(([, v]) => v)),
+    ...Object.fromEntries(Object.entries(arrays).filter(([, v]) => v.length)),
+  }
   if (form.model_ids !== null) body.model_ids = form.model_ids
-  if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
-  if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
-  if (form.tag_ids.length) body.tag_ids = form.tag_ids
-  if (form.description) body.description = form.description
-  if (form.workflow_notes) body.workflow_notes = form.workflow_notes
   return body
 }
 
@@ -133,20 +138,20 @@ function ToolEditForm({ form, set }: Readonly<ToolEditFormProps>) {
   )
 }
 
-function ToolViewForm({ record }: Readonly<{ record: Tool | null }>) {
+function ToolViewForm({ record }: Readonly<{ record: Tool }>) {
   return (
     <div className="grid grid-cols-2 gap-4">
-      <FieldRow label="Tool Name" value={record?.tool_name} />
-      <FieldRow label="Brand" value={record?.brand_name} />
-      <FieldRow label="Version" value={record?.version} />
-      <div className="col-span-2"><FieldRow label="Models" value={<ModelLinks models={record?.models} />} /></div>
-      <div className="col-span-2"><FieldRow label="Tool Types" value={<TypeBadges types={record?.tool_types} />} /></div>
-      <div className="col-span-2"><FieldRow label="Plugin Formats" value={<TypeBadges types={record?.plugin_formats} />} /></div>
-      <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record?.tags} />} /></div>
-      <div className="col-span-2"><FieldRow label="Description" value={record?.description} /></div>
-      <div className="col-span-2"><FieldRow label="Workflow Notes" value={record?.workflow_notes} /></div>
-      <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
-      <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
+      <FieldRow label="Tool Name" value={record.tool_name} />
+      <FieldRow label="Brand" value={record.brand_name} />
+      <FieldRow label="Version" value={record.version} />
+      <div className="col-span-2"><FieldRow label="Models" value={<ModelLinks models={record.models} />} /></div>
+      <div className="col-span-2"><FieldRow label="Tool Types" value={<TypeBadges types={record.tool_types} />} /></div>
+      <div className="col-span-2"><FieldRow label="Plugin Formats" value={<TypeBadges types={record.plugin_formats} />} /></div>
+      <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record.tags} />} /></div>
+      <div className="col-span-2"><FieldRow label="Description" value={record.description} /></div>
+      <div className="col-span-2"><FieldRow label="Workflow Notes" value={record.workflow_notes} /></div>
+      <FieldRow label="Created" value={formatDate(record.created_at)} />
+      <FieldRow label="Updated" value={formatDate(record.updated_at)} />
     </div>
   )
 }
@@ -182,7 +187,7 @@ export function ToolModal({ record, category, onClose, onMutate }: Readonly<Tool
         <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
       )}
 
-      {mode === 'edit' ? <ToolEditForm form={form} set={set} /> : <ToolViewForm record={record} />}
+      {mode === 'edit' ? <ToolEditForm form={form} set={set} /> : record && <ToolViewForm record={record} />}
       </>
       )}
     </RecordModal>
