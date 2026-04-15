@@ -374,6 +374,16 @@ async def test_undo_update_returns_409_when_old_data_not_a_dict(client, admin_he
     assert "old_data" in response.json()["detail"]
 
 
+def test_resolve_old_data_returns_409_for_malformed_json():
+    """_resolve_old_data raises 409 when given a string that is not valid JSON."""
+    from fastapi import HTTPException as _HTTPException
+    from routers.change_review_undo import _resolve_old_data
+    with pytest.raises(_HTTPException) as exc_info:
+        _resolve_old_data("{not valid json}")
+    assert exc_info.value.status_code == 409
+    assert "old_data" in exc_info.value.detail
+
+
 async def test_undo_update_restores_old_data_with_parent_ids(client, admin_headers, conn):
     """Undo an UPDATE on an entity with parent_ids restores correctly without double-encoding."""
     import json as _json

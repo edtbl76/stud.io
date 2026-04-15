@@ -11,6 +11,9 @@ from routers._helpers import apply_old_data
 _MISSING_OLD_DATA = "Cannot undo: old_data is missing from this audit entry"
 _UNRECOGNIZED_OP = "Unrecognized operation in audit log"
 
+_STATUS_CONFLICT = 409
+_STATUS_INTERNAL_ERROR = 500
+
 
 class UndoTarget(NamedTuple):
     """Identifies the record being reversed and its primary-key column."""
@@ -22,7 +25,10 @@ class UndoTarget(NamedTuple):
 def _resolve_old_data(old_data: dict | str | None) -> dict:
     """Decode and validate old_data for an UPDATE reversal."""
     if isinstance(old_data, str):
-        old_data = json.loads(old_data)
+        try:
+            old_data = json.loads(old_data)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=_STATUS_CONFLICT, detail=_MISSING_OLD_DATA)
     if not isinstance(old_data, dict) or not old_data:
         raise HTTPException(status_code=409, detail=_MISSING_OLD_DATA)
     return old_data
@@ -48,4 +54,4 @@ async def apply_undo_operation(
             target.record_id,
         )
     else:
-        raise HTTPException(status_code=500, detail=_UNRECOGNIZED_OP)
+        raise HTTPException(status_code=_STATUS_INTERNAL_ERROR, detail=_UNRECOGNIZED_OP)
