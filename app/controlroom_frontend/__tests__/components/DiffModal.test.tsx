@@ -25,10 +25,10 @@ const base: AuditEntryWithData = {
 }
 
 describe('DiffModal', () => {
-  it('calls onClose when backdrop is clicked', () => {
+  it('calls onClose when close button is clicked', () => {
     const onClose = jest.fn()
     render(<DiffModal entry={base} onClose={onClose} />)
-    fireEvent.click(screen.getByLabelText('Close'))
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 

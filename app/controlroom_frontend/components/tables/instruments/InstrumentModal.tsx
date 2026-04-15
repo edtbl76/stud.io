@@ -41,6 +41,7 @@ interface FormState {
   description: string
   instrument_notes: string
   recording_notes: string
+  artist_reference: string
   attributes: string
 }
 
@@ -55,16 +56,17 @@ function buildInstrumentPayload(form: FormState): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (form.instrument_name) body.instrument_name = form.instrument_name
   if (form.brand_id) body.brand_id = form.brand_id
-  if (form.version) body.version = form.version
+  body.version = form.version
   body.model_ids = form.model_ids
   body.parent_ids = form.parent_ids
   if (form.instrument_type_ids.length) body.instrument_type_ids = form.instrument_type_ids
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
-  if (form.description) body.description = form.description
-  if (form.instrument_notes) body.instrument_notes = form.instrument_notes
-  if (form.recording_notes) body.recording_notes = form.recording_notes
+  body.description = form.description
+  body.instrument_notes = form.instrument_notes
+  body.recording_notes = form.recording_notes
+  body.artist_reference = form.artist_reference
   if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
   return body
 }
@@ -75,7 +77,7 @@ function toForm(record: Instrument | null): FormState {
       instrument_name: '', brand_id: '', brand_name: '', version: '',
       model_ids: [], model_refs: [], parent_ids: [], parent_refs: [],
       instrument_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
-      description: '', instrument_notes: '', recording_notes: '', attributes: '',
+      description: '', instrument_notes: '', recording_notes: '', artist_reference: '', attributes: '',
     }
   }
   return {
@@ -94,6 +96,7 @@ function toForm(record: Instrument | null): FormState {
     description: record.description ?? '',
     instrument_notes: record.instrument_notes ?? '',
     recording_notes: record.recording_notes ?? '',
+    artist_reference: record.artist_reference ?? '',
     attributes: record.attributes ? JSON.stringify(record.attributes, null, 2) : '',
   }
 }
@@ -178,6 +181,10 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
             <Textarea id="recording_notes" value={form.recording_notes} onChange={(e) => set('recording_notes', e.target.value)} rows={3} />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
+            <Label htmlFor="artist_reference">Artist Reference</Label>
+            <Input id="artist_reference" value={form.artist_reference} onChange={(e) => set('artist_reference', e.target.value)} placeholder="Artist reference" />
+          </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="attributes">Attributes (JSON)</Label>
             <Textarea id="attributes" value={form.attributes} onChange={(e) => set('attributes', e.target.value)} rows={4} className="font-mono text-xs" placeholder="{}" />
           </div>
@@ -202,6 +209,7 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
           <div className="col-span-2"><FieldRow label="Description" value={record?.description} /></div>
           <div className="col-span-2"><FieldRow label="Instrument Notes" value={record?.instrument_notes} /></div>
           <div className="col-span-2"><FieldRow label="Recording Notes" value={record?.recording_notes} /></div>
+          <div className="col-span-2"><FieldRow label="Artist Reference" value={record?.artist_reference} /></div>
           {record?.attributes && (
             <div className="col-span-2">
               <FieldRow label="Attributes" value={

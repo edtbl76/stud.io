@@ -68,6 +68,7 @@ const mockInstrument: Instrument = {
   description: 'A beautiful piano',
   instrument_notes: '88 keys sampled',
   recording_notes: null,
+  artist_reference: null,
   attributes: null,
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',

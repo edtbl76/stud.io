@@ -230,7 +230,7 @@ describe('ChangeReviewPage', () => {
 
     await waitFor(() => expect(screen.getByText('Before')).toBeInTheDocument())
 
-    fireEvent.click(screen.getByRole('button', { name: '' })) // X button
+    fireEvent.click(screen.getByRole('button', { name: 'Close' })) // Radix dialog close button
     await waitFor(() => expect(screen.queryByText('Before')).not.toBeInTheDocument())
   })
 

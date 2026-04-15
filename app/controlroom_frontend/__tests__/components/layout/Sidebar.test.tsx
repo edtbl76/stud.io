@@ -79,7 +79,7 @@ describe('Sidebar', () => {
   it('applies active link styling for the current path', () => {
     mockPathname = '/catalog/brands'
     render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
+    // CATALOG group auto-expands because /catalog/brands is the active path
     const brandsLink = screen.getByRole('link', { name: 'Brands' })
     expect(brandsLink.className).toContain('text-primary')
   })

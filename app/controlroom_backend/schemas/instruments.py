@@ -16,6 +16,7 @@ class InstrumentCreate(BaseModel):
     description: Optional[str] = None
     instrument_notes: Optional[str] = None
     recording_notes: Optional[str] = None
+    artist_reference: Optional[str] = None
     attributes: Optional[dict] = None
     tag_ids: Optional[list[UUID]] = None
     parent_ids: Optional[list[ParentRefInput]] = None
@@ -32,6 +33,7 @@ class InstrumentUpdate(BaseModel):
     description: Optional[str] = None
     instrument_notes: Optional[str] = None
     recording_notes: Optional[str] = None
+    artist_reference: Optional[str] = None
     attributes: Optional[dict] = None
     tag_ids: Optional[list[UUID]] = None
     parent_ids: Optional[list[ParentRefInput]] = None
@@ -58,6 +60,7 @@ class InstrumentOut(BaseModel):
     description: Optional[str] = None
     instrument_notes: Optional[str] = None
     recording_notes: Optional[str] = None
+    artist_reference: Optional[str] = None
     attributes: Optional[dict] = None
     created_at: datetime
     updated_at: datetime

@@ -54,9 +54,9 @@ function buildLibraryPayload(form: FormState): Record<string, unknown> {
   body.model_ids = form.model_ids
   body.parent_ids = form.parent_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
-  if (form.description) body.description = form.description
-  if (form.instrument_notes) body.instrument_notes = form.instrument_notes
-  if (form.recording_notes) body.recording_notes = form.recording_notes
+  body.description = form.description
+  body.instrument_notes = form.instrument_notes
+  body.recording_notes = form.recording_notes
   if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
   return body
 }

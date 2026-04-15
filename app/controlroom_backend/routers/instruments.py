@@ -87,16 +87,17 @@ async def create_instrument(payload: InstrumentCreate, conn: Annotated[Connectio
             INSERT INTO instruments
                 (instrument_name, brand_id, model_ids, version,
                  instrument_type_ids, tool_type_ids, plugin_format_ids,
-                 description, instrument_notes, recording_notes,
+                 description, instrument_notes, recording_notes, artist_reference,
                  attributes, tag_ids, parent_ids)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,
-                    {parent_ref_sql('$13')})
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
+                    {parent_ref_sql('$14')})
             RETURNING instrument_id
             """,
             payload.instrument_name, payload.brand_id, payload.model_ids,
             payload.version,
             payload.instrument_type_ids, payload.tool_type_ids, payload.plugin_format_ids,
             payload.description, payload.instrument_notes, payload.recording_notes,
+            payload.artist_reference,
             json.dumps(payload.attributes) if payload.attributes is not None else None,
             payload.tag_ids,
             encode_parent_refs(payload.parent_ids),

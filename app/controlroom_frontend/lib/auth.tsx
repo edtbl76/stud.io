@@ -14,6 +14,46 @@ interface AuthContextValue {
 
 const AuthContext = React.createContext<AuthContextValue | null>(null)
 
+async function performLogin(user: string, password: string): Promise<{ username: string; role: string }> {
+  const form = new URLSearchParams()
+  form.append('username', user)
+  form.append('password', password)
+  const res = await fetch('/api/auth/token', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Login failed' }))
+    throw new Error(err.detail ?? 'Login failed')
+  }
+  return res.json() as Promise<{ username: string; role: string }>
+}
+
+async function performGoogleLogin(credential: string): Promise<{ username: string; role: string }> {
+  const res = await fetch('/api/auth/google', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Google login failed' }))
+    throw new Error(err.detail ?? 'Google login failed')
+  }
+  return res.json() as Promise<{ username: string; role: string }>
+}
+
+function redirectIfNeeded(
+  checked: boolean,
+  username: string | null,
+  pathname: string,
+  router: ReturnType<typeof useRouter>,
+): void {
+  if (!checked) return
+  if (!username && pathname !== '/login') router.replace('/login')
+  if (username && pathname === '/login') router.replace('/')
+}
+
 export function AuthProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [username, setUsername] = React.useState<string | null>(null)
   const [role, setRole] = React.useState<string | null>(null)
@@ -40,59 +80,38 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
   // Redirect unauthenticated users away from protected pages
   React.useEffect(() => {
-    if (!checked) return
-    if (!username && pathname !== '/login') router.replace('/login')
-    if (username && pathname === '/login') router.replace('/')
+    redirectIfNeeded(checked, username, pathname, router)
   }, [checked, username, pathname, router])
 
-  async function login(user: string, password: string) {
-    const form = new URLSearchParams()
-    form.append('username', user)
-    form.append('password', password)
-
-    const res = await fetch('/api/auth/token', {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: form.toString(),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Login failed' }))
-      throw new Error(err.detail ?? 'Login failed')
-    }
-    const data = (await res.json()) as { username: string; role: string }
+  const login = React.useCallback(async (user: string, password: string) => {
+    const data = await performLogin(user, password)
     setUsername(data.username)
     setRole(data.role)
-  }
+  }, [])
 
-  async function loginGoogle(credential: string) {
-    const res = await fetch('/api/auth/google', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ credential }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({ detail: 'Google login failed' }))
-      throw new Error(err.detail ?? 'Google login failed')
-    }
-    const data = (await res.json()) as { username: string; role: string }
+  const loginGoogle = React.useCallback(async (credential: string) => {
+    const data = await performGoogleLogin(credential)
     setUsername(data.username)
     setRole(data.role)
-  }
+  }, [])
 
-  function logout() {
+  const logout = React.useCallback(() => {
     void fetch('/api/auth/logout', { method: 'POST' })
     setUsername(null)
     setRole(null)
     router.replace('/login')
-  }
+  }, [router])
 
   const value = React.useMemo(
     () => ({ username, role, login, loginGoogle, logout }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [username, role],
+    [username, role, login, loginGoogle, logout],
   )
 
-  if (!checked) return null
+  if (!checked) return (
+    <div className="flex items-center justify-center h-screen">
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
