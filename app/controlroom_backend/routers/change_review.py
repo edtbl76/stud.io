@@ -16,40 +16,10 @@ from routers._helpers import (
     _VALID_STATUSES,
     _NOT_FOUND,
     fetch_mutable_entry,
-    apply_old_data,
 )
+from routers.change_review_undo import apply_undo_operation, UndoTarget
 
 router = APIRouter()
-
-_MISSING_OLD_DATA = "Cannot undo: old_data is missing from this audit entry"
-_UNRECOGNIZED_OP = "Unrecognized operation in audit log"
-
-
-async def _apply_undo_operation(
-    conn: asyncpg.Connection,
-    operation: str,
-    table: str,
-    pk_col: str,
-    record_id: UUID,
-    old_data: dict | str | None,
-) -> None:
-    """Execute the DB reversal for a single audit operation inside the caller's transaction."""
-    if operation == "CREATE":
-        await conn.execute(
-            f"UPDATE {table} SET deleted_at = NOW() WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
-        )
-    elif operation == "UPDATE":
-        if isinstance(old_data, str):
-            old_data = json.loads(old_data)
-        if not isinstance(old_data, dict) or not old_data:
-            raise HTTPException(status_code=409, detail=_MISSING_OLD_DATA)
-        await apply_old_data(conn, table, pk_col, record_id, old_data)
-    elif operation == "DELETE":
-        await conn.execute(
-            f"UPDATE {table} SET deleted_at = NULL WHERE {pk_col} = $1", record_id  # safe: table/pk_col from _TABLE_PK constant
-        )
-    else:
-        raise HTTPException(status_code=500, detail=_UNRECOGNIZED_OP)
 
 
 @router.get(
@@ -213,7 +183,7 @@ async def undo_change(
 
     try:
         async with conn.transaction():
-            await _apply_undo_operation(conn, operation, table, pk_col, record_id, row["old_data"])
+            await apply_undo_operation(conn, UndoTarget(table, pk_col, record_id), operation, row["old_data"])
 
             updated = await conn.fetchrow(
                 """UPDATE audit_log
