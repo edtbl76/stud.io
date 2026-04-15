@@ -32,6 +32,13 @@ describe('DiffModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('calls onClose when Escape key is pressed', () => {
+    const onClose = jest.fn()
+    render(<DiffModal entry={base} onClose={onClose} />)
+    fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
+
   it('shows record display name in header', () => {
     render(<DiffModal entry={base} onClose={jest.fn()} />)
     expect(screen.getByText('Bass Comp')).toBeInTheDocument()

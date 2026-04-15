@@ -74,3 +74,32 @@ async def admin_headers(conn):
     )
     token = _create_token("adminuser", "admin")
     return {"Authorization": f"Bearer {token}"}
+
+
+async def insert_audit(conn, table="brands", operation="DELETE", brand_id=None,
+                       acknowledged_at=None, undone_at=None):
+    """Insert a minimal audit_log entry and return (audit_id, brand_id)."""
+    if brand_id is None:
+        brand_id = await conn.fetchval(
+            "INSERT INTO brands (brand_name) VALUES ('__audit_test__') RETURNING brand_id"
+        )
+    row = await conn.fetchrow(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by)
+           VALUES ($1, $2, $3, $4)
+           RETURNING audit_id""",
+        table, brand_id, operation, "admin",
+    )
+    audit_id = row["audit_id"]
+    if acknowledged_at:
+        await conn.execute(
+            "UPDATE audit_log SET acknowledged_at = NOW(), acknowledged_by = 'admin' "
+            "WHERE audit_id = $1",
+            audit_id,
+        )
+    if undone_at:
+        await conn.execute(
+            "UPDATE audit_log SET undone_at = NOW(), undone_by = 'admin' WHERE audit_id = $1",
+            audit_id,
+        )
+    return audit_id, brand_id

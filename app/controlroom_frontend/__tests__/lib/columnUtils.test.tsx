@@ -20,4 +20,10 @@ describe('renderMutedText', () => {
     const { container } = render(<>{renderMutedText('')}</>)
     expect(container.textContent).toBe('—')
   })
+
+  it('renders a dash placeholder when value is undefined', () => {
+    const { container } = render(<>{renderMutedText(undefined)}</>)
+    expect(container.textContent).toBe('—')
+    expect(container.querySelector('span')?.className).toContain('text-muted-foreground/40')
+  })
 })

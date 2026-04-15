@@ -84,6 +84,23 @@ describe('Sidebar', () => {
     expect(brandsLink.className).toContain('text-primary')
   })
 
+  it('applies active link styling for a nested path under the item href', () => {
+    mockPathname = '/catalog/brands/details'
+    render(<Sidebar />)
+    // CATALOG group auto-expands; nested path matches via startsWith(href + '/')
+    const brandsLink = screen.getByRole('link', { name: 'Brands' })
+    expect(brandsLink.className).toContain('text-primary')
+  })
+
+  it('does not apply active link styling when path does not match', () => {
+    mockPathname = '/unrelated'
+    render(<Sidebar />)
+    // CATALOG is collapsed; open it to inspect the Brands link class
+    fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
+    const brandsLink = screen.getByRole('link', { name: 'Brands' })
+    expect(brandsLink.className).not.toContain('text-primary')
+  })
+
   it('renders Stats link in the ADMIN group', () => {
     mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
     render(<Sidebar />)

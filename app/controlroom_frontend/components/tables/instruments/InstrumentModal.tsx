@@ -66,7 +66,7 @@ function buildInstrumentPayload(form: FormState): Record<string, unknown> {
   body.description = form.description
   body.instrument_notes = form.instrument_notes
   body.recording_notes = form.recording_notes
-  body.artist_reference = form.artist_reference
+  body.artist_reference = form.artist_reference || null
   if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
   return body
 }

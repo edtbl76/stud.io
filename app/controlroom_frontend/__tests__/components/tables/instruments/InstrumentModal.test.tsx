@@ -93,6 +93,12 @@ describe('InstrumentModal — view mode', () => {
     expect(screen.getByText('A beautiful piano')).toBeInTheDocument()
     expect(screen.getByText('88 keys sampled')).toBeInTheDocument()
   })
+
+  it('shows artist_reference when present', () => {
+    const record = { ...mockInstrument, artist_reference: 'Elton John' }
+    renderWithClient(<InstrumentModal record={record} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.getByText('Elton John')).toBeInTheDocument()
+  })
 })
 
 describe('InstrumentModal — create mode', () => {
@@ -200,5 +206,42 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(screen.getByText('Update failed')).toBeInTheDocument())
+  })
+
+  it('pre-fills artist_reference input in edit mode', () => {
+    const record = { ...mockInstrument, artist_reference: 'Elton John' }
+    renderWithClient(<InstrumentModal record={record} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    expect(screen.getByLabelText(/artist reference/i)).toHaveValue('Elton John')
+  })
+
+  it('includes artist_reference in update payload', async () => {
+    mockUpdate.mockResolvedValue(mockInstrument)
+    const record = { ...mockInstrument, artist_reference: 'Elton John' }
+    renderWithClient(<InstrumentModal record={record} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByLabelText(/artist reference/i), { target: { value: 'Miles Davis' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/instruments', 'inst-1',
+      expect.objectContaining({ artist_reference: 'Miles Davis' }),
+    ))
+  })
+
+  it('sends null when artist_reference is cleared', async () => {
+    mockUpdate.mockResolvedValue(mockInstrument)
+    const record = { ...mockInstrument, artist_reference: 'Elton John' }
+    renderWithClient(<InstrumentModal record={record} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByLabelText(/artist reference/i), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/instruments', 'inst-1',
+      expect.objectContaining({ artist_reference: null }),
+    ))
   })
 })

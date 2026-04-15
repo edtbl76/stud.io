@@ -9,7 +9,7 @@ interface AuthContextValue {
   role: string | null
   login: (username: string, password: string) => Promise<void>
   loginGoogle: (credential: string) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null)
@@ -95,8 +95,9 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
     setRole(data.role)
   }, [])
 
-  const logout = React.useCallback(() => {
-    void fetch('/api/auth/logout', { method: 'POST' })
+  const logout = React.useCallback(async () => {
+    const res = await fetch('/api/auth/logout', { method: 'POST' })
+    if (!res.ok) throw new Error('Logout failed')
     setUsername(null)
     setRole(null)
     router.replace('/login')
@@ -108,8 +109,14 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
   )
 
   if (!checked) return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    <div
+      className="flex items-center justify-center h-screen"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" aria-hidden="true" />
+      <span className="sr-only">Loading…</span>
     </div>
   )
 
