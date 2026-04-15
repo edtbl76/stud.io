@@ -92,24 +92,23 @@ async def insert_audit(conn, table="brands", operation="DELETE", record_id=None)
     return row["audit_id"], record_id
 
 
-async def insert_acknowledged_audit(conn, table="brands", operation="DELETE", record_id=None):
-    """Insert an already-acknowledged audit_log entry and return (audit_id, record_id)."""
+async def _insert_resolved_audit(conn, table, operation, record_id, resolution):
     audit_id, record_id = await insert_audit(conn, table=table, operation=operation,
                                              record_id=record_id)
+    at_col = "acknowledged_at" if resolution == "acknowledged" else "undone_at"
+    by_col = "acknowledged_by" if resolution == "acknowledged" else "undone_by"
     await conn.execute(
-        "UPDATE audit_log SET acknowledged_at = NOW(), acknowledged_by = 'admin' "
-        "WHERE audit_id = $1",
+        f"UPDATE audit_log SET {at_col} = NOW(), {by_col} = 'admin' WHERE audit_id = $1",
         audit_id,
     )
     return audit_id, record_id
+
+
+async def insert_acknowledged_audit(conn, table="brands", operation="DELETE", record_id=None):
+    """Insert an already-acknowledged audit_log entry and return (audit_id, record_id)."""
+    return await _insert_resolved_audit(conn, table, operation, record_id, "acknowledged")
 
 
 async def insert_undone_audit(conn, table="brands", operation="DELETE", record_id=None):
     """Insert an already-undone audit_log entry and return (audit_id, record_id)."""
-    audit_id, record_id = await insert_audit(conn, table=table, operation=operation,
-                                             record_id=record_id)
-    await conn.execute(
-        "UPDATE audit_log SET undone_at = NOW(), undone_by = 'admin' WHERE audit_id = $1",
-        audit_id,
-    )
-    return audit_id, record_id
+    return await _insert_resolved_audit(conn, table, operation, record_id, "undone")

@@ -5,6 +5,14 @@ from routers.change_review_undo import _resolve_old_data
 from tests.conftest import insert_audit, insert_acknowledged_audit, insert_undone_audit
 
 
+async def _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id, brand_id):
+    response = await client.post(
+        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+    )
+    assert response.status_code == 200
+    return await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
+
+
 async def _insert_brand_update_audit(conn, brand_name: str, old_data_json=None,
                                      new_data_json=None):
     """Insert a brand row and an UPDATE audit entry; return (audit_id, brand_id)."""
@@ -69,11 +77,7 @@ async def test_undo_create_soft_deletes_record(client, admin_headers, conn):
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
                                      record_id=brand_id)
-    response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
-    )
-    assert response.status_code == 200
-    row = await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
+    row = await _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id, brand_id)
     assert row is not None
     assert row["deleted_at"] is not None
 
@@ -85,11 +89,7 @@ async def test_undo_delete_unsets_deleted_at(client, admin_headers, conn):
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="DELETE",
                                      record_id=brand_id)
-    response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
-    )
-    assert response.status_code == 200
-    row = await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
+    row = await _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id, brand_id)
     assert row["deleted_at"] is None
 
 
@@ -188,11 +188,7 @@ async def test_undo_create_soft_deletes_even_when_referenced(client, admin_heade
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
                                      record_id=brand_id)
-    response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
-    )
-    assert response.status_code == 200
-    row = await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
+    row = await _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id, brand_id)
     assert row["deleted_at"] is not None
 
 
