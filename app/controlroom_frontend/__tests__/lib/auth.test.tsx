@@ -243,4 +243,32 @@ describe('AuthProvider', () => {
     expect(screen.getByTestId('username').textContent).toBe('alice')
     expect(mockReplace).not.toHaveBeenCalledWith('/login')
   })
+
+  it('logout does not clear state when the network request fails', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ username: 'alice', role: 'admin' }),
+      })
+      .mockRejectedValueOnce(new Error('Network error'))
+
+    let authRef: ReturnType<typeof useAuth> = null!
+    function Grabber() {
+      authRef = useAuth()
+      return <span data-testid="username">{authRef.username ?? 'none'}</span>
+    }
+
+    render(
+      <AuthProvider>
+        <Grabber />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('alice'))
+
+    await expect(act(async () => { await authRef.logout() })).rejects.toThrow('Network error')
+
+    expect(screen.getByTestId('username').textContent).toBe('alice')
+    expect(mockReplace).not.toHaveBeenCalledWith('/login')
+  })
 })

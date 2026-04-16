@@ -51,9 +51,10 @@ async def test_permanent_sets_undone_fields(client, admin_headers, conn):
     )
     audit_id, _ = await insert_audit(conn, table="brands", operation="DELETE",
                                      record_id=brand_id)
-    await client.delete(
+    response = await client.delete(
         f"/admin/change-review/{audit_id}/permanent", headers=admin_headers
     )
+    assert response.status_code == 204
     row = await conn.fetchrow(
         "SELECT undone_at, undone_by FROM audit_log WHERE audit_id = $1", audit_id
     )
