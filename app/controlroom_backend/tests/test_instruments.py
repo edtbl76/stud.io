@@ -10,6 +10,14 @@ class _ParentsCase(NamedTuple):
     expected_out: str
 
 
+class _ParentSourceCase(NamedTuple):
+    insert_sql: str
+    id_key: str
+    parent_table: str
+    child_name: str
+    expected_name: str
+
+
 # ---------------------------------------------------------------------------
 # LIST
 # ---------------------------------------------------------------------------
@@ -128,34 +136,27 @@ async def test_create_instrument_with_types(client, conn, admin_headers):
     assert len(response.json()["instrument_types"]) == 1
 
 
-async def test_create_instrument_with_parent(client, conn, admin_headers):
-    parent = await conn.fetchrow(
-        "INSERT INTO instruments (instrument_name) VALUES ('Parent Synth') RETURNING instrument_id"
-    )
+@pytest.mark.parametrize("case", [
+    _ParentSourceCase(
+        "INSERT INTO instruments (instrument_name) VALUES ('Parent Synth') RETURNING instrument_id",
+        "instrument_id", "instruments", "Child Synth", "Parent Synth",
+    ),
+    _ParentSourceCase(
+        "INSERT INTO workstations (tool_name) VALUES ('Test DAW') RETURNING workstation_id",
+        "workstation_id", "workstations", "DAW Instrument", "Test DAW",
+    ),
+])
+async def test_create_instrument_parent_name_resolves(client, conn, admin_headers, case):
+    parent = await conn.fetchrow(case.insert_sql)
     response = await client.post("/instruments", json={
-        "instrument_name": "Child Synth",
-        "parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}],
+        "instrument_name": case.child_name,
+        "parent_ids": [{"table_name": case.parent_table, "id": str(parent[case.id_key])}],
     }, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert len(data["parents"]) == 1
-    assert data["parents"][0]["table_name"] == "instruments"
-    assert data["parents"][0]["name"] == "Parent Synth"
-
-
-async def test_create_instrument_with_workstation_parent(client, conn, admin_headers):
-    ws = await conn.fetchrow(
-        "INSERT INTO workstations (tool_name) VALUES ('Test DAW') RETURNING workstation_id"
-    )
-    response = await client.post("/instruments", json={
-        "instrument_name": "DAW Instrument",
-        "parent_ids": [{"table_name": "workstations", "id": str(ws["workstation_id"])}],
-    }, headers=admin_headers)
-    assert response.status_code == 201
-    data = response.json()
-    assert len(data["parents"]) == 1
-    assert data["parents"][0]["table_name"] == "workstations"
-    assert data["parents"][0]["name"] == "Test DAW"
+    assert data["parents"][0]["table_name"] == case.parent_table
+    assert data["parents"][0]["name"] == case.expected_name
 
 
 # ---------------------------------------------------------------------------
