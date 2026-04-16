@@ -5,21 +5,7 @@ import { Loader2, AlertCircle, RotateCcw } from 'lucide-react'
 import { api } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { computeDiff, formatDiffValue } from '@/lib/computeDiff'
-
-interface AuditEntryWithData {
-  audit_id: string
-  table_name: string
-  record_id: string
-  operation: string
-  performed_by: string
-  performed_at: string
-  old_data: Record<string, unknown> | null
-  new_data: Record<string, unknown> | null
-  acknowledged_at: string | null
-  acknowledged_by: string | null
-  undone_at: string | null
-  undone_by: string | null
-}
+import type { AuditEntryWithData } from '@/lib/types'
 
 interface RecordHistoryViewProps {
   historyUrl: string
@@ -102,6 +88,7 @@ export function RecordHistoryView({ historyUrl, isAdmin, onUndo }: Readonly<Reco
       onUndo()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Undo failed')
+    } finally {
       setUndoingId(null)
     }
   }

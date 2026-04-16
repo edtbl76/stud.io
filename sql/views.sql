@@ -289,6 +289,7 @@ SELECT
     l.description,
     l.instrument_notes,
     l.recording_notes,
+    l.workflow_notes,
     l.attributes,
     l.created_at,
     l.updated_at

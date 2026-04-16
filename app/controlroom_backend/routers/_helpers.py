@@ -93,6 +93,9 @@ _TABLE_PK: dict[str, str] = {
 
 _VALID_STATUSES = {"pending", "acknowledged", "undone", "all"}
 
+# new_data is intentionally excluded: the undo and permanent-delete handlers only
+# need the old snapshot to restore or confirm deletion; fetching new_data here
+# would double the JSON transfer size for no benefit in these paths.
 _AUDIT_SELECT = (
     "SELECT audit_id, table_name, record_id, operation, "
     "performed_by, performed_at, "
@@ -255,7 +258,7 @@ async def get_record_history(
 
 
 async def log_audit(
-    conn,
+    conn: asyncpg.Connection,
     table_name: str,
     record_id: uuid.UUID,
     operation: str,

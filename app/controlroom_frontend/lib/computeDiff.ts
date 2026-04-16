@@ -11,7 +11,7 @@ export function computeDiff(
     .map((k) => ({ field: k, from: oldData[k], to: newData[k] }))
 }
 
-const UUID_RE = /^[0-9a-f-]{36}$/i
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function formatDiffValue(value: unknown): string {
   if (value === null || value === undefined) return '—'

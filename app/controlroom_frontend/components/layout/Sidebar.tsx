@@ -126,7 +126,7 @@ export function Sidebar() {
       <div className="px-4 py-2.5 border-b border-sidebar-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground truncate">{username}</span>
         <button
-          onClick={logout}
+          onClick={() => { if (globalThis.confirm('Sign out?')) logout() }}
           title="Sign out"
           className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         >

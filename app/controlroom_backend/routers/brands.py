@@ -10,7 +10,7 @@ from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.brands import BrandCreate, BrandUpdate, BrandOut
 from schemas.common import PagedResponse, ListParams
-from routers._helpers import _serializable, log_audit, AuditEntryWithData
+from routers._helpers import _serializable, log_audit, AuditEntryWithData, build_update_parts
 
 router = APIRouter()
 
@@ -98,11 +98,10 @@ async def update_brand(brand_id: UUID, payload: BrandUpdate, conn: Annotated[Con
     if not updates:
         return await get_brand(brand_id, conn)
 
-    set_clauses = ", ".join(f"{col} = ${i + 2}" for i, col in enumerate(updates))
-    values = list(updates.values())
+    set_parts, values = build_update_parts(updates, None)
     async with conn.transaction():
         await conn.execute(
-            f"UPDATE brands SET {set_clauses}, updated_at = NOW() WHERE brand_id = $1",
+            f"UPDATE brands SET {', '.join(set_parts)}, updated_at = NOW() WHERE brand_id = $1",
             brand_id, *values,
         )
         new_row = await conn.fetchrow(_SELECT_ONE, brand_id)

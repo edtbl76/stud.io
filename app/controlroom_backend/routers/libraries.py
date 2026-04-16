@@ -80,13 +80,15 @@ async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Dep
             f"""
             INSERT INTO libraries
                 (library_name, brand_id, model_ids, description,
-                 instrument_notes, recording_notes, tag_ids, attributes, parent_ids)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,
-                    {parent_ref_sql('$9')})
+                 instrument_notes, recording_notes, workflow_notes,
+                 tag_ids, attributes, parent_ids)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,
+                    {parent_ref_sql('$10')})
             RETURNING library_id
             """,
             payload.library_name, payload.brand_id, payload.model_ids,
             payload.description, payload.instrument_notes, payload.recording_notes,
+            payload.workflow_notes,
             payload.tag_ids,
             json.dumps(payload.attributes) if payload.attributes is not None else None,
             encode_parent_refs(payload.parent_ids),

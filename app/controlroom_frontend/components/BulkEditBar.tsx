@@ -10,9 +10,9 @@ import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import type { ParentRef } from '@/lib/types'
 import type { BulkEditField } from '@/lib/bulkEdit'
 
-function canApplyField(field: BulkEditField, text: string, value: string[]): boolean {
+function canApplyField(field: BulkEditField, text: string, value: string[], parentValue: ParentId[]): boolean {
   if (field.type === 'text') return text.trim().length > 0
-  if (field.type === 'parentsearch') return true
+  if (field.type === 'parentsearch') return parentValue.length > 0
   return value.length > 0
 }
 
@@ -144,7 +144,7 @@ export function BulkEditBar({
     }
   }
 
-  const canApply = field !== null && canApplyField(field, text, value)
+  const canApply = field !== null && canApplyField(field, text, value, parentValue)
 
   function renderFieldInput(f: BulkEditField) {
     if (f.type === 'text') {

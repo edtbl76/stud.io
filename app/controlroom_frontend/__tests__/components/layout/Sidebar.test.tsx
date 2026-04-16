@@ -36,10 +36,18 @@ describe('Sidebar', () => {
     expect(screen.getByText('alice')).toBeInTheDocument()
   })
 
-  it('calls logout when sign out button is clicked', () => {
+  it('calls logout when sign out button is clicked and confirmed', () => {
+    globalThis.confirm = jest.fn(() => true)
     render(<Sidebar />)
     fireEvent.click(screen.getByTitle('Sign out'))
     expect(mockLogout).toHaveBeenCalled()
+  })
+
+  it('does not call logout when sign out is cancelled', () => {
+    globalThis.confirm = jest.fn(() => false)
+    render(<Sidebar />)
+    fireEvent.click(screen.getByTitle('Sign out'))
+    expect(mockLogout).not.toHaveBeenCalled()
   })
 
   it('shows nav group headers', () => {
