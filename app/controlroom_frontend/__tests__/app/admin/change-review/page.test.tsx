@@ -356,10 +356,10 @@ describe('ChangeReviewPage', () => {
     expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
   })
 
-  it('entry rows are keyboard-focusable with tabIndex=0 and role=button', async () => {
+  it('entry rows are keyboard-focusable with tabIndex=0', async () => {
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
-    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    const rows = document.querySelectorAll('tbody tr')
     expect(rows.length).toBe(2)
     rows.forEach((row) => {
       expect(row).toHaveAttribute('tabindex', '0')
@@ -371,7 +371,7 @@ describe('ChangeReviewPage', () => {
     mockFetch.mockResolvedValue(ok({ total: 1, page: 1, page_size: 50, entries: [entryWithName] }))
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
-    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    const rows = document.querySelectorAll('tbody tr')
     expect(rows[0]).toHaveAttribute('aria-label', 'View details for Big Reverb')
   })
 
@@ -388,7 +388,7 @@ describe('ChangeReviewPage', () => {
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
 
-    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    const rows = document.querySelectorAll('tbody tr')
     fireEvent.keyDown(rows[1], { key: 'Enter' })
 
     await waitFor(() => {
@@ -411,7 +411,7 @@ describe('ChangeReviewPage', () => {
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
 
-    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    const rows = document.querySelectorAll('tbody tr')
     fireEvent.keyDown(rows[1], { key: ' ' })
 
     await waitFor(() => {
@@ -426,7 +426,7 @@ describe('ChangeReviewPage', () => {
     await waitFor(() => screen.getAllByText('effects'))
 
     const initialCallCount = mockFetch.mock.calls.length
-    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    const rows = document.querySelectorAll('tbody tr')
     fireEvent.keyDown(rows[0], { key: 'Tab' })
 
     expect(mockFetch.mock.calls.length).toBe(initialCallCount)

@@ -318,7 +318,6 @@ function ChangeReviewTable({ data, loadingDetail, rowErrors, pendingActions, isA
               key={entry.audit_id}
               className="border-b border-border/50 cursor-pointer hover:bg-muted/30 transition-colors"
               tabIndex={0}
-              role="button"
               aria-label={`View details for ${entry.record_display_name ?? entry.record_id.slice(0, 8)}`}
               onClick={() => onRowClick(entry.audit_id)}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick(entry.audit_id) } }}
