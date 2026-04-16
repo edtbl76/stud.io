@@ -149,7 +149,9 @@ async def test_create_effect_with_types(client, conn, admin_headers):
 
 
 async def test_create_effect_with_parent(client, conn, admin_headers):
-    parent = await conn.fetchrow("SELECT effect_id FROM effects LIMIT 1")
+    parent = await conn.fetchrow(
+        "INSERT INTO effects (effect_name) VALUES ('Parent FX Create') RETURNING effect_id"
+    )
     response = await client.post("/effects", json={
         "effect_name": "Child Effect",
         "parent_ids": [{"table_name": "effects", "id": str(parent["effect_id"])}],
@@ -158,6 +160,22 @@ async def test_create_effect_with_parent(client, conn, admin_headers):
     data = response.json()
     assert len(data["parents"]) == 1
     assert data["parents"][0]["table_name"] == "effects"
+    assert data["parents"][0]["name"] == "Parent FX Create"
+
+
+async def test_create_effect_with_workstation_parent(client, conn, admin_headers):
+    ws = await conn.fetchrow(
+        "INSERT INTO workstations (tool_name) VALUES ('Test DAW FX') RETURNING workstation_id"
+    )
+    response = await client.post("/effects", json={
+        "effect_name": "DAW Effect",
+        "parent_ids": [{"table_name": "workstations", "id": str(ws["workstation_id"])}],
+    }, headers=admin_headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert len(data["parents"]) == 1
+    assert data["parents"][0]["table_name"] == "workstations"
+    assert data["parents"][0]["name"] == "Test DAW FX"
 
 
 # ---------------------------------------------------------------------------
@@ -191,6 +209,7 @@ async def test_update_effect_parent_ids(client, conn, admin_headers):
     assert len(data["parents"]) == 1
     assert data["parents"][0]["table_name"] == "effects"
     assert data["parents"][0]["id"] == str(parent["effect_id"])
+    assert data["parents"][0]["name"] == "Parent FX"
 
 
 async def test_update_effect_not_found(client, admin_headers):

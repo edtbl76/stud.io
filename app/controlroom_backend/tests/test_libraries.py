@@ -114,6 +114,22 @@ async def test_create_library_with_parent(client, conn, admin_headers):
     data = response.json()
     assert len(data["parents"]) == 1
     assert data["parents"][0]["table_name"] == "instruments"
+    assert data["parents"][0]["name"] == "Parent Synth"
+
+
+async def test_create_library_with_workstation_parent(client, conn, admin_headers):
+    ws = await conn.fetchrow(
+        "INSERT INTO workstations (tool_name) VALUES ('Test DAW Lib') RETURNING workstation_id"
+    )
+    response = await client.post("/libraries", json={
+        "library_name": "DAW Library",
+        "parent_ids": [{"table_name": "workstations", "id": str(ws["workstation_id"])}],
+    }, headers=admin_headers)
+    assert response.status_code == 201
+    data = response.json()
+    assert len(data["parents"]) == 1
+    assert data["parents"][0]["table_name"] == "workstations"
+    assert data["parents"][0]["name"] == "Test DAW Lib"
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +163,7 @@ async def test_update_library_parent_ids(client, conn, admin_headers):
     assert len(data["parents"]) == 1
     assert data["parents"][0]["table_name"] == "instruments"
     assert data["parents"][0]["id"] == str(parent["instrument_id"])
+    assert data["parents"][0]["name"] == "Parent Sampler Update"
 
 
 async def test_update_library_not_found(client, admin_headers):
