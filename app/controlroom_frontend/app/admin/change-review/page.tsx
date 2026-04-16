@@ -222,31 +222,28 @@ interface EntryActionsCellProps {
 
 function EntryActionButtons({ entry, isPending, onAction }: Readonly<EntryActionButtonsProps>) {
   return (
-    <div className="flex gap-2 items-center">
+    <div className="flex gap-2">
       <button
         onClick={(e) => onAction(e, ENTRY_ACTIONS.undo)}
         disabled={isPending}
-        className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+        className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
       >
-        {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
         Undo
       </button>
       {entry.operation === 'DELETE' ? (
         <button
           onClick={(e) => onAction(e, ENTRY_ACTIONS.permanent)}
           disabled={isPending}
-          className="flex items-center gap-1 text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
+          className="text-destructive hover:text-destructive/80 transition-colors disabled:opacity-50"
         >
-          {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
           Permanently Delete
         </button>
       ) : (
         <button
           onClick={(e) => onAction(e, ENTRY_ACTIONS.acknowledge)}
           disabled={isPending}
-          className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          className="text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
         >
-          {isPending && <Loader2 className="h-3 w-3 animate-spin" />}
           Acknowledge
         </button>
       )}

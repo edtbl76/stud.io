@@ -111,9 +111,10 @@ class _EntitySource(NamedTuple):
 
 
 _ENTITY_SOURCES: tuple[_EntitySource, ...] = (
-    _EntitySource("effects",     "effects_view",     "effect_id",     "effect_name"),
-    _EntitySource("instruments", "instruments_view", "instrument_id", "instrument_name"),
-    _EntitySource("libraries",   "libraries_view",   "library_id",    "library_name"),
+    _EntitySource("effects",      "effects_view",      "effect_id",      "effect_name"),
+    _EntitySource("instruments",  "instruments_view",  "instrument_id",  "instrument_name"),
+    _EntitySource("libraries",    "libraries_view",    "library_id",     "library_name"),
+    _EntitySource("workstations", "workstations_view", "workstation_id", "tool_name"),
 )
 
 NIL_UUID = UUID("00000000-0000-0000-0000-000000000000")

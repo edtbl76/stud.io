@@ -162,6 +162,13 @@ async def test_entity_search_nil_exclude_id_matches_nothing(client, conn):
     assert len(body["results"]) > 0
 
 
+async def test_entity_search_finds_workstation(client, conn):
+    await conn.execute("INSERT INTO workstations (tool_name) VALUES ('zebrawkstn synth')")
+    res = await client.get("/search/entities?q=zebrawkstn")
+    body = res.json()
+    assert any(r["table_name"] == "workstations" for r in body["results"])
+
+
 async def test_entity_search_substring_match(client, conn):
     await conn.execute("INSERT INTO effects (effect_name) VALUES ('zebrasubstr chorus')")
     res = await client.get("/search/entities?q=substr")
