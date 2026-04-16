@@ -12,7 +12,7 @@ import type { BulkEditField } from '@/lib/bulkEdit'
 
 function canApplyField(field: BulkEditField, text: string, value: string[], parentValue: ParentId[]): boolean {
   if (field.type === 'text') return text.trim().length > 0
-  if (field.type === 'parentsearch') return parentValue.length > 0
+  if (field.type === 'parentsearch') return true
   return value.length > 0
 }
 

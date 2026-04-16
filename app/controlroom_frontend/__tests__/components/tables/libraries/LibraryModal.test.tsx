@@ -184,6 +184,87 @@ describe('LibraryModal — edit mode', () => {
     ))
   })
 
+  it('normalizes workflow_notes: empty string sends null', async () => {
+    const recordWithNotes = { ...mockLibrary, workflow_notes: '' }
+    mockUpdate.mockResolvedValue(recordWithNotes)
+    renderWithClient(<LibraryModal record={recordWithNotes} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/libraries', 'lib-1',
+      expect.objectContaining({ workflow_notes: null }),
+    ))
+  })
+
+  it('normalizes workflow_notes: whitespace-only string sends null', async () => {
+    const recordWithNotes = { ...mockLibrary, workflow_notes: '   ' }
+    mockUpdate.mockResolvedValue(recordWithNotes)
+    renderWithClient(<LibraryModal record={recordWithNotes} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/libraries', 'lib-1',
+      expect.objectContaining({ workflow_notes: null }),
+    ))
+  })
+
+  it('normalizes workflow_notes: trims surrounding whitespace before saving', async () => {
+    const recordWithNotes = { ...mockLibrary, workflow_notes: '  render first  ' }
+    mockUpdate.mockResolvedValue(recordWithNotes)
+    renderWithClient(<LibraryModal record={recordWithNotes} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/libraries', 'lib-1',
+      expect.objectContaining({ workflow_notes: 'render first' }),
+    ))
+  })
+
+  it('attributes: whitespace-only does not throw and omits attributes from payload', async () => {
+    const recordWithAttrs = { ...mockLibrary, attributes: null }
+    mockUpdate.mockResolvedValue(recordWithAttrs)
+    renderWithClient(<LibraryModal record={recordWithAttrs} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByPlaceholderText('{}'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalled())
+    expect(mockUpdate.mock.calls[0][2]).not.toHaveProperty('attributes')
+  })
+
+  it('attributes: valid JSON is parsed and sent', async () => {
+    const recordWithAttrs = { ...mockLibrary, attributes: null }
+    mockUpdate.mockResolvedValue(recordWithAttrs)
+    renderWithClient(<LibraryModal record={recordWithAttrs} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByPlaceholderText('{}'), { target: { value: '{"key":"val"}' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/libraries', 'lib-1',
+      expect.objectContaining({ attributes: { key: 'val' } }),
+    ))
+  })
+
+  it('attributes: invalid JSON shows error and does not call api.update', async () => {
+    renderWithClient(<LibraryModal record={mockLibrary} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.change(screen.getByPlaceholderText('{}'), { target: { value: '{bad json}' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(screen.getByText(/invalid JSON/i)).toBeInTheDocument())
+    expect(mockUpdate).not.toHaveBeenCalled()
+  })
+
   it('shows error when save fails', async () => {
     mockUpdate.mockRejectedValue(new Error('Update failed'))
     renderWithClient(<LibraryModal record={mockLibrary} onClose={() => {}} onMutate={() => {}} />)

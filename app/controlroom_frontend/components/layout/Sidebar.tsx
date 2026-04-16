@@ -85,6 +85,10 @@ export function Sidebar() {
   )
   const [searchQuery, setSearchQuery] = React.useState('')
 
+  function handleSignOut() {
+    if (globalThis.confirm('Sign out?')) logout()
+  }
+
   function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     const q = searchQuery.trim()
@@ -126,7 +130,7 @@ export function Sidebar() {
       <div className="px-4 py-2.5 border-b border-sidebar-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground truncate">{username}</span>
         <button
-          onClick={() => { if (globalThis.confirm('Sign out?')) logout() }}
+          onClick={handleSignOut}
           title="Sign out"
           className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         >

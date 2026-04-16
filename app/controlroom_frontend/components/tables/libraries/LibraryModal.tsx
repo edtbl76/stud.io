@@ -58,8 +58,8 @@ function buildLibraryPayload(form: FormState): Record<string, unknown> {
   body.description = form.description
   body.instrument_notes = form.instrument_notes
   body.recording_notes = form.recording_notes
-  body.workflow_notes = form.workflow_notes
-  if (form.attributes) {
+  body.workflow_notes = (form.workflow_notes || '').trim() || null
+  if (form.attributes && form.attributes.trim() !== '') {
     try {
       body.attributes = JSON.parse(form.attributes)
     } catch {

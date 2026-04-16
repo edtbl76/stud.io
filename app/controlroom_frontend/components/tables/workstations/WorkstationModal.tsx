@@ -106,7 +106,7 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label htmlFor="tool_name">Workstation Name *</Label>
-            <Input id="tool_name" value={form.tool_name} onChange={(e) => set('tool_name', e.target.value)} placeholder="Tool Name" />
+            <Input id="tool_name" value={form.tool_name} onChange={(e) => set('tool_name', e.target.value)} placeholder="Workstation Name" />
           </div>
           <div className="col-span-2 flex flex-col gap-1.5">
             <Label>Brand</Label>

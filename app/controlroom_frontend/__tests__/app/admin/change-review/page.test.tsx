@@ -316,7 +316,7 @@ describe('ChangeReviewPage', () => {
     expect(screen.getByText(/could not refresh/i)).toBeInTheDocument()
     // Table and its data rows must still be visible — not wiped by the failed refresh
     expect(screen.getByRole('table')).toBeInTheDocument()
-    expect(screen.getAllByRole('row').length).toBeGreaterThan(1)
+    expect(document.querySelectorAll('tbody tr').length).toBeGreaterThan(0)
     expect(screen.getByText('DELETE')).toBeInTheDocument()
   })
 
@@ -354,5 +354,81 @@ describe('ChangeReviewPage', () => {
     await waitFor(() => screen.getByText('Change Review'))
     expect(screen.getByRole('button', { name: /previous/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
+  })
+
+  it('entry rows are keyboard-focusable with tabIndex=0 and role=button', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    expect(rows.length).toBe(2)
+    rows.forEach((row) => {
+      expect(row).toHaveAttribute('tabindex', '0')
+    })
+  })
+
+  it('entry rows have an accessible aria-label', async () => {
+    const entryWithName = { ...mockEntry, record_display_name: 'Big Reverb' }
+    mockFetch.mockResolvedValue(ok({ total: 1, page: 1, page_size: 50, entries: [entryWithName] }))
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    expect(rows[0]).toHaveAttribute('aria-label', 'View details for Big Reverb')
+  })
+
+  it('pressing Enter on a row triggers the detail fetch', async () => {
+    const detailEntry = {
+      ...mockUpdateEntry,
+      old_data: { effect_name: 'Reverb', version: '1.0' },
+      new_data: { effect_name: 'Reverb', version: '2.0' },
+    }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok(detailEntry))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    fireEvent.keyDown(rows[1], { key: 'Enter' })
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}`)
+      )
+    })
+  })
+
+  it('pressing Space on a row triggers the detail fetch', async () => {
+    const detailEntry = {
+      ...mockUpdateEntry,
+      old_data: { effect_name: 'Reverb', version: '1.0' },
+      new_data: { effect_name: 'Reverb', version: '2.0' },
+    }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok(detailEntry))
+
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    fireEvent.keyDown(rows[1], { key: ' ' })
+
+    await waitFor(() => {
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}`)
+      )
+    })
+  })
+
+  it('pressing other keys on a row does not trigger the detail fetch', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const initialCallCount = mockFetch.mock.calls.length
+    const rows = document.querySelectorAll('tbody tr[role="button"]')
+    fireEvent.keyDown(rows[0], { key: 'Tab' })
+
+    expect(mockFetch.mock.calls.length).toBe(initialCallCount)
   })
 })
