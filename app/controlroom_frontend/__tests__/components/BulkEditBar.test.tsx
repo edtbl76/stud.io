@@ -376,6 +376,19 @@ describe('BulkEditBar', () => {
     await waitFor(() => expect(onApply).toHaveBeenCalledTimes(1))
   })
 
+  it('parentsearch: Apply button is enabled when all chips are removed (clear-all)', async () => {
+    // Rows start with parents; user removes all chips — Apply must still be enabled
+    // so they can intentionally bulk-clear parents across all selected rows.
+    renderBar([parentField], parentRows)
+    fireEvent.change(screen.getByLabelText('Select field to bulk edit'), { target: { value: 'parent_ids' } })
+
+    // Remove all chips (mock remove buttons use aria-label "Remove {name}")
+    fireEvent.click(screen.getByRole('button', { name: /remove reverb/i }))
+    fireEvent.click(screen.getByRole('button', { name: /remove prophet 5/i }))
+
+    expect(screen.getByRole('button', { name: /apply/i })).not.toBeDisabled()
+  })
+
   it('applies singleselect value to all selected rows via PATCH', async () => {
     const { onApply } = renderBar([singleField])
     fireEvent.change(screen.getByLabelText('Select field to bulk edit'), {

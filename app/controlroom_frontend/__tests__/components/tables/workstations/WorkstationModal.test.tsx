@@ -80,7 +80,7 @@ describe('WorkstationModal — create mode', () => {
 
   it('renders required form field in create mode', () => {
     renderWithClient(<WorkstationModal record={null} onClose={() => {}} onMutate={() => {}} />)
-    expect(screen.getByLabelText(/tool name/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/workstation name/i)).toBeInTheDocument()
   })
 
   it('calls api.create with form data on save', async () => {
@@ -89,7 +89,7 @@ describe('WorkstationModal — create mode', () => {
     const onClose = jest.fn()
     renderWithClient(<WorkstationModal record={null} onClose={onClose} onMutate={onMutate} />)
 
-    fireEvent.change(screen.getByLabelText(/tool name/i), { target: { value: 'B Rig' } })
+    fireEvent.change(screen.getByLabelText(/workstation name/i), { target: { value: 'B Rig' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/workstations', expect.objectContaining({ tool_name: 'B Rig' })))

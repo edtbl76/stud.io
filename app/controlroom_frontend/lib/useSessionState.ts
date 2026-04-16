@@ -117,20 +117,23 @@ export function useSessionState(
     [columns],
   )
 
-  const stored = React.useMemo(() => readStorage(key), [key])
+  // readStorage reads from localStorage; using useState lazy initializer is correct here
+  // because we only need the stored value once on mount. Key changes are handled by the
+  // sync effect below, which reads storage directly.
+  const [initialStored] = React.useState(() => readStorage(key))
 
-  const [inputFilters, setInputFilters] = React.useState<FilterState>(stored.filters ?? {})
+  const [inputFilters, setInputFilters] = React.useState<FilterState>(initialStored.filters ?? {})
   const [activeFilters, setActiveFilters] = React.useState<FilterState>(
-    () => buildActive(stored.filters ?? {}),
+    () => buildActive(initialStored.filters ?? {}),
   )
   const [externalSorting, setExternalSorting] = React.useState<SortingState>(
-    stored.sorting ?? defaultSorting,
+    initialStored.sorting ?? defaultSorting,
   )
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(
-    stored.visibility ?? defaultVisibility,
+    initialStored.visibility ?? defaultVisibility,
   )
   const [columnSizing, setColumnSizing] = React.useState<ColumnSizingState>(
-    stored.sizing ?? {},
+    initialStored.sizing ?? {},
   )
 
   // Refs hold the latest defaults so the sync effect can use them as fallbacks
@@ -141,20 +144,21 @@ export function useSessionState(
   defaultVisibilityRef.current = defaultVisibility
 
   // Sync state when the storage key changes (e.g. username changes without unmount).
-  // Skips first render: useState already initialized from stored on mount.
-  // Depends only on `stored` so changes to defaults alone never overwrite live state.
+  // Skips first render: useState already initialized from initialStored on mount.
+  // Reads storage directly so the effect stays reactive to key changes.
   const hasMounted = React.useRef(false)
   React.useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true
       return
     }
-    setInputFilters(stored.filters ?? {})
-    setActiveFilters(() => buildActive(stored.filters ?? {}))
-    setExternalSorting(stored.sorting ?? defaultSortingRef.current)
-    setColumnVisibility(stored.visibility ?? defaultVisibilityRef.current)
-    setColumnSizing(stored.sizing ?? {})
-  }, [stored])
+    const reloaded = readStorage(key)
+    setInputFilters(reloaded.filters ?? {})
+    setActiveFilters(() => buildActive(reloaded.filters ?? {}))
+    setExternalSorting(reloaded.sorting ?? defaultSortingRef.current)
+    setColumnVisibility(reloaded.visibility ?? defaultVisibilityRef.current)
+    setColumnSizing(reloaded.sizing ?? {})
+  }, [key])
 
   // Debounce filters → activeFilters
   React.useEffect(() => {

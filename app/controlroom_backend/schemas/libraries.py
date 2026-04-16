@@ -12,6 +12,7 @@ class LibraryCreate(BaseModel):
     description: Optional[str] = None
     instrument_notes: Optional[str] = None
     recording_notes: Optional[str] = None
+    workflow_notes: Optional[str] = None
     tag_ids: Optional[list[UUID]] = None
     attributes: Optional[dict] = None
     parent_ids: Optional[list[ParentRefInput]] = None
@@ -24,6 +25,7 @@ class LibraryUpdate(BaseModel):
     description: Optional[str] = None
     instrument_notes: Optional[str] = None
     recording_notes: Optional[str] = None
+    workflow_notes: Optional[str] = None
     tag_ids: Optional[list[UUID]] = None
     attributes: Optional[dict] = None
     parent_ids: Optional[list[ParentRefInput]] = None
@@ -43,6 +45,7 @@ class LibraryOut(BaseModel):
     description: Optional[str] = None
     instrument_notes: Optional[str] = None
     recording_notes: Optional[str] = None
+    workflow_notes: Optional[str] = None
     attributes: Optional[dict] = None
     created_at: datetime
     updated_at: datetime

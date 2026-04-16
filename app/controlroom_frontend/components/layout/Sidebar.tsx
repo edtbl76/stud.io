@@ -68,6 +68,49 @@ const navGroups: NavGroup[] = [
   },
 ]
 
+interface SidebarNavGroupProps {
+  group: NavGroup
+  isOpen: boolean
+  pathname: string
+  onToggle: (title: string) => void
+}
+
+function SidebarNavGroup({ group, isOpen, pathname, onToggle }: Readonly<SidebarNavGroupProps>) {
+  return (
+    <div className="mb-1">
+      <button
+        onClick={() => onToggle(group.title)}
+        className="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold tracking-widest text-foreground uppercase hover:text-foreground transition-colors"
+      >
+        {group.title}
+        <ChevronDown className={cn('h-3 w-3 transition-transform duration-150', !isOpen && '-rotate-90')} />
+      </button>
+      {isOpen && (
+        <ul>
+          {group.items.map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  className={cn(
+                    'flex items-center px-4 py-1.5 text-xs transition-colors',
+                    isActive
+                      ? 'border-l-2 border-primary bg-primary/10 text-primary font-medium pl-[14px]'
+                      : 'border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 pl-[14px]'
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 function getInitialOpenGroups(pathname: string): Set<string> {
   const active = navGroups.find((g) =>
     g.items.some((item) => pathname === item.href || pathname.startsWith(item.href + '/'))
@@ -84,6 +127,10 @@ export function Sidebar() {
     () => getInitialOpenGroups(pathname)
   )
   const [searchQuery, setSearchQuery] = React.useState('')
+
+  function handleSignOut() {
+    if (globalThis.confirm('Sign out?')) logout()
+  }
 
   function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -126,7 +173,7 @@ export function Sidebar() {
       <div className="px-4 py-2.5 border-b border-sidebar-border flex items-center justify-between">
         <span className="text-xs text-muted-foreground truncate">{username}</span>
         <button
-          onClick={logout}
+          onClick={handleSignOut}
           title="Sign out"
           className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -152,50 +199,15 @@ export function Sidebar() {
 
       {/* Nav groups */}
       <nav className="py-3">
-        {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => {
-          const isOpen = openGroups.has(group.title)
-          return (
-            <div key={group.title} className="mb-1">
-              {/* Group header — clickable */}
-              <button
-                onClick={() => toggleGroup(group.title)}
-                className="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold tracking-widest text-foreground uppercase hover:text-foreground transition-colors"
-              >
-                {group.title}
-                <ChevronDown
-                  className={cn(
-                    'h-3 w-3 transition-transform duration-150',
-                    !isOpen && '-rotate-90'
-                  )}
-                />
-              </button>
-
-              {/* Items */}
-              {isOpen && (
-                <ul>
-                  {group.items.map((item) => {
-                    const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
-                    return (
-                      <li key={item.href}>
-                        <Link
-                          href={item.href}
-                          className={cn(
-                            'flex items-center px-4 py-1.5 text-xs transition-colors',
-                            isActive
-                              ? 'border-l-2 border-primary bg-primary/10 text-primary font-medium pl-[14px]'
-                              : 'border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 pl-[14px]'
-                          )}
-                        >
-                          {item.label}
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              )}
-            </div>
-          )
-        })}
+        {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => (
+          <SidebarNavGroup
+            key={group.title}
+            group={group}
+            isOpen={openGroups.has(group.title)}
+            pathname={pathname}
+            onToggle={toggleGroup}
+          />
+        ))}
       </nav>
     </aside>
   )

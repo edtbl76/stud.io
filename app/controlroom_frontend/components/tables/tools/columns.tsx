@@ -4,7 +4,6 @@ import { ColumnDef } from '@tanstack/react-table'
 import { Tool } from '@/lib/types'
 import { TypeBadges } from '@/components/TypeBadges'
 import { ARRAY_FILTER_OPERATORS, DATE_FILTER_OPERATORS } from '@/lib/filterOperators'
-import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import '@/lib/columnMeta'
 import { formatDate } from '@/lib/utils'
@@ -18,12 +17,7 @@ export const toolSortFields: SortField[] = [
   { key: 'created_at', label: 'Added' },
 ]
 
-export const toolBulkEditFields: BulkEditField[] = [
-  { key: 'tool_type_ids', label: 'Tool Types', type: 'multiselect', configSlug: 'tool-types' },
-  { key: 'plugin_format_ids', label: 'Plugin Formats', type: 'multiselect', configSlug: 'plugin-formats' },
-  { key: 'tag_ids', label: 'Tags', type: 'multiselect', configSlug: 'tag-types' },
-  { key: 'version', label: 'Version', type: 'text' },
-]
+export { workstationBulkEditFields as toolBulkEditFields } from '@/components/tables/workstations/columns'
 
 export const toolColumns: ColumnDef<Tool, unknown>[] = [
   {

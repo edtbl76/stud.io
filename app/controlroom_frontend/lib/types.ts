@@ -110,6 +110,7 @@ export interface Library {
   description: string | null
   instrument_notes: string | null
   recording_notes: string | null
+  workflow_notes: string | null
   attributes: Record<string, unknown> | null
   created_at: string
   updated_at: string

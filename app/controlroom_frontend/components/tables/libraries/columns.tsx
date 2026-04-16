@@ -18,6 +18,7 @@ export const librarySortFields: SortField[] = [
 ]
 
 export const libraryBulkEditFields: BulkEditField[] = [
+  { key: 'model_ids', label: 'Models', type: 'multiselect', configSlug: 'models' },
   { key: 'tag_ids', label: 'Tags', type: 'multiselect', configSlug: 'tag-types' },
   { key: 'parent_ids', label: 'Parents', type: 'parentsearch' },
 ]

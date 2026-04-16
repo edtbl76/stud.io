@@ -254,6 +254,7 @@ CREATE TABLE libraries (
     description       TEXT,
     instrument_notes  TEXT,
     recording_notes   TEXT,
+    workflow_notes    TEXT,
     tag_ids           UUID[],
     attributes        JSONB,
     parent_ids        parent_ref[],
@@ -321,6 +322,7 @@ ALTER TABLE models            ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DE
 ALTER TABLE effects           ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE instruments       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE instruments       ADD COLUMN IF NOT EXISTS artist_reference TEXT;
+ALTER TABLE libraries         ADD COLUMN IF NOT EXISTS workflow_notes TEXT;
 ALTER TABLE libraries         ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE workstations      ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
 ALTER TABLE admin_tools       ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL;
