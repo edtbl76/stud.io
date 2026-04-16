@@ -57,18 +57,18 @@ function buildEffectPayload(form: FormState): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (form.effect_name) body.effect_name = form.effect_name
   if (form.brand_id) body.brand_id = form.brand_id
-  if (form.version) body.version = form.version
-  if (form.collection) body.collection = form.collection
+  body.version = form.version
+  body.collection = form.collection
   body.model_ids = form.model_ids
   body.parent_ids = form.parent_ids
   if (form.effect_type_ids.length) body.effect_type_ids = form.effect_type_ids
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
-  if (form.description) body.description = form.description
-  if (form.workflow_notes) body.workflow_notes = form.workflow_notes
-  if (form.recording_notes) body.recording_notes = form.recording_notes
-  if (form.artist_reference) body.artist_reference = form.artist_reference
+  body.description = form.description
+  body.workflow_notes = form.workflow_notes
+  body.recording_notes = form.recording_notes
+  body.artist_reference = form.artist_reference
   if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
   return body
 }

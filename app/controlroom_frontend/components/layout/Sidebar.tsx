@@ -68,12 +68,21 @@ const navGroups: NavGroup[] = [
   },
 ]
 
+function getInitialOpenGroups(pathname: string): Set<string> {
+  const active = navGroups.find((g) =>
+    g.items.some((item) => pathname === item.href || pathname.startsWith(item.href + '/'))
+  )
+  return active ? new Set([active.title]) : new Set()
+}
+
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { username, role, logout } = useAuth()
 
-  const [openGroups, setOpenGroups] = React.useState<Set<string>>(new Set())
+  const [openGroups, setOpenGroups] = React.useState<Set<string>>(
+    () => getInitialOpenGroups(pathname)
+  )
   const [searchQuery, setSearchQuery] = React.useState('')
 
   function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {

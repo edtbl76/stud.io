@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { X } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { computeDiff, formatDiffValue } from '@/lib/computeDiff'
 import type { AuditEntryWithData } from '@/lib/types'
 
@@ -78,32 +78,18 @@ export function DiffModal({ entry, onClose }: Props) {
   const title = entry.record_display_name ?? entry.record_id.slice(0, 8)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <button
-        type="button"
-        aria-label="Close"
-        className="absolute inset-0 w-full h-full cursor-default"
-        onClick={onClose}
-      />
-      <dialog
-        open
-        className="relative m-0 border border-border rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col mx-4 bg-background text-foreground p-0"
-      >
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div>
-            <span className="font-semibold text-sm">{title}</span>
-            <span className="ml-2 text-xs text-muted-foreground">
-              {entry.operation} · {entry.table_name} · {timeAgo(entry.performed_at)} by {entry.performed_by}
-            </span>
-          </div>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col p-0">
+        <DialogHeader className="px-4 py-3 border-b border-border shrink-0">
+          <DialogTitle className="text-sm font-semibold">{title}</DialogTitle>
+          <span className="text-xs text-muted-foreground">
+            {entry.operation} · {entry.table_name} · {timeAgo(entry.performed_at)} by {entry.performed_by}
+          </span>
+        </DialogHeader>
         <div className="overflow-y-auto px-4 py-3 flex-1">
           <DiffBody entry={entry} />
         </div>
-      </dialog>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

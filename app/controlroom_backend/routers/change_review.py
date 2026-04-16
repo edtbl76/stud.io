@@ -11,13 +11,13 @@ from routers._helpers import (
     AuditEntry,
     AuditEntryWithData,
     ChangeReviewResponse,
-    _NAME_COL,
     _TABLE_PK,
     _VALID_STATUSES,
     _NOT_FOUND,
     fetch_mutable_entry,
 )
 from routers.change_review_undo import apply_undo_operation, UndoTarget
+from routers.change_review_list import _build_filter_clause, _batch_display_names, _build_entries
 
 router = APIRouter()
 
@@ -42,29 +42,8 @@ async def list_change_review(
     if page_size > 200:
         page_size = 200
 
-    conditions: list[str] = []
-    params: list = []
-    i = 1
-
-    if status == "pending":
-        conditions.append("acknowledged_at IS NULL AND undone_at IS NULL")
-    elif status == "acknowledged":
-        conditions.append("acknowledged_at IS NOT NULL")
-    elif status == "undone":
-        conditions.append("undone_at IS NOT NULL")
-    # "all" -> no filter
-
-    if table is not None:
-        conditions.append(f"table_name = ${i}")
-        params.append(table)
-        i += 1
-
-    if operation is not None:
-        conditions.append(f"operation = ${i}")
-        params.append(operation)
-        i += 1
-
-    where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    where, params = _build_filter_clause(status, table, operation)
+    i = len(params) + 1
 
     total = await conn.fetchval(
         f"SELECT COUNT(*)::int FROM audit_log {where}", *params  # safe: conditions built from literals and $N placeholders only
@@ -85,21 +64,8 @@ async def list_change_review(
         *params, page_size, offset,
     )
 
-    entries = []
-    for row in rows:
-        d = dict(row)
-        tbl = d["table_name"]
-        record_id = d["record_id"]
-        display_name: str | None = None
-        name_col = _NAME_COL.get(tbl)
-        pk_col = _TABLE_PK.get(tbl)
-        if name_col and pk_col:
-            name_row = await conn.fetchrow(
-                f"SELECT {name_col} FROM {tbl} WHERE {pk_col} = $1",  # safe: name_col/pk_col/tbl from constants
-                record_id,
-            )
-            display_name = name_row[name_col] if name_row else str(record_id)[:8]
-        entries.append(AuditEntry(**d, record_display_name=display_name))
+    display_names = await _batch_display_names(conn, rows)
+    entries = _build_entries(rows, display_names)
     return ChangeReviewResponse(total=total, page=page, page_size=page_size, entries=entries)
 
 

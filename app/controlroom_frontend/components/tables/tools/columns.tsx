@@ -8,6 +8,7 @@ import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import '@/lib/columnMeta'
 import { formatDate } from '@/lib/utils'
+import { renderMutedText } from '@/lib/columnUtils'
 
 export const toolSortFields: SortField[] = [
   { key: 'full_tool_name', label: 'Name' },
@@ -33,6 +34,22 @@ export const toolColumns: ColumnDef<Tool, unknown>[] = [
     cell: ({ getValue }) => (
       <span className="font-medium text-foreground">{getValue() as string}</span>
     ),
+  },
+  {
+    accessorKey: 'brand_name',
+    header: 'Brand',
+    size: 180,
+    meta: { filterParam: 'brand' },
+    cell: ({ getValue }) => renderMutedText(getValue() as string | null),
+  },
+  {
+    id: 'models',
+    accessorFn: (row) => row.models?.map((m) => m.name).join(' ') ?? '',
+    header: 'Models',
+    size: 200,
+    enableSorting: false,
+    meta: { filterParam: 'models', filterOperators: ARRAY_FILTER_OPERATORS },
+    cell: ({ row }) => <TypeBadges types={row.original.models} />,
   },
   {
     accessorKey: 'version',

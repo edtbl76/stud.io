@@ -39,6 +39,22 @@ describe('useAuth', () => {
 })
 
 describe('AuthProvider', () => {
+  it('renders accessible loading state while session check is in flight', () => {
+    ;(global.fetch as jest.Mock).mockReturnValueOnce(new Promise(() => {})) // never resolves
+
+    const { container } = render(
+      <AuthProvider>
+        <span data-testid="child">hello</span>
+      </AuthProvider>,
+    )
+
+    const status = screen.getByRole('status')
+    expect(status.tagName.toLowerCase()).toBe('output')
+    expect(status).toHaveAttribute('aria-busy', 'true')
+    expect(screen.getByText('Loading…')).toBeInTheDocument()
+    expect(screen.queryByTestId('child')).not.toBeInTheDocument()
+  })
+
   it('renders children after session check with no active session', async () => {
     ;(global.fetch as jest.Mock).mockResolvedValueOnce({ ok: false })
 
@@ -194,9 +210,65 @@ describe('AuthProvider', () => {
 
     await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('alice'))
 
-    act(() => { authRef.logout() })
+    await act(async () => { await authRef.logout() })
 
     expect(screen.getByTestId('username').textContent).toBe('none')
     expect(mockReplace).toHaveBeenCalledWith('/login')
+  })
+
+  it('logout does not clear state when the server returns a non-OK response', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ username: 'alice', role: 'admin' }),
+      })
+      .mockResolvedValueOnce({ ok: false }) // logout fails
+
+    let authRef: ReturnType<typeof useAuth> = null!
+    function Grabber() {
+      authRef = useAuth()
+      return <span data-testid="username">{authRef.username ?? 'none'}</span>
+    }
+
+    render(
+      <AuthProvider>
+        <Grabber />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('alice'))
+
+    await expect(act(async () => { await authRef.logout() })).rejects.toThrow('Logout failed')
+
+    expect(screen.getByTestId('username').textContent).toBe('alice')
+    expect(mockReplace).not.toHaveBeenCalledWith('/login')
+  })
+
+  it('logout does not clear state when the network request fails', async () => {
+    ;(global.fetch as jest.Mock)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ username: 'alice', role: 'admin' }),
+      })
+      .mockRejectedValueOnce(new Error('Network error'))
+
+    let authRef: ReturnType<typeof useAuth> = null!
+    function Grabber() {
+      authRef = useAuth()
+      return <span data-testid="username">{authRef.username ?? 'none'}</span>
+    }
+
+    render(
+      <AuthProvider>
+        <Grabber />
+      </AuthProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByTestId('username').textContent).toBe('alice'))
+
+    await expect(act(async () => { await authRef.logout() })).rejects.toThrow('Network error')
+
+    expect(screen.getByTestId('username').textContent).toBe('alice')
+    expect(mockReplace).not.toHaveBeenCalledWith('/login')
   })
 })

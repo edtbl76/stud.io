@@ -2,6 +2,11 @@
 
 import { ColumnDef } from '@tanstack/react-table'
 import { LookupOut } from '@/lib/types'
+import type { SortField } from '@/lib/sort'
+
+export const configSortFields: SortField[] = [
+  { key: 'type_name', label: 'Name' },
+]
 
 export const configColumns: ColumnDef<LookupOut, unknown>[] = [
   {

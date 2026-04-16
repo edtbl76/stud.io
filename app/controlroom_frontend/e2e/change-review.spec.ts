@@ -42,9 +42,10 @@ test('change review page shows empty state or table rows', async ({ page }) => {
 })
 
 test('change review is reachable via the ADMIN sidebar group', async ({ page }) => {
-  await page.goto('/admin/stats')
+  // Start on a non-ADMIN page so the ADMIN group begins collapsed
+  await page.goto('/catalog/brands')
 
-  // The ADMIN group is collapsible — open it first
+  // Open the ADMIN group
   await page.getByRole('button', { name: /^ADMIN$/i }).click()
 
   await page.getByRole('link', { name: /^change review$/i }).click()

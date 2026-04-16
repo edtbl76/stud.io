@@ -9,6 +9,7 @@ import { ParentLinks } from '@/components/ParentLinks'
 import type { BulkEditField } from '@/lib/bulkEdit'
 import type { SortField } from '@/lib/sort'
 import { formatDate } from '@/lib/utils'
+import { renderMutedText } from '@/lib/columnUtils'
 
 export const instrumentSortFields: SortField[] = [
   { key: 'instrument_name', label: 'Instrument Name' },
@@ -36,6 +37,13 @@ export const instrumentColumns: ColumnDef<Instrument, unknown>[] = [
       const val = getValue() as string
       return <span className="font-medium text-foreground" title={val}>{val}</span>
     },
+  },
+  {
+    accessorKey: 'brand_name',
+    header: 'Brand',
+    size: 180,
+    meta: { filterParam: 'brand' },
+    cell: ({ getValue }) => renderMutedText(getValue() as string | null),
   },
   {
     id: 'types',

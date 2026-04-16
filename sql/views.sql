@@ -227,6 +227,7 @@ SELECT
     i.description,
     i.instrument_notes,
     i.recording_notes,
+    i.artist_reference,
     i.attributes,
     i.created_at,
     i.updated_at

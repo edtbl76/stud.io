@@ -44,12 +44,12 @@ function buildWorkstationPayload(form: FormState): Record<string, unknown> {
   const body: Record<string, unknown> = {}
   if (form.tool_name) body.tool_name = form.tool_name
   if (form.brand_id) body.brand_id = form.brand_id
-  if (form.version) body.version = form.version
+  body.version = form.version
   if (form.tool_type_ids.length) body.tool_type_ids = form.tool_type_ids
   if (form.plugin_format_ids.length) body.plugin_format_ids = form.plugin_format_ids
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
-  if (form.description) body.description = form.description
-  if (form.workflow_notes) body.workflow_notes = form.workflow_notes
+  body.description = form.description
+  body.workflow_notes = form.workflow_notes
   return body
 }
 

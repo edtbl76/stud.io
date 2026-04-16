@@ -74,3 +74,48 @@ async def admin_headers(conn):
     )
     token = _create_token("adminuser", "admin")
     return {"Authorization": f"Bearer {token}"}
+
+
+async def insert_audit(conn, table="brands", operation="DELETE", record_id=None):
+    """Insert a pending audit_log entry and return (audit_id, record_id)."""
+    if record_id is None:
+        record_id = await conn.fetchval(
+            "INSERT INTO brands (brand_name) VALUES ('__audit_test__') RETURNING brand_id"
+        )
+    row = await conn.fetchrow(
+        """INSERT INTO audit_log
+               (table_name, record_id, operation, performed_by)
+           VALUES ($1, $2, $3, $4)
+           RETURNING audit_id""",
+        table, record_id, operation, "admin",
+    )
+    return row["audit_id"], record_id
+
+
+_RESOLUTION_SQL = {
+    "acknowledged": (
+        "UPDATE audit_log SET acknowledged_at = NOW(), acknowledged_by = 'admin'"
+        " WHERE audit_id = $1"
+    ),
+    "undone": (
+        "UPDATE audit_log SET undone_at = NOW(), undone_by = 'admin' WHERE audit_id = $1"
+    ),
+}
+
+
+async def _insert_resolved_audit(conn, resolution, **kw):
+    audit_id, record_id = await insert_audit(conn, **kw)
+    await conn.execute(_RESOLUTION_SQL[resolution], audit_id)
+    return audit_id, record_id
+
+
+async def insert_acknowledged_audit(conn, table="brands", operation="DELETE", record_id=None):
+    """Insert an already-acknowledged audit_log entry and return (audit_id, record_id)."""
+    return await _insert_resolved_audit(conn, "acknowledged", table=table,
+                                        operation=operation, record_id=record_id)
+
+
+async def insert_undone_audit(conn, table="brands", operation="DELETE", record_id=None):
+    """Insert an already-undone audit_log entry and return (audit_id, record_id)."""
+    return await _insert_resolved_audit(conn, "undone", table=table,
+                                        operation=operation, record_id=record_id)
