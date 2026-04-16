@@ -333,7 +333,7 @@ function ChangeReviewTable({ data, loadingDetail, rowErrors, pendingActions, isA
               </td>
               <td className="py-1.5 pr-4">{entry.operation}</td>
               <td className="py-1.5 pr-4 text-muted-foreground">{entry.performed_by}</td>
-              <td className="py-1.5" onClick={(e) => e.stopPropagation()}>
+              <td className="py-1.5" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                 <EntryActionsCell
                   entry={entry}
                   rowError={rowErrors[entry.audit_id]}

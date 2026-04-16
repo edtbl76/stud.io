@@ -431,4 +431,42 @@ describe('ChangeReviewPage', () => {
 
     expect(mockFetch.mock.calls.length).toBe(initialCallCount)
   })
+
+  it('pressing Enter on an action button does not trigger the row detail fetch', async () => {
+    // Regression: the Actions <td> stops keydown propagation so Enter/Space on
+    // an action button cannot bubble to the <tr> onKeyDown and fire onRowClick.
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const initialCallCount = mockFetch.mock.calls.length
+    const ackButton = screen.getByRole('button', { name: /acknowledge/i })
+    fireEvent.keyDown(ackButton, { key: 'Enter' })
+
+    const detailUrl = `/api/admin/change-review/${mockUpdateEntry.audit_id}`
+    const detailCalls = mockFetch.mock.calls.filter(([url]) => url === detailUrl)
+    expect(detailCalls.length).toBe(0)
+    expect(mockFetch.mock.calls.length).toBe(initialCallCount)
+  })
+
+  it('pressing Space on an action button does not trigger the row detail fetch', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const initialCallCount = mockFetch.mock.calls.length
+    const ackButton = screen.getByRole('button', { name: /acknowledge/i })
+    fireEvent.keyDown(ackButton, { key: ' ' })
+
+    expect(mockFetch.mock.calls.length).toBe(initialCallCount)
+  })
+
+  it('pressing other keys on an action button does not trigger the row detail fetch', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+
+    const initialCallCount = mockFetch.mock.calls.length
+    const ackButton = screen.getByRole('button', { name: /acknowledge/i })
+    fireEvent.keyDown(ackButton, { key: 'Tab' })
+
+    expect(mockFetch.mock.calls.length).toBe(initialCallCount)
+  })
 })

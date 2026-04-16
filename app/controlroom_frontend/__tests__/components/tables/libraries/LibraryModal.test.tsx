@@ -194,6 +194,7 @@ describe('LibraryModal — edit mode', () => {
   }
 
   it.each([
+    ['null value', null, null],
     ['empty string', '', null],
     ['whitespace-only', '   ', null],
     ['padded text', '  render first  ', 'render first'],
