@@ -126,9 +126,10 @@ SELECT
                     'table_name', (p).table_name,
                     'id',         (p).id,
                     'name',       CASE (p).table_name
-                        WHEN 'effects'     THEN (SELECT effect_name     FROM effects     WHERE effect_id     = (p).id)
-                        WHEN 'instruments' THEN (SELECT instrument_name FROM instruments WHERE instrument_id = (p).id)
-                        WHEN 'libraries'   THEN (SELECT library_name    FROM libraries   WHERE library_id    = (p).id)
+                        WHEN 'effects'      THEN (SELECT effect_name     FROM effects      WHERE effect_id      = (p).id)
+                        WHEN 'instruments'  THEN (SELECT instrument_name FROM instruments  WHERE instrument_id  = (p).id)
+                        WHEN 'libraries'    THEN (SELECT library_name    FROM libraries    WHERE library_id     = (p).id)
+                        WHEN 'workstations' THEN (SELECT tool_name       FROM workstations WHERE workstation_id = (p).id)
                         ELSE NULL
                     END
                 )
@@ -215,9 +216,10 @@ SELECT
                     'table_name', (p).table_name,
                     'id',         (p).id,
                     'name',       CASE (p).table_name
-                        WHEN 'effects'     THEN (SELECT effect_name     FROM effects     WHERE effect_id     = (p).id)
-                        WHEN 'instruments' THEN (SELECT instrument_name FROM instruments WHERE instrument_id = (p).id)
-                        WHEN 'libraries'   THEN (SELECT library_name    FROM libraries   WHERE library_id    = (p).id)
+                        WHEN 'effects'      THEN (SELECT effect_name     FROM effects      WHERE effect_id      = (p).id)
+                        WHEN 'instruments'  THEN (SELECT instrument_name FROM instruments  WHERE instrument_id  = (p).id)
+                        WHEN 'libraries'    THEN (SELECT library_name    FROM libraries    WHERE library_id     = (p).id)
+                        WHEN 'workstations' THEN (SELECT tool_name       FROM workstations WHERE workstation_id = (p).id)
                         ELSE NULL
                     END
                 )
@@ -277,9 +279,10 @@ SELECT
                     'table_name', (p).table_name,
                     'id',         (p).id,
                     'name',       CASE (p).table_name
-                        WHEN 'effects'     THEN (SELECT effect_name     FROM effects     WHERE effect_id     = (p).id)
-                        WHEN 'instruments' THEN (SELECT instrument_name FROM instruments WHERE instrument_id = (p).id)
-                        WHEN 'libraries'   THEN (SELECT library_name    FROM libraries   WHERE library_id    = (p).id)
+                        WHEN 'effects'      THEN (SELECT effect_name     FROM effects      WHERE effect_id      = (p).id)
+                        WHEN 'instruments'  THEN (SELECT instrument_name FROM instruments  WHERE instrument_id  = (p).id)
+                        WHEN 'libraries'    THEN (SELECT library_name    FROM libraries    WHERE library_id     = (p).id)
+                        WHEN 'workstations' THEN (SELECT tool_name       FROM workstations WHERE workstation_id = (p).id)
                         ELSE NULL
                     END
                 )
