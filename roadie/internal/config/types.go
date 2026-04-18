@@ -56,6 +56,10 @@ type BuildConfig struct {
 	// SchemaFiles lists SQL files applied to each test database during build,
 	// in order. Paths are relative to the repo root.
 	SchemaFiles []string `yaml:"schema_files"`
+	// SeedFiles lists SQL files applied after schema, in order. Used to
+	// populate reference/lookup data so E2E tests find non-empty tables.
+	// Files must be idempotent (e.g. ON CONFLICT DO UPDATE).
+	SeedFiles []string `yaml:"seed_files"`
 	// Databases lists the test database names that receive the schema files.
 	// The production database must never appear here.
 	Databases []string `yaml:"databases"`

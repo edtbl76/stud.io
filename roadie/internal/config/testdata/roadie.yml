@@ -32,6 +32,8 @@ build:
   schema_files:
     - sql/schema.sql
     - sql/views.sql
+  seed_files:
+    - sql/seeds/01_entity_types.sql
   databases:
     - controlroomdb_test
 

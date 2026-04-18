@@ -38,6 +38,25 @@ build:
   schema_files:
     - sql/schema.sql
     - sql/views.sql
+  seed_files:
+    - sql/seeds/01_entity_types.sql
+    - sql/seeds/02_tag_types.sql
+    - sql/seeds/03_plugin_formats.sql
+    - sql/seeds/04_effect_types.sql
+    - sql/seeds/05_instrument_types.sql
+    - sql/seeds/06_model_types.sql
+    - sql/seeds/07_tool_types.sql
+    - sql/seeds/08_brands.sql
+    - sql/seeds/09_models.sql
+    - sql/seeds/10_workstations.sql
+    - sql/seeds/11_workflow_tools.sql
+    - sql/seeds/12_measurement_tools.sql
+    - sql/seeds/13_reference_tools.sql
+    - sql/seeds/14_composition_tools.sql
+    - sql/seeds/15_admin_tools.sql
+    - sql/seeds/16_effects.sql
+    - sql/seeds/17_instruments.sql
+    - sql/seeds/18_libraries.sql
   databases:
     - controlroomdb_test
 

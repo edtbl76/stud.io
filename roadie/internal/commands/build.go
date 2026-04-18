@@ -88,6 +88,9 @@ func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.
 	if err := applySchema(ctx, cfg, out); err != nil {
 		return err
 	}
+	if err := applySeeds(ctx, cfg, out); err != nil {
+		return err
+	}
 	if flags.schemaOnly {
 		return nil
 	}
@@ -334,10 +337,21 @@ func guardNoProdDB(prodDB string, databases []string) error {
 	return nil
 }
 
-// applySchema applies each configured schema file to each configured test
-// database. The production database must never appear in cfg.Build.Databases.
+// applySchema applies each configured schema file to each configured test database.
 func applySchema(ctx context.Context, cfg *config.Config, out io.Writer) error {
-	if len(cfg.Build.SchemaFiles) == 0 || len(cfg.Build.Databases) == 0 {
+	return applySQLFiles(ctx, cfg, cfg.Build.SchemaFiles, out)
+}
+
+// applySeeds applies each configured seed file to each configured test database,
+// after the schema. Seed files must be idempotent (e.g. ON CONFLICT DO UPDATE).
+func applySeeds(ctx context.Context, cfg *config.Config, out io.Writer) error {
+	return applySQLFiles(ctx, cfg, cfg.Build.SeedFiles, out)
+}
+
+// applySQLFiles applies an ordered list of SQL files to every configured test
+// database. The production database must never appear in cfg.Build.Databases.
+func applySQLFiles(ctx context.Context, cfg *config.Config, files []string, out io.Writer) error {
+	if len(files) == 0 || len(cfg.Build.Databases) == 0 {
 		return nil
 	}
 	if err := guardNoProdDB(cfg.Providers.Database.DBName, cfg.Build.Databases); err != nil {
@@ -345,7 +359,7 @@ func applySchema(ctx context.Context, cfg *config.Config, out io.Writer) error {
 	}
 	applier := schemaApplier{
 		db:          providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil),
-		schemaFiles: cfg.Build.SchemaFiles,
+		schemaFiles: files,
 		service:     cfg.Providers.Database.Service,
 		user:        cfg.Providers.Database.User,
 	}

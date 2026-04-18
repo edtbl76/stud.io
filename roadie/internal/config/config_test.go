@@ -74,6 +74,11 @@ func TestLoad_BuildConfig(t *testing.T) {
 		t.Errorf("schema_files: got %v, want %v", cfg.Build.SchemaFiles, wantFiles)
 	}
 
+	wantSeeds := []string{"sql/seeds/01_entity_types.sql"}
+	if !slices.Equal(cfg.Build.SeedFiles, wantSeeds) {
+		t.Errorf("seed_files: got %v, want %v", cfg.Build.SeedFiles, wantSeeds)
+	}
+
 	wantDBs := []string{"controlroomdb_test"}
 	if !slices.Equal(cfg.Build.Databases, wantDBs) {
 		t.Errorf("databases: got %v, want %v", cfg.Build.Databases, wantDBs)

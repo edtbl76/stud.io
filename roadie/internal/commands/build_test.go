@@ -12,6 +12,42 @@ import (
 // The command layer (buildCmd, releaseCmd) is wiring-only and tested via
 // integration. Unit tests here cover the buildFlags helper methods.
 
+func TestApplySeeds_RejectsProductionDatabase(t *testing.T) {
+	cfg := &config.Config{
+		Providers: config.ProvidersConfig{
+			Container: config.ContainerProviderConfig{ComposeFile: "docker-compose.yml"},
+			Database:  config.DatabaseProviderConfig{DBName: "proddb", Service: "studio_db", User: "studio"},
+		},
+		Build: config.BuildConfig{
+			SeedFiles: []string{"seeds/01_types.sql"},
+			Databases: []string{"testdb", "proddb"},
+		},
+	}
+	err := applySeeds(context.Background(), cfg, io.Discard)
+	if err == nil {
+		t.Fatal("expected error when production database is in build.databases, got nil")
+	}
+	if !strings.Contains(err.Error(), "proddb") {
+		t.Errorf("expected error to name the database, got: %v", err)
+	}
+}
+
+func TestApplySeeds_NoopWhenEmpty(t *testing.T) {
+	cfg := &config.Config{
+		Providers: config.ProvidersConfig{
+			Container: config.ContainerProviderConfig{ComposeFile: "docker-compose.yml"},
+			Database:  config.DatabaseProviderConfig{DBName: "proddb", Service: "studio_db", User: "studio"},
+		},
+		Build: config.BuildConfig{
+			SeedFiles: []string{},
+			Databases: []string{"testdb"},
+		},
+	}
+	if err := applySeeds(context.Background(), cfg, io.Discard); err != nil {
+		t.Errorf("empty seed_files should be a no-op, got: %v", err)
+	}
+}
+
 func TestApplySchema_RejectsProductionDatabase(t *testing.T) {
 	cfg := &config.Config{
 		Providers: config.ProvidersConfig{
