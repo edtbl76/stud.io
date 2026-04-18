@@ -147,11 +147,16 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	fmt.Fprintln(out, "============================================================")
 }
 
-// runUnitTests runs the full unit suite in fatal-sequential order.
+// runUnitTests gates on npm-install then fans out all tool steps in parallel.
 func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 	fmt.Fprintln(out, "[roadie] Running unit tests...")
 	r := pipeline.Root(root)
-	return pipeline.New(buildUnitPipeline(r, nil, true)...).RunSequential(ctx, out)
+	if err := pipeline.New(pipeline.NpmInstallStep(r)).RunSequential(ctx, out); err != nil {
+		return err
+	}
+	results, err := pipeline.New(buildUnitPipeline(r, nil, false)...).RunParallel(ctx, out)
+	pipeline.PrintSummary(out, results)
+	return err
 }
 
 // npmTools is the set of tools that require npm install as a prerequisite.

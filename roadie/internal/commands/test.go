@@ -43,12 +43,22 @@ func unitCmd() *cobra.Command {
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
-			steps := buildUnitPipeline(r, args, true)
-			if len(args) > 0 && len(steps) == 0 {
-				return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit", args)
-			}
 			fmt.Fprintln(os.Stdout, "[roadie] Running unit tests...")
-			return pipeline.New(steps...).RunSequential(cmd.Context(), os.Stdout)
+			if len(args) > 0 {
+				// Targeted run: sequential so the user sees one tool at a time.
+				steps := buildUnitPipeline(r, args, true)
+				if len(steps) == 0 {
+					return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit", args)
+				}
+				return pipeline.New(steps...).RunSequential(cmd.Context(), os.Stdout)
+			}
+			// Full suite: gate on npm-install, then fan out all tools in parallel.
+			if err := pipeline.New(pipeline.NpmInstallStep(r)).RunSequential(cmd.Context(), os.Stdout); err != nil {
+				return err
+			}
+			results, err := pipeline.New(buildUnitPipeline(r, nil, false)...).RunParallel(cmd.Context(), os.Stdout)
+			pipeline.PrintSummary(os.Stdout, results)
+			return err
 		},
 	}
 }
@@ -213,7 +223,9 @@ func fullCmd() *cobra.Command {
 			wg.Add(2)
 			go func() {
 				defer wg.Done()
-				unitErr = pipeline.New(buildUnitPipeline(r, nil, false)...).RunSequential(ctx, os.Stdout)
+				var results []pipeline.StepResult
+				results, unitErr = pipeline.New(buildUnitPipeline(r, nil, false)...).RunParallel(ctx, os.Stdout)
+				pipeline.PrintSummary(os.Stdout, results)
 			}()
 			go func() {
 				defer wg.Done()

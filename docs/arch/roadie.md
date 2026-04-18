@@ -79,7 +79,7 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 
 | Command | Description | Replaces |
 |---|---|---|
-| `roadie build [--dev] [--skip-tests] [--e2e] [--scan] [--perf] [--full]` | Rebuild images, apply schema to test DBs, run tests | `build.sh` |
+| `roadie build [--dev] [--skip-tests] [--schema-only] [--e2e] [--scan] [--perf] [--full]` | Rebuild images, apply schema + seeds to test DBs, run tests | `build.sh` |
 | `roadie release` | Full release gate: rebuild dev stack and run all suites | `build.sh --release` |
 
 #### Test commands
@@ -109,7 +109,7 @@ Frontend PBT tests live in `app/controlroom_frontend/__tests__/pbt/`. Backend PB
 
 `roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
 
-**Schema application:** Before running tests, `roadie build` applies each file in `build.schema_files` to every database in `build.databases`. The production database never appears in `build.databases` — use `roadie db init` for first-time production setup.
+**Schema and seed application:** Before running tests, `roadie build` applies each file in `build.schema_files` then each file in `build.seed_files` to every database in `build.databases`. Seed files must be idempotent (all generated seeds use `ON CONFLICT DO UPDATE`). The production database never appears in `build.databases` — use `roadie db init` for first-time production setup. `--schema-only` applies schema and seeds without rebuilding containers or running tests; used by CI to provision the isolated `controlroomdb_test_ci` database.
 
 #### Database commands
 
@@ -193,6 +193,10 @@ build:
   schema_files:                              # applied in order to each database in `databases`
     - sql/schema.sql
     - sql/views.sql
+  seed_files:                                # applied after schema_files; must be idempotent
+    - sql/seeds/01_entity_types.sql
+    - sql/seeds/02_tag_types.sql
+    # ... (18 files total, one per seeded table)
   databases:                                 # test databases only — never production
     - controlroomdb_test
 ```
@@ -228,8 +232,9 @@ Each `ToolStep` routes its output through a `LabelWriter` before writing to the 
 
 | Mode | Method | Behaviour | Used by |
 |---|---|---|---|
-| Fatal-sequential | `Pipeline.RunSequential` | Stop and return on first failure | `roadie test unit` |
-| Collect | `Pipeline.RunCollect` | Run all steps, accumulate results, return combined error | `roadie test scan`, `roadie test perf` |
+| Fatal-sequential | `Pipeline.RunSequential` | Stop and return on first failure | npm-install gate, targeted `roadie test unit <tool>` |
+| Collect | `Pipeline.RunCollect` | Run all steps sequentially, accumulate results | `roadie test perf` |
+| Parallel | `Pipeline.RunParallel` | Run all steps concurrently, accumulate results | `roadie test unit` (full suite after npm-install gate) |
 
 `RunCollect` returns `[]StepResult` (name, error, duration). Call `PrintSummary(out, results)` to write the PASS/FAIL table, or `PrintSummaryJSON(out, results)` for machine-readable output. Commands that use `RunCollect` (`scan`, `perf`) expose a `--json` flag that switches between the two.
 

@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 )
 
@@ -207,6 +208,27 @@ func (p *Pipeline) RunCollect(ctx context.Context, out io.Writer) ([]StepResult,
 		err := s.Run(ctx, out)
 		results = append(results, StepResult{Name: s.Name, Err: err, Duration: time.Since(start)})
 	}
+	return results, collectErrors(results)
+}
+
+// RunParallel runs all steps concurrently, collects every result, and returns
+// the combined error. Use when steps are independent and a failure in one should
+// not prevent others from running (e.g. parallel lint tools after a shared gate).
+func (p *Pipeline) RunParallel(ctx context.Context, out io.Writer) ([]StepResult, error) {
+	results := make([]StepResult, len(p.steps))
+	var wg sync.WaitGroup
+	for i, s := range p.steps {
+		wg.Add(1)
+		go func(i int, s ToolStep) {
+			defer wg.Done()
+			if p.run != nil {
+				s = s.withRunner(p.run)
+			}
+			start := time.Now()
+			results[i] = StepResult{Name: s.Name, Err: s.Run(ctx, out), Duration: time.Since(start)}
+		}(i, s)
+	}
+	wg.Wait()
 	return results, collectErrors(results)
 }
 

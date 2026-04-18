@@ -64,7 +64,7 @@ roadie build             # rebuild images, apply schema to test DBs, run unit te
 roadie build --e2e       # also run Playwright shards
 ```
 
-The individual scripts still work and are used by CI, but `roadie build` is the recommended local gate starting from Phase 4.
+`roadie build` is the single entry point for local and CI builds — no separate scripts remain.
 
 For security-sensitive changes or before a release:
 
@@ -88,50 +88,32 @@ chore: upgrade Next.js to 16.x
 
 ---
 
-## Bazel + CI
+## CI
 
-The project uses Bazel (via bazelisk, pinned in `.bazelversion`) as the build system. A self-hosted GitHub Actions runner (co-located with the Docker stack) executes the `.github/workflows/pr-gate.yml` workflow on every PR.
+A self-hosted GitHub Actions runner pool (4 instances, co-located with the Docker stack) executes `.github/workflows/pr-gate.yml` on every PR and push to `main`.
 
-### Target quick reference
-
-Each Bazel target delegates to the equivalent `roadie` command.
-
-| Bazel command | What runs | Roadie equivalent |
-|---|---|---|
-| `bazel test //:unit` | All hermetic checks: tsc · jest · ruff · bandit | `roadie test unit` |
-| `bazel test //app/controlroom_frontend:tsc` | TypeScript type-check | `roadie test unit tsc` |
-| `bazel test //app/controlroom_frontend:jest` | Jest unit tests | `roadie test unit jest` |
-| `bazel test //app/controlroom_backend:ruff` | ruff lint | `roadie test unit ruff` |
-| `bazel test //app/controlroom_backend:bandit` | bandit SAST | `roadie test unit bandit` |
-| `bazel test //app/controlroom_backend/tests:pytest` | pytest (requires live PostgreSQL) | `roadie test unit pytest` |
-| `bazel test //app/controlroom_frontend/e2e:playwright` | Playwright E2E (requires Docker stack) | `roadie test e2e` |
-| `bazel test //tests:scan_sonar` | SonarQube scan + quality gate | `roadie test scan sonar --gate` |
-| `bazel test //tests:scan_trivy` | Trivy image scan | `roadie test scan trivy` |
-| `bazel test //tests:scan_secrets` | detect-secrets audit | `roadie test scan secrets` |
-| `bazel test //tests:perf` | Full performance suite | `roadie test perf` |
-| `bazel run //:buildifier` | Format all BUILD files | — |
-
-Use `--config=dev` locally for disk caching: `bazel test --config=dev //:unit`.
-
-### PR gate jobs (5 jobs)
+### PR gate jobs
 
 ```
-hermetic (tsc · jest · ruff · bandit)
-  ├── backend-tests (pytest)      ─┐
-  └── security-scans (sonar·trivy·secrets) ─┘  → e2e → perf (main only)
+build (provision controlroomdb_test_ci)
+  ├── unit-pbt  (roadie test unit + roadie test pbt)
+  ├── scan      (roadie test scan --gate)
+  └── e2e       (roadie test e2e)
+       └── perf (roadie test perf — push to main only, non-blocking)
 ```
 
-Jobs 2 and 3 run in parallel after Job 1 passes. Job 4 (E2E) is gated on both.
-Job 5 (perf) runs only on push to `main` and is non-blocking.
+`unit-pbt`, `scan`, and `e2e` all depend only on `build` and run in parallel across separate runner instances. `perf` depends on all three and runs only on push to `main`.
+
+The `build` job creates `controlroomdb_test_ci` if absent, then runs `roadie build --schema-only` to apply schema and seeds. E2E shards clone `controlroomdb_test_ci` → `controlroomdb_test_ci_0..3` at runtime.
 
 ### Self-hosted runner prerequisites
 
-The runner is on the same machine as the Docker stack. One-time setup before registering:
-- `roadie build` — provision `controlroomdb_test` and rebuild the stack once
+4 runner instances are registered (names: `controlroom`, `controlroom-2`, `controlroom-3`, `controlroom-4`), each with its own `_work/` directory to prevent workspace collisions between parallel jobs. One-time setup:
+- `roadie build` — provision `controlroomdb_test_ci` and rebuild the stack once
 - `npx playwright install chromium` — install Playwright browsers once
-- `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in security-scans job)
+- `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in the scan job)
 
-The workflow verifies the stack is healthy at the start of each infra job and fails fast if it isn't. The stack must be running before CI will pass — start it with `roadie start` or `roadie start --dev` from the persistent workspace.
+The stack must be running before CI will pass — start it with `roadie start --dev` from the persistent workspace.
 
 Runner label: `self-hosted, linux, controlroom`
 

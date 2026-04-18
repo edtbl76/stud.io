@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -145,32 +146,51 @@ func AllScanFlags(gate bool) ScanFlags {
 	return ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true, Gate: gate}
 }
 
-// RunScan runs the selected security scan suites and returns aggregated results.
+// RunScan runs all selected security scan suites in parallel and returns
+// aggregated results. Trivy backend and frontend share a cache lock so they
+// run sequentially within a single goroutine; sonar, secrets, and headers each
+// run in their own goroutine concurrently alongside trivy.
 func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]StepResult, error) {
-	var results []StepResult
+	type task struct {
+		name string
+		run  func() error
+	}
+	var tasks []task
 
 	if flags.Sonar {
-		start := time.Now()
-		err := RunSonarScan(ctx, root, flags.Gate, out)
-		results = append(results, StepResult{Name: "sonar", Err: err, Duration: time.Since(start)})
+		tasks = append(tasks, task{"sonar", func() error {
+			return RunSonarScan(ctx, root, flags.Gate, out)
+		}})
 	}
-
-	var toolSteps []ToolStep
 	if flags.Trivy {
-		toolSteps = append(toolSteps, TrivyBackendStep(root), TrivyFrontendStep(root))
+		b, f := TrivyBackendStep(root), TrivyFrontendStep(root)
+		tasks = append(tasks, task{"trivy", func() error {
+			if err := b.Run(ctx, out); err != nil {
+				return err
+			}
+			return f.Run(ctx, out)
+		}})
 	}
 	if flags.Secrets {
-		toolSteps = append(toolSteps, DetectSecretsStep(root))
+		s := DetectSecretsStep(root)
+		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
 	}
 	if flags.Headers {
-		toolSteps = append(toolSteps, SecurityHeadersStep(root))
+		h := SecurityHeadersStep(root)
+		tasks = append(tasks, task{h.Name, func() error { return h.Run(ctx, out) }})
 	}
 
-	if len(toolSteps) > 0 {
-		stepResults, _ := New(toolSteps...).RunCollect(ctx, out)
-		results = append(results, stepResults...)
+	results := make([]StepResult, len(tasks))
+	var wg sync.WaitGroup
+	for i, t := range tasks {
+		wg.Add(1)
+		go func(i int, t task) {
+			defer wg.Done()
+			start := time.Now()
+			results[i] = StepResult{Name: t.name, Err: t.run(), Duration: time.Since(start)}
+		}(i, t)
 	}
-
+	wg.Wait()
 	return results, collectErrors(results)
 }
 

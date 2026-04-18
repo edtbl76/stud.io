@@ -117,6 +117,6 @@ Different tables carry different notes fields based on what's relevant:
 
 ## Schema and migrations
 
-The schema lives in `sql/schema.sql`. It is applied idempotently by `build.sh` on startup (uses `CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE VIEW`, etc.).
+The schema lives in `sql/schema.sql`. It is applied idempotently by `roadie build` (uses `CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE VIEW`, etc.).
 
 There is no migration framework. Schema changes are made directly to `sql/schema.sql` and applied by restarting the stack. For destructive changes (column renames, type changes), the database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data.

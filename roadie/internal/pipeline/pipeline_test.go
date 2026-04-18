@@ -7,18 +7,22 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 )
 
 // ── Fake runner ───────────────────────────────────────────────────────────────
 
 type fakeStepRunner struct {
+	mu     sync.Mutex
 	calls  []runCmd
 	errors map[string]error // binary name → error to return
 }
 
 func (f *fakeStepRunner) Run(_ context.Context, out io.Writer, cmd runCmd) error {
+	f.mu.Lock()
 	f.calls = append(f.calls, cmd)
+	f.mu.Unlock()
 	io.WriteString(out, "output from "+cmd.name+"\n")
 	return f.errorFor(cmd)
 }
@@ -313,6 +317,79 @@ func TestPipeline_RunCollect_ResultDurationsRecorded(t *testing.T) {
 	results, _ := p.RunCollect(context.Background(), io.Discard)
 	if results[0].Duration < 0 {
 		t.Errorf("expected non-negative duration, got %v", results[0].Duration)
+	}
+}
+
+// ── Pipeline.RunParallel ──────────────────────────────────────────────────────
+
+func TestPipeline_RunParallel_AllPass(t *testing.T) {
+	fake := &fakeStepRunner{}
+	steps := []ToolStep{
+		{Name: "tsc", Bin: "tsc"},
+		{Name: "jest", Bin: "jest"},
+		{Name: "pytest", Bin: "python"},
+	}
+	p := New(steps...).withRunner(fake)
+
+	results, err := p.RunParallel(context.Background(), io.Discard)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(results) != 3 {
+		t.Errorf("expected 3 results, got %d", len(results))
+	}
+	for _, r := range results {
+		if r.Err != nil {
+			t.Errorf("step %q: unexpected error: %v", r.Name, r.Err)
+		}
+	}
+}
+
+func TestPipeline_RunParallel_CollectsAllErrors(t *testing.T) {
+	fake := &fakeStepRunner{errors: map[string]error{"jest": errors.New("test failed")}}
+	steps := []ToolStep{
+		{Name: "tsc", Bin: "tsc"},
+		{Name: "jest", Bin: "jest"},
+		{Name: "pytest", Bin: "python"},
+	}
+	p := New(steps...).withRunner(fake)
+
+	results, err := p.RunParallel(context.Background(), io.Discard)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	// All three steps must have run.
+	if len(results) != 3 {
+		t.Errorf("expected 3 results, got %d", len(results))
+	}
+	var failed int
+	for _, r := range results {
+		if r.Err != nil {
+			failed++
+		}
+	}
+	if failed != 1 {
+		t.Errorf("expected 1 failure, got %d", failed)
+	}
+}
+
+func TestPipeline_RunParallel_ResultNamesPreserved(t *testing.T) {
+	fake := &fakeStepRunner{}
+	steps := []ToolStep{
+		{Name: "ruff", Bin: "ruff"},
+		{Name: "bandit", Bin: "bandit"},
+	}
+	p := New(steps...).withRunner(fake)
+
+	results, _ := p.RunParallel(context.Background(), io.Discard)
+	names := make(map[string]bool, len(results))
+	for _, r := range results {
+		names[r.Name] = true
+	}
+	for _, s := range steps {
+		if !names[s.Name] {
+			t.Errorf("result missing for step %q", s.Name)
+		}
 	}
 }
 
