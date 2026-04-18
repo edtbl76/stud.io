@@ -28,11 +28,28 @@ func npmStep(name string, args []string, root Root) ToolStep {
 	}
 }
 
-// NpmInstallStep returns a step that runs npm install in the frontend directory.
-// --include=dev ensures devDependencies (e.g. jest, tsc) are installed even
-// when NODE_ENV=production is set in the environment.
+// NpmInstallStep returns a step that installs npm dependencies in the frontend
+// directory, skipping the install when package-lock.json and node_modules are
+// both unchanged (hash stored in .roadie-cache/npm-hash at the repo root).
+// --include=dev ensures devDependencies are installed even when NODE_ENV=production.
 func NpmInstallStep(root Root) ToolStep {
-	return npmStep("npm-install", []string{"install", "--include=dev"}, root)
+	r := string(root)
+	cacheFile := strings.ReplaceAll(filepath.Join(r, ".roadie-cache", "npm-hash"), "'", `'"'"'`)
+	cacheDir := strings.ReplaceAll(filepath.Join(r, ".roadie-cache"), "'", `'"'"'`)
+	script := `set -e; ` +
+		`hash=$(sha256sum package-lock.json | cut -d' ' -f1); ` +
+		`if [ -d node_modules ] && [ -f '` + cacheFile + `' ] && ` +
+		`[ "$(cat '` + cacheFile + `')" = "$hash" ]; then ` +
+		`echo "package-lock.json unchanged — skipping npm install"; exit 0; fi; ` +
+		`npm install --include=dev; ` +
+		`mkdir -p '` + cacheDir + `' && echo "$hash" > '` + cacheFile + `'`
+	return ToolStep{
+		Name: "npm-install",
+		Bin:  "bash",
+		Args: []string{"-c", script},
+		Dir:  filepath.Join(r, frontendDir),
+		Env:  pathEnv(ResolveNode()),
+	}
 }
 
 // TscStep returns a step that runs tsc --noEmit against the frontend project.

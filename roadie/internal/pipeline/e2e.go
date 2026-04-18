@@ -309,41 +309,49 @@ func waitForHTTP(ctx context.Context, url string, maxAttempts int, pause time.Du
 }
 
 func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) ([]*os.Process, error) {
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
-	nodeDir := ResolveNode()
 	fmt.Fprintf(out, "Starting %d frontend processes...\n", cfg.Shards)
-
+	if err := NpmInstallStep(Root(root)).Run(ctx, out); err != nil {
+		return nil, fmt.Errorf("npm install for e2e: %w", err)
+	}
 	procs := make([]*os.Process, 0, cfg.Shards)
 	for i := 0; i < cfg.Shards; i++ {
-		port := cfg.FrontendBasePort + i
-		backendPort := cfg.BackendBasePort + i
-
-		cmd := exec.CommandContext(ctx, "npx", "next", "dev",
-			"-p", fmt.Sprintf("%d", port), "-H", "127.0.0.1",
-		)
-		cmd.Dir = frontendDir
-		cmd.Env = append(os.Environ(),
-			"NEXT_DIST_DIR=.next-e2e-"+fmt.Sprintf("%d", i),
-			fmt.Sprintf("BACKEND_URL=http://localhost:%d", backendPort),
-		)
-		if nodeDir != "" {
-			cmd.Env = append(cmd.Env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
-		}
-		killPortProcess(port)
-		logFile, err := os.Create(fmt.Sprintf("/tmp/e2e-frontend-%d.log", i))
+		proc, err := startOneFrontendShard(ctx, cfg, root, i)
 		if err != nil {
-			return procs, fmt.Errorf("creating log for frontend shard %d: %w", i, err)
+			return procs, err
 		}
-		cmd.Stdout = logFile
-		cmd.Stderr = logFile
-		if err := cmd.Start(); err != nil {
-			logFile.Close()
-			return procs, fmt.Errorf("starting frontend shard %d: %w", i, err)
-		}
-		logFile.Close() // parent's copy; child process holds its own inherited fd
-		procs = append(procs, cmd.Process)
+		procs = append(procs, proc)
 	}
 	return procs, nil
+}
+
+func startOneFrontendShard(ctx context.Context, cfg E2EConfig, root string, shard int) (*os.Process, error) {
+	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	nodeDir := ResolveNode()
+	port := cfg.FrontendBasePort + shard
+	cmd := exec.CommandContext(ctx, "npx", "next", "dev",
+		"-p", fmt.Sprintf("%d", port), "-H", "127.0.0.1",
+	)
+	cmd.Dir = frontendDir
+	cmd.Env = append(os.Environ(),
+		"NEXT_DIST_DIR=.next-e2e-"+fmt.Sprintf("%d", shard),
+		fmt.Sprintf("BACKEND_URL=http://localhost:%d", cfg.BackendBasePort+shard),
+	)
+	if nodeDir != "" {
+		cmd.Env = append(cmd.Env, "PATH="+nodeDir+":"+os.Getenv("PATH"))
+	}
+	killPortProcess(port)
+	logFile, err := os.Create(fmt.Sprintf("/tmp/e2e-frontend-%d.log", shard))
+	if err != nil {
+		return nil, fmt.Errorf("creating log for frontend shard %d: %w", shard, err)
+	}
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	if err := cmd.Start(); err != nil {
+		logFile.Close()
+		return nil, fmt.Errorf("starting frontend shard %d: %w", shard, err)
+	}
+	logFile.Close() // parent's copy; child process holds its own inherited fd
+	return cmd.Process, nil
 }
 
 // runPlaywrightShards runs all Playwright shards in parallel using goroutines.

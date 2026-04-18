@@ -375,6 +375,7 @@ app/controlroom_frontend/test-results/
 app/controlroom_frontend/.next-e2e*/
 app/controlroom_frontend/.next-perf/
 app/controlroom_frontend/perf-reports/
+.roadie-cache/
 /app/controlroom_frontend/next-env.d.ts
 !/roadie/roadie
 /docs/audit-2026-04-14.md

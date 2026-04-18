@@ -403,14 +403,14 @@ func TestNpmInstallStep_Fields(t *testing.T) {
 	if s.Name != "npm-install" {
 		t.Errorf("Name: got %q, want npm-install", s.Name)
 	}
-	if s.Bin != "npm" {
-		t.Errorf("Bin: got %q, want npm", s.Bin)
+	if s.Bin != "bash" {
+		t.Errorf("Bin: got %q, want bash", s.Bin)
 	}
 	if s.Dir != "/repo/app/controlroom_frontend" {
 		t.Errorf("Dir: got %q, want /repo/app/controlroom_frontend", s.Dir)
 	}
-	if got := strings.Join(s.Args, " "); got != "install --include=dev" {
-		t.Errorf("Args: got %q, want %q", got, "install --include=dev")
+	if len(s.Args) < 2 || s.Args[0] != "-c" {
+		t.Errorf("Args: got %v, want [-c <script>]", s.Args)
 	}
 }
 
