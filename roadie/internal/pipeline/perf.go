@@ -211,6 +211,9 @@ func stopPerfBackend(container string) {
 
 func buildFrontend(ctx context.Context, cfg PerfConfig, root string, out io.Writer) error {
 	fmt.Fprintln(out, "[perf] Building frontend (production + bundle analysis)...")
+	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
+		return fmt.Errorf("npm install for perf: %w", err)
+	}
 	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
 	nodeDir := ResolveNode()
 	cmd := exec.CommandContext(ctx, "npx", "next", "build")
