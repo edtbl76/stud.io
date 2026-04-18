@@ -19,12 +19,13 @@ func AddBuildCommands(root *cobra.Command) {
 }
 
 type buildFlags struct {
-	dev       bool
-	skipTests bool
-	e2e       bool
-	scan      bool
-	perf      bool
-	full      bool
+	dev        bool
+	skipTests  bool
+	schemaOnly bool
+	e2e        bool
+	scan       bool
+	perf       bool
+	full       bool
 }
 
 func (f buildFlags) runE2E() bool  { return f.e2e || f.full }
@@ -51,6 +52,7 @@ first-time production setup.`,
 	}
 	cmd.Flags().BoolVar(&flags.dev, "dev", false, "include dev tools (SonarQube, Structurizr)")
 	cmd.Flags().BoolVar(&flags.skipTests, "skip-tests", false, "skip unit tests")
+	cmd.Flags().BoolVar(&flags.schemaOnly, "schema-only", false, "apply schema to test databases without rebuilding containers or running tests")
 	cmd.Flags().BoolVar(&flags.e2e, "e2e", false, "run E2E tests after build")
 	cmd.Flags().BoolVar(&flags.scan, "scan", false, "run security scans after build")
 	cmd.Flags().BoolVar(&flags.perf, "perf", false, "run performance tests after build")
@@ -76,14 +78,28 @@ and perf suites. No skipping allowed.`,
 }
 
 // runBuild is the top-level coordinator: rebuild stack, apply schema, run tests.
+// With --schema-only it skips container rebuilds and test execution, applying
+// only the schema files to the configured test databases. Used in CI to provision
+// an isolated database namespace without disturbing the running stack.
 func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
-	if err := newManager(cfg).Build(ctx, cfg, flags.dev); err != nil {
+	if err := buildStack(ctx, cfg, flags); err != nil {
 		return err
 	}
 	if err := applySchema(ctx, cfg, out); err != nil {
 		return err
 	}
+	if flags.schemaOnly {
+		return nil
+	}
 	return runTests(ctx, cfg, flags, out)
+}
+
+// buildStack rebuilds container images unless --schema-only is active.
+func buildStack(ctx context.Context, cfg *config.Config, flags buildFlags) error {
+	if flags.schemaOnly {
+		return nil
+	}
+	return newManager(cfg).Build(ctx, cfg, flags.dev)
 }
 
 // runTests runs the unit pipeline then any enabled optional suites.

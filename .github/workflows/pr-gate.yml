@@ -9,6 +9,10 @@ on:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # Isolate CI test databases from local dev to prevent concurrent run collisions.
+  # e2e shards become controlroomdb_test_ci_0..3; perf backend uses controlroomdb_test_ci.
+  ROADIE_TEST_DB_SOURCE: controlroomdb_test_ci
+  ROADIE_BUILD_DATABASES: controlroomdb_test_ci
 
 # Cancel in-progress runs on the same branch when a new push arrives
 concurrency:
@@ -16,100 +20,76 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Job 1: Hermetic ──────────────────────────────────────────────────────
-  # tsc + jest + ruff + bandit — no infrastructure required
-  hermetic:
-    name: "Hermetic (tsc · jest · ruff · bandit)"
+  # ── Job 1: Provision CI test database ────────────────────────────────────
+  # Creates controlroomdb_test_ci if absent, then applies the current schema.
+  # All other jobs depend on this so the schema is always up to date before
+  # any test run touches it.
+  build:
+    name: "Build (provision CI schema)"
     runs-on: [self-hosted, linux, controlroom]
     steps:
       - uses: actions/checkout@v4
-      - name: Install frontend dependencies
-        working-directory: app/controlroom_frontend
-        run: npm ci
-      - name: Run hermetic checks
-        run: bazel test --config=ci //:unit
-
-  # ── Job 2: Backend tests ──────────────────────────────────────────────────
-  # pytest — requires live PostgreSQL (controlroomdb_test)
-  backend-tests:
-    name: "Backend tests (pytest)"
-    runs-on: [self-hosted, linux, controlroom]
-    needs: hermetic
-    steps:
-      - uses: actions/checkout@v4
-      - name: Verify production stack is healthy
+      - name: Create CI test database if absent
         run: |
-          curl -sfk https://localhost:5150/health || \
-            { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
-      - name: Run pytest
-        run: bazel test --config=ci-infra --test_output=streamed //app/controlroom_backend/tests:pytest
+          docker exec studio_db psql -U studio -lqt | cut -d'|' -f1 | grep -qw controlroomdb_test_ci || \
+            docker exec studio_db createdb -U studio controlroomdb_test_ci
+      - name: Apply schema to CI test database
+        run: roadie build --schema-only
+
+  # ── Job 2: Unit + PBT ────────────────────────────────────────────────────
+  # tsc · jest · ruff · bandit · pytest · fast-check · hypothesis
+  # pytest uses transaction-per-test rollback so controlroomdb_test is safe
+  # for concurrent access; unit tests do not need the CI namespace.
+  unit-pbt:
+    name: "Unit + PBT"
+    runs-on: [self-hosted, linux, controlroom]
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run unit tests
+        run: roadie test unit
+      - name: Run property-based tests
+        run: roadie test pbt
 
   # ── Job 3: Security scans ─────────────────────────────────────────────────
-  # sonar-gate + trivy + secrets — runs in parallel with backend-tests
-  security-scans:
-    name: "Scans (sonar · trivy · secrets)"
+  # sonar · trivy · secrets · headers — no DB contact
+  scan:
+    name: "Scans (sonar · trivy · secrets · headers)"
     runs-on: [self-hosted, linux, controlroom]
-    needs: hermetic
+    needs: build
     steps:
       - uses: actions/checkout@v4
       - name: Install frontend dependencies
         working-directory: app/controlroom_frontend
         run: npm ci
-      - name: Verify production + dev stack is healthy
+      - name: Verify dev stack is healthy
         run: |
-          curl -sfk https://localhost:5150/health || \
-            { echo "Production stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
           curl -sf http://localhost:1969 || \
-            { echo "Dev stack is not running. Run ./roadie.sh start --dev from the workspace."; exit 1; }
-      - name: SonarQube scan + quality gate
+            { echo "Dev stack (SonarQube) is not running. Run 'roadie start --dev' on the runner."; exit 1; }
+      - name: Run security scans
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: bazel test --config=ci-infra --test_output=streamed //tests:scan_sonar
-      - name: Trivy image scan
-        run: bazel test --config=ci-infra --test_output=streamed //tests:scan_trivy
-      - name: Secrets audit
-        run: bazel test --config=ci-infra --test_output=streamed //tests:scan_secrets
+        run: roadie test scan --gate
 
   # ── Job 4: E2E ────────────────────────────────────────────────────────────
-  # Playwright — requires full Docker stack
+  # Playwright shards — clones controlroomdb_test_ci → controlroomdb_test_ci_0..3
   e2e:
     name: "E2E (Playwright)"
     runs-on: [self-hosted, linux, controlroom]
-    needs: [backend-tests, security-scans]
+    needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: Install frontend dependencies
-        working-directory: app/controlroom_frontend
-        run: npm ci
-      - name: Verify production stack is healthy
-        run: |
-          curl -sfk https://localhost:5150/health || \
-            { echo "Production stack is not running. Run ./roadie.sh start from the workspace."; exit 1; }
-      - name: Run Playwright
-        run: bazel test --config=ci-infra --test_output=streamed //app/controlroom_frontend/e2e:playwright
+      - name: Run E2E tests
+        run: roadie test e2e
 
   # ── Job 5: Performance ────────────────────────────────────────────────────
-  # Benchmarks + k6 + Lighthouse — push to main only, non-blocking
+  # benchmarks · k6 · Lighthouse — push to main only, non-blocking
   perf:
     name: "Performance (benchmarks · k6 · Lighthouse)"
     runs-on: [self-hosted, linux, controlroom]
-    needs: e2e
+    needs: [unit-pbt, scan, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     steps:
       - uses: actions/checkout@v4
-      - name: Diagnostics
-        run: |
-          echo "node: $(node --version 2>/dev/null || echo 'not found')"
-          echo "npm:  $(npm --version 2>/dev/null || echo 'not found')"
-          echo "NVM_DIR: ${NVM_DIR:-not set}"
-          echo "PATH: $PATH"
-          roadie version
-      - name: Install frontend dependencies
-        working-directory: app/controlroom_frontend
-        run: npm ci
-      - name: Verify production stack is healthy
-        run: |
-          curl -sfk https://localhost:5150/health || \
-            { echo "Production stack is not running. Run roadie start from the workspace."; exit 1; }
       - name: Run performance suite
-        run: bazel test --config=ci-infra --test_output=streamed //tests:perf
+        run: roadie test perf

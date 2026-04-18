@@ -264,6 +264,32 @@ func TestLoad_TestConfig_DB(t *testing.T) {
 	}
 }
 
+func TestLoad_EnvOverrides(t *testing.T) {
+	t.Setenv("ROADIE_TEST_DB_SOURCE", "controlroomdb_test_ci")
+	t.Setenv("ROADIE_BUILD_DATABASES", "controlroomdb_test_ci")
+	cfg, err := Load("testdata")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+	if cfg.Test.DB.Source != "controlroomdb_test_ci" {
+		t.Errorf("db.source: got %q, want controlroomdb_test_ci", cfg.Test.DB.Source)
+	}
+	if len(cfg.Build.Databases) != 1 || cfg.Build.Databases[0] != "controlroomdb_test_ci" {
+		t.Errorf("build.databases: got %v, want [controlroomdb_test_ci]", cfg.Build.Databases)
+	}
+}
+
+func TestLoad_EnvOverride_ProdDBRejected(t *testing.T) {
+	t.Setenv("ROADIE_BUILD_DATABASES", "controlroomdb")
+	_, err := Load("testdata")
+	if err == nil {
+		t.Fatal("expected validation error when env override sets prod DB in build.databases, got nil")
+	}
+	if !strings.Contains(err.Error(), "build.databases must not contain the production database") {
+		t.Errorf("unexpected error: %v", err)
+	}
+}
+
 func TestLoad_TestConfig_EmptyIsValid(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, "roadie.yml"), []byte(validProvidersYAML), 0644); err != nil {

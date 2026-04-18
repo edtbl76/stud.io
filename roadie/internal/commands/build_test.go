@@ -92,6 +92,19 @@ func TestBuildFlags_Full_SetsAll(t *testing.T) {
 	}
 }
 
+func TestBuildFlags_SchemaOnly(t *testing.T) {
+	flags := buildFlags{schemaOnly: true}
+	if flags.runE2E() {
+		t.Error("--schema-only must not enable runE2E")
+	}
+	if flags.runScan() {
+		t.Error("--schema-only must not enable runScan")
+	}
+	if flags.runPerf() {
+		t.Error("--schema-only must not enable runPerf")
+	}
+}
+
 func TestBuildFlags_SkipTests_Independent(t *testing.T) {
 	// --skip-tests does not affect suite flags
 	flags := buildFlags{skipTests: true, full: true}

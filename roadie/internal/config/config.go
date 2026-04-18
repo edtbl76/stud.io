@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -22,11 +23,28 @@ func Load(root string) (*Config, error) {
 		return nil, fmt.Errorf("parsing %s: %w", path, err)
 	}
 
+	applyEnvOverrides(&cfg)
+
 	if err := validate(&cfg); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
 	return &cfg, nil
+}
+
+// applyEnvOverrides replaces selected config fields with values from environment
+// variables. This allows CI to use a separate DB namespace without a separate
+// config file. Overrides are applied before validation so safety checks still run.
+//
+// ROADIE_TEST_DB_SOURCE — overrides test.db.source (e.g. controlroomdb_test_ci)
+// ROADIE_BUILD_DATABASES — comma-separated list replacing build.databases
+func applyEnvOverrides(cfg *Config) {
+	if v := os.Getenv("ROADIE_TEST_DB_SOURCE"); v != "" {
+		cfg.Test.DB.Source = v
+	}
+	if v := os.Getenv("ROADIE_BUILD_DATABASES"); v != "" {
+		cfg.Build.Databases = strings.Split(v, ",")
+	}
 }
 
 func validate(cfg *Config) error {
