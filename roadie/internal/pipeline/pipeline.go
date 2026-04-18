@@ -136,6 +136,22 @@ func (s ToolStep) Run(ctx context.Context, out io.Writer) error {
 	return errors.Join(stepErr, flushErr)
 }
 
+// RunRaw executes the step writing output directly to out without a LabelWriter.
+// Use when the subprocess produces \r-only progress lines that would stall the
+// LabelWriter's newline-based flushing (e.g. npm install in non-CI contexts).
+func (s ToolStep) RunRaw(ctx context.Context, out io.Writer) error {
+	runner := s.run
+	if runner == nil {
+		runner = realStepRunner{}
+	}
+	return runner.Run(ctx, out, runCmd{
+		dir:  s.Dir,
+		env:  s.Env,
+		name: s.Bin,
+		args: s.Args,
+	})
+}
+
 // StepResult records the outcome of a single step in a collect-mode pipeline.
 type StepResult struct {
 	Name     string

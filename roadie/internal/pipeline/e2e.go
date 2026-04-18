@@ -310,7 +310,9 @@ func waitForHTTP(ctx context.Context, url string, maxAttempts int, pause time.Du
 
 func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) ([]*os.Process, error) {
 	fmt.Fprintf(out, "Starting %d frontend processes...\n", cfg.Shards)
-	if err := NpmInstallStep(Root(root)).Run(ctx, out); err != nil {
+	// Run npm install with a raw writer to avoid LabelWriter stalling on \r-only
+	// npm progress lines that never flush — npm CI output mixes \r and \n.
+	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
 		return nil, fmt.Errorf("npm install for e2e: %w", err)
 	}
 	procs := make([]*os.Process, 0, cfg.Shards)
