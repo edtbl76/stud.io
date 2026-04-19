@@ -1,0 +1,62 @@
+when:
+  - event: [push, pull_request]
+    branch: main
+
+# Isolate CI test databases from local dev to prevent concurrent run collisions.
+# e2e shards become controlroomdb_test_ci_0..3; perf backend uses controlroomdb_test_ci.
+variables:
+  - &ci_db_env
+    ROADIE_TEST_DB_SOURCE: controlroomdb_test_ci
+    ROADIE_BUILD_DATABASES: controlroomdb_test_ci
+
+steps:
+  # ── Step 1: Provision CI test database ──────────────────────────────────────
+  # Creates controlroomdb_test_ci if absent, then applies the current schema
+  # and seeds. All other steps depend on this.
+  - name: build
+    commands:
+      - docker exec studio_db psql -U studio -lqt | cut -d'|' -f1 | grep -qw controlroomdb_test_ci || docker exec studio_db createdb -U studio controlroomdb_test_ci
+      - roadie build --schema-only
+    environment:
+      <<: *ci_db_env
+
+  # ── Step 2: Unit + PBT ──────────────────────────────────────────────────────
+  # tsc · jest · ruff · bandit · pytest · fast-check · hypothesis
+  - name: unit-pbt
+    depends_on: [build]
+    commands:
+      - roadie test unit
+      - roadie test pbt
+
+  # ── Step 3: Security scans ──────────────────────────────────────────────────
+  # sonar · trivy · secrets · headers — no DB contact
+  - name: scan
+    depends_on: [build]
+    commands:
+      - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run 'roadie start --dev'."; exit 1; }
+      - roadie test scan --gate
+    environment:
+      SONAR_TOKEN:
+        from_secret: sonar_token  # pragma: allowlist secret
+
+  # ── Step 4: E2E ─────────────────────────────────────────────────────────────
+  # Playwright shards — clones controlroomdb_test_ci → controlroomdb_test_ci_0..3
+  - name: e2e
+    depends_on: [build]
+    commands:
+      - roadie test e2e
+    environment:
+      <<: *ci_db_env
+
+  # ── Step 5: Performance ─────────────────────────────────────────────────────
+  # benchmarks · k6 · Lighthouse — push to main and manual trigger only
+  - name: perf
+    depends_on: [unit-pbt, scan, e2e]
+    commands:
+      - roadie test perf
+    environment:
+      <<: *ci_db_env
+    when:
+      - event: push
+        branch: main
+      - event: manual

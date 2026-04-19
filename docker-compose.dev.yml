@@ -44,9 +44,11 @@ services:
       WOODPECKER_DATABASE_DATASOURCE: /var/lib/woodpecker/woodpecker.db
       WOODPECKER_GITHUB_SECRET_FILE: /run/secrets/woodpecker_client_secret
       WOODPECKER_AGENT_SECRET_FILE: /run/secrets/woodpecker_agent_secret
+      WOODPECKER_FORGE_WEBHOOK_SECRET_FILE: /run/secrets/woodpecker_webhook_secret
     secrets:
       - woodpecker_client_secret
       - woodpecker_agent_secret
+      - woodpecker_webhook_secret
     volumes:
       - woodpecker_data:/var/lib/woodpecker
       - ./stud-io-woodpecker.2026-04-18.private-key.pem:/etc/woodpecker/private-key.pem:ro
@@ -93,6 +95,8 @@ secrets:
     file: ./woodpecker_client_secret
   woodpecker_agent_secret:
     file: ./woodpecker_agent_secret
+  woodpecker_webhook_secret:
+    file: ./woodpecker_webhook_secret
 
 networks:
   studio_default:
