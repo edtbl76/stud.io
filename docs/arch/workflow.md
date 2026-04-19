@@ -49,7 +49,7 @@ gh pr checks --watch
 # 6. Merge (squash)
 gh pr merge --squash --delete-branch
 
-# 7. Pull main
+# 7. Pull main (optional)
 git checkout main && git pull
 ```
 
