@@ -21,20 +21,28 @@ steps:
     environment:
       <<: *ci_db_env
 
-  # ── Step 2: Unit + PBT ──────────────────────────────────────────────────────
+  # ── Step 2: Install frontend dependencies ───────────────────────────────────
+  # Runs once so unit-pbt, scan, and e2e share a single node_modules install.
+  - name: npm-install
+    image: /bin/bash
+    depends_on: [build]
+    commands:
+      - cd app/controlroom_frontend && npm install --include=dev
+
+  # ── Step 3: Unit + PBT ──────────────────────────────────────────────────────
   # tsc · jest · ruff · bandit · pytest · fast-check · hypothesis
   - name: unit-pbt
     image: /bin/bash
-    depends_on: [build]
+    depends_on: [npm-install]
     commands:
       - roadie test unit
       - roadie test pbt
 
-  # ── Step 3: Security scans ──────────────────────────────────────────────────
+  # ── Step 4: Security scans ──────────────────────────────────────────────────
   # sonar · trivy · secrets · headers — no DB contact
   - name: scan
     image: /bin/bash
-    depends_on: [build]
+    depends_on: [npm-install]
     commands:
       - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run 'roadie start --dev'."; exit 1; }
       - roadie test scan --gate
@@ -47,18 +55,18 @@ steps:
       - event: pull_request
       - event: manual
 
-  # ── Step 4: E2E ─────────────────────────────────────────────────────────────
+  # ── Step 5: E2E ─────────────────────────────────────────────────────────────
   # Playwright shards — clones controlroomdb_test_ci → controlroomdb_test_ci_0..3
   - name: e2e
     image: /bin/bash
-    depends_on: [build]
+    depends_on: [npm-install]
     commands:
       - roadie test e2e
     environment:
       <<: *ci_db_env
       PLAYWRIGHT_BROWSERS_PATH: /home/edwardmangini/.cache/ms-playwright
 
-  # ── Step 5: Performance ─────────────────────────────────────────────────────
+  # ── Step 6: Performance ─────────────────────────────────────────────────────
   # benchmarks · k6 · Lighthouse — push to main and manual trigger only
   - name: perf
     image: /bin/bash
