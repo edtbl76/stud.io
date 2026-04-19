@@ -63,6 +63,11 @@ type BuildConfig struct {
 	// Databases lists the test database names that receive the schema files.
 	// The production database must never appear here.
 	Databases []string `yaml:"databases"`
+	// RebuildOn lists files whose content is hashed to decide whether a
+	// container rebuild is needed. When the hash matches .roadie-cache/docker-hash,
+	// roadie start is used instead of roadie build (skipping --build --force-recreate).
+	// If empty, a full rebuild always runs. Paths are relative to the repo root.
+	RebuildOn []string `yaml:"rebuild_on"`
 }
 
 // ProvidersConfig holds configuration for each provider type.

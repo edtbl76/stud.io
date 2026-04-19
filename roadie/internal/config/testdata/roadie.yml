@@ -36,6 +36,9 @@ build:
     - sql/seeds/01_entity_types.sql
   databases:
     - controlroomdb_test
+  rebuild_on:
+    - docker-compose.yml
+    - app/controlroom_backend/Dockerfile
 
 test:
   e2e:

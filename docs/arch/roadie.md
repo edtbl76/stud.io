@@ -79,7 +79,7 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 
 | Command | Description | Replaces |
 |---|---|---|
-| `roadie build [--dev] [--skip-tests] [--schema-only] [--e2e] [--scan] [--perf] [--full]` | Rebuild images, apply schema + seeds to test DBs, run tests | `build.sh` |
+| `roadie build [--dev] [--skip-tests] [--schema-only] [--force-build] [--e2e] [--scan] [--perf] [--full]` | Rebuild images (skipped if unchanged), apply schema + seeds to test DBs, run tests | `build.sh` |
 | `roadie release` | Full release gate: rebuild dev stack and run all suites | `build.sh --release` |
 
 #### Test commands
@@ -105,7 +105,7 @@ test:
 
 Frontend PBT tests live in `app/controlroom_frontend/__tests__/pbt/`. Backend PBT tests live in `app/controlroom_backend/tests/pbt/`. These are excluded from the pre-commit hook — run `roadie test pbt` manually or rely on `roadie test full`.
 
-`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`.
+`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`. `--force-build` bypasses the container rebuild check and always runs `--build --force-recreate`.
 
 `roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
 
@@ -199,6 +199,12 @@ build:
     # ... (18 files total, one per seeded table)
   databases:                                 # test databases only — never production
     - controlroomdb_test
+  rebuild_on:                                # hashed to skip --build --force-recreate when unchanged
+    - docker-compose.yml
+    - app/controlroom_backend/Dockerfile
+    - app/controlroom_backend/requirements.txt
+    - app/controlroom_frontend/Dockerfile
+    - app/controlroom_frontend/package.json
 ```
 
 Health check types:
