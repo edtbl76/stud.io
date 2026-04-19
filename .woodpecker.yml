@@ -41,6 +41,10 @@ steps:
     environment:
       SONAR_TOKEN:
         from_secret: sonar_token  # pragma: allowlist secret
+    when:
+      - event: push
+        branch: main
+      - event: manual
 
   # ── Step 4: E2E ─────────────────────────────────────────────────────────────
   # Playwright shards — clones controlroomdb_test_ci → controlroomdb_test_ci_0..3
