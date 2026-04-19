@@ -55,6 +55,7 @@ steps:
       - roadie test e2e
     environment:
       <<: *ci_db_env
+      PLAYWRIGHT_BROWSERS_PATH: /home/edwardmangini/.cache/ms-playwright
 
   # ── Step 5: Performance ─────────────────────────────────────────────────────
   # benchmarks · k6 · Lighthouse — push to main and manual trigger only
