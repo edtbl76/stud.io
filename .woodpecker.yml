@@ -1,8 +1,3 @@
-clone:
-  git:
-    settings:
-      lfs: false
-
 when:
   - event: [push, pull_request]
     branch: main
