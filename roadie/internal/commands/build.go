@@ -152,6 +152,7 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 		fmt.Fprintln(out, "")
 		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
 		fmt.Fprintf(out, "  Structurizr:  %s\n", u.Structurizr)
+		fmt.Fprintf(out, "  Woodpecker:   %s\n", u.Woodpecker)
 	}
 	if flags.dev && flags.full {
 		fmt.Fprintln(out, "")

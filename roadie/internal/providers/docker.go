@@ -130,12 +130,15 @@ func (d *DockerProvider) Exec(ctx context.Context, service string, cmd []string)
 	return d.run.Run(ctx, d.out, "docker", args...)
 }
 
-// RemoveContainers runs docker rm -f for each name and returns a combined error
-// if any removal fails. docker rm -f exits 0 for non-existent containers, so
-// any non-zero exit is a genuine failure worth surfacing.
+// RemoveContainers removes each named container if it exists. Non-existent
+// containers are silently skipped — the desired state (container gone) is
+// already satisfied. Any other removal failure is returned as a combined error.
 func (d *DockerProvider) RemoveContainers(ctx context.Context, names []string) error {
 	var errs []error
 	for _, name := range names {
+		if _, err := d.run.Output(ctx, "docker", "inspect", "--format", "{{.Name}}", name); err != nil {
+			continue // container does not exist; nothing to remove
+		}
 		if err := d.run.Run(ctx, d.out, "docker", "rm", "-f", name); err != nil {
 			errs = append(errs, fmt.Errorf("remove %s: %w", name, err))
 		}

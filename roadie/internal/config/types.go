@@ -116,4 +116,5 @@ type URLsConfig struct {
 	Docs        string `yaml:"docs"`
 	SonarQube   string `yaml:"sonarqube"`
 	Structurizr string `yaml:"structurizr"`
+	Woodpecker  string `yaml:"woodpecker"`
 }

@@ -26,6 +26,32 @@ services:
       - sonarqube_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  woodpecker-server:
+    image: woodpeckerci/woodpecker-server:v3
+    container_name: woodpecker_server
+    ports:
+      - "1984:8000"
+      - "9000:9000"
+    environment:
+      WOODPECKER_GITHUB: "true"
+      WOODPECKER_GITHUB_CLIENT: Iv23liaJPsjezjNBlmtf
+      WOODPECKER_GITHUB_APP_ID: "3427818"
+      WOODPECKER_GITHUB_APP_PRIVATE_KEY_FILE: /etc/woodpecker/private-key.pem
+      WOODPECKER_HOST: https://rogueone.tailbb1c76.ts.net
+      WOODPECKER_ADMIN: edtbl76
+      WOODPECKER_OPEN: "false"
+      WOODPECKER_DATABASE_DRIVER: sqlite3
+      WOODPECKER_DATABASE_DATASOURCE: /var/lib/woodpecker/woodpecker.db
+      WOODPECKER_GITHUB_SECRET_FILE: /run/secrets/woodpecker_client_secret
+      WOODPECKER_AGENT_SECRET_FILE: /run/secrets/woodpecker_agent_secret
+    secrets:
+      - woodpecker_client_secret
+      - woodpecker_agent_secret
+    volumes:
+      - woodpecker_data:/var/lib/woodpecker
+      - ./stud-io-woodpecker.2026-04-18.private-key.pem:/etc/woodpecker/private-key.pem:ro
+    restart: unless-stopped
+
   structurizr:
     image: structurizr/structurizr
     container_name: structurizr
@@ -60,6 +86,13 @@ volumes:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
+  woodpecker_data:
+
+secrets:
+  woodpecker_client_secret:
+    file: ./woodpecker_client_secret
+  woodpecker_agent_secret:
+    file: ./woodpecker_agent_secret
 
 networks:
   studio_default:
