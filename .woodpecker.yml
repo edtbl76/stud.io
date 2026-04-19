@@ -14,7 +14,7 @@ steps:
   # Creates controlroomdb_test_ci if absent, then applies the current schema
   # and seeds. All other steps depend on this.
   - name: build
-    image: local
+    image: /bin/bash
     commands:
       - docker exec studio_db psql -U studio -lqt | cut -d'|' -f1 | grep -qw controlroomdb_test_ci || docker exec studio_db createdb -U studio controlroomdb_test_ci
       - roadie build --schema-only
@@ -24,7 +24,7 @@ steps:
   # ── Step 2: Unit + PBT ──────────────────────────────────────────────────────
   # tsc · jest · ruff · bandit · pytest · fast-check · hypothesis
   - name: unit-pbt
-    image: local
+    image: /bin/bash
     depends_on: [build]
     commands:
       - roadie test unit
@@ -33,7 +33,7 @@ steps:
   # ── Step 3: Security scans ──────────────────────────────────────────────────
   # sonar · trivy · secrets · headers — no DB contact
   - name: scan
-    image: local
+    image: /bin/bash
     depends_on: [build]
     commands:
       - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run 'roadie start --dev'."; exit 1; }
@@ -49,7 +49,7 @@ steps:
   # ── Step 4: E2E ─────────────────────────────────────────────────────────────
   # Playwright shards — clones controlroomdb_test_ci → controlroomdb_test_ci_0..3
   - name: e2e
-    image: local
+    image: /bin/bash
     depends_on: [build]
     commands:
       - roadie test e2e
@@ -59,7 +59,7 @@ steps:
   # ── Step 5: Performance ─────────────────────────────────────────────────────
   # benchmarks · k6 · Lighthouse — push to main and manual trigger only
   - name: perf
-    image: local
+    image: /bin/bash
     depends_on: [unit-pbt, scan, e2e]
     commands:
       - roadie test perf
