@@ -44,6 +44,7 @@ steps:
     when:
       - event: push
         branch: main
+      - event: pull_request
       - event: manual
 
   # ── Step 4: E2E ─────────────────────────────────────────────────────────────
