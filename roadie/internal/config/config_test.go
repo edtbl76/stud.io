@@ -84,6 +84,11 @@ func TestLoad_BuildConfig(t *testing.T) {
 		t.Errorf("databases: got %v, want %v", cfg.Build.Databases, wantDBs)
 	}
 
+	wantRebuildOn := []string{"docker-compose.yml", "app/controlroom_backend/Dockerfile"}
+	if !slices.Equal(cfg.Build.RebuildOn, wantRebuildOn) {
+		t.Errorf("rebuild_on: got %v, want %v", cfg.Build.RebuildOn, wantRebuildOn)
+	}
+
 	if cfg.Providers.Database.DBName != "controlroomdb" {
 		t.Errorf("db_name: got %q, want %q", cfg.Providers.Database.DBName, "controlroomdb")
 	}

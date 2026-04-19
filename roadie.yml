@@ -59,6 +59,12 @@ build:
     - sql/seeds/18_libraries.sql
   databases:
     - controlroomdb_test
+  rebuild_on:
+    - docker-compose.yml
+    - app/controlroom_backend/Dockerfile
+    - app/controlroom_backend/requirements.txt
+    - app/controlroom_frontend/Dockerfile
+    - app/controlroom_frontend/package.json
 
 test:
   e2e:

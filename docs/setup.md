@@ -84,11 +84,12 @@ roadie status       # show running containers
 
 To build and run the full test suite:
 ```bash
-roadie build               # rebuild images, apply schema + seeds to test DBs, run unit tests
+roadie build               # rebuild images if changed, apply schema + seeds to test DBs, run unit tests
 roadie build --e2e         # also run Playwright E2E shards
 roadie build --dev         # include dev overlay (SonarQube + Structurizr)
-roadie build --skip-tests  # rebuild images and apply schema + seeds, skip unit tests
+roadie build --skip-tests  # rebuild images if changed and apply schema + seeds, skip unit tests
 roadie build --schema-only # apply schema + seeds to test DBs only; skip container rebuilds and tests
+roadie build --force-build # force container rebuild even if Dockerfiles and dependencies are unchanged
 roadie release             # full release gate: rebuild dev stack + unit + E2E + scan + perf
 ```
 

@@ -22,6 +22,7 @@ type buildFlags struct {
 	dev        bool
 	skipTests  bool
 	schemaOnly bool
+	forceBuild bool
 	e2e        bool
 	scan       bool
 	perf       bool
@@ -53,6 +54,7 @@ first-time production setup.`,
 	cmd.Flags().BoolVar(&flags.dev, "dev", false, "include dev tools (SonarQube, Structurizr)")
 	cmd.Flags().BoolVar(&flags.skipTests, "skip-tests", false, "skip unit tests")
 	cmd.Flags().BoolVar(&flags.schemaOnly, "schema-only", false, "apply schema to test databases without rebuilding containers or running tests")
+	cmd.Flags().BoolVar(&flags.forceBuild, "force-build", false, "force container rebuild even if Dockerfiles and dependencies are unchanged")
 	cmd.Flags().BoolVar(&flags.e2e, "e2e", false, "run E2E tests after build")
 	cmd.Flags().BoolVar(&flags.scan, "scan", false, "run security scans after build")
 	cmd.Flags().BoolVar(&flags.perf, "perf", false, "run performance tests after build")
@@ -72,7 +74,7 @@ and perf suites. No skipping allowed.`,
 			if err != nil {
 				return err
 			}
-			return runBuild(cmd.Context(), cfg, buildFlags{dev: true, full: true}, os.Stdout)
+			return runBuild(cmd.Context(), cfg, buildFlags{dev: true, full: true, forceBuild: true}, os.Stdout)
 		},
 	}
 }
@@ -82,7 +84,7 @@ and perf suites. No skipping allowed.`,
 // only the schema files to the configured test databases. Used in CI to provision
 // an isolated database namespace without disturbing the running stack.
 func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
-	if err := buildStack(ctx, cfg, flags); err != nil {
+	if err := buildStack(ctx, cfg, flags, out); err != nil {
 		return err
 	}
 	if err := applySchema(ctx, cfg, out); err != nil {
@@ -98,11 +100,28 @@ func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.
 }
 
 // buildStack rebuilds container images unless --schema-only is active.
-func buildStack(ctx context.Context, cfg *config.Config, flags buildFlags) error {
+// When rebuild_on is configured and --force-build is not set, it hashes those
+// files and skips the expensive --build --force-recreate when nothing changed,
+// falling back to a plain start instead. The hash is updated after a successful
+// full build so subsequent unchanged runs also get the fast path.
+func buildStack(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	if flags.schemaOnly {
 		return nil
 	}
-	return newManager(cfg).Build(ctx, cfg, flags.dev)
+	m := newManager(cfg)
+	rebuildFiles := cfg.Build.RebuildOn
+	if !flags.forceBuild && !containerRebuildNeeded(".", rebuildFiles, out) {
+		return m.Start(ctx, cfg, flags.dev)
+	}
+	if err := m.Build(ctx, cfg, flags.dev); err != nil {
+		return err
+	}
+	if len(rebuildFiles) > 0 {
+		if err := updateContainerHash(".", rebuildFiles); err != nil {
+			fmt.Fprintf(out, "[roadie] warning: could not update build hash: %v\n", err)
+		}
+	}
+	return nil
 }
 
 // runTests runs the unit pipeline then any enabled optional suites.
