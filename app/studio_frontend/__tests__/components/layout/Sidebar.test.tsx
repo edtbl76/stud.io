@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Sidebar } from '@/components/layout/Sidebar'
 
-const mockLogout = jest.fn()
+const mockLogout = jest.fn().mockResolvedValue(undefined)
 const mockPush = jest.fn()
 
 jest.mock('@/lib/auth', () => ({
@@ -15,17 +15,17 @@ jest.mock('next/navigation', () => ({
 }))
 
 let mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
-let mockPathname = '/'
+let mockPathname = '/controlroom/catalog/brands'
 
 describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
-    mockPathname = '/'
+    mockPathname = '/controlroom/catalog/brands'
     mockPush.mockClear()
   })
 
-  it('renders the app name', () => {
+  it('renders the app name and module title', () => {
     render(<Sidebar />)
     expect(screen.getByText('STUD.io')).toBeInTheDocument()
     expect(screen.getByText('ControlRoom')).toBeInTheDocument()
@@ -69,14 +69,15 @@ describe('Sidebar', () => {
   })
 
   it('expands a group when its header is clicked', () => {
+    mockPathname = '/controlroom/session/effects'
     render(<Sidebar />)
-    // Groups are collapsed by default — clicking shows items
     fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
     expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Models' })).toBeInTheDocument()
   })
 
   it('collapses an expanded group when its header is clicked again', () => {
+    mockPathname = '/controlroom/session/effects'
     render(<Sidebar />)
     fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
     expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
@@ -85,7 +86,7 @@ describe('Sidebar', () => {
   })
 
   it('applies active link styling for the current path', () => {
-    mockPathname = '/catalog/brands'
+    mockPathname = '/controlroom/catalog/brands'
     render(<Sidebar />)
     // CATALOG group auto-expands because /catalog/brands is the active path
     const brandsLink = screen.getByRole('link', { name: 'Brands' })
@@ -93,7 +94,7 @@ describe('Sidebar', () => {
   })
 
   it('applies active link styling for a nested path under the item href', () => {
-    mockPathname = '/catalog/brands/details'
+    mockPathname = '/controlroom/catalog/brands/details'
     render(<Sidebar />)
     // CATALOG group auto-expands; nested path matches via startsWith(href + '/')
     const brandsLink = screen.getByRole('link', { name: 'Brands' })
@@ -133,7 +134,7 @@ describe('Sidebar', () => {
     const input = screen.getByPlaceholderText('Global search...')
     fireEvent.change(input, { target: { value: 'reverb' } })
     fireEvent.submit(input.closest('form')!)
-    expect(mockPush).toHaveBeenCalledWith('/search?q=reverb')
+    expect(mockPush).toHaveBeenCalledWith('/controlroom/search?q=reverb')
   })
 
   it('does not navigate when query is shorter than 2 characters', () => {
@@ -150,8 +151,8 @@ describe('Sidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
     const adminLinks = screen
       .getAllByRole('link')
-      .filter((l) => (l.getAttribute('href') ?? '').startsWith('/admin/'))
+      .filter((l) => (l.getAttribute('href') ?? '').startsWith('/controlroom/admin/'))
     const labels = adminLinks.map((l) => l.textContent)
-    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Import / Export', 'Stats', 'Users'])
+    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Import / Export', 'Stats'])
   })
 })

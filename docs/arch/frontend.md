@@ -24,12 +24,18 @@ app/studio_frontend/
 │   │   │   └── session.ts  # Shared helper: calls FastAPI /auth/me, sets httpOnly cookie
 │   │   └── [...path]/      # Catch-all proxy — forwards all other requests to FastAPI
 │   ├── login/              # Login page
-│   ├── catalog/            # Brands, Models
-│   ├── session/            # Effects, Instruments, Libraries, Workstations
-│   ├── tools/              # Admin, Composition, Measurement, Reference, Workflow tools
-│   ├── config/             # Lookup table editors (7 tables)
-│   ├── search/             # Global search results page (/search?q=...)
-│   └── admin/              # Stats, Change Review, Import/Export, Backup/Restore, Users
+│   ├── page.tsx            # Home page — module selection tiles + StudioIllustration
+│   ├── controlroom/        # ControlRoom module
+│   │   ├── layout.tsx      # Renders Sidebar + main content area
+│   │   ├── catalog/        # Brands, Models
+│   │   ├── session/        # Effects, Instruments, Libraries, Workstations
+│   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
+│   │   ├── config/         # Lookup table editors (7 tables)
+│   │   ├── search/         # Global search results page (/controlroom/search?q=...)
+│   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore
+│   └── users/              # User Management module
+│       ├── layout.tsx      # Renders UsersSidebar + main content area
+│       └── page.tsx        # User list / management page
 ├── components/
 │   ├── DataTable.tsx        # Virtualized TanStack Table wrapper; accepts controlled visibility/sizing from useSessionState
 │   ├── DataTableToolbar.tsx # Toolbar: sort pills, column picker (ColumnMenu), filter clear, Reset View button
@@ -40,7 +46,8 @@ app/studio_frontend/
 │   ├── TypeBadges.tsx       # Renders [{id, name}] arrays as badge pills
 │   ├── ModelLinks.tsx       # Renders ModelRef[] as clickable chips; click fetches and opens ModelModal inline
 │   ├── ParentLinks.tsx      # Renders parent_ref arrays
-│   ├── layout/             # LayoutShell, Sidebar, TopBar
+│   ├── StudioIllustration.tsx # SVG music studio scene rendered on the home page
+│   ├── layout/             # SidebarShell, Sidebar, UsersSidebar, ModuleSwitcher, LayoutShell
 │   ├── tables/             # Per-table modal and column definitions
 │   │   ├── brands/         # BrandModal, columns
 │   │   ├── models/         # ModelModal, columns
@@ -56,6 +63,7 @@ app/studio_frontend/
 │   ├── auth.tsx                 # AuthContext, useAuth hook, session management
 │   ├── bulkEdit.ts              # BulkEditField interface — type union: multiselect, singleselect, text, parentsearch
 │   ├── columnMeta.ts            # TypeScript module augmentation — adds filterParam and defaultHidden to TanStack ColumnMeta
+│   ├── searchMeta.ts            # SEARCH_TABLE_META registry — maps entity keys to display labels, frontend paths, and API endpoints
 │   ├── computeDiff.ts           # Field-level diff between two JSON snapshots (for history view)
 │   ├── parentSelectRecents.ts   # localStorage utility for recent ParentSelect picks — max 10, deduplicated by (table_name, id)
 │   ├── types.ts                 # TypeScript interfaces for all API response shapes
@@ -66,6 +74,24 @@ app/studio_frontend/
 ├── __tests__/              # Jest + React Testing Library unit tests
 └── e2e/                    # Playwright end-to-end tests (run against test stack on port 3001)
 ```
+
+---
+
+## App shell
+
+STUD.io uses a multi-module shell. The root layout (`app/layout.tsx`) renders `LayoutShell`, which is a thin client wrapper that passes `/login` through unstyled and wraps all other routes in the background container.
+
+Each module has its own Next.js layout file that mounts the appropriate sidebar:
+
+| Module | Route prefix | Layout | Sidebar |
+|---|---|---|---|
+| Home | `/` | `app/layout.tsx` | none |
+| ControlRoom | `/controlroom/` | `app/controlroom/layout.tsx` | `Sidebar` |
+| User Management | `/users/` | `app/users/layout.tsx` | `UsersSidebar` |
+
+Both `Sidebar` and `UsersSidebar` are built on `SidebarShell`, which owns the `<aside>` wrapper, the STUD.io header (links back to home), the username/sign-out row, and the `ModuleSwitcher` footer. Each sidebar passes its `subtitle` prop (`"ControlRoom"` or `"User Management"`) and its module-specific nav as children.
+
+`ModuleSwitcher` reads the current pathname via `usePathname` and renders links to all modules except the one the user is currently in, so there is always a one-click escape to any other module or to home.
 
 ---
 
@@ -146,14 +172,14 @@ Field types supported:
 - `text` — renders a plain text `Input`; replaces existing value
 - `parentsearch` — renders `ParentSelect` pre-populated with the union of all selected rows' existing parents as chips. Adding parents merges them into each row; removing a chip removes that parent from any row that had it. Apply is always enabled (allows clearing all parents).
 
-### Search page (`app/search/page.tsx`)
+### Search page (`app/controlroom/search/page.tsx`)
 
-The global search results page at `/search?q=<query>`. Calls `GET /search` via `api.searchGlobal`. Displays results grouped by table with:
+The global search results page at `/controlroom/search?q=<query>`. Calls `GET /search` via `api.searchGlobal`. Displays results grouped by table with:
 - **Tab bar** — an All tab plus one tab per table with matches; clicking a tab filters the list
 - **Notes toggle** — extends the search to description/notes fields when enabled
 - Each result is a link to the source table page with `?open=<id>`, which causes `TablePage` to auto-open the record's modal on arrival
 
-The search input lives in `Sidebar` (not in a per-page toolbar). Submitting the form navigates to `/search?q=...`.
+The search input lives in `Sidebar` (not in a per-page toolbar). Submitting the form navigates to `/controlroom/search?q=...`.
 
 ---
 

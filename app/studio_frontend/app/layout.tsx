@@ -4,8 +4,8 @@ import { Providers } from './providers'
 import { LayoutShell } from '@/components/layout/LayoutShell'
 
 export const metadata: Metadata = {
-  title: 'STUD.io ControlRoom',
-  description: 'Local studio gear management',
+  title: 'STUD.io',
+  description: 'Local studio management platform',
 }
 
 export default function RootLayout({

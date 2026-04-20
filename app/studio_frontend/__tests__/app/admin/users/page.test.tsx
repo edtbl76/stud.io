@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
-import UsersPage from '@/app/admin/users/page'
+import UsersPage from '@/app/users/page'
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => ({ username: 'admin' }),

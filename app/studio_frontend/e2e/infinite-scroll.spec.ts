@@ -15,10 +15,10 @@ async function getRecordCount(page: Page): Promise<number> {
 // ── Paginated tables load from the server ────────────────────────────────────
 
 for (const { name, path } of [
-  { name: 'effects',     path: '/session/effects'     },
-  { name: 'instruments', path: '/session/instruments' },
-  { name: 'libraries',   path: '/session/libraries'   },
-  { name: 'models',      path: '/catalog/models'      },
+  { name: 'effects',     path: '/controlroom/session/effects'     },
+  { name: 'instruments', path: '/controlroom/session/instruments' },
+  { name: 'libraries',   path: '/controlroom/session/libraries'   },
+  { name: 'models',      path: '/controlroom/catalog/models'      },
 ]) {
   test(`${name}: loads first page and shows server total`, async ({ page }) => {
     await page.goto(path)
@@ -49,7 +49,7 @@ for (const { name, path } of [
 // ── Infinite scroll fetches next page ────────────────────────────────────────
 
 test('effects: scrolling to bottom loads more records', async ({ page }) => {
-  await page.goto('/session/effects')
+  await page.goto('/controlroom/session/effects')
   await waitForRecordCount(page)
 
   const total = await getRecordCount(page)

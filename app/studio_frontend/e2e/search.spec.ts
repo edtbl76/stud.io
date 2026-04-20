@@ -20,28 +20,28 @@ async function deleteBrand(request: APIRequestContext) {
 test.beforeAll(async ({ request }) => { await createBrand(request) })
 test.afterAll(async ({ request }) => { await deleteBrand(request) })
 
-test('search: TopBar submitting a query navigates to /search', async ({ page }) => {
-  await page.goto('/catalog/brands')
+test('search: TopBar submitting a query navigates to /controlroom/search', async ({ page }) => {
+  await page.goto('/controlroom/catalog/brands')
   const searchInput = page.getByPlaceholder('Global search...')
   await searchInput.fill('reverb')
   await searchInput.press('Enter')
-  await expect(page).toHaveURL(/\/search\?q=reverb/)
+  await expect(page).toHaveURL(/\/controlroom\/search\?q=reverb/)
 })
 
 test('search: results page shows matching brand', async ({ page }) => {
-  await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
+  await page.goto(`/controlroom/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
 })
 
 test('search: results page renders All tab and per-table tabs', async ({ page }) => {
-  await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
+  await page.goto(`/controlroom/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
   await expect(page.getByRole('button', { name: /^all/i })).toBeVisible()
   await expect(page.getByRole('button', { name: /^brands/i })).toBeVisible()
 })
 
 test('search: tab filter hides results from other tables', async ({ page }) => {
-  await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
+  await page.goto(`/controlroom/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
 
   // Click Brands tab — brands result should remain, non-brand results should be filtered
@@ -50,13 +50,13 @@ test('search: tab filter hides results from other tables', async ({ page }) => {
 })
 
 test('search: notes toggle is visible', async ({ page }) => {
-  await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
+  await page.goto(`/controlroom/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
   await expect(page.getByRole('checkbox')).toBeVisible()
 })
 
 test('search: clicking a result opens a modal; Go to button navigates to the table page', async ({ page }) => {
-  await page.goto(`/search?q=${encodeURIComponent(UNIQUE)}`)
+  await page.goto(`/controlroom/search?q=${encodeURIComponent(UNIQUE)}`)
   await expect(page.getByText(UNIQUE).first()).toBeVisible({ timeout: 10_000 })
 
   // Click the result button — opens modal in-place on the search page
@@ -66,7 +66,7 @@ test('search: clicking a result opens a modal; Go to button navigates to the tab
 
   // Click "Go to Brands" — navigates to the table page and opens the modal there
   await page.getByRole('button', { name: /go to brands/i }).click()
-  await expect(page).toHaveURL(/\/catalog\/brands/, { timeout: 10_000 })
+  await expect(page).toHaveURL(/\/controlroom\/catalog\/brands/, { timeout: 10_000 })
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8_000 })
   await expect(page.getByRole('dialog').getByText(UNIQUE).first()).toBeVisible()
 })

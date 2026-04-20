@@ -17,7 +17,7 @@ async function openFirstRecord(page: Page) {
 // ── Table page navigation ─────────────────────────────────────────────────────
 
 test('record navigation: ← button is disabled on first record', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const dialog = await openFirstRecord(page)
   const prevBtn = dialog.getByRole('button', { name: /previous record/i })
   await expect(prevBtn).toBeVisible()
@@ -25,7 +25,7 @@ test('record navigation: ← button is disabled on first record', async ({ page 
 })
 
 test('record navigation: → button is enabled on first record when multiple records exist', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const dialog = await openFirstRecord(page)
   const nextBtn = dialog.getByRole('button', { name: /next record/i })
   await expect(nextBtn).toBeVisible()
@@ -33,7 +33,7 @@ test('record navigation: → button is enabled on first record when multiple rec
 })
 
 test('record navigation: clicking → advances to the next record', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const dialog = await openFirstRecord(page)
 
   const heading = dialog.getByRole('heading').first()
@@ -47,13 +47,13 @@ test('record navigation: clicking → advances to the next record', async ({ pag
 })
 
 test('record navigation: shows position counter (N of M)', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   await openFirstRecord(page)
   await expect(page.getByText(/1 of \d+/)).toBeVisible()
 })
 
 test('record navigation: pressing ArrowRight navigates to next record', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const dialog = await openFirstRecord(page)
 
   const heading = dialog.getByRole('heading').first()
@@ -65,7 +65,7 @@ test('record navigation: pressing ArrowRight navigates to next record', async ({
 })
 
 test('record navigation: pressing ArrowLeft on first record does nothing', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const dialog = await openFirstRecord(page)
 
   const heading = dialog.getByRole('heading').first()
@@ -78,7 +78,7 @@ test('record navigation: pressing ArrowLeft on first record does nothing', async
 })
 
 test('record navigation: arrow keys do not fire while in edit mode', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const dialog = await openFirstRecord(page)
 
   await dialog.getByRole('button', { name: /^edit$/i }).click()
@@ -126,7 +126,7 @@ test.afterAll(async ({ request }) => {
 })
 
 test('search: navigation buttons appear in modal when there are multiple results', async ({ page }) => {
-  await page.goto(`/search?q=${encodeURIComponent(NAV_PREFIX)}`)
+  await page.goto(`/controlroom/search?q=${encodeURIComponent(NAV_PREFIX)}`)
   await expect(page.getByText(/\d+ result/i)).toBeVisible({ timeout: 15_000 })
 
   // Open the first result by name so we target a search result button specifically

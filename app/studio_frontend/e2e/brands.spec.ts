@@ -7,7 +7,7 @@ async function waitForRows(page: Page) {
 
 test('brand typeahead returns results in create modal', async ({ page }) => {
   // Instruments have a BrandSelect field — use the Add button to open a create modal
-  await page.goto('/session/instruments')
+  await page.goto('/controlroom/session/instruments')
   await page.getByRole('button', { name: /^add$/i }).click()
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
 
@@ -22,7 +22,7 @@ test('brand typeahead returns results in create modal', async ({ page }) => {
 })
 
 test('brand typeahead shows create option for unknown brand', async ({ page }) => {
-  await page.goto('/session/instruments')
+  await page.goto('/controlroom/session/instruments')
 
   // Wait for hydration, then open an existing instrument record
   await waitForRows(page)

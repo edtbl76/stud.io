@@ -3,9 +3,10 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronDown, LogOut, Search } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
+import { SidebarShell } from '@/components/layout/SidebarShell'
 
 interface NavItem {
   label: string
@@ -21,49 +22,48 @@ const navGroups: NavGroup[] = [
   {
     title: 'CATALOG',
     items: [
-      { label: 'Brands', href: '/catalog/brands' },
-      { label: 'Models', href: '/catalog/models' },
+      { label: 'Brands', href: '/controlroom/catalog/brands' },
+      { label: 'Models', href: '/controlroom/catalog/models' },
     ],
   },
   {
     title: 'SESSION',
     items: [
-      { label: 'Effects', href: '/session/effects' },
-      { label: 'Instruments', href: '/session/instruments' },
-      { label: 'Libraries', href: '/session/libraries' },
-      { label: 'Workstations', href: '/session/workstations' },
+      { label: 'Effects', href: '/controlroom/session/effects' },
+      { label: 'Instruments', href: '/controlroom/session/instruments' },
+      { label: 'Libraries', href: '/controlroom/session/libraries' },
+      { label: 'Workstations', href: '/controlroom/session/workstations' },
     ],
   },
   {
     title: 'TOOLS',
     items: [
-      { label: 'Admin', href: '/tools/admin' },
-      { label: 'Composition', href: '/tools/composition' },
-      { label: 'Measurement', href: '/tools/measurement' },
-      { label: 'Reference', href: '/tools/reference' },
-      { label: 'Workflow', href: '/tools/workflow' },
+      { label: 'Admin', href: '/controlroom/tools/admin' },
+      { label: 'Composition', href: '/controlroom/tools/composition' },
+      { label: 'Measurement', href: '/controlroom/tools/measurement' },
+      { label: 'Reference', href: '/controlroom/tools/reference' },
+      { label: 'Workflow', href: '/controlroom/tools/workflow' },
     ],
   },
   {
     title: 'ADMIN',
     items: [
-      { label: 'Backup & Restore', href: '/admin/backup' },
-      { label: 'Change Review',    href: '/admin/change-review' },
-      { label: 'Import / Export',  href: '/admin/import-export' },
-      { label: 'Stats',            href: '/admin/stats' },
-      { label: 'Users',            href: '/admin/users' },
+      { label: 'Backup & Restore', href: '/controlroom/admin/backup' },
+      { label: 'Change Review',    href: '/controlroom/admin/change-review' },
+      { label: 'Import / Export',  href: '/controlroom/admin/import-export' },
+      { label: 'Stats',            href: '/controlroom/admin/stats' },
     ],
   },
   {
     title: 'CONFIG',
     items: [
-      { label: 'Effect Types', href: '/config/effect-types' },
-      { label: 'Entity Types', href: '/config/entity-types' },
-      { label: 'Instrument Types', href: '/config/instrument-types' },
-      { label: 'Model Types', href: '/config/model-types' },
-      { label: 'Plugin Formats', href: '/config/plugin-formats' },
-      { label: 'Tag Types', href: '/config/tag-types' },
-      { label: 'Tool Types', href: '/config/tool-types' },
+      { label: 'Effect Types', href: '/controlroom/config/effect-types' },
+      { label: 'Entity Types', href: '/controlroom/config/entity-types' },
+      { label: 'Instrument Types', href: '/controlroom/config/instrument-types' },
+      { label: 'Model Types', href: '/controlroom/config/model-types' },
+      { label: 'Plugin Formats', href: '/controlroom/config/plugin-formats' },
+      { label: 'Tag Types', href: '/controlroom/config/tag-types' },
+      { label: 'Tool Types', href: '/controlroom/config/tool-types' },
     ],
   },
 ]
@@ -121,22 +121,18 @@ function getInitialOpenGroups(pathname: string): Set<string> {
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { username, role, logout } = useAuth()
+  const { role } = useAuth()
 
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(
     () => getInitialOpenGroups(pathname)
   )
   const [searchQuery, setSearchQuery] = React.useState('')
 
-  function handleSignOut() {
-    if (globalThis.confirm('Sign out?')) logout()
-  }
-
   function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     const q = searchQuery.trim()
     if (q.length < 2) return
-    router.push(`/search?q=${encodeURIComponent(q)}`)
+    router.push(`/controlroom/search?q=${encodeURIComponent(q)}`)
   }
 
   function toggleGroup(title: string) {
@@ -152,36 +148,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className="fixed left-0 top-0 z-40 h-screen w-56 shrink-0 overflow-y-auto"
-      style={{
-        backgroundColor: 'hsl(var(--sidebar-bg))',
-        borderRight: '1px solid hsl(var(--sidebar-border))',
-      }}
-    >
-      {/* App name */}
-      <div className="px-4 py-5 border-b border-sidebar-border">
-        <div className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
-          STUD.io
-        </div>
-        <div className="text-sm font-semibold text-foreground mt-0.5">
-          ControlRoom
-        </div>
-      </div>
-
-      {/* User / logout */}
-      <div className="px-4 py-2.5 border-b border-sidebar-border flex items-center justify-between">
-        <span className="text-xs text-muted-foreground truncate">{username}</span>
-        <button
-          onClick={handleSignOut}
-          title="Sign out"
-          className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Search */}
+    <SidebarShell subtitle="ControlRoom">
       <div className="px-3 py-2.5 border-b border-sidebar-border">
         <form onSubmit={handleSearch}>
           <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-muted/40 border border-border/50">
@@ -196,8 +163,6 @@ export function Sidebar() {
           </div>
         </form>
       </div>
-
-      {/* Nav groups */}
       <nav className="py-3">
         {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => (
           <SidebarNavGroup
@@ -209,6 +174,6 @@ export function Sidebar() {
           />
         ))}
       </nav>
-    </aside>
+    </SidebarShell>
   )
 }

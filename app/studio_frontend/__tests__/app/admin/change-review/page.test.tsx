@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import ChangeReviewPage from '@/app/admin/change-review/page'
+import ChangeReviewPage from '@/app/controlroom/admin/change-review/page'
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => mockUseAuth(),

@@ -158,7 +158,7 @@ describe('SearchRecordModal — Go to button', () => {
     renderModal(result)
     await waitFor(() => expect(screen.getByRole('button', { name: /go to brands/i })).toBeInTheDocument())
     fireEvent.click(screen.getByRole('button', { name: /go to brands/i }))
-    expect(mockRouterPush).toHaveBeenCalledWith('/catalog/brands?open=test-uuid')
+    expect(mockRouterPush).toHaveBeenCalledWith('/controlroom/catalog/brands?open=test-uuid')
   })
 
   it('calls onClose when "Go to" button is clicked', async () => {
