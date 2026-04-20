@@ -207,20 +207,33 @@ func notFoundExitError(t *testing.T) error {
 	return err
 }
 
-func requireTypeContainerArgs(t *testing.T, args []string) {
+// inspectFn returns an outputFn that asserts --type container is used and
+// returns the given output and error.
+func inspectFn(t *testing.T, out []byte, err error) func(context.Context, string, ...string) ([]byte, error) {
 	t.Helper()
-	if !slices.Contains(args, "--type") || !slices.Contains(args, "container") {
-		t.Errorf("inspect must use --type container, got: %v", args)
+	return func(_ context.Context, _ string, args ...string) ([]byte, error) {
+		if !slices.Contains(args, "--type") || !slices.Contains(args, "container") {
+			t.Errorf("inspect must use --type container, got: %v", args)
+		}
+		return out, err
+	}
+}
+
+// requireError fails t if err is nil or does not contain the given substring.
+func requireError(t *testing.T, err error, contains string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), contains) {
+		t.Errorf("error %q should contain %q", err, contains)
 	}
 }
 
 func TestRemoveContainers_ExistingContainer_CallsRm(t *testing.T) {
 	var rmCalled bool
 	fake := &fakeRunner{
-		outputFn: func(_ context.Context, _ string, args ...string) ([]byte, error) {
-			requireTypeContainerArgs(t, args)
-			return []byte("{}"), nil
-		},
+		outputFn: inspectFn(t, []byte("{}"), nil),
 		runFn: func(_ context.Context, _ io.Writer, _ string, args ...string) error {
 			rmCalled = slices.Contains(args, "rm")
 			return nil
@@ -237,10 +250,7 @@ func TestRemoveContainers_ExistingContainer_CallsRm(t *testing.T) {
 func TestRemoveContainers_NotFound_SkipsRm(t *testing.T) {
 	var rmCalled bool
 	fake := &fakeRunner{
-		outputFn: func(_ context.Context, _ string, args ...string) ([]byte, error) {
-			requireTypeContainerArgs(t, args)
-			return nil, notFoundExitError(t)
-		},
+		outputFn: inspectFn(t, nil, notFoundExitError(t)),
 		runFn: func(_ context.Context, _ io.Writer, _ string, args ...string) error {
 			rmCalled = slices.Contains(args, "rm")
 			return nil
@@ -255,36 +265,18 @@ func TestRemoveContainers_NotFound_SkipsRm(t *testing.T) {
 }
 
 func TestRemoveContainers_InspectDaemonError_ReturnsError(t *testing.T) {
-	fake := &fakeRunner{
-		outputFn: func(_ context.Context, _ string, args ...string) ([]byte, error) {
-			requireTypeContainerArgs(t, args)
-			return nil, errors.New("connection refused")
-		},
-	}
+	fake := &fakeRunner{outputFn: inspectFn(t, nil, errors.New("connection refused"))}
 	err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"})
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "inspect mycontainer") {
-		t.Errorf("error %q should contain 'inspect mycontainer'", err)
-	}
+	requireError(t, err, "inspect mycontainer")
 }
 
 func TestRemoveContainers_RmFails_ReturnsError(t *testing.T) {
 	fake := &fakeRunner{
-		outputFn: func(_ context.Context, _ string, args ...string) ([]byte, error) {
-			requireTypeContainerArgs(t, args)
-			return []byte("{}"), nil
-		},
+		outputFn: inspectFn(t, []byte("{}"), nil),
 		runFn: func(_ context.Context, _ io.Writer, _ string, _ ...string) error {
 			return errors.New("permission denied")
 		},
 	}
 	err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"})
-	if err == nil {
-		t.Fatal("expected error, got nil")
-	}
-	if !strings.Contains(err.Error(), "remove mycontainer") {
-		t.Errorf("error %q should contain 'remove mycontainer'", err)
-	}
+	requireError(t, err, "remove mycontainer")
 }
