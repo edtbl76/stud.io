@@ -133,6 +133,44 @@ Standard username/password login works on any URL (localhost, IP, or sslip.io ho
 
 ---
 
+## Woodpecker CI agents
+
+4 agents run as systemd services (`woodpecker-agent-1` through `woodpecker-agent-4`), each with its own `_work/` directory under `~/Documents/Studio/woodpecker-agent-{1..4}/`.
+
+### One-time setup per machine
+
+```bash
+roadie start --dev        # SonarQube must be running before CI will pass
+npx playwright install chromium   # install Playwright browsers once
+```
+
+### Agent `.env` files
+
+Each agent has a `.env` file at `~/Documents/Studio/woodpecker-agent-N/.env`. Required variables:
+
+| Variable | Value |
+|---|---|
+| `WOODPECKER_SERVER` | `localhost:9000` |
+| `WOODPECKER_BACKEND` | `local` |
+| `WOODPECKER_WORKDIR` | `~/Documents/Studio/woodpecker-agent-N/_work` |
+| `WOODPECKER_HOSTNAME` | `woodpecker-agent-N` |
+| `WOODPECKER_HEALTHCHECK_ADDR` | `:390N` (ports 3901–3904) |
+| `DOCKER_HOST` | `unix:///home/<user>/.docker/desktop/docker.sock` |
+| `PATH` | Must include `/snap/bin` (Go), nvm node, pyenv, and local bins |
+| `PLAYWRIGHT_BROWSERS_PATH` | Absolute path to the Playwright browser cache (e.g. `/home/<user>/.cache/ms-playwright`) |
+
+`PATH` must be set explicitly — Woodpecker does not inherit the login shell's PATH.
+
+### Woodpecker secrets
+
+| Secret | Contents | Events |
+|---|---|---|
+| `sonar_token` | Contents of `.sonar-token` | `push`, `pull_request`, `manual` |
+
+Add via Woodpecker UI → Secrets, or `woodpecker-cli secret add`.
+
+---
+
 ## Dev tooling stack (SonarQube + Structurizr)
 
 A separate Docker project (`dev`) runs SonarQube and Structurizr, completely isolated from the studio stack.

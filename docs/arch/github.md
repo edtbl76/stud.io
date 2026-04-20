@@ -17,21 +17,34 @@ Configured via `gh api` / GitHub UI. Current state:
 
 ## Branch protection
 
-`main` branch protection is not yet configured. Recommended settings once CI is stable:
+`main` branch protection is active. Configured via `gh api`:
 
 ```bash
 gh api repos/edtbl76/stud.io/branches/main/protection \
   --method PUT \
   -H "Accept: application/vnd.github+json" \
-  --field required_status_checks='{"strict":true,"contexts":["CI / lint-and-test"]}' \
-  --field enforce_admins=false \
-  --field required_pull_request_reviews='{"required_approving_review_count":0,"dismiss_stale_reviews":true}' \
-  --field restrictions=null
+  --input - <<'EOF'
+{
+  "required_status_checks": { "strict": true, "contexts": ["ci/woodpecker/pr/main"] },
+  "enforce_admins": false,
+  "required_pull_request_reviews": { "required_approving_review_count": 0, "dismiss_stale_reviews": true },
+  "restrictions": null
+}
+EOF
 ```
 
-- No required reviewer count (solo project)
-- CI must pass before merge
-- Squash-only enforced via repo settings above
+| Setting | Value |
+|---|---|
+| Required status check | `ci/woodpecker/pr/main` |
+| Enforce admins | No (solo project) |
+| Required approving reviews | 0 |
+| Dismiss stale reviews | ✓ |
+| Restrict push access | None |
+
+- The required check `ci/woodpecker/pr/main` is posted by the Woodpecker CI server when the `.woodpecker/main.yml` pipeline completes on a PR.
+- `ci/woodpecker/pr/roadie` is NOT required — that pipeline is path-filtered to `roadie/**` and won't run on most PRs.
+- Squash-only is enforced via repo settings above — branch protection does not need to restate it.
+- Re-run the `gh api` command above if protection is ever reset.
 
 ---
 

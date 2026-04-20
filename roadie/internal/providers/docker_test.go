@@ -2,8 +2,11 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"io"
+	"os/exec"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -191,4 +194,88 @@ func TestDockerProvider_IsRunning(t *testing.T) {
 			}
 		})
 	}
+}
+
+// notFoundExitError returns a real *exec.ExitError whose Stderr contains
+// "No such container", matching what docker inspect --type container emits.
+func notFoundExitError(t *testing.T) error {
+	t.Helper()
+	_, err := exec.Command("sh", "-c", "echo 'Error: No such container: foo' >&2; exit 1").Output()
+	if err == nil {
+		t.Fatal("expected non-nil error from sh command")
+	}
+	return err
+}
+
+// inspectFn returns an outputFn that asserts --type container is used and
+// returns the given output and error.
+func inspectFn(t *testing.T, out []byte, err error) func(context.Context, string, ...string) ([]byte, error) {
+	t.Helper()
+	return func(_ context.Context, _ string, args ...string) ([]byte, error) {
+		if !slices.Contains(args, "--type") || !slices.Contains(args, "container") {
+			t.Errorf("inspect must use --type container, got: %v", args)
+		}
+		return out, err
+	}
+}
+
+// requireError fails t if err is nil or does not contain the given substring.
+func requireError(t *testing.T, err error, contains string) {
+	t.Helper()
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), contains) {
+		t.Errorf("error %q should contain %q", err, contains)
+	}
+}
+
+// trackRm returns a runFn that sets *called when "rm" appears in args.
+func trackRm(called *bool) func(context.Context, io.Writer, string, ...string) error {
+	return func(_ context.Context, _ io.Writer, _ string, args ...string) error {
+		*called = slices.Contains(args, "rm")
+		return nil
+	}
+}
+
+// removeContainers runs RemoveContainers on a fresh DockerProvider backed by fake.
+func removeContainers(fake *fakeRunner, names ...string) error {
+	return newTestDocker(fake).RemoveContainers(context.Background(), names)
+}
+
+func TestRemoveContainers_ExistingContainer_CallsRm(t *testing.T) {
+	var rmCalled bool
+	fake := &fakeRunner{outputFn: inspectFn(t, []byte("{}"), nil), runFn: trackRm(&rmCalled)}
+	if err := removeContainers(fake, "c"); err != nil {
+		t.Fatal(err)
+	}
+	if !rmCalled {
+		t.Error("expected docker rm to be called")
+	}
+}
+
+func TestRemoveContainers_NotFound_SkipsRm(t *testing.T) {
+	var rmCalled bool
+	fake := &fakeRunner{outputFn: inspectFn(t, nil, notFoundExitError(t)), runFn: trackRm(&rmCalled)}
+	if err := removeContainers(fake, "c"); err != nil {
+		t.Fatal(err)
+	}
+	if rmCalled {
+		t.Error("docker rm should not be called for a non-existent container")
+	}
+}
+
+func TestRemoveContainers_InspectDaemonError_ReturnsError(t *testing.T) {
+	fake := &fakeRunner{outputFn: inspectFn(t, nil, errors.New("connection refused"))}
+	requireError(t, removeContainers(fake, "mycontainer"), "inspect mycontainer")
+}
+
+func TestRemoveContainers_RmFails_ReturnsError(t *testing.T) {
+	fake := &fakeRunner{
+		outputFn: inspectFn(t, []byte("{}"), nil),
+		runFn: func(_ context.Context, _ io.Writer, _ string, _ ...string) error {
+			return errors.New("permission denied")
+		},
+	}
+	requireError(t, removeContainers(fake, "mycontainer"), "remove mycontainer")
 }

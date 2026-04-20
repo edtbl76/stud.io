@@ -379,3 +379,8 @@ app/controlroom_frontend/perf-reports/
 /app/controlroom_frontend/next-env.d.ts
 !/roadie/roadie
 /docs/audit-2026-04-14.md
+/woodpecker_client_secret
+/woodpecker_agent_secret
+/woodpecker_webhook_secret
+/woodpecker-private-key.pem
+/stud-io-woodpecker.*.private-key.pem

@@ -1,0 +1,28 @@
+when:
+  - event: [push, pull_request]
+    branch: main
+    path:
+      - roadie/**
+      - .woodpecker/roadie.yml
+  - event: manual
+
+steps:
+  # ── Step 1: Vet + unit tests ─────────────────────────────────────────────────
+  - name: unit
+    image: /bin/bash
+    commands:
+      - cd roadie && go vet ./... && go test ./...
+
+  # ── Step 2: Security scans ──────────────────────────────────────────────────
+  - name: scan
+    image: /bin/bash
+    depends_on: [unit]
+    commands:
+      - roadie test scan secrets headers
+    when:
+      - event: push
+        branch: main
+        path: roadie/**
+      - event: pull_request
+        path: roadie/**
+      - event: manual

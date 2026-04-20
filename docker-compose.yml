@@ -1,3 +1,5 @@
+name: studio
+
 services:
   studio_db:
     image: pgvector/pgvector:pg17
