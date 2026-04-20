@@ -25,7 +25,7 @@ test('search: TopBar submitting a query navigates to /controlroom/search', async
   const searchInput = page.getByPlaceholder('Global search...')
   await searchInput.fill('reverb')
   await searchInput.press('Enter')
-  await expect(page).toHaveURL(/^\/controlroom\/search\?q=reverb/)
+  await expect(page).toHaveURL(/\/controlroom\/search\?q=reverb/)
 })
 
 test('search: results page shows matching brand', async ({ page }) => {
@@ -66,7 +66,7 @@ test('search: clicking a result opens a modal; Go to button navigates to the tab
 
   // Click "Go to Brands" — navigates to the table page and opens the modal there
   await page.getByRole('button', { name: /go to brands/i }).click()
-  await expect(page).toHaveURL(/^\/controlroom\/catalog\/brands/, { timeout: 10_000 })
+  await expect(page).toHaveURL(/\/controlroom\/catalog\/brands/, { timeout: 10_000 })
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8_000 })
   await expect(page.getByRole('dialog').getByText(UNIQUE).first()).toBeVisible()
 })
