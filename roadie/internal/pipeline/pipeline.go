@@ -51,6 +51,7 @@ func (realStepRunner) Run(ctx context.Context, out io.Writer, cmd runCmd) error 
 // Partial lines are buffered until a newline arrives. Once a downstream write
 // fails, the error is stored and all subsequent Write and Flush calls fail fast.
 type LabelWriter struct {
+	mu    sync.Mutex
 	label string
 	out   io.Writer
 	buf   []byte
@@ -64,6 +65,8 @@ func NewLabelWriter(label string, out io.Writer) *LabelWriter {
 }
 
 func (lw *LabelWriter) Write(p []byte) (int, error) {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
 	if lw.err != nil {
 		return 0, lw.err
 	}
@@ -86,6 +89,8 @@ func (lw *LabelWriter) Write(p []byte) (int, error) {
 // newline. This handles subprocesses that exit without a trailing newline.
 // Returns nil when there is nothing buffered.
 func (lw *LabelWriter) Flush() error {
+	lw.mu.Lock()
+	defer lw.mu.Unlock()
 	if lw.err != nil {
 		return lw.err
 	}
