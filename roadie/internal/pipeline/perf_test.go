@@ -15,7 +15,7 @@ func TestHasPerfBuild_WhenMissing(t *testing.T) {
 
 func TestHasPerfBuild_WhenPresent(t *testing.T) {
 	tmp := t.TempDir()
-	nextPerf := filepath.Join(tmp, "app", "controlroom_frontend", ".next-perf")
+	nextPerf := filepath.Join(tmp, "app", "studio_frontend", ".next-perf")
 	os.MkdirAll(nextPerf, 0o755)
 	if !hasPerfBuild(tmp) {
 		t.Error("expected hasPerfBuild=true when .next-perf exists")

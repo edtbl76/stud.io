@@ -151,7 +151,7 @@ CodeScene is available as an MCP tool inside Claude Code sessions. It analyzes c
 
 Ask Claude to run a CodeScene check — for example:
 - "Run a CodeScene health check on the files I just changed"
-- "Check the code health of `app/controlroom_frontend/lib/auth.tsx`"
+- "Check the code health of `app/studio_frontend/lib/auth.tsx`"
 - "Analyze the change set for this PR"
 
 Claude will call the appropriate MCP tool and surface the results inline.

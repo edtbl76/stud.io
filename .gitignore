@@ -195,8 +195,8 @@ eggs/
 .eggs/
 lib/
 lib64/
-!app/controlroom_frontend/lib/
-!app/controlroom_frontend/__tests__/lib/
+!app/studio_frontend/lib/
+!app/studio_frontend/__tests__/lib/
 parts/
 sdist/
 var/
@@ -362,21 +362,21 @@ structurizr/workspace.json
 ### Coverage
 coverage.xml
 .coverage
-app/controlroom_frontend/coverage/
+app/studio_frontend/coverage/
 /CLAUDE.md
 
 # Playwright
-app/controlroom_frontend/e2e/.auth/
-app/controlroom_frontend/playwright-report/
-app/controlroom_frontend/test-results/
+app/studio_frontend/e2e/.auth/
+app/studio_frontend/playwright-report/
+app/studio_frontend/test-results/
 /test-results/.last-run.json
 /client_secret_684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com.json
 /backups/**
-app/controlroom_frontend/.next-e2e*/
-app/controlroom_frontend/.next-perf/
-app/controlroom_frontend/perf-reports/
+app/studio_frontend/.next-e2e*/
+app/studio_frontend/.next-perf/
+app/studio_frontend/perf-reports/
 .roadie-cache/
-/app/controlroom_frontend/next-env.d.ts
+/app/studio_frontend/next-env.d.ts
 !/roadie/roadie
 /docs/audit-2026-04-14.md
 /woodpecker_client_secret

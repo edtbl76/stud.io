@@ -470,8 +470,8 @@ func TestJestStep_Fields(t *testing.T) {
 	if s.Bin != "node_modules/.bin/jest" {
 		t.Errorf("Bin: got %q, want node_modules/.bin/jest (must be Dir-relative so chdir+exec resolves correctly)", s.Bin)
 	}
-	if s.Dir != "/repo/app/controlroom_frontend" {
-		t.Errorf("Dir: got %q, want /repo/app/controlroom_frontend", s.Dir)
+	if s.Dir != "/repo/app/studio_frontend" {
+		t.Errorf("Dir: got %q, want /repo/app/studio_frontend", s.Dir)
 	}
 }
 
@@ -483,8 +483,8 @@ func TestNpmInstallStep_Fields(t *testing.T) {
 	if s.Bin != "bash" {
 		t.Errorf("Bin: got %q, want bash", s.Bin)
 	}
-	if s.Dir != "/repo/app/controlroom_frontend" {
-		t.Errorf("Dir: got %q, want /repo/app/controlroom_frontend", s.Dir)
+	if s.Dir != "/repo/app/studio_frontend" {
+		t.Errorf("Dir: got %q, want /repo/app/studio_frontend", s.Dir)
 	}
 	if len(s.Args) < 2 || s.Args[0] != "-c" {
 		t.Errorf("Args: got %v, want [-c <script>]", s.Args)

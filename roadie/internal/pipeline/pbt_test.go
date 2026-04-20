@@ -75,8 +75,8 @@ func TestFastCheckPBTStep_Fields(t *testing.T) {
 	if s.Bin != "node_modules/.bin/jest" {
 		t.Errorf("Bin: got %q, want node_modules/.bin/jest", s.Bin)
 	}
-	if s.Dir != "/repo/app/controlroom_frontend" {
-		t.Errorf("Dir: got %q, want /repo/app/controlroom_frontend", s.Dir)
+	if s.Dir != "/repo/app/studio_frontend" {
+		t.Errorf("Dir: got %q, want /repo/app/studio_frontend", s.Dir)
 	}
 
 	args := strings.Join(s.Args, " ")
