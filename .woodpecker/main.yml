@@ -44,6 +44,7 @@ steps:
     image: /bin/bash
     depends_on: [npm-install]
     commands:
+      - '[ -n "$SONAR_TOKEN" ] || { echo "SONAR_TOKEN is empty — secret may be blocked (forked PR?) or not configured in Woodpecker."; exit 1; }'
       - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run 'roadie start --dev'."; exit 1; }
       - roadie test scan --gate
     environment:
@@ -57,14 +58,16 @@ steps:
 
   # ── Step 5: E2E ─────────────────────────────────────────────────────────────
   # Playwright shards — clones controlroomdb_test_ci → controlroomdb_test_ci_0..3
+  # PLAYWRIGHT_BROWSERS_PATH must be set in each agent's .env (not here) because
+  # the local backend overrides HOME to a temp dir, breaking Playwright discovery.
   - name: e2e
     image: /bin/bash
     depends_on: [npm-install]
     commands:
+      - '[ -n "$PLAYWRIGHT_BROWSERS_PATH" ] || { echo "PLAYWRIGHT_BROWSERS_PATH is not set — add it to the agent .env (e.g. PLAYWRIGHT_BROWSERS_PATH=/home/<user>/.cache/ms-playwright)."; exit 1; }'
       - roadie test e2e
     environment:
       <<: *ci_db_env
-      PLAYWRIGHT_BROWSERS_PATH: /home/edwardmangini/.cache/ms-playwright
 
   # ── Step 6: Performance ─────────────────────────────────────────────────────
   # benchmarks · k6 · Lighthouse — push to main and manual trigger only

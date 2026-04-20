@@ -26,6 +26,8 @@ services:
       - sonarqube_db_data:/var/lib/postgresql/data
     restart: unless-stopped
 
+  # Agents run externally as systemd services (woodpecker-agent-1..4) using
+  # WOODPECKER_BACKEND=local. They connect to this server on port 9000.
   woodpecker-server:
     image: woodpeckerci/woodpecker-server:v3
     container_name: woodpecker_server
@@ -37,8 +39,8 @@ services:
       WOODPECKER_GITHUB_CLIENT: Iv23liaJPsjezjNBlmtf
       WOODPECKER_GITHUB_APP_ID: "3427818"
       WOODPECKER_GITHUB_APP_PRIVATE_KEY_FILE: /etc/woodpecker/private-key.pem
-      WOODPECKER_HOST: https://rogueone.tailbb1c76.ts.net
-      WOODPECKER_ADMIN: edtbl76
+      WOODPECKER_HOST: ${WOODPECKER_HOST}
+      WOODPECKER_ADMIN: ${WOODPECKER_ADMIN:-edtbl76}
       WOODPECKER_OPEN: "false"
       WOODPECKER_DATABASE_DRIVER: sqlite3
       WOODPECKER_DATABASE_DATASOURCE: /var/lib/woodpecker/woodpecker.db
@@ -51,7 +53,8 @@ services:
       - woodpecker_webhook_secret
     volumes:
       - woodpecker_data:/var/lib/woodpecker
-      - ./stud-io-woodpecker.2026-04-18.private-key.pem:/etc/woodpecker/private-key.pem:ro
+      # Stable symlink: ln -sf stud-io-woodpecker.<date>.private-key.pem woodpecker-private-key.pem
+      - ./woodpecker-private-key.pem:/etc/woodpecker/private-key.pem:ro
     restart: unless-stopped
 
   structurizr:

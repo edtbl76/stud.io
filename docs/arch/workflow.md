@@ -90,32 +90,34 @@ chore: upgrade Next.js to 16.x
 
 ## CI
 
-A self-hosted GitHub Actions runner pool (4 instances, co-located with the Docker stack) executes `.github/workflows/pr-gate.yml` on every PR and push to `main`.
+A self-hosted Woodpecker CI pool (4 agents, co-located with the Docker stack) executes `.woodpecker/main.yml` on every PR and push to `main`.
 
-### PR gate jobs
+### Pipeline structure
 
 ```
 build (provision controlroomdb_test_ci)
-  ├── unit-pbt  (roadie test unit + roadie test pbt)
-  ├── scan      (roadie test scan --gate)
-  └── e2e       (roadie test e2e)
-       └── perf (roadie test perf — push to main only, non-blocking)
+  └── npm-install
+        ├── unit-pbt  (roadie test unit + roadie test pbt)
+        ├── scan      (roadie test scan --gate — PRs, push to main, manual)
+        └── e2e       (roadie test e2e)
+             └── perf (roadie test perf — push to main and manual only)
 ```
 
-`unit-pbt`, `scan`, and `e2e` all depend only on `build` and run in parallel across separate runner instances. `perf` depends on all three and runs only on push to `main`.
+`unit-pbt`, `scan`, and `e2e` all depend on `npm-install` and run in parallel across agents. `perf` depends on all three and runs only on push to `main` and manual triggers.
 
-The `build` job creates `controlroomdb_test_ci` if absent, then runs `roadie build --schema-only` to apply schema and seeds. E2E shards clone `controlroomdb_test_ci` → `controlroomdb_test_ci_0..3` at runtime.
+The `build` step creates `controlroomdb_test_ci` if absent, then runs `roadie build --schema-only` to apply schema and seeds. E2E shards clone `controlroomdb_test_ci` → `controlroomdb_test_ci_0..3` at runtime.
 
-### Self-hosted runner prerequisites
+A separate pipeline (`.woodpecker/roadie.yml`) runs `go vet` + `go test` + secrets/headers scan whenever files under `roadie/` change.
 
-4 runner instances are registered (names: `controlroom`, `controlroom-2`, `controlroom-3`, `controlroom-4`), each with its own `_work/` directory to prevent workspace collisions between parallel jobs. One-time setup:
-- `roadie build` — provision `controlroomdb_test_ci` and rebuild the stack once
+### Woodpecker agent prerequisites
+
+4 agents run as systemd services (`woodpecker-agent-1` through `woodpecker-agent-4`), each with its own `_work/` directory. One-time setup per machine:
+- `roadie start --dev` — stack and SonarQube must be running before CI will pass
 - `npx playwright install chromium` — install Playwright browsers once
-- `SONAR_TOKEN` GitHub secret — contents of `.sonar-token` (used in the scan job)
+- `PLAYWRIGHT_BROWSERS_PATH` — set to the absolute path of the Playwright browser cache (configured in agent `.env` files)
+- `sonar_token` Woodpecker secret — contents of `.sonar-token`; enable for `push`, `pull_request`, and `manual` events
 
-The stack must be running before CI will pass — start it with `roadie start --dev` from the persistent workspace.
-
-Runner label: `self-hosted, linux, controlroom`
+Agent `.env` files live in `~/Documents/Studio/woodpecker-agent-{1..4}/`. Each must include an explicit `PATH` covering nvm node, pyenv, Go (`/snap/bin`), and local bins.
 
 ---
 
@@ -182,5 +184,4 @@ git tag controlroom/vX.Y.Z
 git push origin controlroom/vX.Y.Z
 ```
 
-GitHub Actions release workflows trigger on `controlroom/v*` tag pushes.
-Use semver: increment patch for fixes, minor for features, major for breaking changes.
+Use semver: increment patch for fixes, minor for features, major for breaking changes. No automated release pipeline is wired to tag pushes yet — tagging is a manual gate step.
