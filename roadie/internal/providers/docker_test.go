@@ -230,16 +230,23 @@ func requireError(t *testing.T, err error, contains string) {
 	}
 }
 
+// trackRm returns a runFn that sets *called when "rm" appears in args.
+func trackRm(called *bool) func(context.Context, io.Writer, string, ...string) error {
+	return func(_ context.Context, _ io.Writer, _ string, args ...string) error {
+		*called = slices.Contains(args, "rm")
+		return nil
+	}
+}
+
+// removeContainers runs RemoveContainers on a fresh DockerProvider backed by fake.
+func removeContainers(fake *fakeRunner, names ...string) error {
+	return newTestDocker(fake).RemoveContainers(context.Background(), names)
+}
+
 func TestRemoveContainers_ExistingContainer_CallsRm(t *testing.T) {
 	var rmCalled bool
-	fake := &fakeRunner{
-		outputFn: inspectFn(t, []byte("{}"), nil),
-		runFn: func(_ context.Context, _ io.Writer, _ string, args ...string) error {
-			rmCalled = slices.Contains(args, "rm")
-			return nil
-		},
-	}
-	if err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"c"}); err != nil {
+	fake := &fakeRunner{outputFn: inspectFn(t, []byte("{}"), nil), runFn: trackRm(&rmCalled)}
+	if err := removeContainers(fake, "c"); err != nil {
 		t.Fatal(err)
 	}
 	if !rmCalled {
@@ -249,14 +256,8 @@ func TestRemoveContainers_ExistingContainer_CallsRm(t *testing.T) {
 
 func TestRemoveContainers_NotFound_SkipsRm(t *testing.T) {
 	var rmCalled bool
-	fake := &fakeRunner{
-		outputFn: inspectFn(t, nil, notFoundExitError(t)),
-		runFn: func(_ context.Context, _ io.Writer, _ string, args ...string) error {
-			rmCalled = slices.Contains(args, "rm")
-			return nil
-		},
-	}
-	if err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"c"}); err != nil {
+	fake := &fakeRunner{outputFn: inspectFn(t, nil, notFoundExitError(t)), runFn: trackRm(&rmCalled)}
+	if err := removeContainers(fake, "c"); err != nil {
 		t.Fatal(err)
 	}
 	if rmCalled {
@@ -266,8 +267,7 @@ func TestRemoveContainers_NotFound_SkipsRm(t *testing.T) {
 
 func TestRemoveContainers_InspectDaemonError_ReturnsError(t *testing.T) {
 	fake := &fakeRunner{outputFn: inspectFn(t, nil, errors.New("connection refused"))}
-	err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"})
-	requireError(t, err, "inspect mycontainer")
+	requireError(t, removeContainers(fake, "mycontainer"), "inspect mycontainer")
 }
 
 func TestRemoveContainers_RmFails_ReturnsError(t *testing.T) {
@@ -277,6 +277,5 @@ func TestRemoveContainers_RmFails_ReturnsError(t *testing.T) {
 			return errors.New("permission denied")
 		},
 	}
-	err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"})
-	requireError(t, err, "remove mycontainer")
+	requireError(t, removeContainers(fake, "mycontainer"), "remove mycontainer")
 }
