@@ -67,8 +67,8 @@ build:
     - docker-compose.yml
     - app/controlroom_backend/Dockerfile
     - app/controlroom_backend/requirements.txt
-    - app/controlroom_frontend/Dockerfile
-    - app/controlroom_frontend/package.json
+    - app/studio_frontend/Dockerfile
+    - app/studio_frontend/package.json
 
 test:
   e2e:

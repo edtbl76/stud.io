@@ -103,7 +103,7 @@ test:
     examples: 100  # default; increase for pre-release thoroughness
 ```
 
-Frontend PBT tests live in `app/controlroom_frontend/__tests__/pbt/`. Backend PBT tests live in `app/controlroom_backend/tests/pbt/`. These are excluded from the pre-commit hook — run `roadie test pbt` manually or rely on `roadie test full`.
+Frontend PBT tests live in `app/studio_frontend/__tests__/pbt/`. Backend PBT tests live in `app/controlroom_backend/tests/pbt/`. These are excluded from the pre-commit hook — run `roadie test pbt` manually or rely on `roadie test full`.
 
 `--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`. `--force-build` bypasses the container rebuild check and always runs `--build --force-recreate`.
 
@@ -203,8 +203,8 @@ build:
     - docker-compose.yml
     - app/controlroom_backend/Dockerfile
     - app/controlroom_backend/requirements.txt
-    - app/controlroom_frontend/Dockerfile
-    - app/controlroom_frontend/package.json
+    - app/studio_frontend/Dockerfile
+    - app/studio_frontend/package.json
 ```
 
 Health check types:
@@ -279,7 +279,7 @@ Go untyped string constants (e.g. `"."`, `"/repo"`) are assignable to these type
 | `NpmAuditStep(root Root)` | `run-npm-audit.sh` | `--audit-level=critical` |
 | `TrivyStep(root Root, image ImageRef)` | `run-trivy.sh` scan() | Single image; caller resolves `image` via `docker inspect` |
 | `TrivyBackendStep(root Root)` | — | Resolves `controlroom_backend` image SHA at runtime, then scans |
-| `TrivyFrontendStep(root Root)` | — | Resolves `controlroom_frontend` image SHA at runtime, then scans |
+| `TrivyFrontendStep(root Root)` | — | Resolves `studio_frontend` image SHA at runtime, then scans |
 | `SonarScanStep(root Root, gate bool)` | `test-scan.sh --sonar[‑gate]` | `gate=true` adds quality gate poll |
 | `DetectSecretsStep(root Root)` | `test-scan.sh --secrets` | Scans working tree; compares against `.secrets.baseline` |
 | `SecurityHeadersStep(root Root)` | `test-scan.sh --headers` | Runs `pytest tests/security/test_security_headers.py` |

@@ -27,7 +27,7 @@ steps:
     image: /bin/bash
     depends_on: [build]
     commands:
-      - cd app/controlroom_frontend && npm install --include=dev
+      - cd app/studio_frontend && npm install --include=dev
 
   # ── Step 3: Unit + PBT ──────────────────────────────────────────────────────
   # tsc · jest · ruff · bandit · pytest · fast-check · hypothesis

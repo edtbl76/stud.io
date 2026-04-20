@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-const frontendDir = "app/controlroom_frontend"
+const frontendDir = "app/studio_frontend"
 const backendDir = "app/controlroom_backend"
 
 // Root is the filesystem root of the monorepo, used to resolve tool paths.
@@ -204,9 +204,9 @@ func TrivyBackendStep(root Root) ToolStep {
 	return trivyContainerStep(root, "controlroom_backend")
 }
 
-// TrivyFrontendStep scans the controlroom_frontend container image.
+// TrivyFrontendStep scans the studio_frontend container image.
 func TrivyFrontendStep(root Root) ToolStep {
-	return trivyContainerStep(root, "controlroom_frontend")
+	return trivyContainerStep(root, "studio_frontend")
 }
 
 // DetectSecretsStep runs detect-secrets scan and diffs the result against
@@ -227,6 +227,8 @@ func DetectSecretsStep(root Root) ToolStep {
 		`--exclude-files '.*__pycache__.*' ` +
 		`--exclude-files '\.secrets\.baseline' ` +
 		`--exclude-files 'structurizr/workspace\.json' ` +
+		`--exclude-files '.*/e2e/\.auth/.*' ` +
+		`--exclude-files '.*/perf-reports/.*' ` +
 		`> /tmp/secrets_current.json; ` +
 		`python3 -c '` +
 		`import json, sys; ` +

@@ -14,7 +14,7 @@ import (
 // writeLcov creates the lcov.info file at the standard path under root.
 func writeLcov(t *testing.T, root, content string) {
 	t.Helper()
-	dir := filepath.Join(root, "app", "controlroom_frontend", "coverage")
+	dir := filepath.Join(root, "app", "studio_frontend", "coverage")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatalf("creating lcov dir: %v", err)
 	}
@@ -54,22 +54,22 @@ func TestFixLcovPaths_AddsPrefixWhenMissing(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	result, _ := os.ReadFile(filepath.Join(tmp, "app", "controlroom_frontend", "coverage", "lcov.info"))
-	if !strings.Contains(string(result), "SF:app/controlroom_frontend/src/app/layout.tsx") {
+	result, _ := os.ReadFile(filepath.Join(tmp, "app", "studio_frontend", "coverage", "lcov.info"))
+	if !strings.Contains(string(result), "SF:app/studio_frontend/src/app/layout.tsx") {
 		t.Errorf("expected prefixed SF: line, got:\n%s", result)
 	}
 }
 
 func TestFixLcovPaths_NoOpWhenAlreadyPrefixed(t *testing.T) {
 	tmp := t.TempDir()
-	content := "SF:app/controlroom_frontend/src/app/layout.tsx\nDA:1,1\n"
+	content := "SF:app/studio_frontend/src/app/layout.tsx\nDA:1,1\n"
 	writeLcov(t, tmp, content)
 
 	if err := fixLcovPaths(tmp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	result, _ := os.ReadFile(filepath.Join(tmp, "app", "controlroom_frontend", "coverage", "lcov.info"))
+	result, _ := os.ReadFile(filepath.Join(tmp, "app", "studio_frontend", "coverage", "lcov.info"))
 	if string(result) != content {
 		t.Errorf("expected file unchanged, got:\n%s", result)
 	}
@@ -79,21 +79,21 @@ func TestFixLcovPaths_FixesMixedFile(t *testing.T) {
 	// A file where some SF: lines are already prefixed and some are not.
 	// The old bytes.Contains short-circuit would skip the whole file.
 	tmp := t.TempDir()
-	writeLcov(t, tmp, "SF:app/controlroom_frontend/src/a.tsx\nSF:src/b.tsx\nDA:1,1\n")
+	writeLcov(t, tmp, "SF:app/studio_frontend/src/a.tsx\nSF:src/b.tsx\nDA:1,1\n")
 
 	if err := fixLcovPaths(tmp); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	result, _ := os.ReadFile(filepath.Join(tmp, "app", "controlroom_frontend", "coverage", "lcov.info"))
+	result, _ := os.ReadFile(filepath.Join(tmp, "app", "studio_frontend", "coverage", "lcov.info"))
 	content := string(result)
 	if strings.Contains(content, "SF:src/b.tsx") {
 		t.Errorf("unprefixed SF: line was not fixed:\n%s", content)
 	}
-	if !strings.Contains(content, "SF:app/controlroom_frontend/src/b.tsx") {
+	if !strings.Contains(content, "SF:app/studio_frontend/src/b.tsx") {
 		t.Errorf("expected prefixed line for b.tsx:\n%s", content)
 	}
-	if strings.Count(content, "SF:app/controlroom_frontend/src/a.tsx") != 1 {
+	if strings.Count(content, "SF:app/studio_frontend/src/a.tsx") != 1 {
 		t.Errorf("already-prefixed line was duplicated or removed:\n%s", content)
 	}
 }

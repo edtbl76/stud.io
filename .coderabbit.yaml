@@ -13,12 +13,12 @@ reviews:
   collapse_walkthrough: true
 
   path_filters:
-    - "!app/controlroom_frontend/package-lock.json"
-    - "!app/controlroom_frontend/node_modules/**"
-    - "!app/controlroom_frontend/.next/**"
-    - "!app/controlroom_frontend/.next-perf/**"
-    - "!app/controlroom_frontend/.next-e2e*/**"
-    - "!app/controlroom_frontend/components/ui/**"
+    - "!app/studio_frontend/package-lock.json"
+    - "!app/studio_frontend/node_modules/**"
+    - "!app/studio_frontend/.next/**"
+    - "!app/studio_frontend/.next-perf/**"
+    - "!app/studio_frontend/.next-e2e*/**"
+    - "!app/studio_frontend/components/ui/**"
     - "!**/__pycache__/**"
     - "!**/*.pyc"
     - "!.secrets.baseline"
@@ -40,7 +40,7 @@ reviews:
         - No commented-out code
         - Duplication: if the same logic appears twice, flag it for extraction
 
-    - path: "app/controlroom_frontend/**/*.{ts,tsx}"
+    - path: "app/studio_frontend/**/*.{ts,tsx}"
       instructions: |
         Review against these standards:
         - No `any` — use `unknown` and narrow, or type properly. Flag `as unknown as T` casts without an explanatory comment.
@@ -61,13 +61,13 @@ reviews:
         - Tests use asyncpg with transaction rollback per test — flag any test that commits data without cleanup
         - No DB mocking — tests must hit the real test database
 
-    - path: "app/controlroom_frontend/__tests__/**"
+    - path: "app/studio_frontend/__tests__/**"
       instructions: |
         - Mock @/lib/auth and @/lib/api per project conventions
         - Every test must assert real behavior — flag coverage-padding tests
         - Flag missing edge case coverage on new logic
 
-    - path: "app/controlroom_frontend/e2e/**"
+    - path: "app/studio_frontend/e2e/**"
       instructions: |
         - E2E tests run against the dev stack at https://localhost:2112
         - One spec file per feature area

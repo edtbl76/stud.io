@@ -14,7 +14,7 @@ The app is a **Backend for Frontend (BFF)**. There is no browser-visible backend
 ## Directory structure
 
 ```
-app/controlroom_frontend/
+app/studio_frontend/
 ├── app/                    # Next.js App Router pages and API routes
 │   ├── api/                # BFF API routes (server-side)
 │   │   ├── auth/

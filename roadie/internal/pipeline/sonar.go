@@ -70,7 +70,7 @@ func fixLcovPaths(root string) error {
 		return fmt.Errorf("reading %s: %w", lcovPath, err)
 	}
 	const sfPrefix = "SF:"
-	const wantPrefix = "SF:app/controlroom_frontend/"
+	const wantPrefix = "SF:app/studio_frontend/"
 	lines := strings.Split(string(data), "\n")
 	for i, line := range lines {
 		if strings.HasPrefix(line, sfPrefix) && !strings.HasPrefix(line, wantPrefix) {

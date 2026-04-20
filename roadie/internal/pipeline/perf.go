@@ -91,7 +91,7 @@ func (r perfRunner) run(ctx context.Context, flags PerfFlags, out io.Writer) ([]
 	defer func() {
 		frontendProc.Kill() //nolint
 		if !flags.NoBundle {
-			os.RemoveAll(filepath.Join(r.cfg.Root, "app", "controlroom_frontend", ".next-perf"))
+			os.RemoveAll(filepath.Join(r.cfg.Root, "app", "studio_frontend", ".next-perf"))
 		}
 	}()
 
@@ -214,7 +214,7 @@ func buildFrontend(ctx context.Context, cfg PerfConfig, root string, out io.Writ
 	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
 		return fmt.Errorf("npm install for perf: %w", err)
 	}
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	nodeDir := ResolveNode()
 	cmd := exec.CommandContext(ctx, "npx", "next", "build")
 	cmd.Dir = frontendDir
@@ -236,14 +236,14 @@ func buildFrontend(ctx context.Context, cfg PerfConfig, root string, out io.Writ
 }
 
 func hasPerfBuild(root string) bool {
-	_, err := os.Stat(filepath.Join(root, "app", "controlroom_frontend", ".next-perf"))
+	_, err := os.Stat(filepath.Join(root, "app", "studio_frontend", ".next-perf"))
 	return err == nil
 }
 
 func startFrontendProd(ctx context.Context, cfg PerfConfig, root string, out io.Writer) (*os.Process, error) {
 	fmt.Fprintf(out, "[perf] Starting frontend on port %d...\n", cfg.FrontendPort)
 	evictPort(cfg.FrontendPort, out)
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	nodeDir := ResolveNode()
 
 	cmd := exec.CommandContext(ctx, "npx", "next", "start",
@@ -325,7 +325,7 @@ func runPerfK6(ctx context.Context, cfg PerfConfig, root string, out io.Writer) 
 
 func runPerfLighthouse(ctx context.Context, cfg PerfConfig, root string, out io.Writer) StepResult {
 	start := time.Now()
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	nodeDir := ResolveNode()
 
 	const warningFile = "/tmp/perf-lcp-warnings"
@@ -353,7 +353,7 @@ func runCarbonReport(carbonURL, root string, out io.Writer) {
 	fmt.Fprintf(out, "[perf] Running CO₂ report against %s...\n", carbonURL)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	nodeDir := ResolveNode()
 	cmd := exec.CommandContext(ctx, "npx", "playwright", "test",
 		"--config", "playwright.perf.config.ts",

@@ -60,7 +60,7 @@ RBAC is enforced via a `require_admin` FastAPI dependency injected into every wr
 
 ## HTTP security headers
 
-Applied to every response in `app/controlroom_frontend/next.config.mjs` via the `headers()` config:
+Applied to every response in `app/studio_frontend/next.config.mjs` via the `headers()` config:
 
 | Header | Value | Purpose |
 |---|---|---|
@@ -77,7 +77,7 @@ These are asserted on 7 pages by `tests/security/test_security_headers.py` (run 
 
 ## Container image scanning (Trivy)
 
-`roadie test scan trivy` scans both container images (`controlroom_backend`, `controlroom_frontend`) for **HIGH** and **CRITICAL** CVEs using [Trivy](https://trivy.dev) from `ghcr.io/aquasecurity/trivy:latest`. It covers OS packages, Python packages, and npm packages installed in each image.
+`roadie test scan trivy` scans both container images (`controlroom_backend`, `studio_frontend`) for **HIGH** and **CRITICAL** CVEs using [Trivy](https://trivy.dev) from `ghcr.io/aquasecurity/trivy:latest`. It covers OS packages, Python packages, and npm packages installed in each image.
 
 Trivy runs in an ephemeral container with two mounts:
 - `/var/run/docker.sock` — allows Trivy to inspect local images
@@ -166,7 +166,7 @@ Current suppressions:
 
 | ID | Rule | Resource | Reason |
 |---|---|---|---|
-| `e1` | `css:S4662` | `app/controlroom_frontend/app/globals.css` | `@custom-variant` is a valid Tailwind v4 directive; SonarQube's CSS parser predates it. |
+| `e1` | `css:S4662` | `app/studio_frontend/app/globals.css` | `@custom-variant` is a valid Tailwind v4 directive; SonarQube's CSS parser predates it. |
 
 **Note:** `/* NOSONAR */` inline comments are not honoured for CSS rules in SonarQube — `sonar.issue.ignore.multicriteria` is required.
 

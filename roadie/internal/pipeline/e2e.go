@@ -327,7 +327,7 @@ func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io
 }
 
 func startOneFrontendShard(ctx context.Context, cfg E2EConfig, root string, shard int) (*os.Process, error) {
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	nodeDir := ResolveNode()
 	port := cfg.FrontendBasePort + shard
 	cmd := exec.CommandContext(ctx, "npx", "next", "dev",
@@ -360,7 +360,7 @@ func startOneFrontendShard(ctx context.Context, cfg E2EConfig, root string, shar
 func runPlaywrightShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {
 	sr := shardRunner{
 		cfg:         cfg,
-		frontendDir: filepath.Join(root, "app", "controlroom_frontend"),
+		frontendDir: filepath.Join(root, "app", "studio_frontend"),
 		nodeDir:     ResolveNode(),
 	}
 
@@ -432,7 +432,7 @@ func removeBackendShards(cfg E2EConfig) {
 }
 
 func removeShardNextDirs(cfg E2EConfig, root string) {
-	frontendDir := filepath.Join(root, "app", "controlroom_frontend")
+	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	for i := 0; i < cfg.Shards; i++ {
 		os.RemoveAll(filepath.Join(frontendDir, fmt.Sprintf(".next-e2e-%d", i)))
 		os.Remove(filepath.Join(frontendDir, fmt.Sprintf("e2e/.auth/state-%d.json", i))) //nolint

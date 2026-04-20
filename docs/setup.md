@@ -93,7 +93,7 @@ roadie build --force-build # force container rebuild even if Dockerfiles and dep
 roadie release             # full release gate: rebuild dev stack + unit + E2E + scan + perf
 ```
 
-This builds and starts four containers (`studio_db`, `controlroom_backend`, `controlroom_frontend`, `controlroom_nginx`), waits for each to be healthy, applies the schema and semantic views to both databases, and runs the test suite.
+This builds and starts four containers (`studio_db`, `controlroom_backend`, `studio_frontend`, `controlroom_nginx`), waits for each to be healthy, applies the schema and semantic views to both databases, and runs the test suite.
 
 | Service | URL |
 |---|---|
@@ -211,7 +211,7 @@ roadie test scan
 
 The scan:
 1. Runs `pytest --cov` → generates `app/controlroom_backend/coverage.xml` (Cobertura format)
-2. Runs `jest --coverage` → generates `app/controlroom_frontend/coverage/lcov.info`
+2. Runs `jest --coverage` → generates `app/studio_frontend/coverage/lcov.info`
 3. Rewrites lcov `SF:` paths to be relative to the project root (Jest emits paths relative to the frontend directory; SonarQube resolves from the project root)
 4. Uploads everything to SonarQube
 
