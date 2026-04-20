@@ -23,16 +23,3 @@ steps:
       - event: pull_request
         path: roadie/**
       - event: manual
-
-  # ── Step 3: Install ─────────────────────────────────────────────────────────
-  # Only installs the new binary after tests and scans pass on main.
-  - name: install
-    image: /bin/bash
-    depends_on: [unit, scan]
-    commands:
-      - ./build_roadie.sh
-    when:
-      - event: push
-        branch: main
-        path: roadie/**
-      - event: manual
