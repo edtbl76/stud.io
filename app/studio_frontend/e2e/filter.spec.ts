@@ -16,7 +16,7 @@ async function waitForStableCount(page: Page): Promise<number> {
 // converts to IS NULL OR col = ''.
 
 test('filter: "" sentinel in brands legal_name returns fewer results', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const totalBefore = await waitForStableCount(page)
 
   // Legal Name is the second filterable column (after Name)
@@ -36,7 +36,7 @@ test('filter: "" sentinel in brands legal_name returns fewer results', async ({ 
 })
 
 test('filter: clearing "" sentinel restores the original count', async ({ page }) => {
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
   const totalBefore = await waitForStableCount(page)
 
   const filterInputs = page.locator('thead tr:nth-child(2) input[placeholder="2+ chars…"]')
@@ -53,7 +53,7 @@ test('filter: clearing "" sentinel restores the original count', async ({ page }
 })
 
 test('filter: "" sentinel in effects version column returns a valid subset', async ({ page }) => {
-  await page.goto('/session/effects')
+  await page.goto('/controlroom/session/effects')
   const totalBefore = await waitForStableCount(page)
 
   // Version is the fourth filterable column in effects (name, types, collection, version)

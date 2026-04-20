@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('change review page loads and shows heading and filters', async ({ page }) => {
-  await page.goto('/admin/change-review')
+  await page.goto('/controlroom/admin/change-review')
 
   await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible({ timeout: 10_000 })
 
@@ -11,7 +11,7 @@ test('change review page loads and shows heading and filters', async ({ page }) 
 })
 
 test('change review page shows pagination controls', async ({ page }) => {
-  await page.goto('/admin/change-review')
+  await page.goto('/controlroom/admin/change-review')
 
   await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible({ timeout: 10_000 })
 
@@ -20,7 +20,7 @@ test('change review page shows pagination controls', async ({ page }) => {
 })
 
 test('change review page shows empty state or table rows', async ({ page }) => {
-  await page.goto('/admin/change-review')
+  await page.goto('/controlroom/admin/change-review')
 
   await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible({ timeout: 10_000 })
 
@@ -43,7 +43,7 @@ test('change review page shows empty state or table rows', async ({ page }) => {
 
 test('change review is reachable via the ADMIN sidebar group', async ({ page }) => {
   // Start on a non-ADMIN page so the ADMIN group begins collapsed
-  await page.goto('/catalog/brands')
+  await page.goto('/controlroom/catalog/brands')
 
   // Open the ADMIN group
   await page.getByRole('button', { name: /^ADMIN$/i }).click()
@@ -54,7 +54,7 @@ test('change review is reachable via the ADMIN sidebar group', async ({ page }) 
 })
 
 test('change review status filter changes the URL or re-fetches', async ({ page }) => {
-  await page.goto('/admin/change-review')
+  await page.goto('/controlroom/admin/change-review')
 
   await expect(page.getByRole('heading', { name: 'Change Review' })).toBeVisible({ timeout: 10_000 })
 

@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
-import StatsPage from '@/app/admin/stats/page'
+import StatsPage from '@/app/controlroom/admin/stats/page'
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronDown, LogOut, Search } from 'lucide-react'
+import { ChevronDown, LogOut, Search, Home } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 
@@ -21,49 +21,48 @@ const navGroups: NavGroup[] = [
   {
     title: 'CATALOG',
     items: [
-      { label: 'Brands', href: '/catalog/brands' },
-      { label: 'Models', href: '/catalog/models' },
+      { label: 'Brands', href: '/controlroom/catalog/brands' },
+      { label: 'Models', href: '/controlroom/catalog/models' },
     ],
   },
   {
     title: 'SESSION',
     items: [
-      { label: 'Effects', href: '/session/effects' },
-      { label: 'Instruments', href: '/session/instruments' },
-      { label: 'Libraries', href: '/session/libraries' },
-      { label: 'Workstations', href: '/session/workstations' },
+      { label: 'Effects', href: '/controlroom/session/effects' },
+      { label: 'Instruments', href: '/controlroom/session/instruments' },
+      { label: 'Libraries', href: '/controlroom/session/libraries' },
+      { label: 'Workstations', href: '/controlroom/session/workstations' },
     ],
   },
   {
     title: 'TOOLS',
     items: [
-      { label: 'Admin', href: '/tools/admin' },
-      { label: 'Composition', href: '/tools/composition' },
-      { label: 'Measurement', href: '/tools/measurement' },
-      { label: 'Reference', href: '/tools/reference' },
-      { label: 'Workflow', href: '/tools/workflow' },
+      { label: 'Admin', href: '/controlroom/tools/admin' },
+      { label: 'Composition', href: '/controlroom/tools/composition' },
+      { label: 'Measurement', href: '/controlroom/tools/measurement' },
+      { label: 'Reference', href: '/controlroom/tools/reference' },
+      { label: 'Workflow', href: '/controlroom/tools/workflow' },
     ],
   },
   {
     title: 'ADMIN',
     items: [
-      { label: 'Backup & Restore', href: '/admin/backup' },
-      { label: 'Change Review',    href: '/admin/change-review' },
-      { label: 'Import / Export',  href: '/admin/import-export' },
-      { label: 'Stats',            href: '/admin/stats' },
-      { label: 'Users',            href: '/admin/users' },
+      { label: 'Backup & Restore', href: '/controlroom/admin/backup' },
+      { label: 'Change Review',    href: '/controlroom/admin/change-review' },
+      { label: 'Import / Export',  href: '/controlroom/admin/import-export' },
+      { label: 'Stats',            href: '/controlroom/admin/stats' },
     ],
   },
   {
     title: 'CONFIG',
     items: [
-      { label: 'Effect Types', href: '/config/effect-types' },
-      { label: 'Entity Types', href: '/config/entity-types' },
-      { label: 'Instrument Types', href: '/config/instrument-types' },
-      { label: 'Model Types', href: '/config/model-types' },
-      { label: 'Plugin Formats', href: '/config/plugin-formats' },
-      { label: 'Tag Types', href: '/config/tag-types' },
-      { label: 'Tool Types', href: '/config/tool-types' },
+      { label: 'Effect Types', href: '/controlroom/config/effect-types' },
+      { label: 'Entity Types', href: '/controlroom/config/entity-types' },
+      { label: 'Instrument Types', href: '/controlroom/config/instrument-types' },
+      { label: 'Model Types', href: '/controlroom/config/model-types' },
+      { label: 'Plugin Formats', href: '/controlroom/config/plugin-formats' },
+      { label: 'Tag Types', href: '/controlroom/config/tag-types' },
+      { label: 'Tool Types', href: '/controlroom/config/tool-types' },
     ],
   },
 ]
@@ -136,7 +135,7 @@ export function Sidebar() {
     e.preventDefault()
     const q = searchQuery.trim()
     if (q.length < 2) return
-    router.push(`/search?q=${encodeURIComponent(q)}`)
+    router.push(`/controlroom/search?q=${encodeURIComponent(q)}`)
   }
 
   function toggleGroup(title: string) {
@@ -161,12 +160,10 @@ export function Sidebar() {
     >
       {/* App name */}
       <div className="px-4 py-5 border-b border-sidebar-border">
-        <div className="text-xs font-bold tracking-widest text-muted-foreground uppercase">
+        <Link href="/" className="block text-xs font-bold tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors">
           STUD.io
-        </div>
-        <div className="text-sm font-semibold text-foreground mt-0.5">
-          ControlRoom
-        </div>
+        </Link>
+        <div className="text-sm font-semibold text-foreground mt-0.5">ControlRoom</div>
       </div>
 
       {/* User / logout */}
@@ -209,6 +206,15 @@ export function Sidebar() {
           />
         ))}
       </nav>
+      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Home className="h-3.5 w-3.5" />
+          Home
+        </Link>
+      </div>
     </aside>
   )
 }

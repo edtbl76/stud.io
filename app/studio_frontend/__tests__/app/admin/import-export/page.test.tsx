@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ImportExportPage from '@/app/admin/import-export/page'
+import ImportExportPage from '@/app/controlroom/admin/import-export/page'
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch

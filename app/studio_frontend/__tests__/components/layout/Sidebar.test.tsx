@@ -85,7 +85,7 @@ describe('Sidebar', () => {
   })
 
   it('applies active link styling for the current path', () => {
-    mockPathname = '/catalog/brands'
+    mockPathname = '/controlroom/catalog/brands'
     render(<Sidebar />)
     // CATALOG group auto-expands because /catalog/brands is the active path
     const brandsLink = screen.getByRole('link', { name: 'Brands' })
@@ -93,7 +93,7 @@ describe('Sidebar', () => {
   })
 
   it('applies active link styling for a nested path under the item href', () => {
-    mockPathname = '/catalog/brands/details'
+    mockPathname = '/controlroom/catalog/brands/details'
     render(<Sidebar />)
     // CATALOG group auto-expands; nested path matches via startsWith(href + '/')
     const brandsLink = screen.getByRole('link', { name: 'Brands' })
@@ -133,7 +133,7 @@ describe('Sidebar', () => {
     const input = screen.getByPlaceholderText('Global search...')
     fireEvent.change(input, { target: { value: 'reverb' } })
     fireEvent.submit(input.closest('form')!)
-    expect(mockPush).toHaveBeenCalledWith('/search?q=reverb')
+    expect(mockPush).toHaveBeenCalledWith('/controlroom/search?q=reverb')
   })
 
   it('does not navigate when query is shorter than 2 characters', () => {
@@ -150,8 +150,8 @@ describe('Sidebar', () => {
     fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
     const adminLinks = screen
       .getAllByRole('link')
-      .filter((l) => (l.getAttribute('href') ?? '').startsWith('/admin/'))
+      .filter((l) => (l.getAttribute('href') ?? '').startsWith('/controlroom/admin/'))
     const labels = adminLinks.map((l) => l.textContent)
-    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Import / Export', 'Stats', 'Users'])
+    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Import / Export', 'Stats'])
   })
 })
