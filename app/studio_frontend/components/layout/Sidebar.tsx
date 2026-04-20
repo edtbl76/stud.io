@@ -3,10 +3,10 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { ChevronDown, LogOut, Search } from 'lucide-react'
+import { ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
-import { ModuleSwitcher } from '@/components/layout/ModuleSwitcher'
+import { SidebarShell } from '@/components/layout/SidebarShell'
 
 interface NavItem {
   label: string
@@ -121,16 +121,12 @@ function getInitialOpenGroups(pathname: string): Set<string> {
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { username, role, logout } = useAuth()
+  const { role } = useAuth()
 
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(
     () => getInitialOpenGroups(pathname)
   )
   const [searchQuery, setSearchQuery] = React.useState('')
-
-  function handleSignOut() {
-    if (globalThis.confirm('Sign out?')) logout().catch(console.error)
-  }
 
   function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -152,34 +148,7 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className="fixed left-0 top-0 z-40 h-screen w-56 shrink-0 overflow-y-auto"
-      style={{
-        backgroundColor: 'hsl(var(--sidebar-bg))',
-        borderRight: '1px solid hsl(var(--sidebar-border))',
-      }}
-    >
-      {/* App name */}
-      <div className="px-4 py-5 border-b border-sidebar-border">
-        <Link href="/" className="block text-xs font-bold tracking-widest text-muted-foreground uppercase hover:text-foreground transition-colors">
-          STUD.io
-        </Link>
-        <div className="text-sm font-semibold text-foreground mt-0.5">ControlRoom</div>
-      </div>
-
-      {/* User / logout */}
-      <div className="px-4 py-2.5 border-b border-sidebar-border flex items-center justify-between">
-        <span className="text-xs text-muted-foreground truncate">{username}</span>
-        <button
-          onClick={handleSignOut}
-          title="Sign out"
-          className="ml-2 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* Search */}
+    <SidebarShell subtitle="ControlRoom">
       <div className="px-3 py-2.5 border-b border-sidebar-border">
         <form onSubmit={handleSearch}>
           <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-muted/40 border border-border/50">
@@ -194,8 +163,6 @@ export function Sidebar() {
           </div>
         </form>
       </div>
-
-      {/* Nav groups */}
       <nav className="py-3">
         {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => (
           <SidebarNavGroup
@@ -207,9 +174,6 @@ export function Sidebar() {
           />
         ))}
       </nav>
-      <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
-        <ModuleSwitcher />
-      </div>
-    </aside>
+    </SidebarShell>
   )
 }

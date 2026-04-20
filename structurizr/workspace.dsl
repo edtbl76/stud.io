@@ -48,7 +48,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
 
             frontend = container "Next.js Frontend" {
                 description "Server-rendered React application using the App Router. Implements the BFF (Backend for Frontend) pattern — the browser communicates only with Next.js. JWTs are stored in httpOnly cookies and never exposed to JavaScript."
-                technology "Node 20 / Next.js 14 / TypeScript / React 18"
+                technology "Node 20 / Next.js 16 / TypeScript / React 19"
                 tags "Frontend"
 
                 bffProxy = component "BFF Catch-All Proxy" {
@@ -88,7 +88,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                 }
 
                 pages = component "Pages" {
-                    description "25 page files across 6 domains: login, catalog (brands, models), session (effects, instruments, libraries, workstations), tools (workflow, measurement, reference, composition, admin), config (7 lookup tables), search, and admin (stats, change-review, backup, import/export, users)."
+                    description "Multi-module shell with three top-level areas: (1) Home — module selection tiles at /; (2) ControlRoom at /controlroom/ — catalog (brands, models), session (effects, instruments, libraries, workstations), tools (workflow, measurement, reference, composition, admin), config (7 lookup tables), search, and admin (stats, change-review, backup, import/export); (3) User Management at /users/. Each module has its own Next.js layout mounting Sidebar or UsersSidebar (both built on SidebarShell). ModuleSwitcher in every sidebar provides one-click navigation between modules."
                     technology "app/"
                     tags "UI"
                 }
@@ -551,7 +551,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
 
         dynamic controlRoom "BffJwtFlow" {
             title "Level 4 — BFF Authentication Flow"
-            viewer -> nginx "1. HTTPS GET /catalog/brands (browser sends httpOnly cookie automatically)"
+            viewer -> nginx "1. HTTPS GET /controlroom/catalog/brands (browser sends httpOnly cookie automatically)"
             nginx -> frontend "2. HTTP :2112 (proxied)"
             frontend -> backend "3. Proxy reads cookie, attaches Authorization: Bearer {token}, forwards GET /brands"
             backend -> database "4. SELECT * FROM brands_view WHERE ... LIMIT $1 OFFSET $2"
