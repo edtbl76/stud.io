@@ -3,9 +3,10 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, Users, Home } from 'lucide-react'
+import { LogOut, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
+import { ModuleSwitcher } from '@/components/layout/ModuleSwitcher'
 
 const navItems = [{ label: 'Users', href: '/users', icon: Users }]
 
@@ -14,7 +15,7 @@ export function UsersSidebar() {
   const { username, logout } = useAuth()
 
   function handleSignOut() {
-    if (globalThis.confirm('Sign out?')) logout()
+    if (globalThis.confirm('Sign out?')) logout().catch(console.error)
   }
 
   return (
@@ -65,13 +66,7 @@ export function UsersSidebar() {
       </nav>
 
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border">
-        <Link
-          href="/"
-          className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <Home className="h-3.5 w-3.5" />
-          Home
-        </Link>
+        <ModuleSwitcher />
       </div>
     </aside>
   )

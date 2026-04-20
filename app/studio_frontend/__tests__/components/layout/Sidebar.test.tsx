@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Sidebar } from '@/components/layout/Sidebar'
 
-const mockLogout = jest.fn()
+const mockLogout = jest.fn().mockResolvedValue(undefined)
 const mockPush = jest.fn()
 
 jest.mock('@/lib/auth', () => ({
@@ -15,17 +15,17 @@ jest.mock('next/navigation', () => ({
 }))
 
 let mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
-let mockPathname = '/'
+let mockPathname = '/controlroom/catalog/brands'
 
 describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
-    mockPathname = '/'
+    mockPathname = '/controlroom/catalog/brands'
     mockPush.mockClear()
   })
 
-  it('renders the app name', () => {
+  it('renders the app name and module title', () => {
     render(<Sidebar />)
     expect(screen.getByText('STUD.io')).toBeInTheDocument()
     expect(screen.getByText('ControlRoom')).toBeInTheDocument()
@@ -69,14 +69,15 @@ describe('Sidebar', () => {
   })
 
   it('expands a group when its header is clicked', () => {
+    mockPathname = '/controlroom/session/effects'
     render(<Sidebar />)
-    // Groups are collapsed by default — clicking shows items
     fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
     expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Models' })).toBeInTheDocument()
   })
 
   it('collapses an expanded group when its header is clicked again', () => {
+    mockPathname = '/controlroom/session/effects'
     render(<Sidebar />)
     fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
     expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()

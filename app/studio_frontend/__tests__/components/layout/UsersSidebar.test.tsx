@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { UsersSidebar } from '@/components/layout/UsersSidebar'
 
-const mockLogout = jest.fn()
+const mockLogout = jest.fn().mockResolvedValue(undefined)
 let mockPathname = '/users'
 
 jest.mock('@/lib/auth', () => ({
@@ -36,10 +36,9 @@ describe('UsersSidebar', () => {
     expect(link).toHaveAttribute('href', '/users')
   })
 
-  it('renders a Home link at the bottom', () => {
+  it('renders a Home link via ModuleSwitcher', () => {
     render(<UsersSidebar />)
-    const homeLink = screen.getByRole('link', { name: /home/i })
-    expect(homeLink).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: /home/i })).toHaveAttribute('href', '/')
   })
 
   it('applies active styles when pathname matches /users', () => {
