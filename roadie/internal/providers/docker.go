@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os/exec"
 	"strings"
 )
 
@@ -130,14 +131,26 @@ func (d *DockerProvider) Exec(ctx context.Context, service string, cmd []string)
 	return d.run.Run(ctx, d.out, "docker", args...)
 }
 
+// isContainerNotFound reports whether an error from "docker inspect --type
+// container" means the container simply does not exist, as opposed to a daemon
+// failure, context cancellation, or permission error.
+func isContainerNotFound(err error) bool {
+	var exitErr *exec.ExitError
+	return errors.As(err, &exitErr) && strings.Contains(string(exitErr.Stderr), "No such")
+}
+
 // RemoveContainers removes each named container if it exists. Non-existent
 // containers are silently skipped — the desired state (container gone) is
-// already satisfied. Any other removal failure is returned as a combined error.
+// already satisfied. Any other inspect or removal failure is returned as a
+// combined error.
 func (d *DockerProvider) RemoveContainers(ctx context.Context, names []string) error {
 	var errs []error
 	for _, name := range names {
-		if _, err := d.run.Output(ctx, "docker", "inspect", "--format", "{{.Name}}", name); err != nil {
-			continue // container does not exist; nothing to remove
+		if _, err := d.run.Output(ctx, "docker", "inspect", "--type", "container", name); err != nil {
+			if !isContainerNotFound(err) {
+				errs = append(errs, fmt.Errorf("inspect %s: %w", name, err))
+			}
+			continue
 		}
 		if err := d.run.Run(ctx, d.out, "docker", "rm", "-f", name); err != nil {
 			errs = append(errs, fmt.Errorf("remove %s: %w", name, err))

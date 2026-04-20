@@ -2,8 +2,11 @@ package providers
 
 import (
 	"context"
+	"errors"
 	"io"
+	"os/exec"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -191,4 +194,108 @@ func TestDockerProvider_IsRunning(t *testing.T) {
 			}
 		})
 	}
+}
+
+// notFoundExitError returns a real *exec.ExitError whose Stderr contains
+// "No such container", matching what docker inspect --type container emits.
+func notFoundExitError(t *testing.T) error {
+	t.Helper()
+	_, err := exec.Command("sh", "-c", "echo 'Error: No such container: foo' >&2; exit 1").Output()
+	if err == nil {
+		t.Fatal("expected non-nil error from sh command")
+	}
+	return err
+}
+
+func TestDockerProvider_RemoveContainers(t *testing.T) {
+	t.Run("container exists — rm is called", func(t *testing.T) {
+		var rmCalled bool
+		fake := &fakeRunner{
+			outputFn: func(_ context.Context, _ string, _ ...string) ([]byte, error) {
+				return []byte("{}"), nil // inspect succeeds
+			},
+			runFn: func(_ context.Context, _ io.Writer, _ string, args ...string) error {
+				if slices.Contains(args, "rm") {
+					rmCalled = true
+				}
+				return nil
+			},
+		}
+		if err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !rmCalled {
+			t.Error("expected docker rm to be called")
+		}
+	})
+
+	t.Run("container not found — rm is skipped, no error", func(t *testing.T) {
+		var rmCalled bool
+		fake := &fakeRunner{
+			outputFn: func(_ context.Context, _ string, _ ...string) ([]byte, error) {
+				return nil, notFoundExitError(t)
+			},
+			runFn: func(_ context.Context, _ io.Writer, _ string, args ...string) error {
+				if slices.Contains(args, "rm") {
+					rmCalled = true
+				}
+				return nil
+			},
+		}
+		if err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"ghost"}); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if rmCalled {
+			t.Error("docker rm should not be called for a non-existent container")
+		}
+	})
+
+	t.Run("inspect fails with daemon error — error is returned", func(t *testing.T) {
+		daemonErr := errors.New("connection refused")
+		fake := &fakeRunner{
+			outputFn: func(_ context.Context, _ string, _ ...string) ([]byte, error) {
+				return nil, daemonErr
+			},
+		}
+		err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "inspect mycontainer") {
+			t.Errorf("error should mention 'inspect mycontainer', got: %v", err)
+		}
+	})
+
+	t.Run("rm fails — error is returned", func(t *testing.T) {
+		rmErr := errors.New("permission denied")
+		fake := &fakeRunner{
+			outputFn: func(_ context.Context, _ string, _ ...string) ([]byte, error) {
+				return []byte("{}"), nil
+			},
+			runFn: func(_ context.Context, _ io.Writer, _ string, _ ...string) error {
+				return rmErr
+			},
+		}
+		err := newTestDocker(fake).RemoveContainers(context.Background(), []string{"mycontainer"})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !strings.Contains(err.Error(), "remove mycontainer") {
+			t.Errorf("error should mention 'remove mycontainer', got: %v", err)
+		}
+	})
+
+	t.Run("uses --type container flag on inspect", func(t *testing.T) {
+		var inspectArgs []string
+		fake := &fakeRunner{
+			outputFn: func(_ context.Context, _ string, args ...string) ([]byte, error) {
+				inspectArgs = args
+				return nil, notFoundExitError(t)
+			},
+		}
+		_ = newTestDocker(fake).RemoveContainers(context.Background(), []string{"x"})
+		if !slices.Contains(inspectArgs, "--type") || !slices.Contains(inspectArgs, "container") {
+			t.Errorf("inspect should use --type container, got args: %v", inspectArgs)
+		}
+	})
 }
