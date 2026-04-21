@@ -338,6 +338,7 @@ cython_debug/
 
 **/.claude/
 docs/superpowers/
+docs/drafts/
 .worktrees/
 
 ### Bazel
