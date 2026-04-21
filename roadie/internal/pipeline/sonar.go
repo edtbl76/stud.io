@@ -48,6 +48,7 @@ func sonarDockerStep(root Root, token string) ToolStep {
 			"run", "--rm",
 			"--network", "dev_default",
 			"--memory=16g",
+			"--ulimit", "nofile=65536:65536",
 			"-e", "SONAR_HOST_URL=" + sonarDockerURL,
 			"-e", "SONAR_TOKEN=" + token,
 			"-v", r + ":/usr/src",
