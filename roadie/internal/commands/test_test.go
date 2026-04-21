@@ -240,7 +240,7 @@ func TestPerfConfigFrom_MapsFields(t *testing.T) {
 	if p.FrontendPort != 3010 {
 		t.Errorf("FrontendPort: got %d, want 3010", p.FrontendPort)
 	}
-	if p.DBSource != "controlroomdb_test" {
-		t.Errorf("DBSource: got %q, want controlroomdb_test", p.DBSource)
+	if p.DBSource != "masterdb_test" {
+		t.Errorf("DBSource: got %q, want masterdb_test", p.DBSource)
 	}
 }

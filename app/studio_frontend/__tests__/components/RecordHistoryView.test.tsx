@@ -136,15 +136,15 @@ describe('RecordHistoryView — undo', () => {
   it('hides Undo button for already-undone entries', async () => {
     mockApi.list.mockResolvedValue([makeEntry({ undone_at: '2026-03-19T10:00:00Z' })])
     renderView()
-    await waitFor(() => expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument())
-    expect(screen.getByText('Undone')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Undone')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument()
   })
 
   it('hides Undo button for acknowledged entries', async () => {
     mockApi.list.mockResolvedValue([makeEntry({ acknowledged_at: '2026-03-19T10:00:00Z' })])
     renderView()
-    await waitFor(() => expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument())
-    expect(screen.getByText('Acknowledged')).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByText('Acknowledged')).toBeInTheDocument())
+    expect(screen.queryByRole('button', { name: /undo/i })).not.toBeInTheDocument()
   })
 
   it('calls POST undo endpoint and invokes onUndo on success', async () => {

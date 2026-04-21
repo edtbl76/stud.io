@@ -177,7 +177,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
             # ── Database ─────────────────────────────────────────────────────
 
             database = container "PostgreSQL" {
-                description "Primary data store. Three logical databases: controlroomdb (production app), controlroomdb_test (automated test suite — each test runs in a rolled-back transaction), studio (legacy CSV pipeline). pgvector extension installed for future vector similarity. Semantic views (brands_view, models_view, etc.) used for reads; base tables for writes. audit_log table records every CREATE, UPDATE, and DELETE with old_data/new_data JSON snapshots."
+                description "Primary data store. Three logical databases: masterdb (production app), masterdb_test (automated test suite — each test runs in a rolled-back transaction), studio (legacy CSV pipeline). pgvector extension installed for future vector similarity. Semantic views (brands_view, models_view, etc.) used for reads; base tables for writes. audit_log table records every CREATE, UPDATE, and DELETE with old_data/new_data JSON snapshots."
                 technology "pgvector/pgvector:pg17"
                 tags "Database"
             }

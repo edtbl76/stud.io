@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test'
 
-// Used by test-perf.sh — points at the perf stack (production build, controlroomdb_test).
+// Used by test-perf.sh — points at the perf stack (production build, masterdb_test).
 // Requires browser launched with --remote-debugging-port for Lighthouse CDP access.
 export default defineConfig({
   testDir: './e2e',

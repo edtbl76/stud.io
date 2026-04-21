@@ -192,9 +192,9 @@ Upload a filled template (or a previously exported file) and click **Import**.
 
 ### Backup & Restore
 
-Download a full SQL dump of the `controlroomdb` database, or restore from a previously downloaded backup file.
+Download a full SQL dump of the `masterdb` database, or restore from a previously downloaded backup file.
 
-- **Download Backup** — fetches a `.sql` dump (filename: `controlroomdb_<timestamp>.sql`) and saves it to your downloads folder. The file includes an embedded verification manifest (row counts and content hashes per table).
+- **Download Backup** — fetches a `.sql` dump (filename: `masterdb_<timestamp>.sql`) and saves it to your downloads folder. The file includes an embedded verification manifest (row counts and content hashes per table).
 - **Restore Database** — select a `.sql` backup file and click Restore to overwrite the current database. Destructive and irreversible — back up first.
 - **Verify Backup** — select a backup file to confirm it is intact. The file is restored to a temporary database, content hashes are recomputed and compared against the embedded manifest, then the temporary database is dropped. Results show pass/fail per table with row counts and hash status. Only works with backups downloaded from this app (older files without a manifest return an error).
 

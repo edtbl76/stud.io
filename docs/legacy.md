@@ -2,7 +2,7 @@
 
 The original data pipeline imports studio gear data from Google Sheets exports into PostgreSQL via a series of Python converter scripts. This workflow predates the ControlRoom app and is kept for bulk data refresh from the source spreadsheets.
 
-The `studio` database is the pipeline's target and is kept separate from `controlroomdb`, which is managed exclusively through the application going forward.
+The `studio` database is the pipeline's target and is kept separate from `masterdb`, which is managed exclusively through the application going forward.
 
 ---
 
@@ -116,6 +116,6 @@ Raw Google Sheets exports go in `import/`. These are not committed to the reposi
 
 ## Notes
 
-- The `studio` database is the pipeline's output. `controlroomdb` is managed by the application and is not affected by the pipeline.
+- The `studio` database is the pipeline's output. `masterdb` is managed by the application and is not affected by the pipeline.
 - UUIDs are preserved across re-runs. The converter scripts read existing UUIDs from the output CSVs and carry them forward, so re-running the pipeline on updated exports does not change existing record IDs.
 - All ENUM-equivalent values (tag types, effect types, etc.) are resolved to their lookup table UUIDs at seed generation time by `generate_seeds.py`.

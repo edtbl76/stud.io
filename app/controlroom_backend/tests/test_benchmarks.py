@@ -29,9 +29,9 @@ from routers._xlsx_schema import TABLE_CONFIGS
 _worker = os.environ.get("PYTEST_XDIST_WORKER", "")
 if _worker:
     _m = re.match(r"gw(\d+)", _worker)
-    _db_name = f"controlroomdb_test_{_m.group(1)}" if _m else f"controlroomdb_test_{_worker}"
+    _db_name = f"masterdb_test_{_m.group(1)}" if _m else f"masterdb_test_{_worker}"
 else:
-    _db_name = "controlroomdb_test"
+    _db_name = "masterdb_test"
 
 _TEST_DSN = f"postgresql://studio:studio@localhost:5432/{_db_name}"
 

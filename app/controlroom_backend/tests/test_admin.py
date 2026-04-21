@@ -10,7 +10,7 @@ _MOCK_STATS = {"row_count": 10, "content_hash": "abc123"}
 
 _MANIFEST_JSON = json.dumps({
     "created_at": "2026-03-17T12:00:00",
-    "database": "controlroomdb",
+    "database": "masterdb",
     "tables": {
         "brands": {"rows": 10, "hash": "abc123"},
         "models": {"rows": 10, "hash": "abc123"},
@@ -76,7 +76,7 @@ async def test_backup_content_disposition(client, admin_headers):
         response = await client.get("/admin/backup", headers=admin_headers)
     disposition = response.headers.get("content-disposition", "")
     assert "attachment" in disposition
-    assert "controlroomdb" in disposition
+    assert "masterdb" in disposition
     assert ".sql" in disposition
 
 
@@ -173,7 +173,7 @@ async def test_restore_roundtrip(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_psql())):
         restore_response = await client.post(
             "/admin/restore",
-            files={"file": ("controlroomdb.sql", io.BytesIO(backup_response.content), "application/octet-stream")},
+            files={"file": ("masterdb.sql", io.BytesIO(backup_response.content), "application/octet-stream")},
             headers=admin_headers,
         )
     assert restore_response.status_code == 200
@@ -307,8 +307,8 @@ async def test_verify_cleanup_on_failure(client, admin_headers):
     """DROP DATABASE must be called in finally even when restore fails."""
     subprocess_calls = []
 
-    # DROP, CREATE, restore(fails), DROP(finally)
-    psql_calls = [_mock_psql(), _mock_psql(), _mock_psql(returncode=1, stderr=b"restore failed"), _mock_psql()]
+    # CREATE, restore(fails), DROP(finally)
+    psql_calls = [_mock_psql(), _mock_psql(returncode=1, stderr=b"restore failed"), _mock_psql()]
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
@@ -321,8 +321,8 @@ async def test_verify_cleanup_on_failure(client, admin_headers):
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
-    # 4 calls total: DROP, CREATE, restore, DROP(finally)
-    assert len(subprocess_calls) == 4
+    # 3 calls total: CREATE, restore, DROP(finally)
+    assert len(subprocess_calls) == 3
 
 
 async def test_verify_roundtrip(client, admin_headers):
@@ -343,7 +343,7 @@ async def test_verify_roundtrip(client, admin_headers):
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
         verify_response = await client.post(
             "/admin/verify",
-            files={"file": ("controlroomdb.sql", io.BytesIO(backup_response.content), "application/octet-stream")},
+            files={"file": ("masterdb.sql", io.BytesIO(backup_response.content), "application/octet-stream")},
             headers=admin_headers,
         )
     assert verify_response.status_code == 200

@@ -4,7 +4,7 @@ playwright_shards: 4
 db_container: studio_db
 db_user: studio
 db_password: studio
-test_db_source: controlroomdb_test
+test_db_source: masterdb_test
 backend_compose_file: docker-compose.dev.yml
 backend_compose_project: dev
 backend_service: controlroom_backend_test

@@ -60,17 +60,17 @@ Three databases live in the same PostgreSQL container (`studio_db`):
 
 | Database | Purpose |
 |---|---|
-| `controlroomdb` | **Production** — used by the live application |
-| `controlroomdb_test` | **Tests** — used exclusively by the automated test suite |
+| `masterdb` | **Production** — used by the live application |
+| `masterdb_test` | **Tests** — used exclusively by the automated test suite |
 | `studio` | **Legacy** — target for the CSV import pipeline |
 
-Tests **never** touch `controlroomdb`. Isolation is enforced at two levels:
+Tests **never** touch `masterdb`. Isolation is enforced at two levels:
 
-**Unit tests (pytest)** connect directly to `controlroomdb_test` via asyncpg. Every test runs inside a transaction that is rolled back after the test completes — no data persists between tests. The `conftest.py` fixture wires this up automatically.
+**Unit tests (pytest)** connect directly to `masterdb_test` via asyncpg. Every test runs inside a transaction that is rolled back after the test completes — no data persists between tests. The `conftest.py` fixture wires this up automatically.
 
-**E2E tests (Playwright)** use a separate `controlroom_backend_test` Docker container (port 5151) whose `DB_NAME` is set to `controlroomdb_test`. Playwright hits this container instead of the production backend. The container is removed and recreated fresh on each run.
+**E2E tests (Playwright)** use a separate `controlroom_backend_test` Docker container (port 5151) whose `DB_NAME` is set to `masterdb_test`. Playwright hits this container instead of the production backend. The container is removed and recreated fresh on each run.
 
-The production backend (`controlroom_backend`, port 5150) always points at `controlroomdb` and is never contacted by any test.
+The production backend (`controlroom_backend`, port 5150) always points at `masterdb` and is never contacted by any test.
 
 ### Performance tests
 

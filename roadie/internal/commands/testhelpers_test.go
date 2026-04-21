@@ -36,7 +36,7 @@ func minimalTestConfig() *config.Config {
 				Container: "studio_db",
 				User:      "studio",
 				Password:  "studio", // pragma: allowlist secret
-				Source:    "controlroomdb_test",
+				Source:    "masterdb_test",
 			},
 		},
 	}
