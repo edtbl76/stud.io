@@ -219,11 +219,11 @@ Tests use a separate `masterdb_test` database. Each test wraps its operations in
 
 ### Restore
 
-`POST /admin/restore` — accepts a `.sql` file upload, drops and recreates `masterdb`, then pipes the file through `psql` to restore. This is destructive and irreversible.
+`POST /admin/restore` — accepts a `.sql` file upload and pipes it through `psql` against the existing `masterdb`. This performs an object-level restore within the existing database (no DROP/CREATE of the database itself). The operation is destructive at the object level — existing data is overwritten — and irreversible.
 
 ### Verify
 
-`POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary `masterdb_verify` database, computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
+`POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary per-request database (`masterdb_verify_<uuid>`), computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification, and the unique name ensures concurrent verifications do not interfere. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
 
 ### Import / Export
 

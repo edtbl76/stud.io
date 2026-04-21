@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import uuid
 from datetime import datetime
 from typing import Annotated
 
@@ -30,10 +31,10 @@ def _pg_args(command: str, db_name: str | None = None) -> list[str]:
     ]
 
 
-def _verify_dsn() -> str:
+def _verify_dsn(request_id: str) -> str:
     return (
         f"postgresql://{settings.db_user}:{settings.db_password}"
-        f"@{settings.db_host}:{settings.db_port}/masterdb_verify"
+        f"@{settings.db_host}:{settings.db_port}/masterdb_verify_{request_id}"
     )
 
 
@@ -199,13 +200,14 @@ async def verify(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, D
     sql_bytes = await file.read()
     manifest = _parse_manifest(sql_bytes)
 
+    request_id = uuid.uuid4().hex
+    verify_db = f"masterdb_verify_{request_id}"
     conn = None
     try:
-        await _run_psql_command("DROP DATABASE IF EXISTS masterdb_verify", db_name="postgres")
-        await _run_psql_command("CREATE DATABASE masterdb_verify", db_name="postgres")
+        await _run_psql_command(f"CREATE DATABASE {verify_db}", db_name="postgres")
 
         proc = await asyncio.create_subprocess_exec(
-            *_pg_args("psql", db_name="masterdb_verify"),
+            *_pg_args("psql", db_name=verify_db),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -215,7 +217,7 @@ async def verify(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, D
         if proc.returncode != 0:
             raise HTTPException(status_code=500, detail=stderr.decode())
 
-        conn = await asyncpg.connect(dsn=_verify_dsn())
+        conn = await asyncpg.connect(dsn=_verify_dsn(request_id))
         actual = await _compute_manifest(conn)
 
     except HTTPException:
@@ -226,7 +228,7 @@ async def verify(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, D
         if conn:
             await conn.close()
         try:
-            await _run_psql_command("DROP DATABASE IF EXISTS masterdb_verify", db_name="postgres")
+            await _run_psql_command(f"DROP DATABASE IF EXISTS {verify_db}", db_name="postgres")
         except Exception:
             pass
 

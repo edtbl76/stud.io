@@ -307,8 +307,8 @@ async def test_verify_cleanup_on_failure(client, admin_headers):
     """DROP DATABASE must be called in finally even when restore fails."""
     subprocess_calls = []
 
-    # DROP, CREATE, restore(fails), DROP(finally)
-    psql_calls = [_mock_psql(), _mock_psql(), _mock_psql(returncode=1, stderr=b"restore failed"), _mock_psql()]
+    # CREATE, restore(fails), DROP(finally)
+    psql_calls = [_mock_psql(), _mock_psql(returncode=1, stderr=b"restore failed"), _mock_psql()]
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
@@ -321,8 +321,8 @@ async def test_verify_cleanup_on_failure(client, admin_headers):
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
-    # 4 calls total: DROP, CREATE, restore, DROP(finally)
-    assert len(subprocess_calls) == 4
+    # 3 calls total: CREATE, restore, DROP(finally)
+    assert len(subprocess_calls) == 3
 
 
 async def test_verify_roundtrip(client, admin_headers):
