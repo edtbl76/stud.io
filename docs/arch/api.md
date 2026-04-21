@@ -207,7 +207,7 @@ Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results a
 
 asyncpg connection pool initialized at startup via the FastAPI `lifespan` context. Pool settings are configured in `database.py`. Each request acquires a connection from the pool for the duration of the request.
 
-Tests use a separate `controlroomdb_test` database. Each test wraps its operations in a transaction that is rolled back at teardown, keeping tests isolated and fast.
+Tests use a separate `masterdb_test` database. Each test wraps its operations in a transaction that is rolled back at teardown, keeping tests isolated and fast.
 
 ---
 
@@ -215,15 +215,15 @@ Tests use a separate `controlroomdb_test` database. Each test wraps its operatio
 
 ### Backup
 
-`GET /admin/backup` — streams a `pg_dump` of `controlroomdb` as a SQL file download. The file includes an embedded manifest (row counts and content hashes per table) as a comment block at the top, enabling later verification.
+`GET /admin/backup` — streams a `pg_dump` of `masterdb` as a SQL file download. The file includes an embedded manifest (row counts and content hashes per table) as a comment block at the top, enabling later verification.
 
 ### Restore
 
-`POST /admin/restore` — accepts a `.sql` file upload, drops and recreates `controlroomdb`, then pipes the file through `psql` to restore. This is destructive and irreversible.
+`POST /admin/restore` — accepts a `.sql` file upload, drops and recreates `masterdb`, then pipes the file through `psql` to restore. This is destructive and irreversible.
 
 ### Verify
 
-`POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary `controlroomdb_verify` database, computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
+`POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary `masterdb_verify` database, computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
 
 ### Import / Export
 

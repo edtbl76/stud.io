@@ -95,7 +95,7 @@ A self-hosted Woodpecker CI pool (4 agents, co-located with the Docker stack) ex
 ### Pipeline structure
 
 ```
-build (provision controlroomdb_test_ci)
+build (provision masterdb_test_ci)
   └── npm-install
         ├── unit-pbt  (roadie test unit + roadie test pbt)
         ├── scan      (roadie test scan --gate — PRs, push to main, manual)
@@ -105,7 +105,7 @@ build (provision controlroomdb_test_ci)
 
 `unit-pbt`, `scan`, and `e2e` all depend on `npm-install` and run in parallel across agents. `perf` depends on all three and runs only on push to `main` and manual triggers.
 
-The `build` step creates `controlroomdb_test_ci` if absent, then runs `roadie build --schema-only` to apply schema and seeds. E2E shards clone `controlroomdb_test_ci` → `controlroomdb_test_ci_0..3` at runtime.
+The `build` step creates `masterdb_test_ci` if absent, then runs `roadie build --schema-only` to apply schema and seeds. E2E shards clone `masterdb_test_ci` → `masterdb_test_ci_0..3` at runtime.
 
 A separate pipeline (`.woodpecker/roadie.yml`) runs `go vet` + `go test` + secrets/headers scan whenever files under `roadie/` change.
 

@@ -36,7 +36,7 @@ func Load(root string) (*Config, error) {
 // variables. This allows CI to use a separate DB namespace without a separate
 // config file. Overrides are applied before validation so safety checks still run.
 //
-// ROADIE_TEST_DB_SOURCE — overrides test.db.source (e.g. controlroomdb_test_ci)
+// ROADIE_TEST_DB_SOURCE — overrides test.db.source (e.g. masterdb_test_ci)
 // ROADIE_BUILD_DATABASES — comma-separated list replacing build.databases
 func applyEnvOverrides(cfg *Config) {
 	if v := os.Getenv("ROADIE_TEST_DB_SOURCE"); v != "" {

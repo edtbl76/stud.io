@@ -79,7 +79,7 @@ func TestLoad_BuildConfig(t *testing.T) {
 		t.Errorf("seed_files: got %v, want %v", cfg.Build.SeedFiles, wantSeeds)
 	}
 
-	wantDBs := []string{"controlroomdb_test"}
+	wantDBs := []string{"masterdb_test"}
 	if !slices.Equal(cfg.Build.Databases, wantDBs) {
 		t.Errorf("databases: got %v, want %v", cfg.Build.Databases, wantDBs)
 	}
@@ -89,8 +89,8 @@ func TestLoad_BuildConfig(t *testing.T) {
 		t.Errorf("rebuild_on: got %v, want %v", cfg.Build.RebuildOn, wantRebuildOn)
 	}
 
-	if cfg.Providers.Database.DBName != "controlroomdb" {
-		t.Errorf("db_name: got %q, want %q", cfg.Providers.Database.DBName, "controlroomdb")
+	if cfg.Providers.Database.DBName != "masterdb" {
+		t.Errorf("db_name: got %q, want %q", cfg.Providers.Database.DBName, "masterdb")
 	}
 }
 
@@ -185,7 +185,7 @@ providers:
   database:
     service: studio_db
     user: studio
-    db_name: controlroomdb
+    db_name: masterdb
 `
 
 func TestLoad_BuildDatabases_ProdNameRejected(t *testing.T) {
@@ -193,8 +193,8 @@ func TestLoad_BuildDatabases_ProdNameRejected(t *testing.T) {
 	content := validProvidersWithProdDB + `
 build:
   databases:
-    - controlroomdb_test
-    - controlroomdb
+    - masterdb_test
+    - masterdb
 `
 	assertLoadError(t, content, "build.databases must not contain the production database")
 }
@@ -206,7 +206,7 @@ func TestLoad_BuildDatabases_ValidCases(t *testing.T) {
 	}{
 		{
 			name:    "test-only names pass when db_name is set",
-			content: validProvidersWithProdDB + "\nbuild:\n  databases:\n    - controlroomdb_test\n",
+			content: validProvidersWithProdDB + "\nbuild:\n  databases:\n    - masterdb_test\n",
 		},
 		{
 			name:    "any name passes when db_name is not set",
@@ -269,28 +269,28 @@ func TestLoad_TestConfig_DB(t *testing.T) {
 	if cfg.Test.DB.Container != "studio_db" {
 		t.Errorf("db.container: got %q, want studio_db", cfg.Test.DB.Container)
 	}
-	if cfg.Test.DB.Source != "controlroomdb_test" {
-		t.Errorf("db.source: got %q, want controlroomdb_test", cfg.Test.DB.Source)
+	if cfg.Test.DB.Source != "masterdb_test" {
+		t.Errorf("db.source: got %q, want masterdb_test", cfg.Test.DB.Source)
 	}
 }
 
 func TestLoad_EnvOverrides(t *testing.T) {
-	t.Setenv("ROADIE_TEST_DB_SOURCE", "controlroomdb_test_ci")
-	t.Setenv("ROADIE_BUILD_DATABASES", "controlroomdb_test_ci")
+	t.Setenv("ROADIE_TEST_DB_SOURCE", "masterdb_test_ci")
+	t.Setenv("ROADIE_BUILD_DATABASES", "masterdb_test_ci")
 	cfg, err := Load("testdata")
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
-	if cfg.Test.DB.Source != "controlroomdb_test_ci" {
-		t.Errorf("db.source: got %q, want controlroomdb_test_ci", cfg.Test.DB.Source)
+	if cfg.Test.DB.Source != "masterdb_test_ci" {
+		t.Errorf("db.source: got %q, want masterdb_test_ci", cfg.Test.DB.Source)
 	}
-	if len(cfg.Build.Databases) != 1 || cfg.Build.Databases[0] != "controlroomdb_test_ci" {
-		t.Errorf("build.databases: got %v, want [controlroomdb_test_ci]", cfg.Build.Databases)
+	if len(cfg.Build.Databases) != 1 || cfg.Build.Databases[0] != "masterdb_test_ci" {
+		t.Errorf("build.databases: got %v, want [masterdb_test_ci]", cfg.Build.Databases)
 	}
 }
 
 func TestLoad_EnvOverride_ProdDBRejected(t *testing.T) {
-	t.Setenv("ROADIE_BUILD_DATABASES", "controlroomdb")
+	t.Setenv("ROADIE_BUILD_DATABASES", "masterdb")
 	_, err := Load("testdata")
 	if err == nil {
 		t.Fatal("expected validation error when env override sets prod DB in build.databases, got nil")

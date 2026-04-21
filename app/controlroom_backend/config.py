@@ -6,7 +6,7 @@ class Settings(BaseSettings):
 
     db_host: str = "localhost"
     db_port: int = 5432
-    db_name: str = "controlroomdb"
+    db_name: str = "masterdb"
     db_user: str = "studio"
     db_password: str = "studio"
 

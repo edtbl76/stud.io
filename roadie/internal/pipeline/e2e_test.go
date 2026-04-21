@@ -85,8 +85,8 @@ func TestValidateDBIdentifier(t *testing.T) {
 		name    string
 		wantErr bool
 	}{
-		{"controlroomdb_test", false},
-		{"controlroomdb_test_0", false},
+		{"masterdb_test", false},
+		{"masterdb_test_0", false},
 		{"studio", false},
 		{"_private", false},
 		{"A", false},

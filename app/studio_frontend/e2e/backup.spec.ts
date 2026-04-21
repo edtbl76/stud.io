@@ -12,7 +12,7 @@ async function triggerBackupDownload(page: Page) {
 test('backup download succeeds', async ({ page }) => {
   await page.goto('/controlroom/admin/backup')
   const download = await triggerBackupDownload(page)
-  expect(download.suggestedFilename()).toMatch(/^controlroomdb_\d{8}_\d{6}\.sql$/)
+  expect(download.suggestedFilename()).toMatch(/^masterdb_\d{8}_\d{6}\.sql$/)
 })
 
 test('verify backup passes after fresh download', async ({ page }) => {

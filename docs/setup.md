@@ -231,8 +231,8 @@ Results: `http://localhost:1969/dashboard?id=controlroom`
 | Database | Purpose |
 |---|---|
 | `studio` | Legacy CSV pipeline target — source of truth for import data |
-| `controlroomdb` | Application database — used by the API and UI |
-| `controlroomdb_test` | Test database — used by the automated test suite |
+| `masterdb` | Application database — used by the API and UI |
+| `masterdb_test` | Test database — used by the automated test suite |
 
 All three live in the same PostgreSQL container (`studio_db`) on port `5432`.
 

@@ -6,7 +6,7 @@ services:
     environment:
       DB_HOST: studio_db
       DB_PORT: 5432
-      DB_NAME: controlroomdb_test
+      DB_NAME: masterdb_test
       DB_USER: studio
       DB_PASSWORD: studio
     ports:

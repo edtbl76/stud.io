@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test'
 
-// Used by test-e2e.sh — points at the on-demand test stack (controlroomdb_test).
+// Used by test-e2e.sh — points at the on-demand test stack (masterdb_test).
 // Do NOT use this config to run tests against the production dev server.
 export default defineConfig({
   testDir: './e2e',

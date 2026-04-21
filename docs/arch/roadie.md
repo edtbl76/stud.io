@@ -109,7 +109,7 @@ Frontend PBT tests live in `app/studio_frontend/__tests__/pbt/`. Backend PBT tes
 
 `roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
 
-**Schema and seed application:** Before running tests, `roadie build` applies each file in `build.schema_files` then each file in `build.seed_files` to every database in `build.databases`. Seed files must be idempotent (all generated seeds use `ON CONFLICT DO UPDATE`). The production database never appears in `build.databases` — use `roadie db init` for first-time production setup. `--schema-only` applies schema and seeds without rebuilding containers or running tests; used by CI to provision the isolated `controlroomdb_test_ci` database.
+**Schema and seed application:** Before running tests, `roadie build` applies each file in `build.schema_files` then each file in `build.seed_files` to every database in `build.databases`. Seed files must be idempotent (all generated seeds use `ON CONFLICT DO UPDATE`). The production database never appears in `build.databases` — use `roadie db init` for first-time production setup. `--schema-only` applies schema and seeds without rebuilding containers or running tests; used by CI to provision the isolated `masterdb_test_ci` database.
 
 #### Database commands
 
@@ -162,7 +162,7 @@ providers:
   database:
     service: studio_db                       # required
     user: studio                             # required
-    db_name: controlroomdb                   # required for roadie db init
+    db_name: masterdb                   # required for roadie db init
 
 stack:
   health_checks:
@@ -198,7 +198,7 @@ build:
     - sql/seeds/02_tag_types.sql
     # ... (18 files total, one per seeded table)
   databases:                                 # test databases only — never production
-    - controlroomdb_test
+    - masterdb_test
   rebuild_on:                                # hashed to skip --build --force-recreate when unchanged
     - docker-compose.yml
     - app/controlroom_backend/Dockerfile

@@ -6,8 +6,8 @@ All three databases live in the same PostgreSQL 17 container (`studio_db`), usin
 
 | Database | Purpose |
 |---|---|
-| `controlroomdb` | Application database — used by the API and UI |
-| `controlroomdb_test` | Test database — structurally identical to `controlroomdb`; used by the automated test suite |
+| `masterdb` | Application database — used by the API and UI |
+| `masterdb_test` | Test database — structurally identical to `masterdb`; used by the automated test suite |
 | `studio` | Legacy CSV pipeline target — source of truth for seeded data; not used by the app directly |
 
 ---

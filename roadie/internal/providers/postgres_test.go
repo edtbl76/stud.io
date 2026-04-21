@@ -113,7 +113,7 @@ func TestPostgresProvider_ExecSQLFile_PipesViaStdin(t *testing.T) {
 		gotStdin = streams.Stdin
 		return nil
 	}}
-	if err := newTestPostgres(fake).ExecSQLFile(context.Background(), DBConfig{Service: "studio_db", User: "studio", DBName: "controlroomdb"}, tempSQLFile(t)); err != nil {
+	if err := newTestPostgres(fake).ExecSQLFile(context.Background(), DBConfig{Service: "studio_db", User: "studio", DBName: "masterdb"}, tempSQLFile(t)); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !slices.Contains(gotArgs, "-f") || !slices.Contains(gotArgs, "-") {

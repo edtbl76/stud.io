@@ -33,7 +33,7 @@ def _pg_args(command: str, db_name: str | None = None) -> list[str]:
 def _verify_dsn() -> str:
     return (
         f"postgresql://{settings.db_user}:{settings.db_password}"
-        f"@{settings.db_host}:{settings.db_port}/controlroomdb_verify"
+        f"@{settings.db_host}:{settings.db_port}/masterdb_verify"
     )
 
 
@@ -124,7 +124,7 @@ def _compare_manifests(expected: dict, actual: dict) -> dict:
 
 @router.get("/backup", responses={500: {"description": "Internal server error"}})
 async def backup(_: Annotated[UserOut, Depends(require_admin)]):
-    """Dump controlroomdb to a SQL file with embedded manifest and return as download."""
+    """Dump masterdb to a SQL file with embedded manifest and return as download."""
     proc = await asyncio.create_subprocess_exec(
         *(_pg_args("pg_dump") + ["--clean", "--if-exists"]),
         stdout=asyncio.subprocess.PIPE,
@@ -159,7 +159,7 @@ async def backup(_: Annotated[UserOut, Depends(require_admin)]):
     )
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"controlroomdb_{timestamp}.sql"
+    filename = f"masterdb_{timestamp}.sql"
 
     return StreamingResponse(
         iter([manifest_block + stdout]),
@@ -170,7 +170,7 @@ async def backup(_: Annotated[UserOut, Depends(require_admin)]):
 
 @router.post("/restore", responses={400: {"description": "Bad request"}, 500: {"description": "Internal server error"}})
 async def restore(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, Depends(require_admin)]):
-    """Restore controlroomdb from an uploaded SQL file."""
+    """Restore masterdb from an uploaded SQL file."""
     if not file.filename or not file.filename.endswith(".sql"):
         raise HTTPException(status_code=400, detail="File must be a .sql file")
 
@@ -201,11 +201,11 @@ async def verify(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, D
 
     conn = None
     try:
-        await _run_psql_command("DROP DATABASE IF EXISTS controlroomdb_verify", db_name="postgres")
-        await _run_psql_command("CREATE DATABASE controlroomdb_verify", db_name="postgres")
+        await _run_psql_command("DROP DATABASE IF EXISTS masterdb_verify", db_name="postgres")
+        await _run_psql_command("CREATE DATABASE masterdb_verify", db_name="postgres")
 
         proc = await asyncio.create_subprocess_exec(
-            *_pg_args("psql", db_name="controlroomdb_verify"),
+            *_pg_args("psql", db_name="masterdb_verify"),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -226,7 +226,7 @@ async def verify(file: Annotated[UploadFile, File(...)], _: Annotated[UserOut, D
         if conn:
             await conn.close()
         try:
-            await _run_psql_command("DROP DATABASE IF EXISTS controlroomdb_verify", db_name="postgres")
+            await _run_psql_command("DROP DATABASE IF EXISTS masterdb_verify", db_name="postgres")
         except Exception:
             pass
 

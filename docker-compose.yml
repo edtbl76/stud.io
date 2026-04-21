@@ -21,7 +21,7 @@ services:
     environment:
       DB_HOST: studio_db
       DB_PORT: 5432
-      DB_NAME: controlroomdb
+      DB_NAME: masterdb
       DB_USER: studio
       DB_PASSWORD: studio
       GOOGLE_CLIENT_ID: "684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com"

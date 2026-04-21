@@ -7,7 +7,7 @@ providers:
     type: postgres
     service: studio_db
     user: studio
-    db_name: controlroomdb
+    db_name: masterdb
 
 stack:
   health_checks:
@@ -35,7 +35,7 @@ build:
   seed_files:
     - sql/seeds/01_entity_types.sql
   databases:
-    - controlroomdb_test
+    - masterdb_test
   rebuild_on:
     - docker-compose.yml
     - app/controlroom_backend/Dockerfile
@@ -58,4 +58,4 @@ test:
     container: studio_db
     user: studio
     password: studio  # pragma: allowlist secret
-    source: controlroomdb_test
+    source: masterdb_test
