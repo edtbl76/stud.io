@@ -48,10 +48,12 @@ func sonarDockerStep(root Root, token string) ToolStep {
 			"run", "--rm",
 			"--network", "dev_default",
 			"--memory=16g",
-			"--ulimit", "nofile=65536:65536",
 			"-e", "SONAR_HOST_URL=" + sonarDockerURL,
 			"-e", "SONAR_TOKEN=" + token,
 			"-v", r + ":/usr/src",
+			// Shadow node_modules with an empty tmpfs so Docker Desktop's virtiofs
+			// doesn't enumerate 400K+ CI-installed files before JGit initializes.
+			"--tmpfs", "/usr/src/" + frontendDir + "/node_modules",
 			"sonarsource/sonar-scanner-cli",
 			"-Dsonar.host.url=" + sonarDockerURL,
 			"-Dsonar.token=" + token,
