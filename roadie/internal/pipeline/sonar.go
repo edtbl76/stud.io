@@ -55,7 +55,6 @@ func sonarDockerStep(root Root, token string) ToolStep {
 			"-Dsonar.host.url=" + sonarDockerURL,
 			"-Dsonar.token=" + token,
 			"-Dsonar.projectKey=" + sonarProjectKey,
-			"-Dsonar.scm.disabled=true",
 		},
 	}
 }
