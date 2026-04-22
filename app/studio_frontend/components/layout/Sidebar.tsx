@@ -19,13 +19,6 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
-    title: 'CATALOG',
-    items: [
-      { label: 'Brands', href: '/controlroom/catalog/brands' },
-      { label: 'Models', href: '/controlroom/catalog/models' },
-    ],
-  },
-  {
     title: 'SESSION',
     items: [
       { label: 'Effects', href: '/controlroom/session/effects' },
@@ -70,13 +63,15 @@ function SidebarNavGroup({ group, isOpen, pathname, onToggle }: Readonly<Sidebar
     <div className="mb-1">
       <button
         onClick={() => onToggle(group.title)}
+        aria-expanded={isOpen}
+        aria-controls={`nav-group-${group.title.toLowerCase()}`}
         className="w-full flex items-center justify-between px-4 py-1.5 text-xs font-semibold tracking-widest text-foreground uppercase hover:text-foreground transition-colors"
       >
         {group.title}
         <ChevronDown className={cn('h-3 w-3 transition-transform duration-150', !isOpen && '-rotate-90')} />
       </button>
       {isOpen && (
-        <ul>
+        <ul id={`nav-group-${group.title.toLowerCase()}`}>
           {group.items.map((item) => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (

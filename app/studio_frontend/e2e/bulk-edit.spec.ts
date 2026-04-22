@@ -10,7 +10,7 @@ async function waitForRows(page: Page) {
 // ── Checkbox visibility ──────────────────────────────────────────────────────
 
 test('bulk edit: checkbox column appears on content tables', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   // Header "Select all" checkbox is present
@@ -27,7 +27,7 @@ test('bulk edit: checkbox column does not appear on config tables', async ({ pag
 // ── Selection and bulk edit bar ──────────────────────────────────────────────
 
 test('bulk edit: select-all shows bulk edit bar with count', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   await page.getByLabel('Select all').click()
@@ -41,7 +41,7 @@ test('bulk edit: select-all shows bulk edit bar with count', async ({ page }) =>
 })
 
 test('bulk edit: clear button dismisses the bar', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   await page.getByLabel('Select all').click()
@@ -52,7 +52,7 @@ test('bulk edit: clear button dismisses the bar', async ({ page }) => {
 })
 
 test('bulk edit: individual row checkbox selects a single row', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   // Per-row checkboxes are aria-labelled "Select row <id>"
@@ -67,7 +67,7 @@ test('bulk edit: individual row checkbox selects a single row', async ({ page })
 // ── Field picker ─────────────────────────────────────────────────────────────
 
 test('bulk edit: field picker shows correct fields for brands', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   await page.getByLabel('Select all').click()
@@ -129,7 +129,7 @@ test('bulk edit: Apply button is disabled until a value is entered', async ({ pa
 // ── Apply (text field) ───────────────────────────────────────────────────────
 
 test('bulk edit: selecting a single row shows count of 1 in bar', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
   await page.getByRole('checkbox', { name: /^Select row /i }).first().click()
   await expect(page.getByTestId('bulk-edit-bar')).toBeVisible({ timeout: 5_000 })

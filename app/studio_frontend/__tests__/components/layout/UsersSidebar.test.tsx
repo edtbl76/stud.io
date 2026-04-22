@@ -30,9 +30,23 @@ describe('UsersSidebar', () => {
     expect(screen.getByText('alice')).toBeInTheDocument()
   })
 
+  it('renders the CATALOG group header', () => {
+    render(<UsersSidebar />)
+    expect(screen.getByRole('button', { name: /^catalog$/i })).toBeInTheDocument()
+  })
+
   it('renders the ADMIN group header', () => {
     render(<UsersSidebar />)
-    expect(screen.getByRole('button', { name: /admin/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^admin$/i })).toBeInTheDocument()
+  })
+
+  it.each([
+    ['Brands', '/studio/catalog/brands'],
+    ['Models', '/studio/catalog/models'],
+  ])('renders %s nav link pointing to %s', (label, href) => {
+    mockPathname = '/studio/catalog/brands'
+    render(<UsersSidebar />)
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
   })
 
   it.each([
@@ -46,15 +60,31 @@ describe('UsersSidebar', () => {
     expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
   })
 
+  it('applies active styles when pathname matches /studio/catalog/brands', () => {
+    mockPathname = '/studio/catalog/brands'
+    render(<UsersSidebar />)
+    expect(screen.getByRole('link', { name: 'Brands' }).className).toContain('border-primary')
+  })
+
   it('applies active styles when pathname matches /studio/admin/users', () => {
     mockPathname = '/studio/admin/users'
     render(<UsersSidebar />)
     expect(screen.getByRole('link', { name: 'Users' }).className).toContain('border-primary')
   })
 
+  it('collapses and expands the CATALOG group on toggle', () => {
+    mockPathname = '/studio/catalog/brands'
+    render(<UsersSidebar />)
+    const toggle = screen.getByRole('button', { name: /^catalog$/i })
+    fireEvent.click(toggle)
+    expect(screen.queryByRole('link', { name: 'Brands' })).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
+  })
+
   it('collapses and expands the ADMIN group on toggle', () => {
     render(<UsersSidebar />)
-    const toggle = screen.getByRole('button', { name: /admin/i })
+    const toggle = screen.getByRole('button', { name: /^admin$/i })
     fireEvent.click(toggle)
     expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument()
     fireEvent.click(toggle)

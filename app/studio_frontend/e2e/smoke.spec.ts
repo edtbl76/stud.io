@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 const TABLES = [
-  '/controlroom/catalog/brands',
-  '/controlroom/catalog/models',
+  '/studio/catalog/brands',
+  '/studio/catalog/models',
   '/controlroom/session/instruments',
   '/controlroom/session/effects',
   '/controlroom/session/libraries',

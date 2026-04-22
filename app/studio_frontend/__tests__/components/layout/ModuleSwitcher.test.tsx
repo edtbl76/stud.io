@@ -2,7 +2,7 @@ import * as React from 'react'
 import { render, screen } from '@testing-library/react'
 import { ModuleSwitcher } from '@/components/layout/ModuleSwitcher'
 
-let mockPathname = '/controlroom/catalog/brands'
+let mockPathname = '/controlroom/session/effects'
 
 jest.mock('next/navigation', () => ({
   usePathname: () => mockPathname,
@@ -10,7 +10,7 @@ jest.mock('next/navigation', () => ({
 
 describe('ModuleSwitcher', () => {
   it('hides the current module and shows the others', () => {
-    mockPathname = '/controlroom/catalog/brands'
+    mockPathname = '/controlroom/session/effects'
     render(<ModuleSwitcher />)
     expect(screen.queryByRole('link', { name: /controlroom/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
@@ -33,14 +33,14 @@ describe('ModuleSwitcher', () => {
     expect(screen.getByRole('link', { name: /studio management/i })).toBeInTheDocument()
   })
 
-  it('ControlRoom link points to catalog/brands entry', () => {
+  it('ControlRoom link points to session/effects entry', () => {
     mockPathname = '/studio/admin/users'
     render(<ModuleSwitcher />)
-    expect(screen.getByRole('link', { name: /controlroom/i })).toHaveAttribute('href', '/controlroom/catalog/brands')
+    expect(screen.getByRole('link', { name: /controlroom/i })).toHaveAttribute('href', '/controlroom/session/effects')
   })
 
   it('Studio Management link points to /studio/admin/users', () => {
-    mockPathname = '/controlroom/catalog/brands'
+    mockPathname = '/controlroom/session/effects'
     render(<ModuleSwitcher />)
     expect(screen.getByRole('link', { name: /studio management/i })).toHaveAttribute('href', '/studio/admin/users')
   })

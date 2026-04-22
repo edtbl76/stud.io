@@ -11,8 +11,8 @@ interface TableSpec {
 }
 
 const ALL_TABLES: TableSpec[] = [
-  { name: 'brand',                   path: '/controlroom/catalog/brands'              },
-  { name: 'model',                   path: '/controlroom/catalog/models'              },
+  { name: 'brand',                   path: '/studio/catalog/brands'              },
+  { name: 'model',                   path: '/studio/catalog/models'              },
   { name: 'effect',                  path: '/controlroom/session/effects'             },
   { name: 'instrument',              path: '/controlroom/session/instruments'         },
   { name: 'library',                 path: '/controlroom/session/libraries'           },

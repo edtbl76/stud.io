@@ -6,7 +6,7 @@ async function waitForRows(page: Page) {
 }
 
 test('record modal shows History button for existing records', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
 
   // Wait for the table to load
   await waitForRows(page)
@@ -18,7 +18,7 @@ test('record modal shows History button for existing records', async ({ page }) 
 })
 
 test('clicking History button switches modal to history mode', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
 
   await waitForRows(page)
   await page.locator('tbody tr').first().locator('td').last().click()
@@ -31,7 +31,7 @@ test('clicking History button switches modal to history mode', async ({ page }) 
 })
 
 test('history mode footer shows only Close button', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
 
   await waitForRows(page)
   await page.locator('tbody tr').first().locator('td').last().click()
@@ -46,7 +46,7 @@ test('history mode footer shows only Close button', async ({ page }) => {
 })
 
 test('history view shows entries or empty state', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
 
   await waitForRows(page)
   await page.locator('tbody tr').first().locator('td').last().click()
@@ -62,7 +62,7 @@ test('history view shows entries or empty state', async ({ page }) => {
 })
 
 test('closing history modal returns to list view', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
 
   await waitForRows(page)
   await page.locator('tbody tr').first().locator('td').last().click()

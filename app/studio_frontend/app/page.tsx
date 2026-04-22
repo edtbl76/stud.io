@@ -4,7 +4,7 @@ import { SlidersHorizontal, Users } from 'lucide-react'
 
 const modules = [
   {
-    href: '/controlroom/catalog/brands',
+    href: '/controlroom/session/effects',
     icon: SlidersHorizontal,
     title: 'ControlRoom',
     description: 'Manage sessions, libraries, and tools.',

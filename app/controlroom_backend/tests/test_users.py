@@ -6,7 +6,7 @@ MOCK_GOOGLE_PAYLOAD = {"sub": "link-uid-456", "email": "linked@gmail.com"}
 
 
 # ---------------------------------------------------------------------------
-# GET /users
+# GET /studio/admin/users
 # ---------------------------------------------------------------------------
 
 async def test_list_users_requires_auth(client):
@@ -37,7 +37,7 @@ async def test_list_users_google_linked_false_for_password_user(client, auth_hea
 
 
 # ---------------------------------------------------------------------------
-# POST /users
+# POST /studio/admin/users
 # ---------------------------------------------------------------------------
 
 async def test_create_user_requires_auth(client):
@@ -88,7 +88,7 @@ async def test_create_user_missing_fields(client, admin_headers):
 
 
 # ---------------------------------------------------------------------------
-# PATCH /users/{id}/password
+# PATCH /studio/admin/users/{id}/password
 # ---------------------------------------------------------------------------
 
 async def test_change_password_requires_auth(client):
@@ -119,7 +119,7 @@ async def test_change_password_not_found(client, auth_headers):
 
 
 # ---------------------------------------------------------------------------
-# PATCH /users/{id}/role
+# PATCH /studio/admin/users/{id}/role
 # ---------------------------------------------------------------------------
 
 async def test_change_role_requires_admin(client, conn, auth_headers):
@@ -177,7 +177,7 @@ async def test_change_role_self_demotion_with_other_admin(client, conn, admin_he
 
 
 # ---------------------------------------------------------------------------
-# PATCH /users/{id}/google
+# PATCH /studio/admin/users/{id}/google
 # ---------------------------------------------------------------------------
 
 async def test_link_google_own_account(client, conn, auth_headers):
@@ -263,7 +263,7 @@ async def test_link_google_invalid_token(client, conn, auth_headers):
 
 
 # ---------------------------------------------------------------------------
-# DELETE /users/{id}
+# DELETE /studio/admin/users/{id}
 # ---------------------------------------------------------------------------
 
 async def test_delete_user_requires_auth(client):

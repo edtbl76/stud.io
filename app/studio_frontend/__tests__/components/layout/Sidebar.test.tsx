@@ -15,13 +15,13 @@ jest.mock('next/navigation', () => ({
 }))
 
 let mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
-let mockPathname = '/controlroom/catalog/brands'
+let mockPathname = '/controlroom/session/effects'
 
 describe('Sidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
-    mockPathname = '/controlroom/catalog/brands'
+    mockPathname = '/controlroom/session/effects'
     mockPush.mockClear()
   })
 
@@ -52,9 +52,14 @@ describe('Sidebar', () => {
 
   it('shows nav group headers', () => {
     render(<Sidebar />)
-    expect(screen.getByRole('button', { name: /CATALOG/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /SESSION/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /TOOLS/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /CONFIG/i })).toBeInTheDocument()
+  })
+
+  it('does not render a CATALOG group', () => {
+    render(<Sidebar />)
+    expect(screen.queryByRole('button', { name: /^CATALOG$/i })).not.toBeInTheDocument()
   })
 
   it('does not render an ADMIN group', () => {
@@ -63,45 +68,45 @@ describe('Sidebar', () => {
   })
 
   it('expands a group when its header is clicked', () => {
-    mockPathname = '/controlroom/session/effects'
+    mockPathname = '/controlroom/tools/workflow'
     render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
-    expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Models' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /SESSION/i }))
+    expect(screen.getByRole('link', { name: 'Effects' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Instruments' })).toBeInTheDocument()
   })
 
   it('collapses an expanded group when its header is clicked again', () => {
-    mockPathname = '/controlroom/session/effects'
+    mockPathname = '/controlroom/tools/workflow'
     render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
-    expect(screen.getByRole('link', { name: 'Brands' })).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
-    expect(screen.queryByRole('link', { name: 'Brands' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /SESSION/i }))
+    expect(screen.getByRole('link', { name: 'Effects' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /SESSION/i }))
+    expect(screen.queryByRole('link', { name: 'Effects' })).not.toBeInTheDocument()
   })
 
   it('applies active link styling for the current path', () => {
-    mockPathname = '/controlroom/catalog/brands'
+    mockPathname = '/controlroom/session/effects'
     render(<Sidebar />)
-    // CATALOG group auto-expands because /catalog/brands is the active path
-    const brandsLink = screen.getByRole('link', { name: 'Brands' })
-    expect(brandsLink.className).toContain('text-primary')
+    // SESSION group auto-expands because /session/effects is the active path
+    const effectsLink = screen.getByRole('link', { name: 'Effects' })
+    expect(effectsLink.className).toContain('text-primary')
   })
 
   it('applies active link styling for a nested path under the item href', () => {
-    mockPathname = '/controlroom/catalog/brands/details'
+    mockPathname = '/controlroom/session/effects/details'
     render(<Sidebar />)
-    // CATALOG group auto-expands; nested path matches via startsWith(href + '/')
-    const brandsLink = screen.getByRole('link', { name: 'Brands' })
-    expect(brandsLink.className).toContain('text-primary')
+    // SESSION group auto-expands; nested path matches via startsWith(href + '/')
+    const effectsLink = screen.getByRole('link', { name: 'Effects' })
+    expect(effectsLink.className).toContain('text-primary')
   })
 
   it('does not apply active link styling when path does not match', () => {
     mockPathname = '/unrelated'
     render(<Sidebar />)
-    // CATALOG is collapsed; open it to inspect the Brands link class
-    fireEvent.click(screen.getByRole('button', { name: /CATALOG/i }))
-    const brandsLink = screen.getByRole('link', { name: 'Brands' })
-    expect(brandsLink.className).not.toContain('text-primary')
+    // SESSION is collapsed; open it to inspect the Effects link class
+    fireEvent.click(screen.getByRole('button', { name: /SESSION/i }))
+    const effectsLink = screen.getByRole('link', { name: 'Effects' })
+    expect(effectsLink.className).not.toContain('text-primary')
   })
 
   it('renders the global search input', () => {

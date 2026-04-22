@@ -18,7 +18,7 @@ for (const { name, path } of [
   { name: 'effects',     path: '/controlroom/session/effects'     },
   { name: 'instruments', path: '/controlroom/session/instruments' },
   { name: 'libraries',   path: '/controlroom/session/libraries'   },
-  { name: 'models',      path: '/controlroom/catalog/models'      },
+  { name: 'models',      path: '/studio/catalog/models'      },
 ]) {
   test(`${name}: loads first page and shows server total`, async ({ page }) => {
     await page.goto(path)
