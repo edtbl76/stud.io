@@ -69,11 +69,11 @@ const PAGES = [
   '/controlroom/config/plugin-formats',
   '/controlroom/config/tag-types',
   '/controlroom/config/tool-types',
-  '/controlroom/admin/change-review',
+  '/studio/admin/change-review',
   '/studio/admin/users',
-  '/controlroom/admin/stats',
-  '/controlroom/admin/backup',
-  '/controlroom/admin/import-export',
+  '/studio/admin/stats',
+  '/studio/admin/backup',
+  '/studio/admin/import-export',
 ]
 
 function pct(score: number | null | undefined): string {

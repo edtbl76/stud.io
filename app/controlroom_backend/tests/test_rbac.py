@@ -92,18 +92,18 @@ async def test_admin_can_access_backup(client, admin_headers):
     mock_conn.close = AsyncMock()
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=mock_proc)), \
          patch("asyncpg.connect", new=AsyncMock(return_value=mock_conn)):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert response.status_code == 200
 
 
 async def test_user_cannot_access_backup(client, auth_headers):
-    response = await client.get("/admin/backup", headers=auth_headers)
+    response = await client.get("/studio/admin/backup", headers=auth_headers)
     assert response.status_code == 403
 
 
 async def test_user_cannot_restore(client, auth_headers):
     response = await client.post(
-        "/admin/restore",
+        "/studio/admin/restore",
         files={"file": ("dump.sql", io.BytesIO(b"SELECT 1;"), "application/octet-stream")},
         headers=auth_headers,
     )
@@ -115,12 +115,12 @@ async def test_user_cannot_restore(client, auth_headers):
 # ---------------------------------------------------------------------------
 
 async def test_user_cannot_access_stats(client, auth_headers):
-    response = await client.get("/admin/stats", headers=auth_headers)
+    response = await client.get("/studio/admin/stats", headers=auth_headers)
     assert response.status_code == 403
 
 
 async def test_unauthenticated_cannot_access_stats(client):
-    response = await client.get("/admin/stats")
+    response = await client.get("/studio/admin/stats")
     assert response.status_code == 401
 
 
@@ -133,27 +133,27 @@ DUMMY_UUID = "00000000-0000-0000-0000-000000000000"
 
 
 async def test_user_can_list_change_review(client, auth_headers):
-    response = await client.get("/admin/change-review", headers=auth_headers)
+    response = await client.get("/studio/admin/change-review", headers=auth_headers)
     assert response.status_code == 200
 
 
 async def test_user_cannot_acknowledge_change(client, auth_headers):
     response = await client.post(
-        f"/admin/change-review/{DUMMY_UUID}/acknowledge", headers=auth_headers
+        f"/studio/admin/change-review/{DUMMY_UUID}/acknowledge", headers=auth_headers
     )
     assert response.status_code == 403
 
 
 async def test_user_cannot_undo_change(client, auth_headers):
     response = await client.post(
-        f"/admin/change-review/{DUMMY_UUID}/undo", headers=auth_headers
+        f"/studio/admin/change-review/{DUMMY_UUID}/undo", headers=auth_headers
     )
     assert response.status_code == 403
 
 
 async def test_user_cannot_delete_change_review(client, auth_headers):
     response = await client.delete(
-        f"/admin/change-review/{DUMMY_UUID}/permanent", headers=auth_headers
+        f"/studio/admin/change-review/{DUMMY_UUID}/permanent", headers=auth_headers
     )
     assert response.status_code == 403
 
@@ -163,18 +163,18 @@ async def test_user_cannot_delete_change_review(client, auth_headers):
 # ---------------------------------------------------------------------------
 
 async def test_user_cannot_export_xlsx(client, auth_headers):
-    response = await client.get("/admin/export/xlsx?tables=brands", headers=auth_headers)
+    response = await client.get("/studio/admin/export/xlsx?tables=brands", headers=auth_headers)
     assert response.status_code == 403
 
 
 async def test_user_cannot_export_template(client, auth_headers):
-    response = await client.get("/admin/export/template?tables=brands", headers=auth_headers)
+    response = await client.get("/studio/admin/export/template?tables=brands", headers=auth_headers)
     assert response.status_code == 403
 
 
 async def test_user_cannot_import(client, auth_headers):
     response = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         files={"file": ("data.xlsx", io.BytesIO(b""), "application/octet-stream")},
         headers=auth_headers,
     )
@@ -223,12 +223,12 @@ async def test_unauthenticated_cannot_write(client):
 
 
 async def test_unauthenticated_cannot_acknowledge_change(client):
-    response = await client.post(f"/admin/change-review/{DUMMY_UUID}/acknowledge")
+    response = await client.post(f"/studio/admin/change-review/{DUMMY_UUID}/acknowledge")
     assert response.status_code == 401
 
 
 async def test_unauthenticated_cannot_export(client):
-    response = await client.get("/admin/export/xlsx?tables=brands")
+    response = await client.get("/studio/admin/export/xlsx?tables=brands")
     assert response.status_code == 401
 
 

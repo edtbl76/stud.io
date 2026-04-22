@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test('stats page loads and displays content from all four groups', async ({ page }) => {
-  await page.goto('/controlroom/admin/stats')
+  await page.goto('/studio/admin/stats')
 
   // Wait for the page heading — confirms the page rendered without error
   await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible({ timeout: 10_000 })
@@ -14,7 +14,7 @@ test('stats page loads and displays content from all four groups', async ({ page
 })
 
 test('stats page shows a non-zero total', async ({ page }) => {
-  await page.goto('/controlroom/admin/stats')
+  await page.goto('/studio/admin/stats')
 
   // Wait for data to load
   await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible({ timeout: 10_000 })

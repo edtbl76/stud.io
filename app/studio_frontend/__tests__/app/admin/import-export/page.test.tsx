@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ImportExportPage from '@/app/controlroom/admin/import-export/page'
+import ImportExportPage from '@/app/studio/admin/import-export/page'
 
 const mockFetch = jest.fn()
 global.fetch = mockFetch
@@ -126,7 +126,7 @@ describe('ImportExportPage — export', () => {
     fireEvent.click(screen.getByRole('button', { name: /export data/i }))
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
     const url: string = mockFetch.mock.calls[0][0]
-    expect(url).toContain('/api/admin/export/xlsx')
+    expect(url).toContain('/api/studio/admin/export/xlsx')
     expect(url).toContain('tables=')
   })
 
@@ -150,7 +150,7 @@ describe('ImportExportPage — export', () => {
     fireEvent.click(screen.getByRole('button', { name: /download template/i }))
     await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(1))
     const url: string = mockFetch.mock.calls[0][0]
-    expect(url).toContain('/api/admin/export/template')
+    expect(url).toContain('/api/studio/admin/export/template')
   })
 })
 

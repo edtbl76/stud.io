@@ -121,7 +121,7 @@ export default function ImportExportPage() {
     setExportStatus(null)
     try {
       const filename = await downloadXlsx(
-        `/api/admin/export/xlsx?tables=${tableParams(exportSelected)}`,
+        `/api/studio/admin/export/xlsx?tables=${tableParams(exportSelected)}`,
         'controlroom_export.xlsx'
       )
       setExportStatus({ type: 'success', message: `Downloaded ${filename}` })
@@ -138,7 +138,7 @@ export default function ImportExportPage() {
     setExportStatus(null)
     try {
       const filename = await downloadXlsx(
-        `/api/admin/export/template?tables=${tableParams(exportSelected)}`,
+        `/api/studio/admin/export/template?tables=${tableParams(exportSelected)}`,
         'controlroom_template.xlsx'
       )
       setExportStatus({ type: 'success', message: `Downloaded ${filename}` })
@@ -157,7 +157,7 @@ export default function ImportExportPage() {
     try {
       const form = new FormData()
       form.append('file', importFile)
-      const res = await fetch('/api/admin/import/xlsx', { method: 'POST', body: form })
+      const res = await fetch('/api/studio/admin/import/xlsx', { method: 'POST', body: form })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         const detail = (err as { detail?: { errors?: ImportError[] } | string }).detail

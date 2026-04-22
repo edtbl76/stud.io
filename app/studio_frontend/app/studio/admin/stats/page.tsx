@@ -26,7 +26,7 @@ export default function StatsPage() {
   const [error, setError] = React.useState(false)
 
   React.useEffect(() => {
-    fetch('/api/admin/stats')
+    fetch('/api/studio/admin/stats')
       .then((res) => {
         if (!res.ok) throw new Error('Failed to fetch stats')
         return res.json() as Promise<StatsResponse>

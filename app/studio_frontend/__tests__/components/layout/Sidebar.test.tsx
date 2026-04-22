@@ -57,15 +57,9 @@ describe('Sidebar', () => {
     expect(screen.getByRole('button', { name: /TOOLS/i })).toBeInTheDocument()
   })
 
-  it('hides ADMIN group for non-admin users', () => {
+  it('does not render an ADMIN group', () => {
     render(<Sidebar />)
     expect(screen.queryByRole('button', { name: /^ADMIN$/i })).not.toBeInTheDocument()
-  })
-
-  it('shows ADMIN group for admin users', () => {
-    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
-    render(<Sidebar />)
-    expect(screen.getByRole('button', { name: /^ADMIN$/i })).toBeInTheDocument()
   })
 
   it('expands a group when its header is clicked', () => {
@@ -110,20 +104,6 @@ describe('Sidebar', () => {
     expect(brandsLink.className).not.toContain('text-primary')
   })
 
-  it('renders Stats link in the ADMIN group', () => {
-    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
-    render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
-    expect(screen.getByRole('link', { name: /^stats$/i })).toBeInTheDocument()
-  })
-
-  it('renders Change Review link in the ADMIN group', () => {
-    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
-    render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
-    expect(screen.getByRole('link', { name: /^change review$/i })).toBeInTheDocument()
-  })
-
   it('renders the global search input', () => {
     render(<Sidebar />)
     expect(screen.getByPlaceholderText('Global search...')).toBeInTheDocument()
@@ -145,14 +125,4 @@ describe('Sidebar', () => {
     expect(mockPush).not.toHaveBeenCalled()
   })
 
-  it('renders ADMIN group items in alphabetical order', () => {
-    mockUseAuth = () => ({ username: 'admin', role: 'admin', logout: mockLogout })
-    render(<Sidebar />)
-    fireEvent.click(screen.getByRole('button', { name: /^ADMIN$/i }))
-    const adminLinks = screen
-      .getAllByRole('link')
-      .filter((l) => (l.getAttribute('href') ?? '').startsWith('/controlroom/admin/'))
-    const labels = adminLinks.map((l) => l.textContent)
-    expect(labels).toEqual(['Backup & Restore', 'Change Review', 'Import / Export', 'Stats'])
-  })
 })

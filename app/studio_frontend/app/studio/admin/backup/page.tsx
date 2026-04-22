@@ -39,7 +39,7 @@ export default function BackupRestorePage() {
     setBackupLoading(true)
     setBackupStatus(null)
     try {
-      const res = await fetch('/api/admin/backup')
+      const res = await fetch('/api/studio/admin/backup')
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)
@@ -70,7 +70,7 @@ export default function BackupRestorePage() {
     try {
       const form = new FormData()
       form.append('file', restoreFile)
-      const res = await fetch('/api/admin/restore', { method: 'POST', body: form })
+      const res = await fetch('/api/studio/admin/restore', { method: 'POST', body: form })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)
@@ -93,7 +93,7 @@ export default function BackupRestorePage() {
     try {
       const form = new FormData()
       form.append('file', verifyFile)
-      const res = await fetch('/api/admin/verify', { method: 'POST', body: form })
+      const res = await fetch('/api/studio/admin/verify', { method: 'POST', body: form })
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: res.statusText }))
         throw new Error(err.detail ?? res.statusText)
@@ -111,7 +111,7 @@ export default function BackupRestorePage() {
     <div className="flex flex-col h-full px-6 py-6 max-w-2xl">
       <h2 className="text-lg font-semibold text-foreground mb-1">Backup & Restore</h2>
       <p className="text-xs text-muted-foreground mb-8">
-        Manage the <code className="text-primary">controlroomdb</code> database.
+        Manage database(s).
       </p>
 
       {/* Backup */}

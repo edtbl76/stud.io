@@ -52,28 +52,28 @@ def _mock_asyncpg_conn():
 # ---------------------------------------------------------------------------
 
 async def test_backup_requires_auth(client):
-    response = await client.get("/admin/backup")
+    response = await client.get("/studio/admin/backup")
     assert response.status_code == 401
 
 
 async def test_backup_returns_200(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert response.status_code == 200
 
 
 async def test_backup_content_type(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert response.headers["content-type"] == "application/octet-stream"
 
 
 async def test_backup_content_disposition(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     disposition = response.headers.get("content-disposition", "")
     assert "attachment" in disposition
     assert "masterdb" in disposition
@@ -83,14 +83,14 @@ async def test_backup_content_disposition(client, admin_headers):
 async def test_backup_body_is_sql(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert b"PostgreSQL" in response.content
 
 
 async def test_backup_contains_manifest(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert b"-- BACKUP MANIFEST BEGIN" in response.content
     assert b"-- BACKUP MANIFEST END" in response.content
 
@@ -98,7 +98,7 @@ async def test_backup_contains_manifest(client, admin_headers):
 async def test_backup_manifest_is_valid_json(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     lines = response.content.decode().splitlines()
     in_block = False
     manifest = None
@@ -118,7 +118,7 @@ async def test_backup_manifest_is_valid_json(client, admin_headers):
 
 async def test_backup_pg_dump_failure_returns_500(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump(returncode=1, stderr=b"pg_dump error"))):
-        response = await client.get("/admin/backup", headers=admin_headers)
+        response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert response.status_code == 500
 
 
@@ -128,7 +128,7 @@ async def test_backup_pg_dump_failure_returns_500(client, admin_headers):
 
 async def test_restore_requires_auth(client):
     response = await client.post(
-        "/admin/restore",
+        "/studio/admin/restore",
         files={"file": ("dump.sql", io.BytesIO(b"SELECT 1;"), "application/octet-stream")},
     )
     assert response.status_code == 401
@@ -136,7 +136,7 @@ async def test_restore_requires_auth(client):
 
 async def test_restore_rejects_non_sql_extension(client, admin_headers):
     response = await client.post(
-        "/admin/restore",
+        "/studio/admin/restore",
         files={"file": ("dump.txt", io.BytesIO(b"SELECT 1;"), "text/plain")},
         headers=admin_headers,
     )
@@ -146,7 +146,7 @@ async def test_restore_rejects_non_sql_extension(client, admin_headers):
 async def test_restore_succeeds_with_valid_sql(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_psql())):
         response = await client.post(
-            "/admin/restore",
+            "/studio/admin/restore",
             files={"file": ("dump.sql", io.BytesIO(b"SELECT 1;"), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -157,7 +157,7 @@ async def test_restore_succeeds_with_valid_sql(client, admin_headers):
 async def test_restore_psql_failure_returns_500(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_psql(returncode=1, stderr=b"psql error"))):
         response = await client.post(
-            "/admin/restore",
+            "/studio/admin/restore",
             files={"file": ("dump.sql", io.BytesIO(b"SELECT 1;"), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -167,12 +167,12 @@ async def test_restore_psql_failure_returns_500(client, admin_headers):
 async def test_restore_roundtrip(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        backup_response = await client.get("/admin/backup", headers=admin_headers)
+        backup_response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert backup_response.status_code == 200
 
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_psql())):
         restore_response = await client.post(
-            "/admin/restore",
+            "/studio/admin/restore",
             files={"file": ("masterdb.sql", io.BytesIO(backup_response.content), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -186,7 +186,7 @@ async def test_restore_roundtrip(client, admin_headers):
 
 async def test_verify_requires_auth(client):
     response = await client.post(
-        "/admin/verify",
+        "/studio/admin/verify",
         files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
     )
     assert response.status_code == 401
@@ -194,7 +194,7 @@ async def test_verify_requires_auth(client):
 
 async def test_verify_requires_admin(client, auth_headers):
     response = await client.post(
-        "/admin/verify",
+        "/studio/admin/verify",
         files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
         headers=auth_headers,
     )
@@ -203,7 +203,7 @@ async def test_verify_requires_admin(client, auth_headers):
 
 async def test_verify_rejects_non_sql(client, admin_headers):
     response = await client.post(
-        "/admin/verify",
+        "/studio/admin/verify",
         files={"file": ("dump.txt", io.BytesIO(b"SELECT 1;"), "text/plain")},
         headers=admin_headers,
     )
@@ -212,7 +212,7 @@ async def test_verify_rejects_non_sql(client, admin_headers):
 
 async def test_verify_rejects_missing_manifest(client, admin_headers):
     response = await client.post(
-        "/admin/verify",
+        "/studio/admin/verify",
         files={"file": ("dump.sql", io.BytesIO(b"SELECT 1;"), "application/octet-stream")},
         headers=admin_headers,
     )
@@ -230,7 +230,7 @@ async def test_verify_passes_on_matching_hashes(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
         response = await client.post(
-            "/admin/verify",
+            "/studio/admin/verify",
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -253,7 +253,7 @@ async def test_verify_fails_on_mismatched_hash(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
         response = await client.post(
-            "/admin/verify",
+            "/studio/admin/verify",
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -276,7 +276,7 @@ async def test_verify_fails_on_mismatched_rowcount(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
         response = await client.post(
-            "/admin/verify",
+            "/studio/admin/verify",
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -296,7 +296,7 @@ async def test_verify_psql_failure_returns_500(client, admin_headers):
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect):
         response = await client.post(
-            "/admin/verify",
+            "/studio/admin/verify",
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -317,7 +317,7 @@ async def test_verify_cleanup_on_failure(client, admin_headers):
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect):
         await client.post(
-            "/admin/verify",
+            "/studio/admin/verify",
             files={"file": ("dump.sql", io.BytesIO(_BACKUP_WITH_MANIFEST), "application/octet-stream")},
             headers=admin_headers,
         )
@@ -330,7 +330,7 @@ async def test_verify_roundtrip(client, admin_headers):
     Note: fully mocked — validates manifest format compatibility, not real data fidelity."""
     with patch("asyncio.create_subprocess_exec", new=AsyncMock(return_value=_mock_pg_dump())), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
-        backup_response = await client.get("/admin/backup", headers=admin_headers)
+        backup_response = await client.get("/studio/admin/backup", headers=admin_headers)
     assert backup_response.status_code == 200
 
     psql_calls = [_mock_psql(), _mock_psql(), _mock_psql(), _mock_psql()]  # DROP, CREATE, restore, DROP(finally)
@@ -342,7 +342,7 @@ async def test_verify_roundtrip(client, admin_headers):
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
         verify_response = await client.post(
-            "/admin/verify",
+            "/studio/admin/verify",
             files={"file": ("masterdb.sql", io.BytesIO(backup_response.content), "application/octet-stream")},
             headers=admin_headers,
         )

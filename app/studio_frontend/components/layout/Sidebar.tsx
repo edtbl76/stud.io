@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ChevronDown, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAuth } from '@/lib/auth'
 import { SidebarShell } from '@/components/layout/SidebarShell'
 
 interface NavItem {
@@ -43,15 +42,6 @@ const navGroups: NavGroup[] = [
       { label: 'Measurement', href: '/controlroom/tools/measurement' },
       { label: 'Reference', href: '/controlroom/tools/reference' },
       { label: 'Workflow', href: '/controlroom/tools/workflow' },
-    ],
-  },
-  {
-    title: 'ADMIN',
-    items: [
-      { label: 'Backup & Restore', href: '/controlroom/admin/backup' },
-      { label: 'Change Review',    href: '/controlroom/admin/change-review' },
-      { label: 'Import / Export',  href: '/controlroom/admin/import-export' },
-      { label: 'Stats',            href: '/controlroom/admin/stats' },
     ],
   },
   {
@@ -121,8 +111,6 @@ function getInitialOpenGroups(pathname: string): Set<string> {
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
-  const { role } = useAuth()
-
   const [openGroups, setOpenGroups] = React.useState<Set<string>>(
     () => getInitialOpenGroups(pathname)
   )
@@ -164,7 +152,7 @@ export function Sidebar() {
         </form>
       </div>
       <nav className="py-3">
-        {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => (
+        {navGroups.map((group) => (
           <SidebarNavGroup
             key={group.title}
             group={group}

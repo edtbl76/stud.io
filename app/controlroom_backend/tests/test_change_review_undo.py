@@ -17,7 +17,7 @@ async def _undo_and_fetch_deleted_at(client, admin_headers, conn, audit_id):
         "SELECT record_id FROM audit_log WHERE audit_id = $1", audit_id
     )
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 200
     return await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id = $1", brand_id)
@@ -49,7 +49,7 @@ async def _insert_brand_update_audit(conn, brand_name: str, old_data_json=None,
 async def test_undo_requires_admin(client, auth_headers, conn):
     audit_id, _ = await insert_audit(conn, operation="UPDATE")
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=auth_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=auth_headers
     )
     assert response.status_code == 403
 
@@ -57,7 +57,7 @@ async def test_undo_requires_admin(client, auth_headers, conn):
 async def test_undo_returns_404_if_not_found(client, admin_headers):
     fake_id = "00000000-0000-0000-0000-000000000002"
     response = await client.post(
-        f"/admin/change-review/{fake_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{fake_id}/undo", headers=admin_headers
     )
     assert response.status_code == 404
 
@@ -65,7 +65,7 @@ async def test_undo_returns_404_if_not_found(client, admin_headers):
 async def test_undo_returns_409_if_already_acknowledged(client, admin_headers, conn):
     audit_id, _ = await insert_acknowledged_audit(conn, operation="UPDATE")
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 409
     assert "already acknowledged" in response.json()["detail"]
@@ -74,7 +74,7 @@ async def test_undo_returns_409_if_already_acknowledged(client, admin_headers, c
 async def test_undo_returns_409_if_already_undone(client, admin_headers, conn):
     audit_id, _ = await insert_undone_audit(conn, operation="UPDATE")
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 409
     assert "already undone" in response.json()["detail"]
@@ -107,7 +107,7 @@ async def test_undo_update_restores_old_data(client, admin_headers, conn):
         "UPDATE audit_log SET old_data = $1 WHERE audit_id = $2", old, audit_id
     )
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 200
     row = await conn.fetchrow("SELECT brand_name FROM brands WHERE brand_id = $1", brand_id)
@@ -118,7 +118,7 @@ async def test_undo_update_returns_409_when_old_data_missing(client, admin_heade
     """Undo an UPDATE with no old_data returns 409 instead of silently no-oping."""
     audit_id, _ = await _insert_brand_update_audit(conn, "__undo_null_old__")
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 409
     assert "old_data" in response.json()["detail"]
@@ -133,7 +133,7 @@ async def test_undo_update_returns_409_when_old_data_not_a_dict(
     audit_id, _ = await _insert_brand_update_audit(conn, "__undo_bad_old__",
                                                    old_data_json=bad_old_data)
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     assert response.status_code == 409
     assert "old_data" in response.json()["detail"]
@@ -161,7 +161,7 @@ async def test_undo_update_restores_old_data_with_parent_ids(client, admin_heade
         effect_id, json.dumps(old_data),
     )
     response = await client.post(
-        f"/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{row['audit_id']}/undo", headers=admin_headers
     )
     assert response.status_code == 200
     row = await conn.fetchrow("SELECT effect_name FROM effects WHERE effect_id = $1", effect_id)
@@ -175,7 +175,7 @@ async def test_undo_sets_undone_fields(client, admin_headers, conn):
     audit_id, _ = await insert_audit(conn, table="brands", operation="CREATE",
                                      record_id=brand_id)
     response = await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     data = response.json()
     assert data["undone_at"] is not None
@@ -205,7 +205,7 @@ async def test_undo_does_not_create_new_audit_entry(client, admin_headers, conn)
                                      record_id=brand_id)
     count_before = await conn.fetchval("SELECT COUNT(*) FROM audit_log")
     await client.post(
-        f"/admin/change-review/{audit_id}/undo", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/undo", headers=admin_headers
     )
     count_after = await conn.fetchval("SELECT COUNT(*) FROM audit_log")
     assert count_after == count_before

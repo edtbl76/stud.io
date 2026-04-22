@@ -35,26 +35,30 @@ describe('UsersSidebar', () => {
     expect(screen.getByRole('button', { name: /admin/i })).toBeInTheDocument()
   })
 
-  it('renders a Users nav link pointing to /studio/admin/users when ADMIN is open', () => {
+  it.each([
+    ['Backup & Restore', '/studio/admin/backup'],
+    ['Change Review',    '/studio/admin/change-review'],
+    ['Import / Export',  '/studio/admin/import-export'],
+    ['Stats',            '/studio/admin/stats'],
+    ['Users',            '/studio/admin/users'],
+  ])('renders %s nav link pointing to %s', (label, href) => {
     render(<UsersSidebar />)
-    const link = screen.getByRole('link', { name: /^users$/i })
-    expect(link).toHaveAttribute('href', '/studio/admin/users')
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
   })
 
   it('applies active styles when pathname matches /studio/admin/users', () => {
     mockPathname = '/studio/admin/users'
     render(<UsersSidebar />)
-    const link = screen.getByRole('link', { name: /^users$/i })
-    expect(link.className).toContain('border-primary')
+    expect(screen.getByRole('link', { name: 'Users' }).className).toContain('border-primary')
   })
 
   it('collapses and expands the ADMIN group on toggle', () => {
     render(<UsersSidebar />)
     const toggle = screen.getByRole('button', { name: /admin/i })
     fireEvent.click(toggle)
-    expect(screen.queryByRole('link', { name: /^users$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument()
     fireEvent.click(toggle)
-    expect(screen.getByRole('link', { name: /^users$/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Users' })).toBeInTheDocument()
   })
 
   it('renders a Home link via ModuleSwitcher', () => {

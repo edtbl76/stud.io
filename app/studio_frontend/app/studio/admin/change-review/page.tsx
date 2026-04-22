@@ -44,7 +44,7 @@ function buildListUrl({ tableFilter, operationFilter, statusFilter, page }: List
   params.set('status', statusFilter)
   params.set('page', String(page))
   params.set('page_size', String(PAGE_SIZE))
-  return `/api/admin/change-review?${params}`
+  return `/api/studio/admin/change-review?${params}`
 }
 
 interface EntryAction {
@@ -115,7 +115,7 @@ function useRowActions(
   async function handleRowClick(auditId: string) {
     setLoadingDetail(auditId)
     try {
-      const res = await fetch(`/api/admin/change-review/${auditId}`)
+      const res = await fetch(`/api/studio/admin/change-review/${auditId}`)
       if (!res.ok) throw new Error('Failed to load detail')
       const entry = await res.json() as AuditEntryWithData
       setDetailEntry(entry)
@@ -134,7 +134,7 @@ function useRowActions(
   async function handleAction(auditId: string, action: EntryAction) {
     setPendingActions((prev) => new Set(prev).add(auditId))
     try {
-      const res = await fetch(`/api/admin/change-review/${auditId}/${action.path}`, { method: action.method })
+      const res = await fetch(`/api/studio/admin/change-review/${auditId}/${action.path}`, { method: action.method })
       if (res.status === 204) {
         applyRemoval(auditId)
         return

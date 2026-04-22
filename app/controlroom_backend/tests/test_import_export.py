@@ -9,21 +9,21 @@ import openpyxl
 # ---------------------------------------------------------------------------
 
 async def test_export_xlsx_returns_xlsx(client, admin_headers):
-    res = await client.get("/admin/export/xlsx?tables=brands", headers=admin_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=brands", headers=admin_headers)
     assert res.status_code == 200
     assert "spreadsheetml" in res.headers["content-type"]
     assert res.headers["content-disposition"].endswith(".xlsx")
 
 
 async def test_export_xlsx_contains_correct_sheets(client, admin_headers):
-    res = await client.get("/admin/export/xlsx?tables=brands,effects", headers=admin_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=brands,effects", headers=admin_headers)
     wb = openpyxl.load_workbook(io.BytesIO(res.content))
     assert "Brands" in wb.sheetnames
     assert "Effects" in wb.sheetnames
 
 
 async def test_export_xlsx_header_row(client, admin_headers):
-    res = await client.get("/admin/export/xlsx?tables=brands", headers=admin_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=brands", headers=admin_headers)
     wb = openpyxl.load_workbook(io.BytesIO(res.content))
     ws = wb["Brands"]
     headers = [ws.cell(row=1, column=i).value for i in range(1, 10) if ws.cell(row=1, column=i).value]
@@ -33,24 +33,24 @@ async def test_export_xlsx_header_row(client, admin_headers):
 
 
 async def test_export_xlsx_has_data_rows(client, admin_headers):
-    res = await client.get("/admin/export/xlsx?tables=brands", headers=admin_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=brands", headers=admin_headers)
     wb = openpyxl.load_workbook(io.BytesIO(res.content))
     ws = wb["Brands"]
     assert ws.max_row > 1
 
 
 async def test_export_xlsx_requires_admin(client, auth_headers):
-    res = await client.get("/admin/export/xlsx?tables=brands", headers=auth_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=brands", headers=auth_headers)
     assert res.status_code == 403
 
 
 async def test_export_xlsx_unknown_table(client, admin_headers):
-    res = await client.get("/admin/export/xlsx?tables=nonexistent", headers=admin_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=nonexistent", headers=admin_headers)
     assert res.status_code == 400
 
 
 async def test_export_xlsx_no_tables(client, admin_headers):
-    res = await client.get("/admin/export/xlsx?tables=", headers=admin_headers)
+    res = await client.get("/studio/admin/export/xlsx?tables=", headers=admin_headers)
     assert res.status_code == 400
 
 
@@ -59,20 +59,20 @@ async def test_export_xlsx_no_tables(client, admin_headers):
 # ---------------------------------------------------------------------------
 
 async def test_template_returns_xlsx(client, admin_headers):
-    res = await client.get("/admin/export/template?tables=effects", headers=admin_headers)
+    res = await client.get("/studio/admin/export/template?tables=effects", headers=admin_headers)
     assert res.status_code == 200
     assert "spreadsheetml" in res.headers["content-type"]
 
 
 async def test_template_has_no_data_rows(client, admin_headers):
-    res = await client.get("/admin/export/template?tables=effects", headers=admin_headers)
+    res = await client.get("/studio/admin/export/template?tables=effects", headers=admin_headers)
     wb = openpyxl.load_workbook(io.BytesIO(res.content))
     ws = wb["Effects"]
     assert ws.max_row == 1
 
 
 async def test_template_omits_id_column(client, admin_headers):
-    res = await client.get("/admin/export/template?tables=brands", headers=admin_headers)
+    res = await client.get("/studio/admin/export/template?tables=brands", headers=admin_headers)
     wb = openpyxl.load_workbook(io.BytesIO(res.content))
     ws = wb["Brands"]
     headers = [ws.cell(row=1, column=i).value for i in range(1, 15) if ws.cell(row=1, column=i).value]
@@ -81,7 +81,7 @@ async def test_template_omits_id_column(client, admin_headers):
 
 
 async def test_template_has_lookup_sheet(client, admin_headers):
-    res = await client.get("/admin/export/template?tables=brands", headers=admin_headers)
+    res = await client.get("/studio/admin/export/template?tables=brands", headers=admin_headers)
     wb = openpyxl.load_workbook(io.BytesIO(res.content))
     assert "_Lookups" in wb.sheetnames
 
@@ -111,7 +111,7 @@ def _make_xlsx(sheets: dict[str, list[dict]], headers_by_sheet: dict[str, list[s
 async def test_import_invalid_brand_name_returns_422(client, admin_headers):
     data = _make_xlsx({"Effects": [{"Name": "Test", "Brand": "ZZZ_NO_MATCH_ZZZ"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -124,7 +124,7 @@ async def test_import_invalid_brand_name_returns_422(client, admin_headers):
 async def test_import_invalid_id_returns_422(client, admin_headers):
     data = _make_xlsx({"Brands": [{"ID": "not-a-uuid", "Name": "Bad ID Brand"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -135,7 +135,7 @@ async def test_import_invalid_id_returns_422(client, admin_headers):
 
 async def test_import_wrong_extension_returns_400(client, admin_headers):
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.csv", b"a,b,c", "text/csv")},
     )
@@ -145,7 +145,7 @@ async def test_import_wrong_extension_returns_400(client, admin_headers):
 async def test_import_requires_admin(client, auth_headers):
     data = _make_xlsx({"Brands": []})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=auth_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -159,7 +159,7 @@ async def test_import_requires_admin(client, auth_headers):
 async def test_import_creates_brand(client, admin_headers, conn):
     data = _make_xlsx({"Brands": [{"Name": "Import Test Brand", "Legal Name": "Import Test Legal"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -177,7 +177,7 @@ async def test_import_updates_brand(client, admin_headers, conn):
     )
     data = _make_xlsx({"Brands": [{"ID": str(brand_id), "Name": "UpdateMe Updated"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -191,7 +191,7 @@ async def test_import_updates_brand(client, admin_headers, conn):
 async def test_import_empty_sheet_ignored(client, admin_headers):
     data = _make_xlsx({"Brands": []}, headers_by_sheet={"Brands": ["Name", "Legal Name"]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -202,7 +202,7 @@ async def test_import_empty_sheet_ignored(client, admin_headers):
 async def test_import_unknown_sheet_ignored(client, admin_headers):
     data = _make_xlsx({"UnknownTable": [{"Name": "Test"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -216,7 +216,7 @@ async def test_import_unknown_sheet_ignored(client, admin_headers):
 async def test_import_create_writes_audit_entry(client, admin_headers, conn):
     data = _make_xlsx({"Brands": [{"Name": "Audit Create Brand", "Legal Name": "ACB Legal"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )
@@ -240,7 +240,7 @@ async def test_import_update_writes_audit_entry(client, admin_headers, conn):
     )
     data = _make_xlsx({"Brands": [{"ID": str(brand_id), "Name": "Audit Update After"}]})
     res = await client.post(
-        "/admin/import/xlsx",
+        "/studio/admin/import/xlsx",
         headers=admin_headers,
         files={"file": ("test.xlsx", data, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")},
     )

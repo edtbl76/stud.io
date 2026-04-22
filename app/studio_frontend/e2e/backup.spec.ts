@@ -10,7 +10,7 @@ async function triggerBackupDownload(page: Page) {
 }
 
 test('backup download succeeds', async ({ page }) => {
-  await page.goto('/controlroom/admin/backup')
+  await page.goto('/studio/admin/backup')
   const download = await triggerBackupDownload(page)
   expect(download.suggestedFilename()).toMatch(/^masterdb_\d{8}_\d{6}\.sql$/)
 })
@@ -19,7 +19,7 @@ test('verify backup passes after fresh download', async ({ page }) => {
   // verify creates a temp DB, restores the backup, computes hashes, and drops the DB
   test.setTimeout(90_000)
 
-  await page.goto('/controlroom/admin/backup')
+  await page.goto('/studio/admin/backup')
   const download = await triggerBackupDownload(page)
   const backupPath = await download.path()
   expect(backupPath).toBeTruthy()

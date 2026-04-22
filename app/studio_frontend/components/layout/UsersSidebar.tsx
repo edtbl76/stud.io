@@ -22,7 +22,11 @@ const navGroups: NavGroup[] = [
   {
     title: 'ADMIN',
     items: [
-      { label: 'Users', href: '/studio/admin/users' },
+      { label: 'Backup & Restore',  href: '/studio/admin/backup' },
+      { label: 'Change Review',     href: '/studio/admin/change-review' },
+      { label: 'Import / Export',   href: '/studio/admin/import-export' },
+      { label: 'Stats',             href: '/studio/admin/stats' },
+      { label: 'Users',             href: '/studio/admin/users' },
     ],
   },
 ]

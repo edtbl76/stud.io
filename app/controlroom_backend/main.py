@@ -42,7 +42,7 @@ app.include_router(libraries.router,     prefix="/libraries",    tags=["librarie
 app.include_router(workstations.router,  prefix="/workstations", tags=["workstations"])
 app.include_router(tools.router,         prefix="/tools",        tags=["tools"])
 app.include_router(config_router.router, prefix="/config",       tags=["config"])
-ADMIN_PREFIX = "/admin"
+ADMIN_PREFIX = "/studio/admin"
 app.include_router(backup_ops.router,    prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(change_review.router, prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(admin_stats.router,     prefix=ADMIN_PREFIX, tags=["admin"])
