@@ -18,12 +18,15 @@ describe('HomePage', () => {
     render(<HomePage />)
     const link = screen.getByRole('link', { name: /controlroom/i })
     expect(link).toHaveAttribute('href', '/controlroom/catalog/brands')
+    expect(link).toHaveTextContent('Manage sessions, libraries, and tools.')
   })
 
-  it('renders the User Management module tile linking to /users', () => {
+
+  it('renders the Studio Management module tile linking to /users', () => {
     render(<HomePage />)
-    const link = screen.getByRole('link', { name: /user management/i })
+    const link = screen.getByRole('link', { name: /studio management/i })
     expect(link).toHaveAttribute('href', '/users')
+    expect(link).toHaveTextContent('Manage gear catalog, config, users, and administration.')
   })
 
   it('renders the studio illustration', () => {

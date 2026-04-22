@@ -14,13 +14,13 @@ describe('ModuleSwitcher', () => {
     render(<ModuleSwitcher />)
     expect(screen.queryByRole('link', { name: /controlroom/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /users/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /studio management/i })).toBeInTheDocument()
   })
 
-  it('hides Users when on a /users path', () => {
+  it('hides Studio Management when on a /users path', () => {
     mockPathname = '/users'
     render(<ModuleSwitcher />)
-    expect(screen.queryByRole('link', { name: /users/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /studio management/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /controlroom/i })).toBeInTheDocument()
   })
@@ -30,7 +30,7 @@ describe('ModuleSwitcher', () => {
     render(<ModuleSwitcher />)
     expect(screen.queryByRole('link', { name: /home/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /controlroom/i })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /users/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /studio management/i })).toBeInTheDocument()
   })
 
   it('ControlRoom link points to catalog/brands entry', () => {
@@ -39,9 +39,9 @@ describe('ModuleSwitcher', () => {
     expect(screen.getByRole('link', { name: /controlroom/i })).toHaveAttribute('href', '/controlroom/catalog/brands')
   })
 
-  it('Users link points to /users', () => {
+  it('Studio Management link points to /users', () => {
     mockPathname = '/controlroom/catalog/brands'
     render(<ModuleSwitcher />)
-    expect(screen.getByRole('link', { name: /users/i })).toHaveAttribute('href', '/users')
+    expect(screen.getByRole('link', { name: /studio management/i })).toHaveAttribute('href', '/users')
   })
 })

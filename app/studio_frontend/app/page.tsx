@@ -7,13 +7,13 @@ const modules = [
     href: '/controlroom/catalog/brands',
     icon: SlidersHorizontal,
     title: 'ControlRoom',
-    description: 'Manage your studio gear — catalog, sessions, libraries, and tools.',
+    description: 'Manage sessions, libraries, and tools.',
   },
   {
     href: '/users',
     icon: Users,
-    title: 'User Management',
-    description: 'Manage accounts and roles for everyone who accesses STUD.io.',
+    title: 'Studio Management',
+    description: 'Manage gear catalog, config, users, and administration.',
   },
 ]
 
