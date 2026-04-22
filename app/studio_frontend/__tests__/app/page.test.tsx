@@ -22,10 +22,10 @@ describe('HomePage', () => {
   })
 
 
-  it('renders the Studio Management module tile linking to /users', () => {
+  it('renders the Studio Management module tile linking to /studio/admin/users', () => {
     render(<HomePage />)
     const link = screen.getByRole('link', { name: /studio management/i })
-    expect(link).toHaveAttribute('href', '/users')
+    expect(link).toHaveAttribute('href', '/studio/admin/users')
     expect(link).toHaveTextContent('Manage gear catalog, config, users, and administration.')
   })
 

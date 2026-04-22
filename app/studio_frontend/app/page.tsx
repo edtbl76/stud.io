@@ -10,7 +10,7 @@ const modules = [
     description: 'Manage sessions, libraries, and tools.',
   },
   {
-    href: '/users',
+    href: '/studio/admin/users',
     icon: Users,
     title: 'Studio Management',
     description: 'Manage gear catalog, config, users, and administration.',

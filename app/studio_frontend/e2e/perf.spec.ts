@@ -70,7 +70,7 @@ const PAGES = [
   '/controlroom/config/tag-types',
   '/controlroom/config/tool-types',
   '/controlroom/admin/change-review',
-  '/users',
+  '/studio/admin/users',
   '/controlroom/admin/stats',
   '/controlroom/admin/backup',
   '/controlroom/admin/import-export',

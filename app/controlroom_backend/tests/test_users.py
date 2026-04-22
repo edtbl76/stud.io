@@ -10,12 +10,12 @@ MOCK_GOOGLE_PAYLOAD = {"sub": "link-uid-456", "email": "linked@gmail.com"}
 # ---------------------------------------------------------------------------
 
 async def test_list_users_requires_auth(client):
-    response = await client.get("/users")
+    response = await client.get("/studio/admin/users")
     assert response.status_code == 401
 
 
 async def test_list_users(client, auth_headers):
-    response = await client.get("/users", headers=auth_headers)
+    response = await client.get("/studio/admin/users", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert isinstance(data, list)
@@ -23,7 +23,7 @@ async def test_list_users(client, auth_headers):
 
 
 async def test_list_users_fields(client, auth_headers):
-    response = await client.get("/users", headers=auth_headers)
+    response = await client.get("/studio/admin/users", headers=auth_headers)
     assert response.status_code == 200
     user = response.json()[0]
     for field in ("user_id", "username", "role", "created_at", "google_linked"):
@@ -31,7 +31,7 @@ async def test_list_users_fields(client, auth_headers):
 
 
 async def test_list_users_google_linked_false_for_password_user(client, auth_headers):
-    response = await client.get("/users", headers=auth_headers)
+    response = await client.get("/studio/admin/users", headers=auth_headers)
     user = next(u for u in response.json() if u["username"] == "testuser")
     assert user["google_linked"] is False
 
@@ -41,13 +41,13 @@ async def test_list_users_google_linked_false_for_password_user(client, auth_hea
 # ---------------------------------------------------------------------------
 
 async def test_create_user_requires_auth(client):
-    response = await client.post("/users", json={"username": "x", "password": "y"})
+    response = await client.post("/studio/admin/users", json={"username": "x", "password": "y"})
     assert response.status_code == 401
 
 
 async def test_create_user_requires_admin(client, auth_headers):
     response = await client.post(
-        "/users",
+        "/studio/admin/users",
         json={"username": "newuser", "password": "newpass"},
         headers=auth_headers,
     )
@@ -56,7 +56,7 @@ async def test_create_user_requires_admin(client, auth_headers):
 
 async def test_create_user(client, admin_headers):
     response = await client.post(
-        "/users",
+        "/studio/admin/users",
         json={"username": "newuser", "password": "newpass"},
         headers=admin_headers,
     )
@@ -70,12 +70,12 @@ async def test_create_user(client, admin_headers):
 
 async def test_create_user_duplicate(client, admin_headers):
     await client.post(
-        "/users",
+        "/studio/admin/users",
         json={"username": "dupuser", "password": "pass"},
         headers=admin_headers,
     )
     response = await client.post(
-        "/users",
+        "/studio/admin/users",
         json={"username": "dupuser", "password": "other"},
         headers=admin_headers,
     )
@@ -83,7 +83,7 @@ async def test_create_user_duplicate(client, admin_headers):
 
 
 async def test_create_user_missing_fields(client, admin_headers):
-    response = await client.post("/users", json={"username": "nopass"}, headers=admin_headers)
+    response = await client.post("/studio/admin/users", json={"username": "nopass"}, headers=admin_headers)
     assert response.status_code == 422
 
 
@@ -92,14 +92,14 @@ async def test_create_user_missing_fields(client, admin_headers):
 # ---------------------------------------------------------------------------
 
 async def test_change_password_requires_auth(client):
-    response = await client.patch(f"/users/{uuid4()}/password", json={"password": "new"})
+    response = await client.patch(f"/studio/admin/users/{uuid4()}/password", json={"password": "new"})
     assert response.status_code == 401
 
 
 async def test_change_password(client, conn, auth_headers):
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'testuser'")
     response = await client.patch(
-        f"/users/{row['user_id']}/password",
+        f"/studio/admin/users/{row['user_id']}/password",
         json={"password": "newpassword"},
         headers=auth_headers,
     )
@@ -111,7 +111,7 @@ async def test_change_password(client, conn, auth_headers):
 
 async def test_change_password_not_found(client, auth_headers):
     response = await client.patch(
-        f"/users/{uuid4()}/password",
+        f"/studio/admin/users/{uuid4()}/password",
         json={"password": "x"},
         headers=auth_headers,
     )
@@ -128,7 +128,7 @@ async def test_change_role_requires_admin(client, conn, auth_headers):
         "INSERT INTO users (username, password_hash) VALUES ('target', $1) RETURNING user_id", hashed
     )
     response = await client.patch(
-        f"/users/{row['user_id']}/role",
+        f"/studio/admin/users/{row['user_id']}/role",
         json={"role": "admin"},
         headers=auth_headers,
     )
@@ -141,7 +141,7 @@ async def test_change_role_admin_can_change(client, conn, admin_headers):
         "INSERT INTO users (username, password_hash) VALUES ('promote_me', $1) RETURNING user_id", hashed
     )
     response = await client.patch(
-        f"/users/{row['user_id']}/role",
+        f"/studio/admin/users/{row['user_id']}/role",
         json={"role": "admin"},
         headers=admin_headers,
     )
@@ -155,7 +155,7 @@ async def test_change_role_last_admin_blocked(client, conn, admin_headers):
     )
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'adminuser'")
     response = await client.patch(
-        f"/users/{row['user_id']}/role",
+        f"/studio/admin/users/{row['user_id']}/role",
         json={"role": "user"},
         headers=admin_headers,
     )
@@ -169,7 +169,7 @@ async def test_change_role_self_demotion_with_other_admin(client, conn, admin_he
     )
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'adminuser'")
     response = await client.patch(
-        f"/users/{row['user_id']}/role",
+        f"/studio/admin/users/{row['user_id']}/role",
         json={"role": "user"},
         headers=admin_headers,
     )
@@ -184,7 +184,7 @@ async def test_link_google_own_account(client, conn, auth_headers):
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'testuser'")
     with patch("routers.users.id_token.verify_oauth2_token", return_value=MOCK_GOOGLE_PAYLOAD):
         response = await client.patch(
-            f"/users/{row['user_id']}/google",
+            f"/studio/admin/users/{row['user_id']}/google",
             json={"credential": "fake-token"},
             headers=auth_headers,
         )
@@ -200,7 +200,7 @@ async def test_link_google_admin_links_other(client, conn, admin_headers):
     )
     with patch("routers.users.id_token.verify_oauth2_token", return_value=MOCK_GOOGLE_PAYLOAD):
         response = await client.patch(
-            f"/users/{row['user_id']}/google",
+            f"/studio/admin/users/{row['user_id']}/google",
             json={"credential": "fake-token"},
             headers=admin_headers,
         )
@@ -214,7 +214,7 @@ async def test_link_google_non_admin_cannot_link_other(client, conn, auth_header
     )
     with patch("routers.users.id_token.verify_oauth2_token", return_value=MOCK_GOOGLE_PAYLOAD):
         response = await client.patch(
-            f"/users/{row['user_id']}/google",
+            f"/studio/admin/users/{row['user_id']}/google",
             json={"credential": "fake-token"},
             headers=auth_headers,
         )
@@ -230,7 +230,7 @@ async def test_link_google_already_linked_to_other(client, conn, auth_headers):
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'testuser'")
     with patch("routers.users.id_token.verify_oauth2_token", return_value=MOCK_GOOGLE_PAYLOAD):
         response = await client.patch(
-            f"/users/{row['user_id']}/google",
+            f"/studio/admin/users/{row['user_id']}/google",
             json={"credential": "fake-token"},
             headers=auth_headers,
         )
@@ -244,7 +244,7 @@ async def test_link_google_already_linked_to_self(client, conn, auth_headers):
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'testuser'")
     with patch("routers.users.id_token.verify_oauth2_token", return_value=MOCK_GOOGLE_PAYLOAD):
         response = await client.patch(
-            f"/users/{row['user_id']}/google",
+            f"/studio/admin/users/{row['user_id']}/google",
             json={"credential": "fake-token"},
             headers=auth_headers,
         )
@@ -255,7 +255,7 @@ async def test_link_google_invalid_token(client, conn, auth_headers):
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'testuser'")
     with patch("routers.users.id_token.verify_oauth2_token", side_effect=Exception("bad")):
         response = await client.patch(
-            f"/users/{row['user_id']}/google",
+            f"/studio/admin/users/{row['user_id']}/google",
             json={"credential": "bad"},
             headers=auth_headers,
         )
@@ -267,7 +267,7 @@ async def test_link_google_invalid_token(client, conn, auth_headers):
 # ---------------------------------------------------------------------------
 
 async def test_delete_user_requires_auth(client):
-    response = await client.delete(f"/users/{uuid4()}")
+    response = await client.delete(f"/studio/admin/users/{uuid4()}")
     assert response.status_code == 401
 
 
@@ -276,7 +276,7 @@ async def test_delete_user_requires_admin(client, conn, auth_headers):
     row = await conn.fetchrow(
         "INSERT INTO users (username, password_hash) VALUES ('todelete', $1) RETURNING user_id", hashed
     )
-    response = await client.delete(f"/users/{row['user_id']}", headers=auth_headers)
+    response = await client.delete(f"/studio/admin/users/{row['user_id']}", headers=auth_headers)
     assert response.status_code == 403
 
 
@@ -285,18 +285,18 @@ async def test_delete_user(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO users (username, password_hash) VALUES ('todelete', $1) RETURNING user_id", hashed
     )
-    response = await client.delete(f"/users/{row['user_id']}", headers=admin_headers)
+    response = await client.delete(f"/studio/admin/users/{row['user_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
 async def test_delete_user_not_found(client, admin_headers):
-    response = await client.delete(f"/users/{uuid4()}", headers=admin_headers)
+    response = await client.delete(f"/studio/admin/users/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
 
 
 async def test_delete_user_cannot_delete_self(client, conn, admin_headers):
     row = await conn.fetchrow("SELECT user_id FROM users WHERE username = 'adminuser'")
-    response = await client.delete(f"/users/{row['user_id']}", headers=admin_headers)
+    response = await client.delete(f"/studio/admin/users/{row['user_id']}", headers=admin_headers)
     assert response.status_code == 400
 
 
@@ -310,5 +310,5 @@ async def test_delete_last_user_blocked(client, conn, admin_headers):
     from routers.auth import _create_token
     solo_headers = {"Authorization": f"Bearer {_create_token('solouser', 'admin')}"}
 
-    response = await client.delete(f"/users/{row['user_id']}", headers=solo_headers)
+    response = await client.delete(f"/studio/admin/users/{row['user_id']}", headers=solo_headers)
     assert response.status_code == 400

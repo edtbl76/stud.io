@@ -47,7 +47,7 @@ app.include_router(backup_ops.router,    prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(change_review.router, prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(admin_stats.router,     prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(import_export.router,  prefix=ADMIN_PREFIX, tags=["admin"])
-app.include_router(users.router,        prefix="/users",         tags=["users"])
+app.include_router(users.router,        prefix="/studio/admin/users", tags=["users"])
 
 
 @app.get("/health")

@@ -17,8 +17,8 @@ describe('ModuleSwitcher', () => {
     expect(screen.getByRole('link', { name: /studio management/i })).toBeInTheDocument()
   })
 
-  it('hides Studio Management when on a /users path', () => {
-    mockPathname = '/users'
+  it('hides Studio Management when on a /studio path', () => {
+    mockPathname = '/studio/admin/users'
     render(<ModuleSwitcher />)
     expect(screen.queryByRole('link', { name: /studio management/i })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
@@ -34,14 +34,14 @@ describe('ModuleSwitcher', () => {
   })
 
   it('ControlRoom link points to catalog/brands entry', () => {
-    mockPathname = '/users'
+    mockPathname = '/studio/admin/users'
     render(<ModuleSwitcher />)
     expect(screen.getByRole('link', { name: /controlroom/i })).toHaveAttribute('href', '/controlroom/catalog/brands')
   })
 
-  it('Studio Management link points to /users', () => {
+  it('Studio Management link points to /studio/admin/users', () => {
     mockPathname = '/controlroom/catalog/brands'
     render(<ModuleSwitcher />)
-    expect(screen.getByRole('link', { name: /studio management/i })).toHaveAttribute('href', '/users')
+    expect(screen.getByRole('link', { name: /studio management/i })).toHaveAttribute('href', '/studio/admin/users')
   })
 })

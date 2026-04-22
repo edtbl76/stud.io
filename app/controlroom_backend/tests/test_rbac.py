@@ -186,13 +186,13 @@ async def test_user_cannot_import(client, auth_headers):
 # ---------------------------------------------------------------------------
 
 async def test_user_can_list_users(client, auth_headers):
-    response = await client.get("/users", headers=auth_headers)
+    response = await client.get("/studio/admin/users", headers=auth_headers)
     assert response.status_code == 200
 
 
 async def test_user_cannot_create_user(client, auth_headers):
     response = await client.post(
-        "/users",
+        "/studio/admin/users",
         json={"username": "newuser", "password": "pass", "role": "user"},
         headers=auth_headers,
     )
@@ -201,7 +201,7 @@ async def test_user_cannot_create_user(client, auth_headers):
 
 async def test_user_cannot_change_role(client, auth_headers):
     response = await client.patch(
-        f"/users/{DUMMY_UUID}/role",
+        f"/studio/admin/users/{DUMMY_UUID}/role",
         json={"role": "admin"},
         headers=auth_headers,
     )
@@ -209,7 +209,7 @@ async def test_user_cannot_change_role(client, auth_headers):
 
 
 async def test_user_cannot_delete_user(client, auth_headers):
-    response = await client.delete(f"/users/{DUMMY_UUID}", headers=auth_headers)
+    response = await client.delete(f"/studio/admin/users/{DUMMY_UUID}", headers=auth_headers)
     assert response.status_code == 403
 
 
@@ -234,7 +234,7 @@ async def test_unauthenticated_cannot_export(client):
 
 async def test_unauthenticated_cannot_create_user(client):
     response = await client.post(
-        "/users",
+        "/studio/admin/users",
         json={"username": "newuser", "password": "pass", "role": "user"},
     )
     assert response.status_code == 401
