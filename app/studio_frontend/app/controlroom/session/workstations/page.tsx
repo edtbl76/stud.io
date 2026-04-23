@@ -9,7 +9,7 @@ export default function WorkstationsPage() {
   return (
     <TablePage<Workstation>
       title="Workstations"
-      endpoint="/workstations"
+      endpoint="/studio/session/workstations"
       queryKey="/session/workstations"
       columns={workstationColumns}
       bulkEditFields={workstationBulkEditFields}

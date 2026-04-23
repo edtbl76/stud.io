@@ -35,10 +35,10 @@ export default function (data) {
     const endpoints = [
       '/studio/catalog/brands',
       '/studio/catalog/models',
-      '/effects',
-      '/instruments',
-      '/libraries',
-      '/workstations',
+      '/studio/session/effects',
+      '/studio/session/instruments',
+      '/studio/session/libraries',
+      '/studio/session/workstations',
     ]
     for (const path of endpoints) {
       const res = http.get(`${BASE_URL}${path}`, { headers })
@@ -60,7 +60,7 @@ export default function (data) {
       'tool-types',
     ]
     for (const slug of slugs) {
-      const res = http.get(`${BASE_URL}/config/${slug}`, { headers })
+      const res = http.get(`${BASE_URL}/studio/config/${slug}`, { headers })
       check(res, { [`/config/${slug} status 200`]: (r) => r.status === 200 })
     }
   })

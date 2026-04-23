@@ -415,7 +415,7 @@ async def test_filter_fuzzy_returns_results(client, conn):
 
 
 async def test_filter_effects_is_empty_version(client):
-    resp = await client.get("/effects?filter_version_op=is_empty")
+    resp = await client.get("/studio/session/effects?filter_version_op=is_empty")
     assert resp.status_code == 200
     items = resp.json()["items"]
     for e in items:
@@ -423,7 +423,7 @@ async def test_filter_effects_is_empty_version(client):
 
 
 async def test_filter_effects_is_not_empty_version(client):
-    resp = await client.get("/effects?filter_version_op=is_not_empty")
+    resp = await client.get("/studio/session/effects?filter_version_op=is_not_empty")
     assert resp.status_code == 200
     items = resp.json()["items"]
     for e in items:
@@ -450,5 +450,5 @@ async def test_filter_unknown_op_falls_back_to_contains(client):
 
 
 async def test_filter_exists_field_equals_ignored(client):
-    resp = await client.get("/effects?filter_types=reverb&filter_types_op=equals")
+    resp = await client.get("/studio/session/effects?filter_types=reverb&filter_types_op=equals")
     assert resp.status_code == 200

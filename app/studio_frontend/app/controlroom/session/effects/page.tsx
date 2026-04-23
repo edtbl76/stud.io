@@ -9,7 +9,7 @@ export default function EffectsPage() {
   return (
     <TablePage<Effect>
       title="Effects"
-      endpoint="/effects"
+      endpoint="/studio/session/effects"
       queryKey="/session/effects"
       columns={effectColumns}
       bulkEditFields={effectBulkEditFields}

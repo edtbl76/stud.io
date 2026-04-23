@@ -9,7 +9,7 @@ export default function ReferenceToolsPage() {
   return (
     <TablePage<Tool>
       title="Reference Tools"
-      endpoint="/tools/reference"
+      endpoint="/studio/tools/reference"
       queryKey="/tools/reference"
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}

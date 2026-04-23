@@ -9,7 +9,7 @@ export default function CompositionToolsPage() {
   return (
     <TablePage<Tool>
       title="Composition Tools"
-      endpoint="/tools/composition"
+      endpoint="/studio/tools/composition"
       queryKey="/tools/composition"
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}

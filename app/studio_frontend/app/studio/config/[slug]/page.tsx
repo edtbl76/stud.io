@@ -11,7 +11,7 @@ export default function ConfigPage() {
   const params = useParams<{ slug: string }>()
   const slug = params.slug
   const title = formatSlug(slug)
-  const endpoint = `/config/${slug}`
+  const endpoint = `/studio/config/${slug}`
 
   return (
     <TablePage<LookupOut>

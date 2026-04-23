@@ -22,17 +22,17 @@ async def test_admin_can_list_brands(client, admin_headers):
 
 
 async def test_user_can_list_effects(client, auth_headers):
-    response = await client.get("/effects", headers=auth_headers)
+    response = await client.get("/studio/session/effects", headers=auth_headers)
     assert response.status_code == 200
 
 
 async def test_user_can_list_instruments(client, auth_headers):
-    response = await client.get("/instruments", headers=auth_headers)
+    response = await client.get("/studio/session/instruments", headers=auth_headers)
     assert response.status_code == 200
 
 
 async def test_user_can_list_libraries(client, auth_headers):
-    response = await client.get("/libraries", headers=auth_headers)
+    response = await client.get("/studio/session/libraries", headers=auth_headers)
     assert response.status_code == 200
 
 

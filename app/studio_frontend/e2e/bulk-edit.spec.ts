@@ -87,7 +87,7 @@ test('bulk edit: selecting a text field shows a text input', async ({ page }) =>
   // waitForLoadState('networkidle') resolves before the 350ms debounce fires and
   // races with the data update, causing Select all to capture stale row IDs.
   const filtered = page.waitForResponse(
-    (resp) => resp.url().includes('/effects') && resp.url().includes('Absynth'),
+    (resp) => resp.url().includes('/studio/session/effects') && resp.url().includes('Absynth'),
     { timeout: 30_000 },
   )
   await page.getByPlaceholder('2+ chars…').first().fill('Absynth')
@@ -105,7 +105,7 @@ test('bulk edit: selecting a text field shows a text input', async ({ page }) =>
 test('bulk edit: Apply button is disabled until a value is entered', async ({ page }) => {
   await page.goto('/controlroom/session/effects')
   const filtered = page.waitForResponse(
-    (resp) => resp.url().includes('/effects') && resp.url().includes('Absynth'),
+    (resp) => resp.url().includes('/studio/session/effects') && resp.url().includes('Absynth'),
     { timeout: 30_000 },
   )
   await page.getByPlaceholder('2+ chars…').first().fill('Absynth')

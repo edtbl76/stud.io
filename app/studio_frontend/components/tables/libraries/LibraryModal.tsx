@@ -17,7 +17,7 @@ import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
-const ENDPOINT = '/libraries'
+const ENDPOINT = '/studio/session/libraries'
 
 interface LibraryModalProps {
   record: Library | null

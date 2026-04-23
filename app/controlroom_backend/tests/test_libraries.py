@@ -24,7 +24,7 @@ class _ParentSourceCase(NamedTuple):
 
 async def test_list_libraries_returns_results(client, conn):
     await conn.execute("INSERT INTO libraries (library_name) VALUES ('Seed Library')")
-    response = await client.get("/libraries")
+    response = await client.get("/studio/session/libraries")
     assert response.status_code == 200
     data = response.json()
     assert "items" in data and "total" in data
@@ -33,14 +33,14 @@ async def test_list_libraries_returns_results(client, conn):
 
 async def test_list_libraries_fields(client, conn):
     await conn.execute("INSERT INTO libraries (library_name) VALUES ('Fields Library')")
-    item = (await client.get("/libraries")).json()["items"][0]
+    item = (await client.get("/studio/session/libraries")).json()["items"][0]
     for field in ("library_id", "library_name", "full_library_name",
                   "models", "tags", "parents", "created_at"):
         assert field in item
 
 
 async def test_list_libraries_search_no_match(client):
-    response = await client.get("/libraries?filter_name=zzznomatchzzz")
+    response = await client.get("/studio/session/libraries?filter_name=zzznomatchzzz")
     assert response.status_code == 200
     assert response.json()["items"] == []
     assert response.json()["total"] == 0
@@ -59,7 +59,7 @@ async def test_filter_libraries_by_model_brand_name(client, conn):
         "INSERT INTO libraries (library_name, model_ids) VALUES ('FilterLib', $1)",
         [model_row["model_id"]],
     )
-    response = await client.get("/libraries?filter_models=BrandFilter_Lib")
+    response = await client.get("/studio/session/libraries?filter_models=BrandFilter_Lib")
     assert response.status_code == 200
     names = [i["library_name"] for i in response.json()["items"]]
     assert "FilterLib" in names
@@ -67,7 +67,7 @@ async def test_filter_libraries_by_model_brand_name(client, conn):
 
 async def test_list_libraries_pagination(client, conn):
     await conn.execute("INSERT INTO libraries (library_name) VALUES ('Paged Library')")
-    response = await client.get("/libraries?limit=1&offset=0")
+    response = await client.get("/studio/session/libraries?limit=1&offset=0")
     assert response.status_code == 200
     data = response.json()
     assert len(data["items"]) == 1
@@ -82,13 +82,13 @@ async def test_get_library(client, conn):
     row = await conn.fetchrow(
         "INSERT INTO libraries (library_name) VALUES ('Get Me') RETURNING library_id"
     )
-    response = await client.get(f"/libraries/{row['library_id']}")
+    response = await client.get(f"/studio/session/libraries/{row['library_id']}")
     assert response.status_code == 200
     assert response.json()["library_id"] == str(row["library_id"])
 
 
 async def test_get_library_not_found(client):
-    response = await client.get(f"/libraries/{uuid4()}")
+    response = await client.get(f"/studio/session/libraries/{uuid4()}")
     assert response.status_code == 404
 
 
@@ -97,7 +97,7 @@ async def test_get_library_not_found(client):
 # ---------------------------------------------------------------------------
 
 async def test_create_library(client, admin_headers):
-    response = await client.post("/libraries", json={"library_name": "Test Library"}, headers=admin_headers)
+    response = await client.post("/studio/session/libraries", json={"library_name": "Test Library"}, headers=admin_headers)
     assert response.status_code == 201
     data = response.json()
     assert data["library_name"] == "Test Library"
@@ -106,7 +106,7 @@ async def test_create_library(client, admin_headers):
 
 
 async def test_create_library_missing_name(client, admin_headers):
-    response = await client.post("/libraries", json={"description": "No name"}, headers=admin_headers)
+    response = await client.post("/studio/session/libraries", json={"description": "No name"}, headers=admin_headers)
     assert response.status_code == 422
 
 
@@ -122,7 +122,7 @@ async def test_create_library_missing_name(client, admin_headers):
 ])
 async def test_create_library_parent_name_resolves(client, conn, admin_headers, case):
     parent = await conn.fetchrow(case.insert_sql)
-    response = await client.post("/libraries", json={
+    response = await client.post("/studio/session/libraries", json={
         "library_name": case.child_name,
         "parent_ids": [{"table_name": case.parent_table, "id": str(parent[case.id_key])}],
     }, headers=admin_headers)
@@ -141,7 +141,7 @@ async def test_update_library(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO libraries (library_name) VALUES ('Update Me') RETURNING library_id"
     )
-    response = await client.patch(f"/libraries/{row['library_id']}", json={"description": "Updated"}, headers=admin_headers)
+    response = await client.patch(f"/studio/session/libraries/{row['library_id']}", json={"description": "Updated"}, headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["description"] == "Updated"
     assert response.json()["library_name"] == "Update Me"
@@ -155,7 +155,7 @@ async def test_update_library_parent_ids(client, conn, admin_headers):
         "INSERT INTO libraries (library_name) VALUES ('Child Library Update') RETURNING library_id"
     )
     response = await client.patch(
-        f"/libraries/{child['library_id']}",
+        f"/studio/session/libraries/{child['library_id']}",
         json={"parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}]},
         headers=admin_headers,
     )
@@ -168,7 +168,7 @@ async def test_update_library_parent_ids(client, conn, admin_headers):
 
 
 async def test_update_library_not_found(client, admin_headers):
-    response = await client.patch(f"/libraries/{uuid4()}", json={"description": "Ghost"}, headers=admin_headers)
+    response = await client.patch(f"/studio/session/libraries/{uuid4()}", json={"description": "Ghost"}, headers=admin_headers)
     assert response.status_code == 404
 
 
@@ -180,12 +180,12 @@ async def test_delete_library(client, conn, admin_headers):
     row = await conn.fetchrow(
         "INSERT INTO libraries (library_name) VALUES ('Delete Me') RETURNING library_id"
     )
-    response = await client.delete(f"/libraries/{row['library_id']}", headers=admin_headers)
+    response = await client.delete(f"/studio/session/libraries/{row['library_id']}", headers=admin_headers)
     assert response.status_code == 204
 
 
 async def test_delete_library_not_found(client, admin_headers):
-    response = await client.delete(f"/libraries/{uuid4()}", headers=admin_headers)
+    response = await client.delete(f"/studio/session/libraries/{uuid4()}", headers=admin_headers)
     assert response.status_code == 404
 
 
@@ -202,12 +202,12 @@ async def test_filter_libraries_parents(client, conn, admin_headers, case):
         f"INSERT INTO instruments (instrument_name) VALUES ('ParentInstLib{case.suffix}') RETURNING instrument_id"
     )
     await conn.execute(f"INSERT INTO libraries (library_name) VALUES ('OrphanLib{case.suffix}')")
-    resp = await client.post("/libraries", json={
+    resp = await client.post("/studio/session/libraries", json={
         "library_name": f"ChildLib{case.suffix}",
         "parent_ids": [{"table_name": "instruments", "id": str(parent["instrument_id"])}],
     }, headers=admin_headers)
     assert resp.status_code == 201
-    response = await client.get(f"/libraries?filter_parents_op={case.op}&limit=9999")
+    response = await client.get(f"/studio/session/libraries?filter_parents_op={case.op}&limit=9999")
     assert response.status_code == 200
     names = [i["library_name"] for i in response.json()["items"]]
     assert case.expected_in in names

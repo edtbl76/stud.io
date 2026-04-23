@@ -9,7 +9,7 @@ export default function AdminToolsPage() {
   return (
     <TablePage<Tool>
       title="Admin Tools"
-      endpoint="/tools/admin"
+      endpoint="/studio/tools/admin"
       queryKey="/tools/admin"
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}

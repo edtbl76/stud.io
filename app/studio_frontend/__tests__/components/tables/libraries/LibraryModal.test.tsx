@@ -105,7 +105,7 @@ describe('LibraryModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/library name/i), { target: { value: 'Cinematic Strings' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/libraries', expect.objectContaining({ library_name: 'Cinematic Strings' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/session/libraries', expect.objectContaining({ library_name: 'Cinematic Strings' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -138,7 +138,7 @@ describe('LibraryModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Orchestral Essentials'), { target: { value: 'Orchestral Pro' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/libraries', 'lib-1', expect.objectContaining({ library_name: 'Orchestral Pro' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/studio/session/libraries', 'lib-1', expect.objectContaining({ library_name: 'Orchestral Pro' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -152,7 +152,7 @@ describe('LibraryModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/libraries', 'lib-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/studio/session/libraries', 'lib-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -165,7 +165,7 @@ describe('LibraryModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/libraries', 'lib-1',
+      '/studio/session/libraries', 'lib-1',
       expect.objectContaining({ model_ids: [] }),
     ))
   })
@@ -179,7 +179,7 @@ describe('LibraryModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/libraries', 'lib-1',
+      '/studio/session/libraries', 'lib-1',
       expect.objectContaining({ parent_ids: [] }),
     ))
   })
@@ -200,7 +200,7 @@ describe('LibraryModal — edit mode', () => {
     ['padded text', '  render first  ', 'render first'],
   ])('normalizes workflow_notes: %s sends %s', async (_label, input, expected) => {
     await saveWithWorkflowNotes(input)
-    expect(mockUpdate).toHaveBeenCalledWith('/libraries', 'lib-1', expect.objectContaining({ workflow_notes: expected }))
+    expect(mockUpdate).toHaveBeenCalledWith('/studio/session/libraries', 'lib-1', expect.objectContaining({ workflow_notes: expected }))
   })
 
   async function openEditAndSetAttributes(attrValue: string) {
@@ -221,7 +221,7 @@ describe('LibraryModal — edit mode', () => {
   it('attributes: valid JSON is parsed and sent', async () => {
     await openEditAndSetAttributes('{"key":"val"}')
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/libraries', 'lib-1',
+      '/studio/session/libraries', 'lib-1',
       expect.objectContaining({ attributes: { key: 'val' } }),
     ))
   })
