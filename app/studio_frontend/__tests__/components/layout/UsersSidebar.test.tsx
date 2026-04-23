@@ -4,9 +4,10 @@ import { UsersSidebar } from '@/components/layout/UsersSidebar'
 
 const mockLogout = jest.fn().mockResolvedValue(undefined)
 let mockPathname = '/studio/admin/users'
+let mockUseAuth = () => ({ username: 'alice', role: 'admin', logout: mockLogout })
 
 jest.mock('@/lib/auth', () => ({
-  useAuth: () => ({ username: 'alice', role: 'admin', logout: mockLogout }),
+  useAuth: () => mockUseAuth(),
 }))
 
 jest.mock('next/navigation', () => ({
@@ -17,6 +18,7 @@ describe('UsersSidebar', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     mockPathname = '/studio/admin/users'
+    mockUseAuth = () => ({ username: 'alice', role: 'admin', logout: mockLogout })
   })
 
   it('renders the app name and module title', () => {
@@ -124,6 +126,13 @@ describe('UsersSidebar', () => {
     expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument()
     fireEvent.click(toggle)
     expect(screen.getByRole('link', { name: 'Users' })).toBeInTheDocument()
+  })
+
+  it('hides the ADMIN group for non-admin users', () => {
+    mockUseAuth = () => ({ username: 'alice', role: 'user', logout: mockLogout })
+    render(<UsersSidebar />)
+    expect(screen.queryByRole('button', { name: /^admin$/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Users' })).not.toBeInTheDocument()
   })
 
   it('renders a Home link via ModuleSwitcher', () => {
