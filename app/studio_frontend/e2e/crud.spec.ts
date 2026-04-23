@@ -22,13 +22,13 @@ const ALL_TABLES: TableSpec[] = [
   { name: 'measurement tool',        path: '/controlroom/tools/measurement'           },
   { name: 'reference tool',          path: '/controlroom/tools/reference'             },
   { name: 'workflow tool',           path: '/controlroom/tools/workflow'              },
-  { name: 'config effect-types',     path: '/controlroom/config/effect-types'        },
-  { name: 'config entity-types',     path: '/controlroom/config/entity-types'        },
-  { name: 'config instrument-types', path: '/controlroom/config/instrument-types'    },
-  { name: 'config model-types',      path: '/controlroom/config/model-types'         },
-  { name: 'config plugin-formats',   path: '/controlroom/config/plugin-formats'      },
-  { name: 'config tag-types',        path: '/controlroom/config/tag-types'           },
-  { name: 'config tool-types',       path: '/controlroom/config/tool-types'          },
+  { name: 'config effect-types',     path: '/studio/config/effect-types'        },
+  { name: 'config entity-types',     path: '/studio/config/entity-types'        },
+  { name: 'config instrument-types', path: '/studio/config/instrument-types'    },
+  { name: 'config model-types',      path: '/studio/config/model-types'         },
+  { name: 'config plugin-formats',   path: '/studio/config/plugin-formats'      },
+  { name: 'config tag-types',        path: '/studio/config/tag-types'           },
+  { name: 'config tool-types',       path: '/studio/config/tool-types'          },
 ]
 
 for (const table of ALL_TABLES) {

@@ -18,7 +18,7 @@ test('bulk edit: checkbox column appears on content tables', async ({ page }) =>
 })
 
 test('bulk edit: checkbox column does not appear on config tables', async ({ page }) => {
-  await page.goto('/controlroom/config/tag-types')
+  await page.goto('/studio/config/tag-types')
   await waitForRows(page)
 
   await expect(page.getByLabel('Select all')).not.toBeVisible()

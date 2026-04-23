@@ -37,18 +37,6 @@ const navGroups: NavGroup[] = [
       { label: 'Workflow', href: '/controlroom/tools/workflow' },
     ],
   },
-  {
-    title: 'CONFIG',
-    items: [
-      { label: 'Effect Types', href: '/controlroom/config/effect-types' },
-      { label: 'Entity Types', href: '/controlroom/config/entity-types' },
-      { label: 'Instrument Types', href: '/controlroom/config/instrument-types' },
-      { label: 'Model Types', href: '/controlroom/config/model-types' },
-      { label: 'Plugin Formats', href: '/controlroom/config/plugin-formats' },
-      { label: 'Tag Types', href: '/controlroom/config/tag-types' },
-      { label: 'Tool Types', href: '/controlroom/config/tool-types' },
-    ],
-  },
 ]
 
 interface SidebarNavGroupProps {

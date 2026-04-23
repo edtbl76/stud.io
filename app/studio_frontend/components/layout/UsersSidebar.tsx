@@ -27,6 +27,18 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    title: 'CONFIG',
+    items: [
+      { label: 'Effect Types',     href: '/studio/config/effect-types' },
+      { label: 'Entity Types',     href: '/studio/config/entity-types' },
+      { label: 'Instrument Types', href: '/studio/config/instrument-types' },
+      { label: 'Model Types',      href: '/studio/config/model-types' },
+      { label: 'Plugin Formats',   href: '/studio/config/plugin-formats' },
+      { label: 'Tag Types',        href: '/studio/config/tag-types' },
+      { label: 'Tool Types',       href: '/studio/config/tool-types' },
+    ],
+  },
+  {
     title: 'ADMIN',
     items: [
       { label: 'Backup & Restore',  href: '/studio/admin/backup' },

@@ -54,12 +54,16 @@ describe('Sidebar', () => {
     render(<Sidebar />)
     expect(screen.getByRole('button', { name: /SESSION/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /TOOLS/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /CONFIG/i })).toBeInTheDocument()
   })
 
   it('does not render a CATALOG group', () => {
     render(<Sidebar />)
     expect(screen.queryByRole('button', { name: /^CATALOG$/i })).not.toBeInTheDocument()
+  })
+
+  it('does not render a CONFIG group', () => {
+    render(<Sidebar />)
+    expect(screen.queryByRole('button', { name: /^CONFIG$/i })).not.toBeInTheDocument()
   })
 
   it('does not render an ADMIN group', () => {

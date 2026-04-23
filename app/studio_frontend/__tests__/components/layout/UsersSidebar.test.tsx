@@ -35,6 +35,11 @@ describe('UsersSidebar', () => {
     expect(screen.getByRole('button', { name: /^catalog$/i })).toBeInTheDocument()
   })
 
+  it('renders the CONFIG group header', () => {
+    render(<UsersSidebar />)
+    expect(screen.getByRole('button', { name: /^config$/i })).toBeInTheDocument()
+  })
+
   it('renders the ADMIN group header', () => {
     render(<UsersSidebar />)
     expect(screen.getByRole('button', { name: /^admin$/i })).toBeInTheDocument()
@@ -50,6 +55,20 @@ describe('UsersSidebar', () => {
   })
 
   it.each([
+    ['Effect Types',     '/studio/config/effect-types'],
+    ['Entity Types',     '/studio/config/entity-types'],
+    ['Instrument Types', '/studio/config/instrument-types'],
+    ['Model Types',      '/studio/config/model-types'],
+    ['Plugin Formats',   '/studio/config/plugin-formats'],
+    ['Tag Types',        '/studio/config/tag-types'],
+    ['Tool Types',       '/studio/config/tool-types'],
+  ])('renders %s nav link pointing to %s', (label, href) => {
+    mockPathname = '/studio/config/effect-types'
+    render(<UsersSidebar />)
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
+  })
+
+  it.each([
     ['Backup & Restore', '/studio/admin/backup'],
     ['Change Review',    '/studio/admin/change-review'],
     ['Import / Export',  '/studio/admin/import-export'],
@@ -58,6 +77,22 @@ describe('UsersSidebar', () => {
   ])('renders %s nav link pointing to %s', (label, href) => {
     render(<UsersSidebar />)
     expect(screen.getByRole('link', { name: label })).toHaveAttribute('href', href)
+  })
+
+  it('applies active styles when pathname matches /studio/config/effect-types', () => {
+    mockPathname = '/studio/config/effect-types'
+    render(<UsersSidebar />)
+    expect(screen.getByRole('link', { name: 'Effect Types' }).className).toContain('border-primary')
+  })
+
+  it('collapses and expands the CONFIG group on toggle', () => {
+    mockPathname = '/studio/config/effect-types'
+    render(<UsersSidebar />)
+    const toggle = screen.getByRole('button', { name: /^config$/i })
+    fireEvent.click(toggle)
+    expect(screen.queryByRole('link', { name: 'Effect Types' })).not.toBeInTheDocument()
+    fireEvent.click(toggle)
+    expect(screen.getByRole('link', { name: 'Effect Types' })).toBeInTheDocument()
   })
 
   it('applies active styles when pathname matches /studio/catalog/brands', () => {
