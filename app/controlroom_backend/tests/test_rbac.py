@@ -12,12 +12,12 @@ from unittest.mock import patch, AsyncMock, MagicMock
 # ---------------------------------------------------------------------------
 
 async def test_user_can_list_brands(client, auth_headers):
-    response = await client.get("/brands", headers=auth_headers)
+    response = await client.get("/studio/catalog/brands", headers=auth_headers)
     assert response.status_code == 200
 
 
 async def test_admin_can_list_brands(client, admin_headers):
-    response = await client.get("/brands", headers=admin_headers)
+    response = await client.get("/studio/catalog/brands", headers=admin_headers)
     assert response.status_code == 200
 
 
@@ -42,7 +42,7 @@ async def test_user_can_list_libraries(client, auth_headers):
 
 async def test_admin_can_create_brand(client, admin_headers):
     response = await client.post(
-        "/brands",
+        "/studio/catalog/brands",
         json={"legal_name": "RBAC Test Brand", "brand_name": "RBAC Test Brand"},
         headers=admin_headers,
     )
@@ -51,7 +51,7 @@ async def test_admin_can_create_brand(client, admin_headers):
 
 async def test_user_cannot_create_brand(client, auth_headers):
     response = await client.post(
-        "/brands",
+        "/studio/catalog/brands",
         json={"legal_name": "Should Fail"},
         headers=auth_headers,
     )
@@ -63,7 +63,7 @@ async def test_user_cannot_patch_brand(client, conn, auth_headers):
     if not row:
         return  # no brands in test DB, skip
     response = await client.patch(
-        f"/brands/{row['brand_id']}",
+        f"/studio/catalog/brands/{row['brand_id']}",
         json={"website": "https://forbidden.com"},
         headers=auth_headers,
     )
@@ -74,7 +74,7 @@ async def test_user_cannot_delete_brand(client, conn, auth_headers):
     row = await conn.fetchrow("SELECT brand_id FROM brands LIMIT 1")
     if not row:
         return  # no brands in test DB, skip
-    response = await client.delete(f"/brands/{row['brand_id']}", headers=auth_headers)
+    response = await client.delete(f"/studio/catalog/brands/{row['brand_id']}", headers=auth_headers)
     assert response.status_code == 403
 
 
@@ -218,7 +218,7 @@ async def test_user_cannot_delete_user(client, auth_headers):
 # ---------------------------------------------------------------------------
 
 async def test_unauthenticated_cannot_write(client):
-    response = await client.post("/brands", json={"legal_name": "No Auth"})
+    response = await client.post("/studio/catalog/brands", json={"legal_name": "No Auth"})
     assert response.status_code == 401
 
 

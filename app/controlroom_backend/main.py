@@ -34,8 +34,8 @@ app.add_middleware(
 
 app.include_router(auth.router,          prefix="/auth",         tags=["auth"])
 app.include_router(search.router,        prefix="/search",       tags=["search"])
-app.include_router(brands.router,        prefix="/brands",       tags=["brands"])
-app.include_router(models.router,        prefix="/models",       tags=["models"])
+app.include_router(brands.router,        prefix="/studio/catalog/brands",  tags=["brands"])
+app.include_router(models.router,        prefix="/studio/catalog/models",  tags=["models"])
 app.include_router(effects.router,       prefix="/effects",      tags=["effects"])
 app.include_router(instruments.router,   prefix="/instruments",  tags=["instruments"])
 app.include_router(libraries.router,     prefix="/libraries",    tags=["libraries"])

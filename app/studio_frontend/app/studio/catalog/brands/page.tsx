@@ -9,7 +9,7 @@ export default function BrandsPage() {
   return (
     <TablePage<Brand>
       title="Brands"
-      endpoint="/brands"
+      endpoint="/studio/catalog/brands"
       queryKey="/catalog/brands"
       columns={brandColumns}
       getRowId={(row) => row.brand_id}

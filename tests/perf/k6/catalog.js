@@ -33,8 +33,8 @@ export default function (data) {
 
   group('catalog entities', () => {
     const endpoints = [
-      '/brands',
-      '/models',
+      '/studio/catalog/brands',
+      '/studio/catalog/models',
       '/effects',
       '/instruments',
       '/libraries',
@@ -66,7 +66,7 @@ export default function (data) {
   })
 
   group('catalog with filters', () => {
-    const res = http.get(`${BASE_URL}/brands?filter_brand_name=pro`, { headers })
+    const res = http.get(`${BASE_URL}/studio/catalog/brands?filter_brand_name=pro`, { headers })
     check(res, { 'filtered brands status 200': (r) => r.status === 200 })
   })
 }

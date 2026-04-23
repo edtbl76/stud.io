@@ -19,7 +19,7 @@ export function ModelLinks({ models }: Readonly<ModelLinksProps>) {
 
   async function handleClick(id: string) {
     try {
-      const model = await api.get<Model>('/models', id)
+      const model = await api.get<Model>('/studio/catalog/models', id)
       setSelectedModel(model)
     } catch {
       // model fetch failed — do nothing

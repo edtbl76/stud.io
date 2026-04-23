@@ -67,7 +67,7 @@ describe('ModelSelect', () => {
     act(() => { jest.advanceTimersByTime(300) })
 
     await waitFor(() => expect(screen.getByText('Universal Audio 1176')).toBeInTheDocument())
-    expect(mockListPaged).toHaveBeenCalledWith('/models', expect.objectContaining({ filters: { name: { value: '1176', operator: 'contains' } } }))
+    expect(mockListPaged).toHaveBeenCalledWith('/studio/catalog/models', expect.objectContaining({ filters: { name: { value: '1176', operator: 'contains' } } }))
   })
 
   it('does not search when query is empty', async () => {

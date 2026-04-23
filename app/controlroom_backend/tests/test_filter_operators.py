@@ -370,7 +370,7 @@ def test_parse_filters_non_filter_params_ignored():
 # ---------------------------------------------------------------------------
 
 async def test_filter_brands_contains(client):
-    resp = await client.get("/brands?filter_name=ssl")
+    resp = await client.get("/studio/catalog/brands?filter_name=ssl")
     assert resp.status_code == 200
     data = resp.json()
     assert isinstance(data["items"], list)
@@ -382,14 +382,14 @@ async def test_filter_brands_contains(client):
 async def test_filter_brands_equals(client, conn):
     row = await conn.fetchrow("SELECT brand_name FROM brands LIMIT 1")
     name = row["brand_name"]
-    resp = await client.get(f"/brands?filter_brand_name={name}&filter_brand_name_op=equals")
+    resp = await client.get(f"/studio/catalog/brands?filter_brand_name={name}&filter_brand_name_op=equals")
     assert resp.status_code == 200
     items = resp.json()["items"]
     assert all(b["brand_name"] == name for b in items)
 
 
 async def test_filter_brands_is_empty_legal_name(client):
-    resp = await client.get("/brands?filter_legal_name_op=is_empty")
+    resp = await client.get("/studio/catalog/brands?filter_legal_name_op=is_empty")
     assert resp.status_code == 200
     items = resp.json()["items"]
     for b in items:
@@ -397,7 +397,7 @@ async def test_filter_brands_is_empty_legal_name(client):
 
 
 async def test_filter_brands_is_not_empty_legal_name(client):
-    resp = await client.get("/brands?filter_legal_name_op=is_not_empty")
+    resp = await client.get("/studio/catalog/brands?filter_legal_name_op=is_not_empty")
     assert resp.status_code == 200
     items = resp.json()["items"]
     for b in items:
@@ -410,7 +410,7 @@ async def test_filter_fuzzy_returns_results(client, conn):
     if not name:
         pytest.skip("No brand_name data")
     typo = name[:max(3, len(name) - 2)]
-    resp = await client.get(f"/brands?filter_brand_name={typo}&filter_brand_name_op=fuzzy")
+    resp = await client.get(f"/studio/catalog/brands?filter_brand_name={typo}&filter_brand_name_op=fuzzy")
     assert resp.status_code == 200
 
 
@@ -431,13 +431,13 @@ async def test_filter_effects_is_not_empty_version(client):
 
 
 async def test_filter_created_at_date_on(client):
-    resp = await client.get("/brands?filter_created_at=2024-01-01&filter_created_at_op=date_on")
+    resp = await client.get("/studio/catalog/brands?filter_created_at=2024-01-01&filter_created_at_op=date_on")
     assert resp.status_code == 200
 
 
 async def test_filter_created_at_date_between(client):
     resp = await client.get(
-        "/brands?filter_created_at=2020-01-01&filter_created_at_op=date_between"
+        "/studio/catalog/brands?filter_created_at=2020-01-01&filter_created_at_op=date_between"
         "&filter_created_at_end=2030-12-31"
     )
     assert resp.status_code == 200
@@ -445,7 +445,7 @@ async def test_filter_created_at_date_between(client):
 
 
 async def test_filter_unknown_op_falls_back_to_contains(client):
-    resp = await client.get("/brands?filter_brand_name=ssl&filter_brand_name_op=BOGUS")
+    resp = await client.get("/studio/catalog/brands?filter_brand_name=ssl&filter_brand_name_op=BOGUS")
     assert resp.status_code == 200
 
 

@@ -4,7 +4,7 @@ const UNIQUE = `__e2e_search_${Date.now()}`
 let createdBrandId: string | undefined
 
 async function createBrand(request: APIRequestContext) {
-  const res = await request.post('/api/brands', {
+  const res = await request.post('/api/studio/catalog/brands', {
     data: { legal_name: UNIQUE, brand_name: UNIQUE },
     headers: { 'Content-Type': 'application/json' },
   })
@@ -14,7 +14,7 @@ async function createBrand(request: APIRequestContext) {
 
 async function deleteBrand(request: APIRequestContext) {
   if (!createdBrandId) return
-  await request.delete(`/api/brands/${createdBrandId}`)
+  await request.delete(`/api/studio/catalog/brands/${createdBrandId}`)
 }
 
 test.beforeAll(async ({ request }) => { await createBrand(request) })

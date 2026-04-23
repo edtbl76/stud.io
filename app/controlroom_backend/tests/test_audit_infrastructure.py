@@ -66,25 +66,25 @@ async def test_deleted_at_column_exists_all_18_tables(conn):
 
 async def test_soft_deleted_brand_excluded_from_list(client, conn, admin_headers):
     # Create a brand, soft-delete it, verify it's gone from list
-    r = await client.post("/brands", json={"brand_name": "GhostBrand"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/brands", json={"brand_name": "GhostBrand"}, headers=admin_headers)
     assert r.status_code == 201
     brand_id = r.json()["brand_id"]
 
     await conn.execute("UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id)
 
-    r = await client.get("/brands")
+    r = await client.get("/studio/catalog/brands")
     ids = [b["brand_id"] for b in r.json()["items"]]
     assert brand_id not in ids, "Soft-deleted brand should not appear in list"
 
 
 async def test_soft_deleted_brand_returns_404_on_get(client, conn, admin_headers):
-    r = await client.post("/brands", json={"brand_name": "GhostBrand2"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/brands", json={"brand_name": "GhostBrand2"}, headers=admin_headers)
     assert r.status_code == 201
     brand_id = r.json()["brand_id"]
 
     await conn.execute("UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id)
 
-    r = await client.get(f"/brands/{brand_id}")
+    r = await client.get(f"/studio/catalog/brands/{brand_id}")
     assert r.status_code == 404
 
 
@@ -337,7 +337,7 @@ async def test_delete_library_soft_deletes(client, conn, admin_headers):
 # ---------------------------------------------------------------------------
 
 async def test_create_brand_writes_audit_entry(client, conn, admin_headers):
-    r = await client.post("/brands", json={"brand_name": "AuditBrand"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/brands", json={"brand_name": "AuditBrand"}, headers=admin_headers)
     assert r.status_code == 201
     brand_id = r.json()["brand_id"]
 
@@ -351,10 +351,10 @@ async def test_create_brand_writes_audit_entry(client, conn, admin_headers):
 
 
 async def test_update_brand_writes_audit_entry(client, conn, admin_headers):
-    r = await client.post("/brands", json={"brand_name": "BeforeUpdate"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/brands", json={"brand_name": "BeforeUpdate"}, headers=admin_headers)
     brand_id = r.json()["brand_id"]
 
-    await client.patch(f"/brands/{brand_id}", json={"brand_name": "AfterUpdate"}, headers=admin_headers)
+    await client.patch(f"/studio/catalog/brands/{brand_id}", json={"brand_name": "AfterUpdate"}, headers=admin_headers)
 
     row = await conn.fetchrow(
         "SELECT * FROM audit_log WHERE table_name='brands' AND record_id=$1 AND operation='UPDATE'",
@@ -366,10 +366,10 @@ async def test_update_brand_writes_audit_entry(client, conn, admin_headers):
 
 
 async def test_delete_brand_soft_deletes(client, conn, admin_headers):
-    r = await client.post("/brands", json={"brand_name": "ToSoftDelete"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/brands", json={"brand_name": "ToSoftDelete"}, headers=admin_headers)
     brand_id = r.json()["brand_id"]
 
-    r = await client.delete(f"/brands/{brand_id}", headers=admin_headers)
+    r = await client.delete(f"/studio/catalog/brands/{brand_id}", headers=admin_headers)
     assert r.status_code == 204
 
     row = await conn.fetchrow("SELECT deleted_at FROM brands WHERE brand_id=$1", brand_id)
@@ -378,20 +378,20 @@ async def test_delete_brand_soft_deletes(client, conn, admin_headers):
 
 async def test_delete_brand_not_soft_deleted_if_has_active_model_ref(client, conn, admin_headers):
     """Brands with active (non-deleted) model children cannot be soft-deleted."""
-    rb = await client.post("/brands", json={"brand_name": "RefBrand"}, headers=admin_headers)
+    rb = await client.post("/studio/catalog/brands", json={"brand_name": "RefBrand"}, headers=admin_headers)
     brand_id = rb.json()["brand_id"]
-    await client.post("/models", json={"model_name": "RefModel", "brand_id": brand_id}, headers=admin_headers)
+    await client.post("/studio/catalog/models", json={"model_name": "RefModel", "brand_id": brand_id}, headers=admin_headers)
 
-    r = await client.delete(f"/brands/{brand_id}", headers=admin_headers)
+    r = await client.delete(f"/studio/catalog/brands/{brand_id}", headers=admin_headers)
     assert r.status_code == 409
 
 
 async def test_patch_soft_deleted_brand_returns_409(client, conn, admin_headers):
-    r = await client.post("/brands", json={"brand_name": "SoftBrand"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/brands", json={"brand_name": "SoftBrand"}, headers=admin_headers)
     brand_id = r.json()["brand_id"]
     await conn.execute("UPDATE brands SET deleted_at = NOW() WHERE brand_id=$1", brand_id)
 
-    r = await client.patch(f"/brands/{brand_id}", json={"brand_name": "x"}, headers=admin_headers)
+    r = await client.patch(f"/studio/catalog/brands/{brand_id}", json={"brand_name": "x"}, headers=admin_headers)
     assert r.status_code == 409
 
 
@@ -400,7 +400,7 @@ async def test_patch_soft_deleted_brand_returns_409(client, conn, admin_headers)
 # ---------------------------------------------------------------------------
 
 async def test_create_model_writes_audit_entry(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "AuditModel"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "AuditModel"}, headers=admin_headers)
     assert r.status_code == 201
     model_id = r.json()["model_id"]
     row = await conn.fetchrow(
@@ -411,20 +411,20 @@ async def test_create_model_writes_audit_entry(client, conn, admin_headers):
 
 
 async def test_delete_model_soft_deletes(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "ToDelete"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "ToDelete"}, headers=admin_headers)
     model_id = r.json()["model_id"]
-    r = await client.delete(f"/models/{model_id}", headers=admin_headers)
+    r = await client.delete(f"/studio/catalog/models/{model_id}", headers=admin_headers)
     assert r.status_code == 204
     row = await conn.fetchrow("SELECT deleted_at FROM models WHERE model_id=$1", model_id)
     assert row["deleted_at"] is not None
 
 
 async def test_update_model_writes_audit_entry(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "BeforeUpdate"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "BeforeUpdate"}, headers=admin_headers)
     assert r.status_code == 201
     model_id = r.json()["model_id"]
 
-    await client.patch(f"/models/{model_id}", json={"model_name": "AfterUpdate"}, headers=admin_headers)
+    await client.patch(f"/studio/catalog/models/{model_id}", json={"model_name": "AfterUpdate"}, headers=admin_headers)
 
     row = await conn.fetchrow(
         "SELECT * FROM audit_log WHERE table_name='models' AND record_id=$1 AND operation='UPDATE'",
@@ -436,11 +436,11 @@ async def test_update_model_writes_audit_entry(client, conn, admin_headers):
 
 
 async def test_delete_model_writes_audit_entry(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "ToAuditDelete"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "ToAuditDelete"}, headers=admin_headers)
     assert r.status_code == 201
     model_id = r.json()["model_id"]
 
-    await client.delete(f"/models/{model_id}", headers=admin_headers)
+    await client.delete(f"/studio/catalog/models/{model_id}", headers=admin_headers)
 
     row = await conn.fetchrow(
         "SELECT * FROM audit_log WHERE table_name='models' AND record_id=$1 AND operation='DELETE'",
@@ -452,23 +452,23 @@ async def test_delete_model_writes_audit_entry(client, conn, admin_headers):
 
 
 async def test_patch_soft_deleted_model_returns_409(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "SoftDelModel"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "SoftDelModel"}, headers=admin_headers)
     assert r.status_code == 201
     model_id = r.json()["model_id"]
     await conn.execute("UPDATE models SET deleted_at = NOW() WHERE model_id=$1", model_id)
 
-    r = await client.patch(f"/models/{model_id}", json={"model_name": "x"}, headers=admin_headers)
+    r = await client.patch(f"/studio/catalog/models/{model_id}", json={"model_name": "x"}, headers=admin_headers)
     assert r.status_code == 409
     assert "deleted" in r.json()["detail"]
 
 
 async def test_delete_already_deleted_model_returns_200(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "AlreadyGoneModel"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "AlreadyGoneModel"}, headers=admin_headers)
     assert r.status_code == 201
     model_id = r.json()["model_id"]
     await conn.execute("UPDATE models SET deleted_at = NOW() WHERE model_id=$1", model_id)
 
-    r = await client.delete(f"/models/{model_id}", headers=admin_headers)
+    r = await client.delete(f"/studio/catalog/models/{model_id}", headers=admin_headers)
     assert r.status_code == 200
     assert "already deleted" in r.json()["detail"]
 
@@ -480,7 +480,7 @@ async def test_delete_already_deleted_model_returns_200(client, conn, admin_head
 
 
 async def test_delete_model_blocked_by_ref_check(client, conn, admin_headers):
-    r = await client.post("/models", json={"model_name": "RefModel"}, headers=admin_headers)
+    r = await client.post("/studio/catalog/models", json={"model_name": "RefModel"}, headers=admin_headers)
     assert r.status_code == 201
     model_id = r.json()["model_id"]
 
@@ -491,7 +491,7 @@ async def test_delete_model_blocked_by_ref_check(client, conn, admin_headers):
     )
     assert r.status_code == 201
 
-    r = await client.delete(f"/models/{model_id}", headers=admin_headers)
+    r = await client.delete(f"/studio/catalog/models/{model_id}", headers=admin_headers)
     assert r.status_code == 409
 
 

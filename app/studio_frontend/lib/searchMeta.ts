@@ -5,8 +5,8 @@ export interface SearchTableMeta {
 }
 
 export const SEARCH_TABLE_META: Record<string, SearchTableMeta> = {
-  brands:            { label: 'Brands',            path: '/studio/catalog/brands',        endpoint: '/brands' },
-  models:            { label: 'Models',            path: '/studio/catalog/models',        endpoint: '/models' },
+  brands:            { label: 'Brands',            path: '/studio/catalog/brands',        endpoint: '/studio/catalog/brands' },
+  models:            { label: 'Models',            path: '/studio/catalog/models',        endpoint: '/studio/catalog/models' },
   effects:           { label: 'Effects',           path: '/controlroom/session/effects',       endpoint: '/effects' },
   instruments:       { label: 'Instruments',       path: '/controlroom/session/instruments',   endpoint: '/instruments' },
   libraries:         { label: 'Libraries',         path: '/controlroom/session/libraries',     endpoint: '/libraries' },

@@ -9,7 +9,7 @@ export default function ModelsPage() {
   return (
     <TablePage<Model>
       title="Models"
-      endpoint="/models"
+      endpoint="/studio/catalog/models"
       queryKey="/catalog/models"
       columns={modelColumns}
       bulkEditFields={modelBulkEditFields}

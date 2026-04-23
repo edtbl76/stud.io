@@ -99,7 +99,7 @@ const brandIds: string[] = []
 
 async function createBrand(request: APIRequestContext, suffix: string): Promise<string> {
   const name = `${NAV_PREFIX}_${suffix}`
-  const res = await request.post('/api/brands', {
+  const res = await request.post('/api/studio/catalog/brands', {
     data: { legal_name: name, brand_name: name },
     headers: { 'Content-Type': 'application/json' },
   })
@@ -118,9 +118,9 @@ test.beforeAll(async ({ request }) => {
 
 test.afterAll(async ({ request }) => {
   for (const id of brandIds) {
-    const res = await request.delete(`/api/brands/${id}`)
+    const res = await request.delete(`/api/studio/catalog/brands/${id}`)
     if (!res.ok()) {
-      console.error(`afterAll: DELETE /api/brands/${id} failed — HTTP ${res.status()}`)
+      console.error(`afterAll: DELETE /api/studio/catalog/brands/${id} failed — HTTP ${res.status()}`)
     }
   }
 })
