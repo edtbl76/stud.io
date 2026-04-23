@@ -36,7 +36,7 @@ export function BrandSelect({
     const timer = setTimeout(async () => {
       if (!query.trim()) { setResults([]); return }
       try {
-        const data = await api.listPaged<Brand>('/brands', { limit: 50, filters: { name: { value: query, operator: 'contains' } } })
+        const data = await api.listPaged<Brand>('/studio/catalog/brands', { limit: 50, filters: { name: { value: query, operator: 'contains' } } })
         setResults(data.items)
       } catch {
         setResults([])
@@ -57,7 +57,7 @@ export function BrandSelect({
   }, [])
 
   const createMutation = useMutation({
-    mutationFn: () => api.create<Brand>('/brands', { brand_name: newName.trim() }),
+    mutationFn: () => api.create<Brand>('/studio/catalog/brands', { brand_name: newName.trim() }),
     onSuccess: (brand) => {
       const name = brand.brand_name ?? newName.trim()
       onChange(brand.brand_id, name)

@@ -6,8 +6,8 @@ import { Home, SlidersHorizontal, Users } from 'lucide-react'
 
 const MODULES = [
   { label: 'Home',         href: '/',                          prefix: '/',            icon: Home              },
-  { label: 'ControlRoom',  href: '/controlroom/catalog/brands', prefix: '/controlroom', icon: SlidersHorizontal },
-  { label: 'Users',        href: '/users',                     prefix: '/users',       icon: Users             },
+  { label: 'ControlRoom',  href: '/controlroom/session/effects', prefix: '/controlroom', icon: SlidersHorizontal },
+  { label: 'Studio Management', href: '/studio/admin/users',   prefix: '/studio',      icon: Users             },
 ]
 
 function isCurrent(prefix: string, pathname: string): boolean {

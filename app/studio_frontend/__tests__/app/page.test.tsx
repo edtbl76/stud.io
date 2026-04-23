@@ -14,16 +14,19 @@ describe('HomePage', () => {
     expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
   })
 
-  it('renders the ControlRoom module tile linking to catalog/brands', () => {
+  it('renders the ControlRoom module tile linking to session/effects', () => {
     render(<HomePage />)
     const link = screen.getByRole('link', { name: /controlroom/i })
-    expect(link).toHaveAttribute('href', '/controlroom/catalog/brands')
+    expect(link).toHaveAttribute('href', '/controlroom/session/effects')
+    expect(link).toHaveTextContent('Manage sessions, libraries, and tools.')
   })
 
-  it('renders the User Management module tile linking to /users', () => {
+
+  it('renders the Studio Management module tile linking to /studio/admin/users', () => {
     render(<HomePage />)
-    const link = screen.getByRole('link', { name: /user management/i })
-    expect(link).toHaveAttribute('href', '/users')
+    const link = screen.getByRole('link', { name: /studio management/i })
+    expect(link).toHaveAttribute('href', '/studio/admin/users')
+    expect(link).toHaveTextContent('Manage gear catalog, config, users, and administration.')
   })
 
   it('renders the studio illustration', () => {

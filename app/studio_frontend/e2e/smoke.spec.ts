@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 const TABLES = [
-  '/controlroom/catalog/brands',
-  '/controlroom/catalog/models',
+  '/studio/catalog/brands',
+  '/studio/catalog/models',
   '/controlroom/session/instruments',
   '/controlroom/session/effects',
   '/controlroom/session/libraries',
@@ -12,13 +12,13 @@ const TABLES = [
   '/controlroom/tools/measurement',
   '/controlroom/tools/reference',
   '/controlroom/tools/workflow',
-  '/controlroom/config/effect-types',
-  '/controlroom/config/entity-types',
-  '/controlroom/config/instrument-types',
-  '/controlroom/config/model-types',
-  '/controlroom/config/plugin-formats',
-  '/controlroom/config/tag-types',
-  '/controlroom/config/tool-types',
+  '/studio/config/effect-types',
+  '/studio/config/entity-types',
+  '/studio/config/instrument-types',
+  '/studio/config/model-types',
+  '/studio/config/plugin-formats',
+  '/studio/config/tag-types',
+  '/studio/config/tool-types',
 ]
 
 for (const path of TABLES) {

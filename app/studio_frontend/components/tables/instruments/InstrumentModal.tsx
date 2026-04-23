@@ -17,7 +17,7 @@ import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
-const ENDPOINT = '/instruments'
+const ENDPOINT = '/studio/session/instruments'
 
 interface InstrumentModalProps {
   record: Instrument | null

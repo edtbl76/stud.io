@@ -163,7 +163,7 @@ export function ToolModal({ record, category, onClose, onMutate }: Readonly<Tool
   const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
     useRecordModal<Tool, FormState>({
       record,
-      endpoint: `/tools/${category}`,
+      endpoint: `/studio/tools/${category}`,
       getRecordId: (r) => r.tool_id,
       getHistoryUrl: (r) => `/tools/${category}/${r.tool_id}/history`,
       getTitle,

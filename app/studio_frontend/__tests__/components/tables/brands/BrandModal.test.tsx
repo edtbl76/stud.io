@@ -100,7 +100,7 @@ describe('BrandModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/brand name/i), { target: { value: 'Test' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/brands', {
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/catalog/brands', {
       legal_name: 'Test Corp',
       brand_name: 'Test',
     }))
@@ -142,7 +142,7 @@ describe('BrandModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/brands',
+      '/studio/catalog/brands',
       'test-id',
       expect.objectContaining({ brand_name: 'Arturia Updated' })
     ))
@@ -170,7 +170,7 @@ describe('BrandModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/brands', 'test-id'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/studio/catalog/brands', 'test-id'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })

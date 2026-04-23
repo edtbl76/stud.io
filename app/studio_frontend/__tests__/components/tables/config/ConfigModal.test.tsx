@@ -71,7 +71,7 @@ describe('ConfigModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'Delay' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/config/effect-types', expect.objectContaining({ type_name: 'Delay' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/config/effect-types', expect.objectContaining({ type_name: 'Delay' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -106,7 +106,7 @@ describe('ConfigModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Reverb'), { target: { value: 'Reverb (Hall)' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/config/effect-types', 'type-1', expect.objectContaining({ type_name: 'Reverb (Hall)' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/studio/config/effect-types', 'type-1', expect.objectContaining({ type_name: 'Reverb (Hall)' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -120,7 +120,7 @@ describe('ConfigModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/config/effect-types', 'type-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/studio/config/effect-types', 'type-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 

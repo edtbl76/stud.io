@@ -69,7 +69,7 @@ describe('BrandSelect', () => {
     act(() => { jest.advanceTimersByTime(300) })
 
     await waitFor(() => expect(screen.getByText('Steinway')).toBeInTheDocument())
-    expect(mockListPaged).toHaveBeenCalledWith('/brands', expect.objectContaining({ filters: { name: { value: 'Stein', operator: 'contains' } } }))
+    expect(mockListPaged).toHaveBeenCalledWith('/studio/catalog/brands', expect.objectContaining({ filters: { name: { value: 'Stein', operator: 'contains' } } }))
   })
 
   it('does not search when query is empty', async () => {
@@ -130,7 +130,7 @@ describe('BrandSelect', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^Create$/ }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/brands', { brand_name: 'NewBrand' }))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/catalog/brands', { brand_name: 'NewBrand' }))
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('new-brand', 'NewBrand'))
   })
 

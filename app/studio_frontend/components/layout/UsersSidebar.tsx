@@ -1,37 +1,59 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Users } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { useAuth } from '@/lib/auth'
 import { SidebarShell } from '@/components/layout/SidebarShell'
+import { NavGroup, SidebarNavGroup, useSidebarGroups } from '@/components/layout/SidebarNav'
 
-const navItems = [{ label: 'Users', href: '/users', icon: Users }]
+const navGroups: NavGroup[] = [
+  {
+    title: 'CATALOG',
+    items: [
+      { label: 'Brands', href: '/studio/catalog/brands' },
+      { label: 'Models', href: '/studio/catalog/models' },
+    ],
+  },
+  {
+    title: 'CONFIG',
+    items: [
+      { label: 'Effect Types',     href: '/studio/config/effect-types' },
+      { label: 'Entity Types',     href: '/studio/config/entity-types' },
+      { label: 'Instrument Types', href: '/studio/config/instrument-types' },
+      { label: 'Model Types',      href: '/studio/config/model-types' },
+      { label: 'Plugin Formats',   href: '/studio/config/plugin-formats' },
+      { label: 'Tag Types',        href: '/studio/config/tag-types' },
+      { label: 'Tool Types',       href: '/studio/config/tool-types' },
+    ],
+  },
+  {
+    title: 'ADMIN',
+    items: [
+      { label: 'Backup & Restore',  href: '/studio/admin/backup' },
+      { label: 'Change Review',     href: '/studio/admin/change-review' },
+      { label: 'Import / Export',   href: '/studio/admin/import-export' },
+      { label: 'Stats',             href: '/studio/admin/stats' },
+      { label: 'Users',             href: '/studio/admin/users' },
+    ],
+  },
+]
 
 export function UsersSidebar() {
   const pathname = usePathname()
+  const { role } = useAuth()
+  const { openGroups, toggleGroup } = useSidebarGroups(navGroups, pathname)
 
   return (
-    <SidebarShell subtitle="User Management">
+    <SidebarShell subtitle="Studio Management">
       <nav className="py-3">
-        {navItems.map(({ label, href, icon: Icon }) => {
-          const isActive = pathname === href || pathname.startsWith(href + '/')
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                'flex items-center gap-2 px-4 py-1.5 text-xs transition-colors',
-                isActive
-                  ? 'border-l-2 border-primary bg-primary/10 text-primary font-medium pl-[14px]'
-                  : 'border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50 pl-[14px]'
-              )}
-            >
-              <Icon className="h-3.5 w-3.5 shrink-0" />
-              {label}
-            </Link>
-          )
-        })}
+        {navGroups.filter((g) => g.title !== 'ADMIN' || role === 'admin').map((group) => (
+          <SidebarNavGroup
+            key={group.title}
+            group={group}
+            isOpen={openGroups.has(group.title)}
+            pathname={pathname}
+            onToggle={toggleGroup}
+          />
+        ))}
       </nav>
     </SidebarShell>
   )

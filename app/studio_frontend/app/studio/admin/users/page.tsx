@@ -39,21 +39,18 @@ export default function UsersPage() {
   const [loading, setLoading] = React.useState(true)
   const [status, setStatus] = React.useState<Status>(null)
 
-  // Add user form
   const [newUsername, setNewUsername] = React.useState('')
   const [newPassword, setNewPassword] = React.useState('')
   const [addLoading, setAddLoading] = React.useState(false)
 
-  // Change password inline
   const [changingId, setChangingId] = React.useState<string | null>(null)
   const [newPw, setNewPw] = React.useState('')
   const [pwLoading, setPwLoading] = React.useState(false)
 
-  // Google link — stores the user_id we're linking for the GIS callback
   const linkingUserIdRef = React.useRef<string | null>(null)
 
   async function fetchUsers() {
-    const res = await fetch('/api/users', { headers: { 'Content-Type': 'application/json' } })
+    const res = await fetch('/api/studio/admin/users', { headers: { 'Content-Type': 'application/json' } })
     if (res.ok) setUsers(await res.json())
   }
 
@@ -86,7 +83,7 @@ export default function UsersPage() {
     if (!userId) return
     linkingUserIdRef.current = null
     await callApi(
-      `/api/users/${userId}/google`,
+      `/api/studio/admin/users/${userId}/google`,
       { method: 'PATCH', body: JSON.stringify({ credential }) },
       'Google account linked',
       'Failed to link Google account',
@@ -114,7 +111,7 @@ export default function UsersPage() {
     setAddLoading(true)
     setStatus(null)
     try {
-      const res = await fetch('/api/users', {
+      const res = await fetch('/api/studio/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: newUsername, password: newPassword }),
@@ -137,7 +134,7 @@ export default function UsersPage() {
   async function handleToggleRole(user: User) {
     const newRole = user.role === 'admin' ? 'user' : 'admin'
     await callApi(
-      `/api/users/${user.user_id}/role`,
+      `/api/studio/admin/users/${user.user_id}/role`,
       { method: 'PATCH', body: JSON.stringify({ role: newRole }) },
       `${user.username} is now ${newRole}`,
       'Failed to change role',
@@ -146,7 +143,7 @@ export default function UsersPage() {
 
   async function handleDelete(user: User) {
     await callApi(
-      `/api/users/${user.user_id}`,
+      `/api/studio/admin/users/${user.user_id}`,
       { method: 'DELETE' },
       `User "${user.username}" deleted`,
       'Failed to delete user',
@@ -157,7 +154,7 @@ export default function UsersPage() {
     setPwLoading(true)
     setStatus(null)
     try {
-      const res = await fetch(`/api/users/${userId}/password`, {
+      const res = await fetch(`/api/studio/admin/users/${userId}/password`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: newPw }),
@@ -191,7 +188,6 @@ export default function UsersPage() {
         Manage accounts that can log into ControlRoom.
       </p>
 
-      {/* User list */}
       <section className="mb-8">
         {loading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -308,7 +304,6 @@ export default function UsersPage() {
 
       <div className="border-t border-border mb-8" />
 
-      {/* Add user */}
       <section>
         <h3 className="text-sm font-medium text-foreground mb-4">Add User</h3>
         <form onSubmit={(e) => { void handleAdd(e) }} className="flex items-end gap-3">

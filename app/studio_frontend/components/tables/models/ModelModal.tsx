@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 
-const ENDPOINT = '/models'
+const ENDPOINT = '/studio/catalog/models'
 
 interface ModelModalProps {
   record: Model | null

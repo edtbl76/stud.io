@@ -6,7 +6,7 @@ from tests.conftest import insert_audit, insert_acknowledged_audit, insert_undon
 async def test_permanent_requires_admin(client, auth_headers, conn):
     audit_id, _ = await insert_audit(conn, operation="DELETE")
     response = await client.delete(
-        f"/admin/change-review/{audit_id}/permanent", headers=auth_headers
+        f"/studio/admin/change-review/{audit_id}/permanent", headers=auth_headers
     )
     assert response.status_code == 403
 
@@ -14,7 +14,7 @@ async def test_permanent_requires_admin(client, auth_headers, conn):
 async def test_permanent_returns_404_if_not_found(client, admin_headers):
     fake_id = "00000000-0000-0000-0000-000000000003"
     response = await client.delete(
-        f"/admin/change-review/{fake_id}/permanent", headers=admin_headers
+        f"/studio/admin/change-review/{fake_id}/permanent", headers=admin_headers
     )
     assert response.status_code == 404
 
@@ -22,7 +22,7 @@ async def test_permanent_returns_404_if_not_found(client, admin_headers):
 async def test_permanent_returns_400_for_non_delete_operation(client, admin_headers, conn):
     audit_id, _ = await insert_audit(conn, table="brands", operation="UPDATE")
     response = await client.delete(
-        f"/admin/change-review/{audit_id}/permanent", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/permanent", headers=admin_headers
     )
     assert response.status_code == 400
 
@@ -35,7 +35,7 @@ async def test_permanent_hard_deletes_record_and_sets_undone_fields(client, admi
     audit_id, _ = await insert_audit(conn, table="brands", operation="DELETE",
                                      record_id=brand_id)
     response = await client.delete(
-        f"/admin/change-review/{audit_id}/permanent", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/permanent", headers=admin_headers
     )
     assert response.status_code == 204
     brand_row = await conn.fetchrow(
@@ -67,7 +67,7 @@ class _AlreadyResolvedCase(NamedTuple):
 async def test_permanent_returns_409_if_already_resolved(client, admin_headers, conn, case):
     audit_id, _ = await case.insert_fn(conn, operation="DELETE")
     response = await client.delete(
-        f"/admin/change-review/{audit_id}/permanent", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/permanent", headers=admin_headers
     )
     assert response.status_code == 409
     assert case.expected_detail in response.json()["detail"]
@@ -84,7 +84,7 @@ async def test_permanent_fk_violation_returns_409(client, admin_headers, conn):
     audit_id, _ = await insert_audit(conn, table="brands", operation="DELETE",
                                      record_id=brand_id)
     response = await client.delete(
-        f"/admin/change-review/{audit_id}/permanent", headers=admin_headers
+        f"/studio/admin/change-review/{audit_id}/permanent", headers=admin_headers
     )
     assert response.status_code == 409
     assert "referenced" in response.json()["detail"]

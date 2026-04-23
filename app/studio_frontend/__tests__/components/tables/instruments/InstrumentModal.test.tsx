@@ -118,7 +118,7 @@ describe('InstrumentModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/instrument name/i), { target: { value: 'Upright Bass' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/instruments', expect.objectContaining({ instrument_name: 'Upright Bass' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/session/instruments', expect.objectContaining({ instrument_name: 'Upright Bass' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -152,7 +152,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Grand Piano'), { target: { value: 'Baby Grand' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/instruments', 'inst-1', expect.objectContaining({ instrument_name: 'Baby Grand' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/studio/session/instruments', 'inst-1', expect.objectContaining({ instrument_name: 'Baby Grand' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -166,7 +166,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/instruments', 'inst-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/studio/session/instruments', 'inst-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -179,7 +179,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/instruments', 'inst-1',
+      '/studio/session/instruments', 'inst-1',
       expect.objectContaining({ model_ids: [] }),
     ))
   })
@@ -193,7 +193,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/instruments', 'inst-1',
+      '/studio/session/instruments', 'inst-1',
       expect.objectContaining({ parent_ids: [] }),
     ))
   })
@@ -225,7 +225,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/instruments', 'inst-1',
+      '/studio/session/instruments', 'inst-1',
       expect.objectContaining({ artist_reference: 'Miles Davis' }),
     ))
   })
@@ -240,7 +240,7 @@ describe('InstrumentModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
-      '/instruments', 'inst-1',
+      '/studio/session/instruments', 'inst-1',
       expect.objectContaining({ artist_reference: null }),
     ))
   })

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 
-const ENDPOINT = '/brands'
+const ENDPOINT = '/studio/catalog/brands'
 
 interface BrandModalProps {
   record: Brand | null

@@ -31,7 +31,7 @@ export function ModelSelect({
     const timer = setTimeout(async () => {
       if (!query.trim()) { setResults([]); return }
       try {
-        const data = await api.listPaged<Model>('/models', { limit: 50, filters: { name: { value: query, operator: 'contains' } } })
+        const data = await api.listPaged<Model>('/studio/catalog/models', { limit: 50, filters: { name: { value: query, operator: 'contains' } } })
         setResults(data.items)
       } catch {
         setResults([])

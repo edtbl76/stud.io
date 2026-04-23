@@ -81,7 +81,7 @@ describe('ModelLinks', () => {
 
     fireEvent.click(screen.getByText('Universal Audio 1176'))
 
-    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('/models', 'model-1'))
+    await waitFor(() => expect(mockGet).toHaveBeenCalledWith('/studio/catalog/models', 'model-1'))
     await waitFor(() => expect(screen.getByRole('dialog')).toBeInTheDocument())
   })
 

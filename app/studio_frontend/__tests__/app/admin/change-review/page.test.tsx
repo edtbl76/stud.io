@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
-import ChangeReviewPage from '@/app/controlroom/admin/change-review/page'
+import ChangeReviewPage from '@/app/studio/admin/change-review/page'
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => mockUseAuth(),
@@ -133,7 +133,7 @@ describe('ChangeReviewPage', () => {
     fireEvent.click(ackButtons[0])
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}/acknowledge`),
+        expect.stringContaining(`/api/studio/admin/change-review/${mockUpdateEntry.audit_id}/acknowledge`),
         expect.objectContaining({ method: 'POST' })
       )
     })
@@ -149,7 +149,7 @@ describe('ChangeReviewPage', () => {
     fireEvent.click(undoButtons[0])
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockEntry.audit_id}/undo`),
+        expect.stringContaining(`/api/studio/admin/change-review/${mockEntry.audit_id}/undo`),
         expect.objectContaining({ method: 'POST' })
       )
     })
@@ -165,7 +165,7 @@ describe('ChangeReviewPage', () => {
     fireEvent.click(permButtons[0])
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockEntry.audit_id}/permanent`),
+        expect.stringContaining(`/api/studio/admin/change-review/${mockEntry.audit_id}/permanent`),
         expect.objectContaining({ method: 'DELETE' })
       )
     })
@@ -205,7 +205,7 @@ describe('ChangeReviewPage', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}`)
+        expect.stringContaining(`/api/studio/admin/change-review/${mockUpdateEntry.audit_id}`)
       )
       expect(screen.getByText('Before')).toBeInTheDocument()
       expect(screen.getByText('After')).toBeInTheDocument()
@@ -393,7 +393,7 @@ describe('ChangeReviewPage', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}`)
+        expect.stringContaining(`/api/studio/admin/change-review/${mockUpdateEntry.audit_id}`)
       )
     })
   })
@@ -416,7 +416,7 @@ describe('ChangeReviewPage', () => {
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining(`/api/admin/change-review/${mockUpdateEntry.audit_id}`)
+        expect.stringContaining(`/api/studio/admin/change-review/${mockUpdateEntry.audit_id}`)
       )
     })
   })
@@ -442,7 +442,7 @@ describe('ChangeReviewPage', () => {
     const ackButton = screen.getByRole('button', { name: /acknowledge/i })
     fireEvent.keyDown(ackButton, { key: 'Enter' })
 
-    const detailUrl = `/api/admin/change-review/${mockUpdateEntry.audit_id}`
+    const detailUrl = `/api/studio/admin/change-review/${mockUpdateEntry.audit_id}`
     const detailCalls = mockFetch.mock.calls.filter(([url]) => url === detailUrl)
     expect(detailCalls.length).toBe(0)
     expect(mockFetch.mock.calls.length).toBe(initialCallCount)

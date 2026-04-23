@@ -4,7 +4,7 @@ const UNIQUE = `__e2e_search_${Date.now()}`
 let createdBrandId: string | undefined
 
 async function createBrand(request: APIRequestContext) {
-  const res = await request.post('/api/brands', {
+  const res = await request.post('/api/studio/catalog/brands', {
     data: { legal_name: UNIQUE, brand_name: UNIQUE },
     headers: { 'Content-Type': 'application/json' },
   })
@@ -14,14 +14,14 @@ async function createBrand(request: APIRequestContext) {
 
 async function deleteBrand(request: APIRequestContext) {
   if (!createdBrandId) return
-  await request.delete(`/api/brands/${createdBrandId}`)
+  await request.delete(`/api/studio/catalog/brands/${createdBrandId}`)
 }
 
 test.beforeAll(async ({ request }) => { await createBrand(request) })
 test.afterAll(async ({ request }) => { await deleteBrand(request) })
 
 test('search: TopBar submitting a query navigates to /controlroom/search', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/controlroom/session/effects')
   const searchInput = page.getByPlaceholder('Global search...')
   await searchInput.fill('reverb')
   await searchInput.press('Enter')
@@ -66,7 +66,7 @@ test('search: clicking a result opens a modal; Go to button navigates to the tab
 
   // Click "Go to Brands" — navigates to the table page and opens the modal there
   await page.getByRole('button', { name: /go to brands/i }).click()
-  await expect(page).toHaveURL(/\/controlroom\/catalog\/brands/, { timeout: 10_000 })
+  await expect(page).toHaveURL(/\/studio\/catalog\/brands/, { timeout: 10_000 })
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 8_000 })
   await expect(page.getByRole('dialog').getByText(UNIQUE).first()).toBeVisible()
 })

@@ -9,7 +9,7 @@ export default function LibrariesPage() {
   return (
     <TablePage<Library>
       title="Libraries"
-      endpoint="/libraries"
+      endpoint="/studio/session/libraries"
       queryKey="/session/libraries"
       columns={libraryColumns}
       bulkEditFields={libraryBulkEditFields}

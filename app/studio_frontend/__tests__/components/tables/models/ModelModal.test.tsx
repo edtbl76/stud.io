@@ -92,7 +92,7 @@ describe('ModelModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/model name/i), { target: { value: 'API 512c' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/models', expect.objectContaining({ model_name: 'API 512c' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/catalog/models', expect.objectContaining({ model_name: 'API 512c' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
@@ -127,7 +127,7 @@ describe('ModelModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('Neve 1073'), { target: { value: 'Neve 1084' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/models', 'model-1', expect.objectContaining({ model_name: 'Neve 1084' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/studio/catalog/models', 'model-1', expect.objectContaining({ model_name: 'Neve 1084' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -141,7 +141,7 @@ describe('ModelModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/models', 'model-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/studio/catalog/models', 'model-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 

@@ -33,12 +33,12 @@ export default function (data) {
 
   group('catalog entities', () => {
     const endpoints = [
-      '/brands',
-      '/models',
-      '/effects',
-      '/instruments',
-      '/libraries',
-      '/workstations',
+      '/studio/catalog/brands',
+      '/studio/catalog/models',
+      '/studio/session/effects',
+      '/studio/session/instruments',
+      '/studio/session/libraries',
+      '/studio/session/workstations',
     ]
     for (const path of endpoints) {
       const res = http.get(`${BASE_URL}${path}`, { headers })
@@ -60,13 +60,13 @@ export default function (data) {
       'tool-types',
     ]
     for (const slug of slugs) {
-      const res = http.get(`${BASE_URL}/config/${slug}`, { headers })
+      const res = http.get(`${BASE_URL}/studio/config/${slug}`, { headers })
       check(res, { [`/config/${slug} status 200`]: (r) => r.status === 200 })
     }
   })
 
   group('catalog with filters', () => {
-    const res = http.get(`${BASE_URL}/brands?filter_brand_name=pro`, { headers })
+    const res = http.get(`${BASE_URL}/studio/catalog/brands?filter_brand_name=pro`, { headers })
     check(res, { 'filtered brands status 200': (r) => r.status === 200 })
   })
 }

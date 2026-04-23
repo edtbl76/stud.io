@@ -35,14 +35,14 @@ async def _insert_audit(conn, table, record_id, operation="UPDATE", old_data=Non
 # ---------------------------------------------------------------------------
 
 async def test_history_requires_auth(client):
-    response = await client.get(f"/effects/{uuid4()}/history")
+    response = await client.get(f"/studio/session/effects/{uuid4()}/history")
     assert response.status_code == 401
 
 
 async def test_history_accessible_by_regular_user(client, conn, auth_headers):
     brand_id = await _insert_brand(conn)
     effect_id = await _insert_effect(conn, brand_id)
-    response = await client.get(f"/effects/{effect_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/session/effects/{effect_id}/history", headers=auth_headers)
     assert response.status_code == 200
 
 
@@ -53,7 +53,7 @@ async def test_history_accessible_by_regular_user(client, conn, auth_headers):
 async def test_history_empty_for_no_audit_entries(client, conn, auth_headers):
     brand_id = await _insert_brand(conn)
     effect_id = await _insert_effect(conn, brand_id)
-    response = await client.get(f"/effects/{effect_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/session/effects/{effect_id}/history", headers=auth_headers)
     assert response.json() == []
 
 
@@ -62,7 +62,7 @@ async def test_history_returns_entries_sorted_desc(client, conn, auth_headers):
     effect_id = await _insert_effect(conn, brand_id)
     await _insert_audit(conn, "effects", effect_id, "CREATE", new_data={})
     await _insert_audit(conn, "effects", effect_id, "UPDATE", old_data={}, new_data={})
-    response = await client.get(f"/effects/{effect_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/session/effects/{effect_id}/history", headers=auth_headers)
     data = response.json()
     assert len(data) == 2
     times = [e["performed_at"] for e in data]
@@ -77,7 +77,7 @@ async def test_history_includes_old_and_new_data(client, conn, auth_headers):
         old_data={"effect_name": "Old"},
         new_data={"effect_name": "New"},
     )
-    response = await client.get(f"/effects/{effect_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/session/effects/{effect_id}/history", headers=auth_headers)
     entry = response.json()[0]
     assert entry["old_data"]["effect_name"] == "Old"
     assert entry["new_data"]["effect_name"] == "New"
@@ -87,7 +87,7 @@ async def test_history_null_old_data_for_create(client, conn, auth_headers):
     brand_id = await _insert_brand(conn)
     effect_id = await _insert_effect(conn, brand_id)
     await _insert_audit(conn, "effects", effect_id, "CREATE", new_data={"effect_name": "New"})
-    response = await client.get(f"/effects/{effect_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/session/effects/{effect_id}/history", headers=auth_headers)
     entry = response.json()[0]
     assert entry["old_data"] is None
     assert entry["new_data"] is not None
@@ -102,7 +102,7 @@ async def test_tools_history_resolves_workflow_table(client, conn, auth_headers)
         "INSERT INTO workflow_tools (tool_name) VALUES ('__hist_tool__') RETURNING workflow_tool_id"
     )
     await _insert_audit(conn, "workflow_tools", tool_id, "CREATE", new_data={})
-    response = await client.get(f"/tools/workflow/{tool_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/tools/workflow/{tool_id}/history", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -118,7 +118,7 @@ async def test_config_history_resolves_effect_types_table(client, conn, auth_hea
         "INSERT INTO effect_types (type_name) VALUES ('__hist_etype__') RETURNING type_id"
     )
     await _insert_audit(conn, "effect_types", type_id, "CREATE", new_data={})
-    response = await client.get(f"/config/effect-types/{type_id}/history", headers=auth_headers)
+    response = await client.get(f"/studio/config/effect-types/{type_id}/history", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
@@ -134,7 +134,7 @@ async def test_change_review_populates_record_display_name_for_brand(client, con
         "INSERT INTO brands (brand_name) VALUES ('HistoryBrand') RETURNING brand_id"
     )
     await _insert_audit(conn, "brands", brand_id, "UPDATE", old_data={}, new_data={})
-    response = await client.get("/admin/change-review", headers=admin_headers)
+    response = await client.get("/studio/admin/change-review", headers=admin_headers)
     entries = response.json()["entries"]
     match = next((e for e in entries if str(e["record_id"]) == str(brand_id)), None)
     assert match is not None
@@ -146,7 +146,7 @@ async def test_change_review_populates_record_display_name_for_config(client, co
         "INSERT INTO effect_types (type_name) VALUES ('HistoryType') RETURNING type_id"
     )
     await _insert_audit(conn, "effect_types", type_id, "CREATE", new_data={})
-    response = await client.get("/admin/change-review", headers=admin_headers)
+    response = await client.get("/studio/admin/change-review", headers=admin_headers)
     entries = response.json()["entries"]
     match = next((e for e in entries if str(e["record_id"]) == str(type_id)), None)
     assert match is not None
@@ -160,7 +160,7 @@ async def test_change_review_display_name_fallback_for_hard_deleted_record(clien
     await _insert_audit(conn, "brands", brand_id, "DELETE", old_data={})
     # Hard-delete the record so it no longer exists
     await conn.execute("DELETE FROM brands WHERE brand_id = $1", brand_id)
-    response = await client.get("/admin/change-review", headers=admin_headers)
+    response = await client.get("/studio/admin/change-review", headers=admin_headers)
     entries = response.json()["entries"]
     match = next((e for e in entries if str(e["record_id"]) == str(brand_id)), None)
     assert match is not None
@@ -173,7 +173,7 @@ async def test_change_review_display_name_resolves_soft_deleted_record(client, c
     )
     await conn.execute("UPDATE brands SET deleted_at = NOW() WHERE brand_id = $1", brand_id)
     await _insert_audit(conn, "brands", brand_id, "DELETE", old_data={})
-    response = await client.get("/admin/change-review", headers=admin_headers)
+    response = await client.get("/studio/admin/change-review", headers=admin_headers)
     entries = response.json()["entries"]
     match = next((e for e in entries if str(e["record_id"]) == str(brand_id)), None)
     assert match is not None

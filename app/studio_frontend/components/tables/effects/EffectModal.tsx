@@ -17,7 +17,7 @@ import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
 
-const ENDPOINT = '/effects'
+const ENDPOINT = '/studio/session/effects'
 
 interface EffectModalProps {
   record: Effect | null

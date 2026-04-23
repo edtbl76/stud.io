@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
 
-const ENDPOINT = '/workstations'
+const ENDPOINT = '/studio/session/workstations'
 
 interface WorkstationModalProps {
   record: Workstation | null

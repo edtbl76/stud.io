@@ -9,7 +9,7 @@ export default function MeasurementToolsPage() {
   return (
     <TablePage<Tool>
       title="Measurement Tools"
-      endpoint="/tools/measurement"
+      endpoint="/studio/tools/measurement"
       queryKey="/tools/measurement"
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}

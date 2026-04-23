@@ -4,16 +4,16 @@ import { SlidersHorizontal, Users } from 'lucide-react'
 
 const modules = [
   {
-    href: '/controlroom/catalog/brands',
+    href: '/controlroom/session/effects',
     icon: SlidersHorizontal,
     title: 'ControlRoom',
-    description: 'Manage your studio gear — catalog, sessions, libraries, and tools.',
+    description: 'Manage sessions, libraries, and tools.',
   },
   {
-    href: '/users',
+    href: '/studio/admin/users',
     icon: Users,
-    title: 'User Management',
-    description: 'Manage accounts and roles for everyone who accesses STUD.io.',
+    title: 'Studio Management',
+    description: 'Manage gear catalog, config, users, and administration.',
   },
 ]
 

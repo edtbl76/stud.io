@@ -2,29 +2,29 @@
 
 
 async def test_stats_requires_auth(client):
-    response = await client.get("/admin/stats")
+    response = await client.get("/studio/admin/stats")
     assert response.status_code == 401
 
 
 async def test_stats_requires_admin(client, auth_headers):
-    response = await client.get("/admin/stats", headers=auth_headers)
+    response = await client.get("/studio/admin/stats", headers=auth_headers)
     assert response.status_code == 403
 
 
 async def test_stats_returns_200(client, admin_headers):
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     assert response.status_code == 200
 
 
 async def test_stats_has_four_groups(client, admin_headers):
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     labels = [g["label"] for g in data["groups"]]
     assert labels == ["Catalog", "Session", "Tools", "Config"]
 
 
 async def test_stats_has_all_18_tables(client, admin_headers):
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     all_names = [t["name"] for g in data["groups"] for t in g["tables"]]
     expected = {
@@ -38,7 +38,7 @@ async def test_stats_has_all_18_tables(client, admin_headers):
 
 
 async def test_stats_total_equals_sum_of_counts(client, admin_headers):
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     computed = sum(t["count"] for g in data["groups"] for t in g["tables"])
     assert data["total"] == computed
@@ -46,7 +46,7 @@ async def test_stats_total_equals_sum_of_counts(client, admin_headers):
 
 async def test_stats_groups_sorted_by_count_desc(client, admin_headers):
     """Within each group, tables are sorted count desc, then name asc as tie-break."""
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     for group in data["groups"]:
         counts = [t["count"] for t in group["tables"]]
@@ -55,7 +55,7 @@ async def test_stats_groups_sorted_by_count_desc(client, admin_headers):
 
 async def test_stats_groups_sorted_by_name_asc_on_equal_count(client, admin_headers):
     """When counts are equal, tables should be sorted by display name ascending."""
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     for group in data["groups"]:
         # Find tables with equal count to each other and verify name ordering
@@ -70,7 +70,7 @@ async def test_stats_groups_sorted_by_name_asc_on_equal_count(client, admin_head
 
 async def test_stats_count_reflects_inserted_row(client, admin_headers, conn):
     """Inserting a row bumps the relevant table count by 1."""
-    before = await client.get("/admin/stats", headers=admin_headers)
+    before = await client.get("/studio/admin/stats", headers=admin_headers)
     brands_before = next(
         t["count"]
         for g in before.json()["groups"]
@@ -82,7 +82,7 @@ async def test_stats_count_reflects_inserted_row(client, admin_headers, conn):
         "INSERT INTO brands (brand_name) VALUES ('__test_brand__')"
     )
 
-    after = await client.get("/admin/stats", headers=admin_headers)
+    after = await client.get("/studio/admin/stats", headers=admin_headers)
     brands_after = next(
         t["count"]
         for g in after.json()["groups"]
@@ -94,7 +94,7 @@ async def test_stats_count_reflects_inserted_row(client, admin_headers, conn):
 
 async def test_stats_table_stat_has_pending_fields(client, admin_headers):
     """Each table stat must include pending_creates, pending_deletes, pending_updates."""
-    response = await client.get("/admin/stats", headers=admin_headers)
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     for group in data["groups"]:
         for table in group["tables"]:
@@ -105,7 +105,7 @@ async def test_stats_table_stat_has_pending_fields(client, admin_headers):
 
 async def test_stats_pending_creates_excluded_from_count(client, admin_headers, conn):
     """A pending CREATE entry does not increase the displayed count."""
-    before = await client.get("/admin/stats", headers=admin_headers)
+    before = await client.get("/studio/admin/stats", headers=admin_headers)
     before_stat = next(
         t for g in before.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
@@ -120,7 +120,7 @@ async def test_stats_pending_creates_excluded_from_count(client, admin_headers, 
         brand_id,
     )
 
-    after = await client.get("/admin/stats", headers=admin_headers)
+    after = await client.get("/studio/admin/stats", headers=admin_headers)
     after_stat = next(
         t for g in after.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
@@ -131,7 +131,7 @@ async def test_stats_pending_creates_excluded_from_count(client, admin_headers, 
 
 async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn):
     """A pending DELETE entry increases the displayed count by 1 above the baseline."""
-    before = await client.get("/admin/stats", headers=admin_headers)
+    before = await client.get("/studio/admin/stats", headers=admin_headers)
     before_stat = next(
         t for g in before.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
@@ -149,7 +149,7 @@ async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn)
         brand_id,
     )
 
-    after = await client.get("/admin/stats", headers=admin_headers)
+    after = await client.get("/studio/admin/stats", headers=admin_headers)
     after_stat = next(
         t for g in after.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
@@ -160,7 +160,7 @@ async def test_stats_pending_deletes_added_to_count(client, admin_headers, conn)
 
 async def test_stats_pending_updates_no_count_change(client, admin_headers, conn):
     """A pending UPDATE entry does not change the displayed count relative to inserting the row."""
-    before = await client.get("/admin/stats", headers=admin_headers)
+    before = await client.get("/studio/admin/stats", headers=admin_headers)
     before_stat = next(
         t for g in before.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )
@@ -175,7 +175,7 @@ async def test_stats_pending_updates_no_count_change(client, admin_headers, conn
         brand_id,
     )
 
-    after = await client.get("/admin/stats", headers=admin_headers)
+    after = await client.get("/studio/admin/stats", headers=admin_headers)
     after_stat = next(
         t for g in after.json()["groups"] for t in g["tables"] if t["name"] == "Brands"
     )

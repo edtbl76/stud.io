@@ -48,7 +48,7 @@ export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<Config
   const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
     useRecordModal<LookupOut, FormState>({
       record,
-      endpoint: `/config/${slug}`,
+      endpoint: `/studio/config/${slug}`,
       getRecordId: (r) => r.type_id,
       getHistoryUrl: (r) => `/config/${slug}/${r.type_id}/history`,
       getTitle: getConfigTitle,

@@ -9,7 +9,7 @@ export default function InstrumentsPage() {
   return (
     <TablePage<Instrument>
       title="Instruments"
-      endpoint="/instruments"
+      endpoint="/studio/session/instruments"
       queryKey="/session/instruments"
       columns={instrumentColumns}
       bulkEditFields={instrumentBulkEditFields}

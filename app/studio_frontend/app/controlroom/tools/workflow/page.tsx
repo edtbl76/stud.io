@@ -9,7 +9,7 @@ export default function WorkflowToolsPage() {
   return (
     <TablePage<Tool>
       title="Workflow Tools"
-      endpoint="/tools/workflow"
+      endpoint="/studio/tools/workflow"
       queryKey="/tools/workflow"
       columns={toolColumns}
       bulkEditFields={toolBulkEditFields}

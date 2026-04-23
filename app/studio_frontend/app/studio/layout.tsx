@@ -1,6 +1,6 @@
 import { UsersSidebar } from '@/components/layout/UsersSidebar'
 
-export default function UsersLayout({
+export default function StudioLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (

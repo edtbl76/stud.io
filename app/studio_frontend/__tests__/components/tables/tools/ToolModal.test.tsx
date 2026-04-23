@@ -94,7 +94,7 @@ describe('ToolModal — create mode', () => {
     fireEvent.change(screen.getByLabelText(/tool name/i), { target: { value: 'Spectral Repair' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/tools/admin', expect.objectContaining({ tool_name: 'Spectral Repair' })))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/studio/tools/admin', expect.objectContaining({ tool_name: 'Spectral Repair' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -128,7 +128,7 @@ describe('ToolModal — edit mode', () => {
     fireEvent.change(screen.getByDisplayValue('iZotope RX'), { target: { value: 'iZotope RX 11' } })
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
-    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/tools/admin', 'tool-1', expect.objectContaining({ tool_name: 'iZotope RX 11' })))
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith('/studio/tools/admin', 'tool-1', expect.objectContaining({ tool_name: 'iZotope RX 11' })))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 
@@ -142,7 +142,7 @@ describe('ToolModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^delete$/i }))
     fireEvent.click(screen.getByRole('button', { name: /confirm delete/i }))
 
-    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/tools/admin', 'tool-1'))
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('/studio/tools/admin', 'tool-1'))
     await waitFor(() => expect(onMutate).toHaveBeenCalled())
   })
 

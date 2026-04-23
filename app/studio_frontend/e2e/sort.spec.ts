@@ -7,7 +7,7 @@ async function waitForRows(page: Page) {
 // ── Toolbar sort UI ───────────────────────────────────────────────────────────
 
 test('sort: toolbar shows sort button when sortFields are configured', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   // The default sort pill and + button are both visible on page load
@@ -15,7 +15,7 @@ test('sort: toolbar shows sort button when sortFields are configured', async ({ 
 })
 
 test('sort: direction toggle button is visible when sortFields are configured', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   // Direction arrow is inside the first (default) sort pill
@@ -23,7 +23,7 @@ test('sort: direction toggle button is visible when sortFields are configured', 
 })
 
 test('sort: column headers have no clickable sort interaction', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   // Old column-header sort buttons (cursor-pointer) should be gone
@@ -31,7 +31,7 @@ test('sort: column headers have no clickable sort interaction', async ({ page })
 })
 
 test('sort: clicking + button opens dropdown with field options', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   await page.getByRole('button', { name: 'Add sort level' }).click()
@@ -42,7 +42,7 @@ test('sort: clicking + button opens dropdown with field options', async ({ page 
 })
 
 test('sort: selecting a field from + dropdown adds a new sort pill', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   await page.getByRole('button', { name: 'Add sort level' }).click()
@@ -53,7 +53,7 @@ test('sort: selecting a field from + dropdown adds a new sort pill', async ({ pa
 })
 
 test('sort: dropdown closes after selecting a field', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   await page.getByRole('button', { name: 'Add sort level' }).click()
@@ -64,7 +64,7 @@ test('sort: dropdown closes after selecting a field', async ({ page }) => {
 })
 
 test('sort: direction toggle flips between ascending and descending', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   const dirBtn = page.getByRole('button', { name: /Sort (ascending|descending)/ }).first()
@@ -78,7 +78,7 @@ test('sort: direction toggle flips between ascending and descending', async ({ p
 // ── Non-paginated: client-side sort reorders rows ─────────────────────────────
 
 test('sort: non-paginated table reorders rows when direction is toggled', async ({ page }) => {
-  await page.goto('/controlroom/catalog/brands')
+  await page.goto('/studio/catalog/brands')
   await waitForRows(page)
 
   const firstCell = page.locator('tbody tr:first-child td:nth-child(2)')
@@ -97,7 +97,7 @@ for (const { name, path } of [
   { name: 'effects',     path: '/controlroom/session/effects'     },
   { name: 'instruments', path: '/controlroom/session/instruments' },
   { name: 'libraries',   path: '/controlroom/session/libraries'   },
-  { name: 'models',      path: '/controlroom/catalog/models'      },
+  { name: 'models',      path: '/studio/catalog/models'      },
 ]) {
   test(`sort: ${name} direction toggle triggers server-side re-fetch`, async ({ page }) => {
     await page.goto(path)
