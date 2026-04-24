@@ -3,16 +3,57 @@
 import * as React from 'react'
 import Link from 'next/link'
 import { ChevronDown } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { cn } from '@/lib/utils'
+import { api } from '@/lib/api'
+
+export interface NavItemPrefetch {
+  endpoint: string
+  queryKey: string
+  paginated?: boolean
+  defaultSort?: string
+}
 
 export interface NavItem {
   label: string
   href: string
+  prefetch?: NavItemPrefetch
 }
 
 export interface NavGroup {
   title: string
   items: NavItem[]
+}
+
+function usePrefetchNavItem() {
+  const queryClient = useQueryClient()
+  return React.useCallback((prefetch: NavItemPrefetch | undefined) => {
+    if (!prefetch) return
+    const { endpoint, queryKey, paginated, defaultSort } = prefetch
+    const sorting = defaultSort ? [{ id: defaultSort, desc: false }] : []
+    if (paginated) {
+      void queryClient.prefetchInfiniteQuery({
+        queryKey: [queryKey, sorting, {}],
+        queryFn: ({ pageParam }) =>
+          api.listPaged(endpoint, {
+            limit: 100,
+            offset: pageParam,
+            sort_by: sorting.length > 0 ? sorting.map((s) => s.id) : undefined,
+            sort_dir: sorting.length > 0 ? sorting.map(() => 'asc') : undefined,
+          }),
+        initialPageParam: 0,
+        getNextPageParam: () => undefined,
+        pages: 1,
+        staleTime: 30_000,
+      })
+    } else {
+      void queryClient.prefetchQuery({
+        queryKey: [queryKey],
+        queryFn: () => api.list(endpoint),
+        staleTime: 30_000,
+      })
+    }
+  }, [queryClient])
 }
 
 interface SidebarNavGroupProps {
@@ -23,6 +64,7 @@ interface SidebarNavGroupProps {
 }
 
 export function SidebarNavGroup({ group, isOpen, pathname, onToggle }: Readonly<SidebarNavGroupProps>) {
+  const prefetchItem = usePrefetchNavItem()
   return (
     <div className="mb-1">
       <button
@@ -42,6 +84,7 @@ export function SidebarNavGroup({ group, isOpen, pathname, onToggle }: Readonly<
               <li key={item.href}>
                 <Link
                   href={item.href}
+                  onMouseEnter={() => prefetchItem(item.prefetch)}
                   className={cn(
                     'flex items-center px-4 py-1.5 text-xs transition-colors',
                     isActive

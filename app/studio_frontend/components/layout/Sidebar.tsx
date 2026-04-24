@@ -10,20 +10,20 @@ const navGroups: NavGroup[] = [
   {
     title: 'SESSION',
     items: [
-      { label: 'Effects', href: '/controlroom/session/effects' },
-      { label: 'Instruments', href: '/controlroom/session/instruments' },
-      { label: 'Libraries', href: '/controlroom/session/libraries' },
-      { label: 'Workstations', href: '/controlroom/session/workstations' },
+      { label: 'Effects',      href: '/controlroom/session/effects',      prefetch: { endpoint: '/studio/session/effects',      queryKey: '/session/effects',      paginated: true, defaultSort: 'effect_name' } },
+      { label: 'Instruments',  href: '/controlroom/session/instruments',  prefetch: { endpoint: '/studio/session/instruments',  queryKey: '/session/instruments',  paginated: true, defaultSort: 'instrument_name' } },
+      { label: 'Libraries',    href: '/controlroom/session/libraries',    prefetch: { endpoint: '/studio/session/libraries',    queryKey: '/session/libraries',    paginated: true, defaultSort: 'library_name' } },
+      { label: 'Workstations', href: '/controlroom/session/workstations', prefetch: { endpoint: '/studio/session/workstations', queryKey: '/session/workstations', paginated: true, defaultSort: 'full_tool_name' } },
     ],
   },
   {
     title: 'TOOLS',
     items: [
-      { label: 'Admin', href: '/controlroom/tools/admin' },
-      { label: 'Composition', href: '/controlroom/tools/composition' },
-      { label: 'Measurement', href: '/controlroom/tools/measurement' },
-      { label: 'Reference', href: '/controlroom/tools/reference' },
-      { label: 'Workflow', href: '/controlroom/tools/workflow' },
+      { label: 'Admin',       href: '/controlroom/tools/admin',       prefetch: { endpoint: '/studio/tools/admin',       queryKey: '/tools/admin',       paginated: true, defaultSort: 'full_tool_name' } },
+      { label: 'Composition', href: '/controlroom/tools/composition', prefetch: { endpoint: '/studio/tools/composition', queryKey: '/tools/composition', paginated: true, defaultSort: 'full_tool_name' } },
+      { label: 'Measurement', href: '/controlroom/tools/measurement', prefetch: { endpoint: '/studio/tools/measurement', queryKey: '/tools/measurement', paginated: true, defaultSort: 'full_tool_name' } },
+      { label: 'Reference',   href: '/controlroom/tools/reference',   prefetch: { endpoint: '/studio/tools/reference',   queryKey: '/tools/reference',   paginated: true, defaultSort: 'full_tool_name' } },
+      { label: 'Workflow',    href: '/controlroom/tools/workflow',    prefetch: { endpoint: '/studio/tools/workflow',    queryKey: '/tools/workflow',    paginated: true, defaultSort: 'full_tool_name' } },
     ],
   },
 ]

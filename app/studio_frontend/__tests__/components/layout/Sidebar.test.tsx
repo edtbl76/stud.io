@@ -2,6 +2,12 @@ import * as React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { Sidebar } from '@/components/layout/Sidebar'
 
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => ({ prefetchInfiniteQuery: jest.fn(), prefetchQuery: jest.fn() }),
+}))
+
+jest.mock('@/lib/api', () => ({ api: { listPaged: jest.fn(), list: jest.fn() } }))
+
 const mockLogout = jest.fn().mockResolvedValue(undefined)
 const mockPush = jest.fn()
 
