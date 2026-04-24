@@ -145,9 +145,10 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	fmt.Fprintln(out, "============================================================")
 	fmt.Fprintln(out, "  All systems go.")
 	fmt.Fprintln(out, "")
-	fmt.Fprintf(out, "  App:  %s\n", u.App)
-	fmt.Fprintf(out, "  API:  %s\n", u.API)
-	fmt.Fprintf(out, "  Docs: %s\n", u.Docs)
+	fmt.Fprintf(out, "  App:   %s\n", u.App)
+	fmt.Fprintf(out, "  API:   %s\n", u.API)
+	fmt.Fprintf(out, "  Docs:  %s\n", u.Docs)
+	fmt.Fprintf(out, "  MinIO: %s\n", u.MinIO)
 	if flags.dev {
 		fmt.Fprintln(out, "")
 		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
