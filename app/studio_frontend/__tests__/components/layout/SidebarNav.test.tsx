@@ -75,9 +75,26 @@ function renderGroup(group: NavGroup, { pathname = '/', isOpen = true } = {}) {
   )
 }
 
+function hoverItem(group: NavGroup, label: string) {
+  const { getByText } = renderGroup(group)
+  fireEvent.mouseEnter(getByText(label))
+}
+
 function expectNoPrefetch() {
   expect(mockPrefetchInfiniteQuery).not.toHaveBeenCalled()
   expect(mockPrefetchQuery).not.toHaveBeenCalled()
+}
+
+function expectOnlyInfiniteQuery(args: Record<string, unknown>) {
+  expect(mockPrefetchInfiniteQuery).toHaveBeenCalledTimes(1)
+  expect(mockPrefetchInfiniteQuery).toHaveBeenCalledWith(expect.objectContaining(args))
+  expect(mockPrefetchQuery).not.toHaveBeenCalled()
+}
+
+function expectOnlyQuery(args: Record<string, unknown>) {
+  expect(mockPrefetchQuery).toHaveBeenCalledTimes(1)
+  expect(mockPrefetchQuery).toHaveBeenCalledWith(expect.objectContaining(args))
+  expect(mockPrefetchInfiniteQuery).not.toHaveBeenCalled()
 }
 
 beforeEach(() => {
@@ -87,38 +104,25 @@ beforeEach(() => {
 
 describe('SidebarNavGroup prefetch', () => {
   it('calls prefetchInfiniteQuery with correct key on hover for paginated item', () => {
-    const { getByText } = renderGroup(PAGINATED_GROUP)
-    fireEvent.mouseEnter(getByText('Effects'))
-
-    expect(mockPrefetchInfiniteQuery).toHaveBeenCalledTimes(1)
-    expect(mockPrefetchInfiniteQuery).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryKey: ['/session/effects', [{ id: 'effect_name', desc: false }], {}],
-        initialPageParam: 0,
-        pages: 1,
-        staleTime: 30_000,
-      })
-    )
-    expect(mockPrefetchQuery).not.toHaveBeenCalled()
+    hoverItem(PAGINATED_GROUP, 'Effects')
+    expectOnlyInfiniteQuery({
+      queryKey: ['/session/effects', [{ id: 'effect_name', desc: false }], {}],
+      initialPageParam: 0,
+      pages: 1,
+      staleTime: 30_000,
+    })
   })
 
   it('calls prefetchQuery with correct key on hover for non-paginated item', () => {
-    const { getByText } = renderGroup(NON_PAGINATED_GROUP)
-    fireEvent.mouseEnter(getByText('Effect Types'))
-
-    expect(mockPrefetchQuery).toHaveBeenCalledTimes(1)
-    expect(mockPrefetchQuery).toHaveBeenCalledWith(
-      expect.objectContaining({
-        queryKey: ['/studio/config/effect-types'],
-        staleTime: 30_000,
-      })
-    )
-    expect(mockPrefetchInfiniteQuery).not.toHaveBeenCalled()
+    hoverItem(NON_PAGINATED_GROUP, 'Effect Types')
+    expectOnlyQuery({
+      queryKey: ['/studio/config/effect-types'],
+      staleTime: 30_000,
+    })
   })
 
   it('does not call any prefetch when item has no prefetch metadata', () => {
-    const { getByText } = renderGroup(NO_PREFETCH_GROUP)
-    fireEvent.mouseEnter(getByText('Backup'))
+    hoverItem(NO_PREFETCH_GROUP, 'Backup')
     expectNoPrefetch()
   })
 
@@ -137,9 +141,7 @@ describe('SidebarNavGroup prefetch', () => {
         prefetch: { endpoint: '/studio/test', queryKey: '/test', paginated: true },
       }],
     }
-    const { getByText } = renderGroup(group)
-    fireEvent.mouseEnter(getByText('Item'))
-
+    hoverItem(group, 'Item')
     expect(mockPrefetchInfiniteQuery).toHaveBeenCalledWith(
       expect.objectContaining({ queryKey: ['/test', [], {}] })
     )
