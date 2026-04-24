@@ -64,15 +64,20 @@ const NO_PREFETCH_GROUP: NavGroup = {
   items: [{ label: 'Backup', href: '/studio/admin/backup' }],
 }
 
-function renderGroup(group: NavGroup, pathname = '/') {
+function renderGroup(group: NavGroup, { pathname = '/', isOpen = true } = {}) {
   return render(
     <SidebarNavGroup
       group={group}
-      isOpen={true}
+      isOpen={isOpen}
       pathname={pathname}
       onToggle={jest.fn()}
     />
   )
+}
+
+function expectNoPrefetch() {
+  expect(mockPrefetchInfiniteQuery).not.toHaveBeenCalled()
+  expect(mockPrefetchQuery).not.toHaveBeenCalled()
 }
 
 beforeEach(() => {
@@ -114,22 +119,13 @@ describe('SidebarNavGroup prefetch', () => {
   it('does not call any prefetch when item has no prefetch metadata', () => {
     const { getByText } = renderGroup(NO_PREFETCH_GROUP)
     fireEvent.mouseEnter(getByText('Backup'))
-
-    expect(mockPrefetchInfiniteQuery).not.toHaveBeenCalled()
-    expect(mockPrefetchQuery).not.toHaveBeenCalled()
+    expectNoPrefetch()
   })
 
   it('does not prefetch when group is collapsed', () => {
-    const { queryByText } = render(
-      <SidebarNavGroup
-        group={PAGINATED_GROUP}
-        isOpen={false}
-        pathname="/"
-        onToggle={jest.fn()}
-      />
-    )
+    const { queryByText } = renderGroup(PAGINATED_GROUP, { isOpen: false })
     expect(queryByText('Effects')).toBeNull()
-    expect(mockPrefetchInfiniteQuery).not.toHaveBeenCalled()
+    expectNoPrefetch()
   })
 
   it('uses empty sorting array when no defaultSort provided', () => {
