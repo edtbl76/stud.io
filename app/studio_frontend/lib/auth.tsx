@@ -63,27 +63,18 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
 
   // On mount, check for an existing session via the httpOnly cookie
   React.useEffect(() => {
-    console.log('[auth] mount effect, pathname=', pathname)
     fetch('/api/auth/me')
       .then((r) => {
         if (!r.ok) throw new Error('not authenticated')
         return r.json()
       })
       .then((data: { username: string; role: string }) => {
-        console.log('[auth] /me success, user=', data.username)
         setUsername(data.username)
         setRole(data.role)
       })
-      .catch((e) => {
-        console.log('[auth] /me failed:', e)
-      })
-      .finally(() => { console.log('[auth] setChecked(true)'); setChecked(true) })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+      .catch(() => {})
+      .finally(() => { setChecked(true) })
   }, [])
-
-  React.useEffect(() => {
-    console.log('[auth] redirect-effect checked=', checked, 'username=', username, 'pathname=', pathname)
-  }, [checked, username, pathname])
 
   // Redirect unauthenticated users away from protected pages
   React.useEffect(() => {
