@@ -72,10 +72,8 @@ export function AuthProvider({ children }: Readonly<{ children: React.ReactNode 
         setUsername(data.username)
         setRole(data.role)
       })
-      .catch(() => {
-        // No valid session — leave username null
-      })
-      .finally(() => setChecked(true))
+      .catch(() => {})
+      .finally(() => { setChecked(true) })
   }, [])
 
   // Redirect unauthenticated users away from protected pages
