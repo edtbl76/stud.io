@@ -172,20 +172,20 @@ func GoTestStep(root Root) ToolStep {
 // symbols are vulnerable) and is treated as a pass — only exit code 1
 // (scan error) is a hard failure.
 func GovulncheckStep(root Root) ToolStep {
-	script := `govulncheck ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
+	script := goBinPath("govulncheck") + ` ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
 	return goStep("govulncheck", "bash", []string{"-c", script}, root)
 }
 
 // GosecStep returns a step that runs gosec static security analysis against
 // gearlist_backend, excluding test files.
 func GosecStep(root Root) ToolStep {
-	return goStep("gosec", "gosec", []string{"-quiet", "./..."}, root)
+	return goStep("gosec", goBinPath("gosec"), []string{"-quiet", "./..."}, root)
 }
 
 // StaticcheckStep returns a step that runs staticcheck analysis against
 // gearlist_backend.
 func StaticcheckStep(root Root) ToolStep {
-	return goStep("staticcheck", "staticcheck", []string{"./..."}, root)
+	return goStep("staticcheck", goBinPath("staticcheck"), []string{"./..."}, root)
 }
 
 // TrivyStep returns a step that scans a single container image with Trivy via

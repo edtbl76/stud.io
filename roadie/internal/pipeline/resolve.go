@@ -145,6 +145,16 @@ func ResolveGoBin() string {
 	return ""
 }
 
+// goBinPath returns the absolute path to a go-installed binary (govulncheck,
+// gosec, staticcheck). Falls back to the bare name when ResolveGoBin returns ""
+// so the step still attempts execution via PATH.
+func goBinPath(name string) string {
+	if dir := ResolveGoBin(); dir != "" {
+		return filepath.Join(dir, name)
+	}
+	return name
+}
+
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0
