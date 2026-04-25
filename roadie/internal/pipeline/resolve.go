@@ -123,6 +123,54 @@ func resolvePythonInHome(homeDir string) string {
 	return ""
 }
 
+// ResolveGoBin returns the GOPATH/bin directory, or "" if it cannot be
+// determined. Callers pass the result to pathEnv to ensure go-installed tools
+// (govulncheck, gosec, staticcheck) are on PATH in subprocesses that do not
+// inherit the user's interactive shell environment.
+func ResolveGoBin() string {
+	if gopath := os.Getenv("GOPATH"); gopath != "" {
+		bin := filepath.Join(gopath, "bin")
+		if info, err := os.Stat(bin); err == nil && info.IsDir() {
+			return bin
+		}
+	}
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" {
+		return ""
+	}
+	bin := filepath.Join(home, "go", "bin")
+	if info, err := os.Stat(bin); err == nil && info.IsDir() {
+		return bin
+	}
+	return ""
+}
+
+// ResolveGoExe returns the absolute path to the go binary, checking snap and
+// standard install locations. Returns "go" when none are found so callers can
+// still attempt execution via PATH.
+func ResolveGoExe() string {
+	for _, candidate := range []string{
+		"/snap/bin/go",
+		"/usr/local/go/bin/go",
+		"/usr/bin/go",
+	} {
+		if fileExists(candidate) {
+			return candidate
+		}
+	}
+	return "go"
+}
+
+// GoToolPath returns the absolute path to a go-installed tool (govulncheck,
+// gosec, staticcheck, etc.). Falls back to the bare name when ResolveGoBin
+// returns "" so callers never need to special-case a missing GOPATH.
+func GoToolPath(name string) string {
+	if bin := ResolveGoBin(); bin != "" {
+		return filepath.Join(bin, name)
+	}
+	return name
+}
+
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0

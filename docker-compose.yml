@@ -25,8 +25,32 @@ services:
       DB_USER: studio
       DB_PASSWORD: studio
       GOOGLE_CLIENT_ID: "684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com"
+      GEARLIST_URL: http://gearlist_backend:4001
     depends_on:
       - studio_db
+      - gearlist_backend
+    restart: unless-stopped
+
+  gearlist_backend:
+    build:
+      context: ./app/gearlist_backend
+    container_name: gearlist_backend
+    environment:
+      DB_HOST: studio_db
+      DB_PORT: 5432
+      DB_NAME: masterdb
+      DB_USER: studio
+      DB_PASSWORD: studio
+      APP_PORT: 4001
+    ports:
+      - "4001:4001"
+    depends_on:
+      - studio_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
 
   studio_minio:

@@ -20,6 +20,9 @@ stack:
     - name: Frontend
       type: http
       url: https://localhost:2112
+    - name: GearList
+      type: http
+      url: http://localhost:4001/health
     - name: MinIO
       type: http
       url: http://localhost:1983/minio/health/live
@@ -37,6 +40,7 @@ stack:
     app: https://localhost:2112
     api: https://localhost:5150
     docs: https://localhost:5150/docs
+    gearlist: http://localhost:4001
     minio: http://localhost:1982  # console UI; http is intentional for local dev — upgrade to https when MinIO is behind a TLS reverse-proxy
     sonarqube: http://localhost:1969
     structurizr: http://localhost:1967
@@ -73,6 +77,8 @@ build:
     - app/controlroom_backend/requirements.txt
     - app/studio_frontend/Dockerfile
     - app/studio_frontend/package.json
+    - app/gearlist_backend/Dockerfile
+    - app/gearlist_backend/go.sum
 
 test:
   e2e:

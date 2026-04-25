@@ -41,6 +41,7 @@ func runDoctor(ctx context.Context, out io.Writer) error {
 		{"python", checkBinary("python")},
 		{"k6", checkBinary("k6")},
 		{"detect-secrets", checkBinary("detect-secrets")},
+		{"GearList", checkHTTP("http://localhost:4001/health")},
 		{"MinIO", checkHTTP("http://localhost:1983/minio/health/live")},
 		{"SonarQube", checkHTTP("http://localhost:1969")},
 	}

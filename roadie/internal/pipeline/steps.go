@@ -8,6 +8,7 @@ import (
 
 const frontendDir = "app/studio_frontend"
 const backendDir = "app/controlroom_backend"
+const gearlistDir = "app/gearlist_backend"
 
 // Root is the filesystem root of the monorepo, used to resolve tool paths.
 type Root string
@@ -145,6 +146,60 @@ func PipAuditStep(root Root) ToolStep {
 // NpmAuditStep returns a step that audits npm dependencies for known CVEs.
 func NpmAuditStep(root Root) ToolStep {
 	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
+}
+
+// GoTestStep returns a step that runs all Go tests with the race detector and
+// emits a coverage profile to coverage.out in the gearlist_backend directory.
+func GoTestStep(root Root) ToolStep {
+	r := string(root)
+	dir := filepath.Join(r, gearlistDir)
+	return ToolStep{
+		Name: "go-test",
+		Bin:  "go",
+		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
+		Dir:  dir,
+	}
+}
+
+// GovulncheckStep returns a step that scans gearlist_backend for known Go
+// vulnerabilities. Exit code 3 means module-level findings only (no called
+// symbols are vulnerable) and is treated as a pass — only exit code 1
+// (scan error) is a hard failure.
+func GovulncheckStep(root Root) ToolStep {
+	r := string(root)
+	dir := filepath.Join(r, gearlistDir)
+	bin := GoToolPath("govulncheck")
+	script := bin + ` ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
+	return ToolStep{
+		Name: "govulncheck",
+		Bin:  "bash",
+		Args: []string{"-c", script},
+		Dir:  dir,
+	}
+}
+
+// GosecStep returns a step that runs gosec static security analysis against
+// gearlist_backend, excluding test files.
+func GosecStep(root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: "gosec",
+		Bin:  GoToolPath("gosec"),
+		Args: []string{"-quiet", "./..."},
+		Dir:  filepath.Join(r, gearlistDir),
+	}
+}
+
+// StaticcheckStep returns a step that runs staticcheck analysis against
+// gearlist_backend.
+func StaticcheckStep(root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: "staticcheck",
+		Bin:  GoToolPath("staticcheck"),
+		Args: []string{"./..."},
+		Dir:  filepath.Join(r, gearlistDir),
+	}
 }
 
 // TrivyStep returns a step that scans a single container image with Trivy via

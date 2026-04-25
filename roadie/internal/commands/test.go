@@ -37,9 +37,9 @@ func testCmd() *cobra.Command {
 
 func unitCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest] [pip-audit] [npm-audit]",
-		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit)",
-		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest", "pip-audit", "npm-audit"},
+		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest] [go-test] [govulncheck] [gosec] [staticcheck] [pip-audit] [npm-audit]",
+		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest, go-test, govulncheck, gosec, staticcheck, pip-audit, npm-audit)",
+		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest", "go-test", "govulncheck", "gosec", "staticcheck", "pip-audit", "npm-audit"},
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
@@ -48,7 +48,7 @@ func unitCmd() *cobra.Command {
 				// Targeted run: sequential so the user sees one tool at a time.
 				steps := buildUnitPipeline(r, args, true)
 				if len(steps) == 0 {
-					return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, pip-audit, npm-audit", args)
+					return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, go-test, govulncheck, gosec, staticcheck, pip-audit, npm-audit", args)
 				}
 				return pipeline.New(steps...).RunSequential(cmd.Context(), os.Stdout)
 			}
