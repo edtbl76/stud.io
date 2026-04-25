@@ -148,18 +148,23 @@ func NpmAuditStep(root Root) ToolStep {
 	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
 }
 
+// goStep builds a ToolStep that runs bin with args in the gearlist_backend
+// directory. Used by Go tool steps to avoid duplication.
+func goStep(name, bin string, args []string, root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: name,
+		Bin:  bin,
+		Args: args,
+		Dir:  filepath.Join(r, gearlistDir),
+		Env:  pathEnv(ResolveGoBin()),
+	}
+}
+
 // GoTestStep returns a step that runs all Go tests with the race detector and
 // emits a coverage profile to coverage.out in the gearlist_backend directory.
 func GoTestStep(root Root) ToolStep {
-	r := string(root)
-	dir := filepath.Join(r, gearlistDir)
-	return ToolStep{
-		Name: "go-test",
-		Bin:  "go",
-		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
-		Dir:  dir,
-		Env:  pathEnv(ResolveGoBin()),
-	}
+	return goStep("go-test", "go", []string{"test", "-race", "-coverprofile=coverage.out", "./..."}, root)
 }
 
 // GovulncheckStep returns a step that scans gearlist_backend for known Go
@@ -167,42 +172,20 @@ func GoTestStep(root Root) ToolStep {
 // symbols are vulnerable) and is treated as a pass — only exit code 1
 // (scan error) is a hard failure.
 func GovulncheckStep(root Root) ToolStep {
-	r := string(root)
-	dir := filepath.Join(r, gearlistDir)
 	script := `govulncheck ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
-	return ToolStep{
-		Name: "govulncheck",
-		Bin:  "bash",
-		Args: []string{"-c", script},
-		Dir:  dir,
-		Env:  pathEnv(ResolveGoBin()),
-	}
+	return goStep("govulncheck", "bash", []string{"-c", script}, root)
 }
 
 // GosecStep returns a step that runs gosec static security analysis against
 // gearlist_backend, excluding test files.
 func GosecStep(root Root) ToolStep {
-	r := string(root)
-	return ToolStep{
-		Name: "gosec",
-		Bin:  "gosec",
-		Args: []string{"-quiet", "./..."},
-		Dir:  filepath.Join(r, gearlistDir),
-		Env:  pathEnv(ResolveGoBin()),
-	}
+	return goStep("gosec", "gosec", []string{"-quiet", "./..."}, root)
 }
 
 // StaticcheckStep returns a step that runs staticcheck analysis against
 // gearlist_backend.
 func StaticcheckStep(root Root) ToolStep {
-	r := string(root)
-	return ToolStep{
-		Name: "staticcheck",
-		Bin:  "staticcheck",
-		Args: []string{"./..."},
-		Dir:  filepath.Join(r, gearlistDir),
-		Env:  pathEnv(ResolveGoBin()),
-	}
+	return goStep("staticcheck", "staticcheck", []string{"./..."}, root)
 }
 
 // TrivyStep returns a step that scans a single container image with Trivy via

@@ -35,7 +35,6 @@ steps:
     image: /bin/bash
     depends_on: [npm-install]
     commands:
-      - export PATH="$HOME/go/bin:$PATH"
       - roadie test unit
       - roadie test pbt
 
