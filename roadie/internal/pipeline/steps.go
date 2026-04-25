@@ -158,6 +158,7 @@ func GoTestStep(root Root) ToolStep {
 		Bin:  "go",
 		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
 		Dir:  dir,
+		Env:  pathEnv(ResolveGoBin()),
 	}
 }
 
@@ -168,13 +169,13 @@ func GoTestStep(root Root) ToolStep {
 func GovulncheckStep(root Root) ToolStep {
 	r := string(root)
 	dir := filepath.Join(r, gearlistDir)
-	bin := GoToolPath("govulncheck")
-	script := bin + ` ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
+	script := `govulncheck ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
 	return ToolStep{
 		Name: "govulncheck",
 		Bin:  "bash",
 		Args: []string{"-c", script},
 		Dir:  dir,
+		Env:  pathEnv(ResolveGoBin()),
 	}
 }
 
@@ -184,9 +185,10 @@ func GosecStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
 		Name: "gosec",
-		Bin:  GoToolPath("gosec"),
+		Bin:  "gosec",
 		Args: []string{"-quiet", "./..."},
 		Dir:  filepath.Join(r, gearlistDir),
+		Env:  pathEnv(ResolveGoBin()),
 	}
 }
 
@@ -196,9 +198,10 @@ func StaticcheckStep(root Root) ToolStep {
 	r := string(root)
 	return ToolStep{
 		Name: "staticcheck",
-		Bin:  GoToolPath("staticcheck"),
+		Bin:  "staticcheck",
 		Args: []string{"./..."},
 		Dir:  filepath.Join(r, gearlistDir),
+		Env:  pathEnv(ResolveGoBin()),
 	}
 }
 
