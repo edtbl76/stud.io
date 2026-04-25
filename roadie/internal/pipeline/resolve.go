@@ -123,13 +123,22 @@ func resolvePythonInHome(homeDir string) string {
 	return ""
 }
 
-// ResolveGoBin returns the GOPATH/bin directory, or "" if it cannot be
-// determined. Callers pass the result to pathEnv to ensure go-installed tools
-// (govulncheck, gosec, staticcheck) are on PATH in subprocesses that do not
-// inherit the user's interactive shell environment.
+// ResolveGoBin returns the directory containing go-installed tool binaries
+// (govulncheck, gosec, staticcheck), or "" if it cannot be determined.
+// Resolution order: GOBIN env var, GOPATH/bin, then ~/go/bin. GOBIN is
+// checked first so CI agents can provide an explicit path without relying
+// on HOME, which Woodpecker's local backend overrides with a temp dir.
 func ResolveGoBin() string {
-	if gopath := os.Getenv("GOPATH"); gopath != "" {
-		bin := filepath.Join(gopath, "bin")
+	if gobin := os.Getenv("GOBIN"); gobin != "" {
+		if info, err := os.Stat(gobin); err == nil && info.IsDir() {
+			return gobin
+		}
+	}
+	for _, entry := range strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator)) {
+		if entry = strings.TrimSpace(entry); entry == "" {
+			continue
+		}
+		bin := filepath.Join(entry, "bin")
 		if info, err := os.Stat(bin); err == nil && info.IsDir() {
 			return bin
 		}
@@ -153,6 +162,23 @@ func goBinPath(name string) string {
 		return filepath.Join(dir, name)
 	}
 	return name
+}
+
+// ResolveGoExe returns the bin directory containing the go binary, or ""
+// if go cannot be found in well-known locations. Snap systems install go
+// at /snap/bin/go; standard installations use /usr/local/go/bin.
+func ResolveGoExe() string {
+	return resolveGoExe([]string{"/snap/bin", "/usr/local/go/bin", "/usr/bin"})
+}
+
+// resolveGoExe is the testable core of ResolveGoExe.
+func resolveGoExe(candidates []string) string {
+	for _, dir := range candidates {
+		if fileExists(filepath.Join(dir, "go")) {
+			return dir
+		}
+	}
+	return ""
 }
 
 func fileExists(path string) bool {

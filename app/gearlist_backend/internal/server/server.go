@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"log/slog"
+	"net"
 	"net/http"
 	"time"
 )
@@ -34,6 +35,14 @@ func New(addr string, mux http.Handler) *Server {
 func (s *Server) Start() error {
 	slog.Info("gearlist_backend listening", "addr", s.inner.Addr)
 	return s.inner.ListenAndServe()
+}
+
+// Serve accepts connections on the provided listener. It blocks until the
+// server closes. Using a pre-bound listener makes the server's ready state
+// deterministic, which is useful in tests.
+func (s *Server) Serve(l net.Listener) error {
+	slog.Info("gearlist_backend listening", "addr", l.Addr())
+	return s.inner.Serve(l)
 }
 
 // Shutdown gracefully drains active connections within the given context deadline.

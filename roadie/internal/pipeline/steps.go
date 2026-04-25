@@ -164,16 +164,20 @@ func goStep(name, bin string, args []string, root Root) ToolStep {
 // GoTestStep returns a step that runs all Go tests with the race detector and
 // emits a coverage profile to coverage.out in the gearlist_backend directory.
 func GoTestStep(root Root) ToolStep {
-	return goStep("go-test", "go", []string{"test", "-race", "-coverprofile=coverage.out", "./..."}, root)
+	return ToolStep{
+		Name: "go-test",
+		Bin:  "go",
+		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
+		Dir:  filepath.Join(string(root), gearlistDir),
+		Env:  pathEnv(ResolveGoExe()),
+	}
 }
 
 // GovulncheckStep returns a step that scans gearlist_backend for known Go
-// vulnerabilities. Exit code 3 means module-level findings only (no called
-// symbols are vulnerable) and is treated as a pass — only exit code 1
-// (scan error) is a hard failure.
+// vulnerabilities. Any non-zero exit code from govulncheck is treated as a
+// failure, including exit code 3 (module-level findings).
 func GovulncheckStep(root Root) ToolStep {
-	script := goBinPath("govulncheck") + ` ./...; code=$?; [ $code -eq 0 ] || [ $code -eq 3 ] || exit $code`
-	return goStep("govulncheck", "bash", []string{"-c", script}, root)
+	return goStep("govulncheck", goBinPath("govulncheck"), []string{"./..."}, root)
 }
 
 // GosecStep returns a step that runs gosec static security analysis against

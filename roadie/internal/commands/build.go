@@ -189,6 +189,10 @@ var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
 // pip-audit and npm-audit are excluded from the default run and only included
 // when explicitly named (they run as separate pre-commit hooks to avoid double
 // execution and because they make network calls).
+// govulncheck also makes a network call (vuln.go.dev) but is intentionally
+// included in the default run: unlike pip-audit/npm-audit it has no dedicated
+// pre-commit hook, so excluding it from the default would drop it from both the
+// pre-commit suite and the Woodpecker unit-pbt step entirely.
 // NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected,
 // unless withInstall is false (used by roadie test full, which runs npm-install
 // once before launching unit and PBT goroutines concurrently).

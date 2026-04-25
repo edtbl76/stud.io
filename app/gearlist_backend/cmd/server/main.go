@@ -30,7 +30,9 @@ func run() error {
 		return fmt.Errorf("config: %w", err)
 	}
 
-	pool, err := db.Open(context.Background(), cfg.DSN())
+	dbCtx, dbCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer dbCancel()
+	pool, err := db.Open(dbCtx, cfg.DSN())
 	if err != nil {
 		return fmt.Errorf("db: %w", err)
 	}
@@ -45,16 +47,20 @@ func run() error {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
+	srvErr := make(chan error, 1)
 	go func() {
 		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("server error", "err", err)
-			os.Exit(1)
+			srvErr <- err
 		}
 	}()
 
-	<-quit
-	slog.Info("shutting down")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	return srv.Shutdown(ctx)
+	select {
+	case err := <-srvErr:
+		return fmt.Errorf("server: %w", err)
+	case <-quit:
+		slog.Info("shutting down")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		return srv.Shutdown(ctx)
+	}
 }

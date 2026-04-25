@@ -10,6 +10,7 @@ import (
 func TestLoadDefaults(t *testing.T) {
 	t.Setenv("DB_HOST", "")
 	t.Setenv("DB_NAME", "")
+	t.Setenv("DB_PASSWORD", "testpass")
 
 	// defaults are non-empty so Load should succeed
 	cfg, err := Load()
@@ -27,6 +28,7 @@ func TestLoadDefaults(t *testing.T) {
 func TestLoadReadsEnv(t *testing.T) {
 	t.Setenv("DB_HOST", "myhost")
 	t.Setenv("DB_NAME", "mydb")
+	t.Setenv("DB_PASSWORD", "mypass")
 	t.Setenv("APP_PORT", "9999")
 
 	cfg, err := Load()
@@ -48,10 +50,12 @@ func TestDSNAlwaysHasPostgresScheme(t *testing.T) {
 	rapid.Check(t, func(t *rapid.T) {
 		host := rapid.StringMatching(`[a-z]{1,20}`).Draw(t, "host")
 		name := rapid.StringMatching(`[a-z]{1,20}`).Draw(t, "name")
+		pass := rapid.StringMatching(`[!-~]{1,20}`).Draw(t, "pass") // printable ASCII including specials
 		port := rapid.IntRange(1, 65535).Draw(t, "port")
-		cfg := &Config{DBHost: host, DBPort: port, DBName: name, DBUser: "u", DBPassword: "p", AppPort: 4001}
-		if !strings.HasPrefix(cfg.DSN(), "postgresql://") {
-			t.Fatalf("DSN %q does not start with postgresql://", cfg.DSN())
+		cfg := &Config{DBHost: host, DBPort: port, DBName: name, DBUser: "u", DBPassword: pass, AppPort: 4001}
+		dsn := cfg.DSN()
+		if !strings.HasPrefix(dsn, "postgresql://") {
+			t.Fatalf("DSN %q does not start with postgresql://", dsn)
 		}
 	})
 }
@@ -64,6 +68,16 @@ func TestAddrAlwaysHasColon(t *testing.T) {
 			t.Fatalf("Addr %q does not start with ':'", cfg.Addr())
 		}
 	})
+}
+
+func TestValidateRejectsEmptyPassword(t *testing.T) {
+	t.Setenv("DB_HOST", "h")
+	t.Setenv("DB_NAME", "d")
+	t.Setenv("DB_PASSWORD", "")
+	_, err := Load()
+	if err == nil {
+		t.Error("expected error for empty DB_PASSWORD, got nil")
+	}
 }
 
 func TestValidateRejectsInvalidPort(t *testing.T) {

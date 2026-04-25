@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 )
@@ -23,16 +24,21 @@ func Load() (*Config, error) {
 		DBPort:     envInt("DB_PORT", 5432),
 		DBName:     env("DB_NAME", "masterdb"),
 		DBUser:     env("DB_USER", "studio"),
-		DBPassword: env("DB_PASSWORD", "studio"),
+		DBPassword: env("DB_PASSWORD", ""),
 		AppPort:    envInt("APP_PORT", 4001),
 	}
 	return cfg, cfg.validate()
 }
 
-// DSN returns the PostgreSQL connection string.
+// DSN returns the PostgreSQL connection string with percent-encoded credentials.
 func (c *Config) DSN() string {
-	return fmt.Sprintf("postgresql://%s:%s@%s:%d/%s",
-		c.DBUser, c.DBPassword, c.DBHost, c.DBPort, c.DBName)
+	u := &url.URL{
+		Scheme: "postgresql",
+		User:   url.UserPassword(c.DBUser, c.DBPassword),
+		Host:   fmt.Sprintf("%s:%d", c.DBHost, c.DBPort),
+		Path:   "/" + c.DBName,
+	}
+	return u.String()
 }
 
 // Addr returns the TCP address the HTTP server should bind to.
@@ -46,6 +52,9 @@ func (c *Config) validate() error {
 	}
 	if c.DBName == "" {
 		return fmt.Errorf("DB_NAME must not be empty")
+	}
+	if c.DBPassword == "" {
+		return fmt.Errorf("DB_PASSWORD must not be empty")
 	}
 	if c.AppPort < 1 || c.AppPort > 65535 {
 		return fmt.Errorf("APP_PORT %d is out of range [1, 65535]", c.AppPort)

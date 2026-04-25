@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"errors"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -13,17 +15,23 @@ func TestServerStartsAndShutsDown(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	srv := New(":0", mux)
+	ln, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("net.Listen: %v", err)
+	}
+
+	srv := New(ln.Addr().String(), mux)
 
 	errCh := make(chan error, 1)
-	go func() { errCh <- srv.Start() }()
-
-	// Give the server a moment to bind.
-	time.Sleep(10 * time.Millisecond)
+	go func() { errCh <- srv.Serve(ln) }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		t.Fatalf("Shutdown(): %v", err)
+	}
+
+	if err := <-errCh; err != nil && !errors.Is(err, http.ErrServerClosed) {
+		t.Fatalf("Serve(): %v", err)
 	}
 }

@@ -20,6 +20,7 @@ async def lifespan(app: FastAPI):
         await seed_default_admin(conn)
     yield
     await close_pool()
+    await gearlist.close_client()
 
 
 app = FastAPI(title="STUD.io ControlRoom API", lifespan=lifespan)

@@ -35,6 +35,7 @@ steps:
     image: /bin/bash
     depends_on: [npm-install]
     commands:
+      - '[ -n "$GOBIN" ] || { echo "GOBIN is not set — add it to the agent .env (e.g. GOBIN=/home/<user>/go/bin)."; exit 1; }'
       - roadie test unit
       - roadie test pbt
 

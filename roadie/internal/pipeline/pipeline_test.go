@@ -596,3 +596,97 @@ func TestPathEnv_NonEmpty_PrependsToPATH(t *testing.T) {
 		t.Errorf("expected PATH to start with injected dir, got: %q", got[0])
 	}
 }
+
+// ── ResolveGoExe ──────────────────────────────────────────────────────────────
+
+func TestResolveGoExe_ReturnsFirstMatchingDir(t *testing.T) {
+	tmp := t.TempDir()
+	snapBin := filepath.Join(tmp, "snap", "bin")
+	os.MkdirAll(snapBin, 0o755)
+	os.WriteFile(filepath.Join(snapBin, "go"), []byte(""), 0o755)
+	stdBin := filepath.Join(tmp, "usr", "local", "go", "bin")
+	os.MkdirAll(stdBin, 0o755)
+	os.WriteFile(filepath.Join(stdBin, "go"), []byte(""), 0o755)
+
+	got := resolveGoExe([]string{snapBin, stdBin})
+	if got != snapBin {
+		t.Errorf("expected snap bin %q to win, got %q", snapBin, got)
+	}
+}
+
+func TestResolveGoExe_FallsBackToStdBin(t *testing.T) {
+	tmp := t.TempDir()
+	stdBin := filepath.Join(tmp, "usr", "local", "go", "bin")
+	os.MkdirAll(stdBin, 0o755)
+	os.WriteFile(filepath.Join(stdBin, "go"), []byte(""), 0o755)
+
+	got := resolveGoExe([]string{filepath.Join(tmp, "snap", "bin"), stdBin})
+	if got != stdBin {
+		t.Errorf("expected std bin %q, got %q", stdBin, got)
+	}
+}
+
+func TestResolveGoExe_NoneFound_ReturnsEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	got := resolveGoExe([]string{filepath.Join(tmp, "snap", "bin"), filepath.Join(tmp, "usr", "local", "go", "bin")})
+	if got != "" {
+		t.Errorf("expected empty string when go not found, got %q", got)
+	}
+}
+
+// ── ResolveGoBin ──────────────────────────────────────────────────────────────
+
+func TestResolveGoBin_PrefersGOBINEnvVar(t *testing.T) {
+	tmp := t.TempDir()
+	gobinDir := filepath.Join(tmp, "gobin")
+	os.MkdirAll(gobinDir, 0o755)
+	t.Setenv("GOBIN", gobinDir)
+	t.Setenv("GOPATH", "")
+
+	got := ResolveGoBin()
+	if got != gobinDir {
+		t.Errorf("expected GOBIN dir %q, got %q", gobinDir, got)
+	}
+}
+
+func TestResolveGoBin_GOBINMissingDirFallsToGOPATH(t *testing.T) {
+	tmp := t.TempDir()
+	gopathBin := filepath.Join(tmp, "go", "bin")
+	os.MkdirAll(gopathBin, 0o755)
+	t.Setenv("GOBIN", filepath.Join(tmp, "nonexistent"))
+	t.Setenv("GOPATH", filepath.Join(tmp, "go"))
+
+	got := ResolveGoBin()
+	if got != gopathBin {
+		t.Errorf("expected GOPATH bin %q, got %q", gopathBin, got)
+	}
+}
+
+func TestResolveGoBin_MultiPathGOPATH_ReturnsFirstExisting(t *testing.T) {
+	tmp := t.TempDir()
+	absent := filepath.Join(tmp, "absent", "bin")
+	present := filepath.Join(tmp, "present", "bin")
+	os.MkdirAll(present, 0o755)
+	t.Setenv("GOBIN", "")
+	t.Setenv("GOPATH", strings.Join([]string{filepath.Dir(absent), filepath.Dir(present)}, string(os.PathListSeparator)))
+
+	got := ResolveGoBin()
+	if got != present {
+		t.Errorf("expected first existing bin dir %q, got %q", present, got)
+	}
+}
+
+func TestResolveGoBin_MultiPathGOPATH_SkipsEmptyEntries(t *testing.T) {
+	tmp := t.TempDir()
+	present := filepath.Join(tmp, "go", "bin")
+	os.MkdirAll(present, 0o755)
+	t.Setenv("GOBIN", "")
+	// leading/trailing/double separators produce empty entries
+	sep := string(os.PathListSeparator)
+	t.Setenv("GOPATH", sep+filepath.Dir(present)+sep+sep)
+
+	got := ResolveGoBin()
+	if got != present {
+		t.Errorf("expected present bin dir %q, got %q", present, got)
+	}
+}
