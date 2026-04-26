@@ -150,6 +150,11 @@ func AllScanFlags(gate bool) ScanFlags {
 	}
 }
 
+type scanTask struct {
+	name string
+	run  func() error
+}
+
 type scanStepEntry struct {
 	enabled bool
 	step    ToolStep
@@ -167,25 +172,17 @@ func simpleScanSteps(root Root, flags ScanFlags) []scanStepEntry {
 	}
 }
 
-// RunScan runs all selected security scan suites in parallel and returns
-// aggregated results. Trivy backend and frontend share a cache lock so they
-// run sequentially within a single goroutine; sonar, secrets, and headers each
-// run in their own goroutine concurrently alongside trivy.
-func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]StepResult, error) {
-	type task struct {
-		name string
-		run  func() error
-	}
-	var tasks []task
-
+// buildScanTasks assembles the ordered list of scan tasks from flags.
+func buildScanTasks(ctx context.Context, root Root, flags ScanFlags, out io.Writer) []scanTask {
+	var tasks []scanTask
 	if flags.Sonar {
-		tasks = append(tasks, task{"sonar", func() error {
+		tasks = append(tasks, scanTask{"sonar", func() error {
 			return RunSonarScan(ctx, root, flags.Gate, out)
 		}})
 	}
 	if flags.Trivy {
 		b, f := TrivyBackendStep(root), TrivyFrontendStep(root)
-		tasks = append(tasks, task{"trivy", func() error {
+		tasks = append(tasks, scanTask{"trivy", func() error {
 			if err := b.Run(ctx, out); err != nil {
 				return err
 			}
@@ -195,15 +192,23 @@ func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]
 	for _, e := range simpleScanSteps(root, flags) {
 		e := e
 		if e.enabled {
-			tasks = append(tasks, task{e.step.Name, func() error { return e.step.Run(ctx, out) }})
+			tasks = append(tasks, scanTask{e.step.Name, func() error { return e.step.Run(ctx, out) }})
 		}
 	}
+	return tasks
+}
 
+// RunScan runs all selected security scan suites in parallel and returns
+// aggregated results. Trivy backend and frontend share a cache lock so they
+// run sequentially within a single goroutine; sonar, secrets, and headers each
+// run in their own goroutine concurrently alongside trivy.
+func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]StepResult, error) {
+	tasks := buildScanTasks(ctx, root, flags, out)
 	results := make([]StepResult, len(tasks))
 	var wg sync.WaitGroup
 	for i, t := range tasks {
 		wg.Add(1)
-		go func(i int, t task) {
+		go func(i int, t scanTask) {
 			defer wg.Done()
 			start := time.Now()
 			results[i] = StepResult{Name: t.name, Err: t.run(), Duration: time.Since(start)}
