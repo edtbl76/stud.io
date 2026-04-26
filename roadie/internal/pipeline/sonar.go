@@ -155,45 +155,61 @@ type scanTask struct {
 	run  func() error
 }
 
-type scanStepEntry struct {
-	enabled bool
-	step    ToolStep
+// sonarTask returns a scan task that runs the full SonarQube pipeline.
+func sonarTask(ctx context.Context, root Root, flags ScanFlags, out io.Writer) scanTask {
+	return scanTask{"sonar", func() error { return RunSonarScan(ctx, root, flags.Gate, out) }}
 }
 
-// simpleScanSteps returns the single-step scan entries in run order.
+// trivyTask returns a scan task that runs backend then frontend Trivy scans sequentially.
+func trivyTask(ctx context.Context, root Root, out io.Writer) scanTask {
+	b, f := TrivyBackendStep(root), TrivyFrontendStep(root)
+	return scanTask{"trivy", func() error {
+		if err := b.Run(ctx, out); err != nil {
+			return err
+		}
+		return f.Run(ctx, out)
+	}}
+}
+
+// stepTask wraps a single ToolStep as a scanTask.
+func stepTask(ctx context.Context, s ToolStep, out io.Writer) scanTask {
+	return scanTask{s.Name, func() error { return s.Run(ctx, out) }}
+}
+
+// enabledSimpleSteps returns only the single-step scan tools that are flagged on.
 // Sonar and Trivy are excluded because they require special orchestration.
-func simpleScanSteps(root Root, flags ScanFlags) []scanStepEntry {
-	return []scanStepEntry{
+func enabledSimpleSteps(root Root, flags ScanFlags) []ToolStep {
+	type entry struct {
+		ok   bool
+		step ToolStep
+	}
+	candidates := []entry{
 		{flags.Secrets, DetectSecretsStep(root)},
 		{flags.Headers, SecurityHeadersStep(root)},
 		{flags.Govulncheck, GovulncheckStep(root)},
 		{flags.Gosec, GosecStep(root)},
 		{flags.Staticcheck, StaticcheckStep(root)},
 	}
+	var steps []ToolStep
+	for _, c := range candidates {
+		if c.ok {
+			steps = append(steps, c.step)
+		}
+	}
+	return steps
 }
 
 // buildScanTasks assembles the ordered list of scan tasks from flags.
 func buildScanTasks(ctx context.Context, root Root, flags ScanFlags, out io.Writer) []scanTask {
 	var tasks []scanTask
 	if flags.Sonar {
-		tasks = append(tasks, scanTask{"sonar", func() error {
-			return RunSonarScan(ctx, root, flags.Gate, out)
-		}})
+		tasks = append(tasks, sonarTask(ctx, root, flags, out))
 	}
 	if flags.Trivy {
-		b, f := TrivyBackendStep(root), TrivyFrontendStep(root)
-		tasks = append(tasks, scanTask{"trivy", func() error {
-			if err := b.Run(ctx, out); err != nil {
-				return err
-			}
-			return f.Run(ctx, out)
-		}})
+		tasks = append(tasks, trivyTask(ctx, root, out))
 	}
-	for _, e := range simpleScanSteps(root, flags) {
-		e := e
-		if e.enabled {
-			tasks = append(tasks, scanTask{e.step.Name, func() error { return e.step.Run(ctx, out) }})
-		}
+	for _, s := range enabledSimpleSteps(root, flags) {
+		tasks = append(tasks, stepTask(ctx, s, out))
 	}
 	return tasks
 }
