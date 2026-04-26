@@ -42,7 +42,7 @@ async def proxy(
         url=f"/{path}",
         headers=headers,
         content=await request.body(),
-        params=request.query_params,
+        params=list(request.query_params.multi_items()),
     )
     return Response(
         content=resp.content,

@@ -88,3 +88,19 @@ func TestValidateRejectsInvalidPort(t *testing.T) {
 		}
 	}
 }
+
+func TestValidateRejectsEmptyDBUser(t *testing.T) {
+	cfg := &Config{DBHost: "h", DBPort: 5432, DBName: "d", DBUser: "", DBPassword: "p", AppPort: 4001}
+	if err := cfg.validate(); err == nil {
+		t.Error("expected error for empty DB_USER, got nil")
+	}
+}
+
+func TestValidateRejectsInvalidDBPort(t *testing.T) {
+	for _, port := range []int{0, -1, 65536, 99999} {
+		cfg := &Config{DBHost: "h", DBPort: port, DBName: "d", DBUser: "u", DBPassword: "p", AppPort: 4001}
+		if err := cfg.validate(); err == nil {
+			t.Errorf("validate() with DB_PORT %d: expected error, got nil", port)
+		}
+	}
+}

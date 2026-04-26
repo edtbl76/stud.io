@@ -50,8 +50,14 @@ func (c *Config) validate() error {
 	if c.DBHost == "" {
 		return fmt.Errorf("DB_HOST must not be empty")
 	}
+	if c.DBPort < 1 || c.DBPort > 65535 {
+		return fmt.Errorf("DB_PORT %d is out of range [1, 65535]", c.DBPort)
+	}
 	if c.DBName == "" {
 		return fmt.Errorf("DB_NAME must not be empty")
+	}
+	if c.DBUser == "" {
+		return fmt.Errorf("DB_USER must not be empty")
 	}
 	if c.DBPassword == "" {
 		return fmt.Errorf("DB_PASSWORD must not be empty")

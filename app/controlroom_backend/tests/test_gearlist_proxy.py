@@ -65,6 +65,18 @@ async def test_proxy_propagates_upstream_status(client, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_proxy_preserves_repeated_query_keys(client, auth_headers):
+    with patch("routers.gearlist._get_client") as mock_get:
+        mock_get.return_value.request = AsyncMock(return_value=_mock_resp())
+        await client.get("/gearlist/guitars?tag=a&tag=b", headers=auth_headers)
+
+    _, kwargs = mock_get.return_value.request.call_args
+    params = kwargs["params"]
+    assert ("tag", "a") in params
+    assert ("tag", "b") in params
+
+
+@pytest.mark.asyncio
 async def test_close_client_closes_and_clears():
     mock_client = AsyncMock()
     gearlist_module._client = mock_client

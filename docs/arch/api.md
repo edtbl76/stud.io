@@ -238,7 +238,7 @@ Status code, body, and `Content-Type` are passed through from the Go service unm
 
 **Examples**
 
-```
+```text
 GET  /gearlist/health          → 200 {"status":"ok"}
 GET  /gearlist/guitars         → proxied to GET  http://gearlist_backend:4001/guitars
 POST /gearlist/guitars         → proxied to POST http://gearlist_backend:4001/guitars
