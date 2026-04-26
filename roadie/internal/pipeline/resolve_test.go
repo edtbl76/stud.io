@@ -7,13 +7,23 @@ import (
 	"testing"
 )
 
+// makeFakeBin creates dir and writes an empty executable named name into it.
+func makeFakeBin(t *testing.T, dir, name string) {
+	t.Helper()
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("makeFakeBin: MkdirAll %s: %v", dir, err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(""), 0o755); err != nil {
+		t.Fatalf("makeFakeBin: WriteFile %s: %v", name, err)
+	}
+}
+
 // ── resolveNodeInHome ─────────────────────────────────────────────────────────
 
 func TestResolveNodeInHome_NvmLatest(t *testing.T) {
 	tmp := t.TempDir()
 	nvmBin := filepath.Join(tmp, ".nvm", "versions", "node", "v20.0.0", "bin")
-	os.MkdirAll(nvmBin, 0o755)
-	os.WriteFile(filepath.Join(nvmBin, "node"), []byte(""), 0o755)
+	makeFakeBin(t, nvmBin, "node")
 
 	got := resolveNodeInHome(tmp)
 	if got != nvmBin {
@@ -24,9 +34,7 @@ func TestResolveNodeInHome_NvmLatest(t *testing.T) {
 func TestResolveNodeInHome_NvmPicksLatest(t *testing.T) {
 	tmp := t.TempDir()
 	for _, ver := range []string{"v18.0.0", "v20.0.0", "v22.0.0"} {
-		bin := filepath.Join(tmp, ".nvm", "versions", "node", ver, "bin")
-		os.MkdirAll(bin, 0o755)
-		os.WriteFile(filepath.Join(bin, "node"), []byte(""), 0o755)
+		makeFakeBin(t, filepath.Join(tmp, ".nvm", "versions", "node", ver, "bin"), "node")
 	}
 
 	got := resolveNodeInHome(tmp)
@@ -40,9 +48,7 @@ func TestResolveNodeInHome_NvmPicksHighestSemver_NotLexicographic(t *testing.T) 
 	// v22.9.0 sorts lexicographically after v22.10.0 ("9" > "1") but is lower semver.
 	tmp := t.TempDir()
 	for _, ver := range []string{"v22.9.0", "v22.10.0"} {
-		bin := filepath.Join(tmp, ".nvm", "versions", "node", ver, "bin")
-		os.MkdirAll(bin, 0o755)
-		os.WriteFile(filepath.Join(bin, "node"), []byte(""), 0o755)
+		makeFakeBin(t, filepath.Join(tmp, ".nvm", "versions", "node", ver, "bin"), "node")
 	}
 
 	got := resolveNodeInHome(tmp)
@@ -65,8 +71,7 @@ func TestResolveNodeInHome_NoNvm_ReturnsEmpty(t *testing.T) {
 func TestResolvePythonInHome_Conda(t *testing.T) {
 	tmp := t.TempDir()
 	condaBin := filepath.Join(tmp, "anaconda3", "bin")
-	os.MkdirAll(condaBin, 0o755)
-	os.WriteFile(filepath.Join(condaBin, "python"), []byte(""), 0o755)
+	makeFakeBin(t, condaBin, "python")
 
 	got := resolvePythonInHome(tmp)
 	if got != condaBin {
@@ -77,9 +82,7 @@ func TestResolvePythonInHome_Conda(t *testing.T) {
 func TestResolvePythonInHome_PrioritizesAnacondaOverMiniconda(t *testing.T) {
 	tmp := t.TempDir()
 	for _, dir := range []string{"anaconda3/bin", "miniconda3/bin"} {
-		full := filepath.Join(tmp, dir)
-		os.MkdirAll(full, 0o755)
-		os.WriteFile(filepath.Join(full, "python"), []byte(""), 0o755)
+		makeFakeBin(t, filepath.Join(tmp, dir), "python")
 	}
 
 	got := resolvePythonInHome(tmp)
@@ -120,11 +123,9 @@ func TestPathEnv_NonEmpty_PrependsToPATH(t *testing.T) {
 func TestResolveGoExe_ReturnsFirstMatchingDir(t *testing.T) {
 	tmp := t.TempDir()
 	snapBin := filepath.Join(tmp, "snap", "bin")
-	os.MkdirAll(snapBin, 0o755)
-	os.WriteFile(filepath.Join(snapBin, "go"), []byte(""), 0o755)
+	makeFakeBin(t, snapBin, "go")
 	stdBin := filepath.Join(tmp, "usr", "local", "go", "bin")
-	os.MkdirAll(stdBin, 0o755)
-	os.WriteFile(filepath.Join(stdBin, "go"), []byte(""), 0o755)
+	makeFakeBin(t, stdBin, "go")
 
 	got := resolveGoExe([]string{snapBin, stdBin})
 	if got != snapBin {
@@ -135,8 +136,7 @@ func TestResolveGoExe_ReturnsFirstMatchingDir(t *testing.T) {
 func TestResolveGoExe_FallsBackToStdBin(t *testing.T) {
 	tmp := t.TempDir()
 	stdBin := filepath.Join(tmp, "usr", "local", "go", "bin")
-	os.MkdirAll(stdBin, 0o755)
-	os.WriteFile(filepath.Join(stdBin, "go"), []byte(""), 0o755)
+	makeFakeBin(t, stdBin, "go")
 
 	got := resolveGoExe([]string{filepath.Join(tmp, "snap", "bin"), stdBin})
 	if got != stdBin {
