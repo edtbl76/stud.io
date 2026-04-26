@@ -26,6 +26,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/search` | `routers/search.py` | Cross-table full-text search (PostgreSQL FTS) |
 | `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/users` | `routers/users.py` | User management (admin only) |
+| `/gearlist/*` | `routers/gearlist.py` | Catch-all proxy to the internal GearList Go service |
 
 ---
 
@@ -208,6 +209,42 @@ Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results a
 asyncpg connection pool initialized at startup via the FastAPI `lifespan` context. Pool settings are configured in `database.py`. Each request acquires a connection from the pool for the duration of the request.
 
 Tests use a separate `masterdb_test` database. Each test wraps its operations in a transaction that is rolled back at teardown, keeping tests isolated and fast.
+
+---
+
+## GearList proxy
+
+All routes under `/gearlist/*` are handled by `routers/gearlist.py`, which forwards requests to the internal GearList Go service (`gearlist_backend`).
+
+**Configuration**
+
+| Item | Detail |
+|---|---|
+| Upstream URL | `GEARLIST_URL` env var (default `http://gearlist_backend:4001`) |
+| Client | `httpx.AsyncClient` lazy singleton, timeout 30 s |
+| Auth | `get_current_user` — all routes require a valid JWT |
+
+**Forwarded request**
+
+The proxy strips the outer auth layer and passes the validated user identity to the Go service via headers:
+
+- `X-User` — `user.username`
+- `X-Role` — `user.role`
+- Request body and query parameters are forwarded unchanged.
+
+**Response**
+
+Status code, body, and `Content-Type` are passed through from the Go service unmodified.
+
+**Examples**
+
+```text
+GET  /gearlist/health          → 200 {"status":"ok"}
+GET  /gearlist/guitars         → proxied to GET  http://gearlist_backend:4001/guitars
+POST /gearlist/guitars         → proxied to POST http://gearlist_backend:4001/guitars
+```
+
+The Go service never receives the original JWT. It trusts `X-User`/`X-Role` because it is not reachable outside the Docker bridge network.
 
 ---
 

@@ -114,6 +114,7 @@ type URLsConfig struct {
 	App         string `yaml:"app"`
 	API         string `yaml:"api"`
 	Docs        string `yaml:"docs"`
+	GearList    string `yaml:"gearlist"`
 	MinIO       string `yaml:"minio"`
 	SonarQube   string `yaml:"sonarqube"`
 	Structurizr string `yaml:"structurizr"`

@@ -8,6 +8,7 @@ import (
 
 const frontendDir = "app/studio_frontend"
 const backendDir = "app/controlroom_backend"
+const gearlistDir = "app/gearlist_backend"
 
 // Root is the filesystem root of the monorepo, used to resolve tool paths.
 type Root string
@@ -145,6 +146,50 @@ func PipAuditStep(root Root) ToolStep {
 // NpmAuditStep returns a step that audits npm dependencies for known CVEs.
 func NpmAuditStep(root Root) ToolStep {
 	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
+}
+
+// goStep builds a ToolStep that runs bin with args in the gearlist_backend
+// directory. Used by Go tool steps to avoid duplication.
+func goStep(name, bin string, args []string, root Root) ToolStep {
+	r := string(root)
+	return ToolStep{
+		Name: name,
+		Bin:  bin,
+		Args: args,
+		Dir:  filepath.Join(r, gearlistDir),
+		Env:  pathEnv(ResolveGoBin()),
+	}
+}
+
+// GoTestStep returns a step that runs all Go tests with the race detector and
+// emits a coverage profile to coverage.out in the gearlist_backend directory.
+func GoTestStep(root Root) ToolStep {
+	return ToolStep{
+		Name: "go-test",
+		Bin:  "go",
+		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
+		Dir:  filepath.Join(string(root), gearlistDir),
+		Env:  pathEnv(ResolveGoExe()),
+	}
+}
+
+// GovulncheckStep returns a step that scans gearlist_backend for known Go
+// vulnerabilities. Any non-zero exit code from govulncheck is treated as a
+// failure, including exit code 3 (module-level findings).
+func GovulncheckStep(root Root) ToolStep {
+	return goStep("govulncheck", goBinPath("govulncheck"), []string{"./..."}, root)
+}
+
+// GosecStep returns a step that runs gosec static security analysis against
+// gearlist_backend, excluding test files.
+func GosecStep(root Root) ToolStep {
+	return goStep("gosec", goBinPath("gosec"), []string{"-quiet", "./..."}, root)
+}
+
+// StaticcheckStep returns a step that runs staticcheck analysis against
+// gearlist_backend.
+func StaticcheckStep(root Root) ToolStep {
+	return goStep("staticcheck", goBinPath("staticcheck"), []string{"./..."}, root)
 }
 
 // TrivyStep returns a step that scans a single container image with Trivy via

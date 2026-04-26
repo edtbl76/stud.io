@@ -145,10 +145,11 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	fmt.Fprintln(out, "============================================================")
 	fmt.Fprintln(out, "  All systems go.")
 	fmt.Fprintln(out, "")
-	fmt.Fprintf(out, "  App:   %s\n", u.App)
-	fmt.Fprintf(out, "  API:   %s\n", u.API)
-	fmt.Fprintf(out, "  Docs:  %s\n", u.Docs)
-	fmt.Fprintf(out, "  MinIO: %s\n", u.MinIO)
+	fmt.Fprintf(out, "  App:      %s\n", u.App)
+	fmt.Fprintf(out, "  API:      %s\n", u.API)
+	fmt.Fprintf(out, "  Docs:     %s\n", u.Docs)
+	fmt.Fprintf(out, "  GearList: %s\n", u.GearList)
+	fmt.Fprintf(out, "  MinIO:    %s\n", u.MinIO)
 	if flags.dev {
 		fmt.Fprintln(out, "")
 		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
@@ -158,8 +159,8 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	if flags.dev && flags.full {
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "  Release gate passed:")
-		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
-		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest")
+		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest · go-test")
+		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest · go-test · govulncheck · gosec · staticcheck")
 		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis")
 		fmt.Fprintln(out, "    E2E:         Playwright")
 		fmt.Fprintln(out, "    Scans:       SonarQube · Trivy · secrets · headers")
@@ -188,6 +189,10 @@ var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
 // pip-audit and npm-audit are excluded from the default run and only included
 // when explicitly named (they run as separate pre-commit hooks to avoid double
 // execution and because they make network calls).
+// govulncheck also makes a network call (vuln.go.dev) but is intentionally
+// included in the default run: unlike pip-audit/npm-audit it has no dedicated
+// pre-commit hook, so excluding it from the default would drop it from both the
+// pre-commit suite and the Woodpecker unit-pbt step entirely.
 // NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected,
 // unless withInstall is false (used by roadie test full, which runs npm-install
 // once before launching unit and PBT goroutines concurrently).
@@ -245,6 +250,7 @@ func filteredSteps(root pipeline.Root, run func(string) bool, explicit bool) []p
 			pbtDir := filepath.Join(string(root), "app", "controlroom_backend", "tests", "pbt")
 			return pipeline.PytestStep(root, "--benchmark-skip", "--ignore="+pbtDir)
 		}},
+		{"go-test", false, func() pipeline.ToolStep { return pipeline.GoTestStep(root) }},
 		{"pip-audit", true, func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
 		{"npm-audit", true, func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}
