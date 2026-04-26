@@ -150,6 +150,23 @@ func AllScanFlags(gate bool) ScanFlags {
 	}
 }
 
+type scanStepEntry struct {
+	enabled bool
+	step    ToolStep
+}
+
+// simpleScanSteps returns the single-step scan entries in run order.
+// Sonar and Trivy are excluded because they require special orchestration.
+func simpleScanSteps(root Root, flags ScanFlags) []scanStepEntry {
+	return []scanStepEntry{
+		{flags.Secrets, DetectSecretsStep(root)},
+		{flags.Headers, SecurityHeadersStep(root)},
+		{flags.Govulncheck, GovulncheckStep(root)},
+		{flags.Gosec, GosecStep(root)},
+		{flags.Staticcheck, StaticcheckStep(root)},
+	}
+}
+
 // RunScan runs all selected security scan suites in parallel and returns
 // aggregated results. Trivy backend and frontend share a cache lock so they
 // run sequentially within a single goroutine; sonar, secrets, and headers each
@@ -175,25 +192,11 @@ func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]
 			return f.Run(ctx, out)
 		}})
 	}
-	if flags.Secrets {
-		s := DetectSecretsStep(root)
-		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
-	}
-	if flags.Headers {
-		h := SecurityHeadersStep(root)
-		tasks = append(tasks, task{h.Name, func() error { return h.Run(ctx, out) }})
-	}
-	if flags.Govulncheck {
-		s := GovulncheckStep(root)
-		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
-	}
-	if flags.Gosec {
-		s := GosecStep(root)
-		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
-	}
-	if flags.Staticcheck {
-		s := StaticcheckStep(root)
-		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
+	for _, e := range simpleScanSteps(root, flags) {
+		e := e
+		if e.enabled {
+			tasks = append(tasks, task{e.step.Name, func() error { return e.step.Run(ctx, out) }})
+		}
 	}
 
 	results := make([]StepResult, len(tasks))

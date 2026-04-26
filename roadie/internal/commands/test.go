@@ -268,24 +268,19 @@ func buildScanFlags(args []string, gate bool) pipeline.ScanFlags {
 	if len(args) == 0 {
 		return pipeline.AllScanFlags(gate)
 	}
-	var f pipeline.ScanFlags
-	f.Gate = gate
+	f := pipeline.ScanFlags{Gate: gate}
+	fields := map[string]*bool{
+		"sonar":       &f.Sonar,
+		"trivy":       &f.Trivy,
+		"secrets":     &f.Secrets, // pragma: allowlist secret
+		"headers":     &f.Headers,
+		"govulncheck": &f.Govulncheck,
+		"gosec":       &f.Gosec,
+		"staticcheck": &f.Staticcheck,
+	}
 	for _, a := range args {
-		switch a {
-		case "sonar":
-			f.Sonar = true
-		case "trivy":
-			f.Trivy = true
-		case "secrets":
-			f.Secrets = true // pragma: allowlist secret
-		case "headers":
-			f.Headers = true
-		case "govulncheck":
-			f.Govulncheck = true
-		case "gosec":
-			f.Gosec = true
-		case "staticcheck":
-			f.Staticcheck = true
+		if p := fields[a]; p != nil {
+			*p = true
 		}
 	}
 	return f
