@@ -39,7 +39,7 @@ func TestBuildUnitPipeline(t *testing.T) {
 		tools []string
 		want  []string
 	}{
-		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest", "go-test", "govulncheck", "gosec", "staticcheck"}},
+		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest", "go-test"}},
 		{"tsc only", []string{"tsc"}, []string{"npm-install", "tsc"}},
 		{"pytest only", []string{"pytest"}, []string{"pytest"}},
 		{"pip-audit only", []string{"pip-audit"}, []string{"pip-audit"}},
@@ -72,10 +72,12 @@ func TestBuildScanFlags(t *testing.T) {
 		gate bool
 		want pipeline.ScanFlags
 	}{
-		{"all by default", nil, false, pipeline.ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true}},
+		{"all by default", nil, false, pipeline.ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true, Govulncheck: true, Gosec: true, Staticcheck: true}},
 		{"trivy only", []string{"trivy"}, false, pipeline.ScanFlags{Trivy: true}},
 		{"sonar with gate", []string{"sonar"}, true, pipeline.ScanFlags{Sonar: true, Gate: true}},
 		{"secrets and headers", []string{"secrets", "headers"}, false, pipeline.ScanFlags{Secrets: true, Headers: true}},
+		{"govulncheck only", []string{"govulncheck"}, false, pipeline.ScanFlags{Govulncheck: true}},
+		{"gosec and staticcheck", []string{"gosec", "staticcheck"}, false, pipeline.ScanFlags{Gosec: true, Staticcheck: true}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

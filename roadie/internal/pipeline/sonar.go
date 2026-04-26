@@ -139,11 +139,15 @@ func RunSonarScan(ctx context.Context, root Root, gate bool, out io.Writer) erro
 // ScanFlags controls which scan suites run.
 type ScanFlags struct {
 	Sonar, Trivy, Secrets, Headers, Gate bool
+	Govulncheck, Gosec, Staticcheck      bool
 }
 
 // AllScanFlags returns ScanFlags with all suites enabled.
 func AllScanFlags(gate bool) ScanFlags {
-	return ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true, Gate: gate}
+	return ScanFlags{
+		Sonar: true, Trivy: true, Secrets: true, Headers: true, Gate: gate,
+		Govulncheck: true, Gosec: true, Staticcheck: true,
+	}
 }
 
 // RunScan runs all selected security scan suites in parallel and returns
@@ -178,6 +182,18 @@ func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]
 	if flags.Headers {
 		h := SecurityHeadersStep(root)
 		tasks = append(tasks, task{h.Name, func() error { return h.Run(ctx, out) }})
+	}
+	if flags.Govulncheck {
+		s := GovulncheckStep(root)
+		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
+	}
+	if flags.Gosec {
+		s := GosecStep(root)
+		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
+	}
+	if flags.Staticcheck {
+		s := StaticcheckStep(root)
+		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
 	}
 
 	results := make([]StepResult, len(tasks))

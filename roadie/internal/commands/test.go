@@ -26,9 +26,9 @@ func testCmd() *cobra.Command {
 		Short: "Run test suites",
 		Long: `Run one or more test suites. Use a subcommand to select the suite.
 
-  roadie test unit [tsc|jest|ruff|bandit|pytest|pip-audit|npm-audit]
+  roadie test unit [tsc|jest|ruff|bandit|pytest|go-test|pip-audit|npm-audit]
   roadie test e2e
-  roadie test scan [sonar|trivy|secrets|headers] [--gate] [--json]
+  roadie test scan [sonar|trivy|secrets|headers|govulncheck|gosec|staticcheck] [--gate] [--json]
   roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle] [--json]
   roadie test pbt [fast-check] [hypothesis] [--json]
   roadie test full`,
@@ -37,9 +37,9 @@ func testCmd() *cobra.Command {
 
 func unitCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest] [go-test] [govulncheck] [gosec] [staticcheck] [pip-audit] [npm-audit]",
-		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest, go-test, govulncheck, gosec, staticcheck, pip-audit, npm-audit)",
-		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest", "go-test", "govulncheck", "gosec", "staticcheck", "pip-audit", "npm-audit"},
+		Use:       "unit [tsc] [jest] [ruff] [bandit] [pytest] [go-test] [pip-audit] [npm-audit]",
+		Short:     "Run unit tests (tsc, jest, ruff, bandit, pytest, go-test, pip-audit, npm-audit)",
+		ValidArgs: []string{"tsc", "jest", "ruff", "bandit", "pytest", "go-test", "pip-audit", "npm-audit"},
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r := pipeline.Root(".")
@@ -48,7 +48,7 @@ func unitCmd() *cobra.Command {
 				// Targeted run: sequential so the user sees one tool at a time.
 				steps := buildUnitPipeline(r, args, true)
 				if len(steps) == 0 {
-					return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, go-test, govulncheck, gosec, staticcheck, pip-audit, npm-audit", args)
+					return fmt.Errorf("no steps matched selectors %v; valid: tsc, jest, ruff, bandit, pytest, go-test, pip-audit, npm-audit", args)
 				}
 				return pipeline.New(steps...).RunSequential(cmd.Context(), os.Stdout)
 			}
@@ -90,9 +90,9 @@ func scanCmd() *cobra.Command {
 	var gate bool
 	var jsonOut bool
 	cmd := &cobra.Command{
-		Use:       "scan [sonar] [trivy] [secrets] [headers]",
-		Short:     "Run security scans",
-		ValidArgs: []string{"sonar", "trivy", "secrets", "headers"},
+		Use:       "scan [sonar] [trivy] [secrets] [headers] [govulncheck] [gosec] [staticcheck]",
+		Short:     "Run security scans (sonar, trivy, secrets, headers, govulncheck, gosec, staticcheck)",
+		ValidArgs: []string{"sonar", "trivy", "secrets", "headers", "govulncheck", "gosec", "staticcheck"},
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			flags := buildScanFlags(args, gate)
@@ -280,6 +280,12 @@ func buildScanFlags(args []string, gate bool) pipeline.ScanFlags {
 			f.Secrets = true // pragma: allowlist secret
 		case "headers":
 			f.Headers = true
+		case "govulncheck":
+			f.Govulncheck = true
+		case "gosec":
+			f.Gosec = true
+		case "staticcheck":
+			f.Staticcheck = true
 		}
 	}
 	return f

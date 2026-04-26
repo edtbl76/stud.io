@@ -251,9 +251,6 @@ func filteredSteps(root pipeline.Root, run func(string) bool, explicit bool) []p
 			return pipeline.PytestStep(root, "--benchmark-skip", "--ignore="+pbtDir)
 		}},
 		{"go-test", false, func() pipeline.ToolStep { return pipeline.GoTestStep(root) }},
-		{"govulncheck", false, func() pipeline.ToolStep { return pipeline.GovulncheckStep(root) }},
-		{"gosec", false, func() pipeline.ToolStep { return pipeline.GosecStep(root) }},
-		{"staticcheck", false, func() pipeline.ToolStep { return pipeline.StaticcheckStep(root) }},
 		{"pip-audit", true, func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
 		{"npm-audit", true, func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}

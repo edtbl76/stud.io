@@ -47,10 +47,17 @@ func (c *Config) Addr() string {
 }
 
 func (c *Config) validate() error {
+	if err := c.validateDB(); err != nil {
+		return err
+	}
+	return c.validateApp()
+}
+
+func (c *Config) validateDB() error {
 	if c.DBHost == "" {
 		return fmt.Errorf("DB_HOST must not be empty")
 	}
-	if c.DBPort < 1 || c.DBPort > 65535 {
+	if !validPort(c.DBPort) {
 		return fmt.Errorf("DB_PORT %d is out of range [1, 65535]", c.DBPort)
 	}
 	if c.DBName == "" {
@@ -62,10 +69,18 @@ func (c *Config) validate() error {
 	if c.DBPassword == "" {
 		return fmt.Errorf("DB_PASSWORD must not be empty")
 	}
-	if c.AppPort < 1 || c.AppPort > 65535 {
+	return nil
+}
+
+func (c *Config) validateApp() error {
+	if !validPort(c.AppPort) {
 		return fmt.Errorf("APP_PORT %d is out of range [1, 65535]", c.AppPort)
 	}
 	return nil
+}
+
+func validPort(p int) bool {
+	return p >= 1 && p <= 65535
 }
 
 func env(key, fallback string) string {
