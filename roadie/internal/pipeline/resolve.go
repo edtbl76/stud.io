@@ -125,33 +125,34 @@ func resolvePythonInHome(homeDir string) string {
 
 // ResolveGoBin returns the directory containing go-installed tool binaries
 // (govulncheck, gosec, staticcheck), or "" if it cannot be determined.
-// Resolution order: GOBIN env var, GOPATH/bin, then ~/go/bin. GOBIN is
+// Resolution order: GOBIN env var, GOPATH/bin entries, then ~/go/bin. GOBIN is
 // checked first so CI agents can provide an explicit path without relying
 // on HOME, which Woodpecker's local backend overrides with a temp dir.
 func ResolveGoBin() string {
-	if gobin := os.Getenv("GOBIN"); gobin != "" {
-		if info, err := os.Stat(gobin); err == nil && info.IsDir() {
-			return gobin
+	for _, dir := range gobinCandidates() {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
 		}
-	}
-	for _, entry := range strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator)) {
-		if entry = strings.TrimSpace(entry); entry == "" {
-			continue
-		}
-		bin := filepath.Join(entry, "bin")
-		if info, err := os.Stat(bin); err == nil && info.IsDir() {
-			return bin
-		}
-	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return ""
-	}
-	bin := filepath.Join(home, "go", "bin")
-	if info, err := os.Stat(bin); err == nil && info.IsDir() {
-		return bin
 	}
 	return ""
+}
+
+// gobinCandidates builds the ordered list of directories to probe for
+// go-installed binaries: GOBIN, each GOPATH/bin, then ~/go/bin.
+func gobinCandidates() []string {
+	var dirs []string
+	if gobin := os.Getenv("GOBIN"); gobin != "" {
+		dirs = append(dirs, gobin)
+	}
+	for _, entry := range strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator)) {
+		if entry = strings.TrimSpace(entry); entry != "" {
+			dirs = append(dirs, filepath.Join(entry, "bin"))
+		}
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		dirs = append(dirs, filepath.Join(home, "go", "bin"))
+	}
+	return dirs
 }
 
 // goBinPath returns the absolute path to a go-installed binary (govulncheck,
