@@ -24,9 +24,10 @@ type GearStore interface {
 	History(ctx context.Context, id GearID) ([]AuditRow, error)
 }
 
-// PhotoUploader uploads gear photos to object storage.
+// PhotoUploader uploads and removes gear photos in object storage.
 type PhotoUploader interface {
 	Upload(ctx context.Context, gearID, contentType string, r http.Request) (string, error)
+	Delete(ctx context.Context, key string) error
 }
 
 // routeKey identifies a handler by HTTP method and URL suffix.
@@ -95,10 +96,18 @@ func routeSuffix(r *http.Request) string {
 
 func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
+	limit := parseIntOr(q.Get("limit"), 100)
+	offset := parseIntOr(q.Get("offset"), 0)
+	if limit < 0 {
+		httputil.WriteError(w, http.StatusBadRequest, "limit must be non-negative")
+		return
+	}
+	if offset < 0 {
+		httputil.WriteError(w, http.StatusBadRequest, "offset must be non-negative")
+		return
+	}
 	result, err := h.store.List(r.Context(), ListFilter{
-		Name:   q.Get("name"),
-		Limit:  parseIntOr(q.Get("limit"), 100),
-		Offset: parseIntOr(q.Get("offset"), 0),
+		Name: q.Get("name"), Limit: limit, Offset: offset,
 	})
 	if err != nil {
 		internalError(w, "gear list", err)
@@ -198,16 +207,30 @@ func (h *Handler) handlePhoto(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	key, err := h.photos.Upload(r.Context(), id.String(), r.Header.Get("Content-Type"), *r)
+	ct := r.Header.Get("Content-Type")
+	if !IsAllowedPhotoType(ct) {
+		httputil.WriteError(w, http.StatusUnsupportedMediaType, "unsupported media type; allowed: image/jpeg, image/png, image/webp")
+		return
+	}
+	key, err := h.photos.Upload(r.Context(), id.String(), ct, *r)
 	if err != nil {
 		internalError(w, "gear photo upload", err)
 		return
 	}
 	if err := h.store.SetPhotoKey(r.Context(), id, key, httputil.UserFromRequest(r)); err != nil {
+		cleanupPhoto(r.Context(), h.photos, key)
 		internalError(w, "gear set photo key", err)
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{"photo_key": key})
+}
+
+// cleanupPhoto removes a successfully uploaded object when the subsequent DB
+// write fails, preventing orphaned objects in storage.
+func cleanupPhoto(ctx context.Context, photos PhotoUploader, key string) {
+	if err := photos.Delete(ctx, key); err != nil {
+		slog.Error("gear photo cleanup", "err", err)
+	}
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────

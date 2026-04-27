@@ -173,6 +173,19 @@ func GoTestStep(root Root) ToolStep {
 	}
 }
 
+// GoRapidStep returns a step that runs Go tests (including rapid property tests)
+// and emits coverage to coverage.rapid.out, keeping it distinct from GoTestStep's
+// coverage.out so the two can run in parallel without file collisions.
+func GoRapidStep(root Root) ToolStep {
+	return ToolStep{
+		Name: "go-rapid",
+		Bin:  "go",
+		Args: []string{"test", "-race", "-coverprofile=coverage.rapid.out", "./..."},
+		Dir:  filepath.Join(string(root), gearlistDir),
+		Env:  pathEnv(ResolveGoExe()),
+	}
+}
+
 // GovulncheckStep returns a step that scans gearlist_backend for known Go
 // vulnerabilities. Any non-zero exit code from govulncheck is treated as a
 // failure, including exit code 3 (module-level findings).

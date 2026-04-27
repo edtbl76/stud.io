@@ -96,6 +96,7 @@ func TestHandler_Create_ValidationErrors(t *testing.T) {
 	}{
 		{"missing event_type", map[string]any{"notes": "no type"}},
 		{"missing event_date", map[string]any{"event_type": "setup"}},
+		{"invalid event_type", map[string]any{"event_type": "foobar", "event_date": "2026-01-01"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

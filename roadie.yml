@@ -49,8 +49,8 @@ stack:
 build:
   schema_files:
     - sql/schema.sql
-    - sql/views.sql
     - sql/gearlist_schema.sql
+    - sql/views.sql
   seed_files:
     - sql/seeds/01_entity_types.sql
     - sql/seeds/02_tag_types.sql

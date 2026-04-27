@@ -65,6 +65,10 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request, id pgtype
 		httputil.WriteError(w, http.StatusBadRequest, "event_type is required")
 		return
 	}
+	if !AllowedEventTypes[body.EventType] {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid event_type")
+		return
+	}
 	date, err := time.Parse("2006-01-02", body.EventDate)
 	if err != nil {
 		httputil.WriteError(w, http.StatusBadRequest, "event_date must be YYYY-MM-DD")

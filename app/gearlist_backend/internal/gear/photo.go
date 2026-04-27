@@ -53,12 +53,16 @@ func parseEndpoint(endpoint string) (host string, secure bool, err error) {
 	return endpoint, false, nil
 }
 
+// IsAllowedPhotoType reports whether contentType is an accepted image format.
+func IsAllowedPhotoType(contentType string) bool {
+	_, ok := allowedContentTypes[contentType]
+	return ok
+}
+
 // Upload stores the photo from r and returns the object key.
+// The caller is responsible for validating contentType before calling Upload.
 func (u *Uploader) Upload(ctx context.Context, gearID, contentType string, r http.Request) (string, error) {
-	ext, ok := allowedContentTypes[contentType]
-	if !ok {
-		return "", fmt.Errorf("unsupported content type %q; allowed: image/jpeg, image/png, image/webp", contentType)
-	}
+	ext := allowedContentTypes[contentType]
 	key := path.Join("gear", gearID, "photo"+ext)
 	_, err := u.client.PutObject(ctx, u.bucket, key, r.Body, r.ContentLength,
 		minio.PutObjectOptions{ContentType: contentType},
@@ -67,4 +71,10 @@ func (u *Uploader) Upload(ctx context.Context, gearID, contentType string, r htt
 		return "", fmt.Errorf("upload to MinIO: %w", err)
 	}
 	return key, nil
+}
+
+// Delete removes the object at key from the bucket. Used to clean up orphaned
+// uploads when the subsequent DB write fails.
+func (u *Uploader) Delete(ctx context.Context, key string) error {
+	return u.client.RemoveObject(ctx, u.bucket, key, minio.RemoveObjectOptions{})
 }

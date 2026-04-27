@@ -3,6 +3,7 @@ package geartypes
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -28,10 +29,13 @@ type UpdateInput struct {
 }
 
 // querier is satisfied by *pgxpool.Pool and pgx.Tx.
+// Begin is required so write methods can open their own transaction, making
+// the DML and the audit INSERT atomic regardless of the backing implementation.
 type querier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
 // Store provides data access for gear_types.
@@ -80,18 +84,20 @@ RETURNING type_id, type_name, type_description`
 
 // Create inserts a new gear type and writes an audit entry.
 func (s *Store) Create(ctx context.Context, name, description, performedBy string) (GearType, error) {
-	rows, err := s.db.Query(ctx, createSQL, name, nullableText(description))
-	if err != nil {
-		return GearType{}, err
-	}
-	gt, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
-	if err != nil {
-		return GearType{}, err
-	}
-	newJSON, _ := json.Marshal(gt)
-	return gt, store.WriteAudit(ctx, s.db, store.AuditEntry{
-		TableName: "gear_types", RecordID: gt.TypeID,
-		Operation: "CREATE", NewData: newJSON, PerformedBy: performedBy,
+	return s.txResult(ctx, func(txs *Store) (GearType, error) {
+		rows, err := txs.db.Query(ctx, createSQL, name, nullableText(description))
+		if err != nil {
+			return GearType{}, err
+		}
+		gt, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
+		if err != nil {
+			return GearType{}, err
+		}
+		newJSON, _ := json.Marshal(gt)
+		return gt, store.WriteAudit(ctx, txs.db, store.AuditEntry{
+			TableName: "gear_types", RecordID: gt.TypeID,
+			Operation: "CREATE", NewData: newJSON, PerformedBy: performedBy,
+		})
 	})
 }
 
@@ -104,23 +110,25 @@ RETURNING type_id, type_name, type_description`
 
 // Update applies a partial update to a gear type and writes an audit entry.
 func (s *Store) Update(ctx context.Context, id TypeID, in UpdateInput, performedBy string) (GearType, error) {
-	old, err := s.Get(ctx, id)
-	if err != nil {
-		return GearType{}, err
-	}
-	rows, err := s.db.Query(ctx, updateSQL, in.Name, in.Description, id)
-	if err != nil {
-		return GearType{}, err
-	}
-	updated, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
-	if err != nil {
-		return GearType{}, err
-	}
-	oldJSON, _ := json.Marshal(old)
-	newJSON, _ := json.Marshal(updated)
-	return updated, store.WriteAudit(ctx, s.db, store.AuditEntry{
-		TableName: "gear_types", RecordID: id,
-		Operation: "UPDATE", OldData: oldJSON, NewData: newJSON, PerformedBy: performedBy,
+	return s.txResult(ctx, func(txs *Store) (GearType, error) {
+		old, err := txs.Get(ctx, id)
+		if err != nil {
+			return GearType{}, err
+		}
+		rows, err := txs.db.Query(ctx, updateSQL, in.Name, in.Description, id)
+		if err != nil {
+			return GearType{}, err
+		}
+		updated, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
+		if err != nil {
+			return GearType{}, err
+		}
+		oldJSON, _ := json.Marshal(old)
+		newJSON, _ := json.Marshal(updated)
+		return updated, store.WriteAudit(ctx, txs.db, store.AuditEntry{
+			TableName: "gear_types", RecordID: id,
+			Operation: "UPDATE", OldData: oldJSON, NewData: newJSON, PerformedBy: performedBy,
+		})
 	})
 }
 
@@ -132,16 +140,50 @@ WHERE  type_id = $1 AND deleted_at IS NULL`
 func (s *Store) SoftDelete(ctx context.Context, id TypeID, performedBy string) error {
 	old, err := s.Get(ctx, id)
 	if err != nil {
-		return nil // already deleted or not found — idempotent
-	}
-	if _, err := s.db.Exec(ctx, softDeleteSQL, id); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil // already deleted or not found — idempotent
+		}
 		return err
 	}
 	oldJSON, _ := json.Marshal(old)
-	return store.WriteAudit(ctx, s.db, store.AuditEntry{
-		TableName: "gear_types", RecordID: id,
-		Operation: "DELETE", OldData: oldJSON, PerformedBy: performedBy,
+	return s.runInTx(ctx, func(txs *Store) error {
+		tag, err := txs.db.Exec(ctx, softDeleteSQL, id)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return nil // deleted between Get and Exec — idempotent
+		}
+		return store.WriteAudit(ctx, txs.db, store.AuditEntry{
+			TableName: "gear_types", RecordID: id,
+			Operation: "DELETE", OldData: oldJSON, PerformedBy: performedBy,
+		})
 	})
+}
+
+// runInTx starts a transaction, runs fn on a transaction-backed store, and
+// commits on success. The transaction rolls back automatically on any failure.
+func (s *Store) runInTx(ctx context.Context, fn func(*Store) error) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if err := fn(&Store{db: tx}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// txResult is like runInTx but for methods that return a GearType.
+func (s *Store) txResult(ctx context.Context, fn func(*Store) (GearType, error)) (GearType, error) {
+	var v GearType
+	err := s.runInTx(ctx, func(txs *Store) error {
+		var err error
+		v, err = fn(txs)
+		return err
+	})
+	return v, err
 }
 
 func nullableText(s string) pgtype.Text {

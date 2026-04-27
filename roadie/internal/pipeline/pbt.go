@@ -67,7 +67,7 @@ func RunPBT(ctx context.Context, cfg PBTConfig, flags PBTFlags, out io.Writer) (
 		steps = append(steps, hypothesisPBTStep(cfg.Root, examples))
 	}
 	if flags.shouldRun("go-rapid") {
-		steps = append(steps, GoTestStep(cfg.Root))
+		steps = append(steps, GoRapidStep(cfg.Root))
 	}
 
 	if len(steps) == 0 {

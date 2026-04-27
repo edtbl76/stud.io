@@ -19,6 +19,13 @@ type LogEntry struct {
 	CreatedAt pgtype.Timestamptz `db:"created_at"`
 }
 
+// AllowedEventTypes is the set of valid event_type values, matching the
+// CHECK constraint on gear_maintenance_log.event_type.
+var AllowedEventTypes = map[string]bool{
+	"restring": true, "setup": true, "repair": true,
+	"modification": true, "other": true,
+}
+
 // CreateInput holds the fields for a new maintenance log entry.
 type CreateInput struct {
 	EventType string

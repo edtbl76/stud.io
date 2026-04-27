@@ -186,10 +186,12 @@ func TestStore_Create_WritesAuditLog(t *testing.T) {
 			t.Fatalf("create: %v", err)
 		}
 		var count int
-		tx.QueryRow(ctx, //nolint:errcheck
+		if err := tx.QueryRow(ctx,
 			`SELECT COUNT(*) FROM audit_log WHERE table_name='gear' AND record_id=$1 AND operation='CREATE'`,
 			g.GearID,
-		).Scan(&count)
+		).Scan(&count); err != nil {
+			t.Fatalf("audit query: %v", err)
+		}
 		if count != 1 {
 			t.Errorf("expected 1 audit row, got %d", count)
 		}

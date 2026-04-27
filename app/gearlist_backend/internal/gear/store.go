@@ -3,6 +3,7 @@ package gear
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
@@ -100,10 +101,13 @@ type ListResult struct {
 }
 
 // querier is satisfied by *pgxpool.Pool and pgx.Tx.
+// Begin is required so write methods can open their own transaction, making
+// the DML and the audit INSERT atomic regardless of the backing implementation.
 type querier interface {
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+	Begin(ctx context.Context) (pgx.Tx, error)
 }
 
 // Store provides data access for the gear resource.
@@ -201,16 +205,21 @@ RETURNING gear_id`
 
 // Create inserts a new gear item, then returns it from gear_view.
 func (s *Store) Create(ctx context.Context, in CreateInput, performedBy string) (GearView, error) {
-	var id GearID
-	err := s.db.QueryRow(ctx, createSQL,
-		in.GearName, in.GearTypeID, in.BrandID, in.ModelID, in.SerialNumber, in.Year,
-		in.OwnerID, in.Notes, in.NumStrings, in.Tuning, in.PickupConfig,
-		in.PickupNeckModelID, in.PickupMiddleModelID, in.PickupBridgeModelID, in.StringsModelID,
-	).Scan(&id)
-	if err != nil {
-		return GearView{}, err
-	}
-	return s.fetchAndAudit(ctx, id, auditOp{op: "CREATE", performedBy: performedBy})
+	var gv GearView
+	err := s.runInTx(ctx, func(txs *Store) error {
+		var id GearID
+		if err := txs.db.QueryRow(ctx, createSQL,
+			in.GearName, in.GearTypeID, in.BrandID, in.ModelID, in.SerialNumber, in.Year,
+			in.OwnerID, in.Notes, in.NumStrings, in.Tuning, in.PickupConfig,
+			in.PickupNeckModelID, in.PickupMiddleModelID, in.PickupBridgeModelID, in.StringsModelID,
+		).Scan(&id); err != nil {
+			return err
+		}
+		var err error
+		gv, err = txs.fetchAndAudit(ctx, id, auditOp{op: "CREATE", performedBy: performedBy})
+		return err
+	})
+	return gv, err
 }
 
 // ── Update ────────────────────────────────────────────────────────────────────
@@ -237,21 +246,22 @@ WHERE gear_id = $16 AND deleted_at IS NULL`
 
 // Update applies a partial update and returns the updated view row.
 func (s *Store) Update(ctx context.Context, id GearID, in UpdateInput, performedBy string) (GearView, error) {
-	old, err := s.Get(ctx, id)
-	if err != nil {
-		return GearView{}, err
-	}
-	_, err = s.db.Exec(ctx, updateSQL,
-		in.GearName, in.GearTypeID, in.BrandID, in.ModelID, in.SerialNumber,
-		in.Year, in.OwnerID, in.Notes, in.NumStrings, in.Tuning, in.PickupConfig,
-		in.PickupNeckModelID, in.PickupMiddleModelID, in.PickupBridgeModelID, in.StringsModelID,
-		id,
-	)
-	if err != nil {
-		return GearView{}, err
-	}
-	oldJSON, _ := json.Marshal(old)
-	return s.fetchAndAudit(ctx, id, auditOp{op: "UPDATE", oldJSON: oldJSON, performedBy: performedBy})
+	return s.txResult(ctx, func(txs *Store) (GearView, error) {
+		old, err := txs.Get(ctx, id)
+		if err != nil {
+			return GearView{}, err
+		}
+		if _, err = txs.db.Exec(ctx, updateSQL,
+			in.GearName, in.GearTypeID, in.BrandID, in.ModelID, in.SerialNumber,
+			in.Year, in.OwnerID, in.Notes, in.NumStrings, in.Tuning, in.PickupConfig,
+			in.PickupNeckModelID, in.PickupMiddleModelID, in.PickupBridgeModelID, in.StringsModelID,
+			id,
+		); err != nil {
+			return GearView{}, err
+		}
+		oldJSON, _ := json.Marshal(old)
+		return txs.fetchAndAudit(ctx, id, auditOp{op: "UPDATE", oldJSON: oldJSON, performedBy: performedBy})
+	})
 }
 
 // ── SoftDelete ────────────────────────────────────────────────────────────────
@@ -260,9 +270,11 @@ const softDeleteSQL = `UPDATE gear SET deleted_at = NOW() WHERE gear_id = $1 AND
 
 // SoftDelete marks a gear item as deleted. Idempotent if already deleted.
 func (s *Store) SoftDelete(ctx context.Context, id GearID, performedBy string) error {
-	return s.execWithAudit(ctx, id, writeAuditCfg{
-		sql: softDeleteSQL, sqlArgs: []any{id},
-		auditOp: auditOp{op: "DELETE", performedBy: performedBy},
+	return s.runInTx(ctx, func(txs *Store) error {
+		return txs.execWithAudit(ctx, id, writeAuditCfg{
+			sql: softDeleteSQL, sqlArgs: []any{id},
+			auditOp: auditOp{op: "DELETE", performedBy: performedBy},
+		})
 	})
 }
 
@@ -272,10 +284,12 @@ const setPhotoSQL = `UPDATE gear SET photo_key = $1, updated_at = NOW() WHERE ge
 
 // SetPhotoKey stores the MinIO object key for a gear item's photo.
 func (s *Store) SetPhotoKey(ctx context.Context, id GearID, key, performedBy string) error {
-	return s.execWithAudit(ctx, id, writeAuditCfg{
-		sql: setPhotoSQL, sqlArgs: []any{key, id},
-		notFoundErr: fmt.Errorf("gear not found"),
-		auditOp:     auditOp{op: "UPDATE", performedBy: performedBy},
+	return s.runInTx(ctx, func(txs *Store) error {
+		return txs.execWithAudit(ctx, id, writeAuditCfg{
+			sql: setPhotoSQL, sqlArgs: []any{key, id},
+			notFoundErr: fmt.Errorf("gear not found"),
+			auditOp:     auditOp{op: "UPDATE", performedBy: performedBy},
+		})
 	})
 }
 
@@ -298,6 +312,31 @@ func (s *Store) History(ctx context.Context, id GearID) ([]AuditRow, error) {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
+
+// runInTx starts a transaction, runs fn on a transaction-backed store, and
+// commits on success. The transaction rolls back automatically on any failure.
+func (s *Store) runInTx(ctx context.Context, fn func(*Store) error) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+	if err := fn(&Store{db: tx}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// txResult is like runInTx but for methods that return a GearView.
+func (s *Store) txResult(ctx context.Context, fn func(*Store) (GearView, error)) (GearView, error) {
+	var v GearView
+	err := s.runInTx(ctx, func(txs *Store) error {
+		var err error
+		v, err = fn(txs)
+		return err
+	})
+	return v, err
+}
 
 type auditOp struct {
 	op          string
@@ -326,14 +365,23 @@ func (s *Store) fetchAndAudit(ctx context.Context, id GearID, a auditOp) (GearVi
 }
 
 // execWithAudit fetches the gear row, runs the configured DML, then writes
-// an audit entry. If the gear is not found, cfg.notFoundErr is returned.
+// an audit entry. Only pgx.ErrNoRows from Get translates to cfg.notFoundErr;
+// other Get errors are returned directly. A zero-rows-affected Exec also
+// returns cfg.notFoundErr without auditing.
 func (s *Store) execWithAudit(ctx context.Context, id GearID, cfg writeAuditCfg) error {
 	old, err := s.Get(ctx, id)
 	if err != nil {
-		return cfg.notFoundErr
-	}
-	if _, err := s.db.Exec(ctx, cfg.sql, cfg.sqlArgs...); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return cfg.notFoundErr
+		}
 		return err
+	}
+	tag, err := s.db.Exec(ctx, cfg.sql, cfg.sqlArgs...)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return cfg.notFoundErr
 	}
 	return s.auditGear(ctx, id, old, cfg.auditOp)
 }

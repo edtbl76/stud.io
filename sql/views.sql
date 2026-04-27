@@ -623,6 +623,6 @@ SELECT
     g.created_at,
     g.updated_at
 FROM  gear g
-LEFT JOIN gear_types gt ON gt.type_id = g.gear_type_id
+LEFT JOIN gear_types gt ON gt.type_id = g.gear_type_id AND gt.deleted_at IS NULL
 WHERE g.deleted_at IS NULL;
 

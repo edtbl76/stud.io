@@ -83,7 +83,9 @@ func TestWriteAudit_RejectsInvalidOperation(t *testing.T) {
 	defer tx.Rollback(ctx) //nolint:errcheck
 
 	var recordID pgtype.UUID
-	recordID.Scan("a0000000-0000-0000-0000-000000000002") //nolint:errcheck
+	if err := recordID.Scan("a0000000-0000-0000-0000-000000000002"); err != nil {
+		t.Fatalf("scan uuid: %v", err)
+	}
 
 	entry := store.AuditEntry{
 		TableName:   "gear",

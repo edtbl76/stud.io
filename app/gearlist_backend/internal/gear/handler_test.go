@@ -76,6 +76,26 @@ func TestGearHandler_List_Returns200(t *testing.T) {
 	}
 }
 
+func TestGearHandler_List_NegativeLimit_Returns400(t *testing.T) {
+	stub := &stubGearStore{}
+	req := httptest.NewRequest(http.MethodGet, "/gear?limit=-1", nil)
+	w := httptest.NewRecorder()
+	gear.NewHandler(stub).ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
+func TestGearHandler_List_NegativeOffset_Returns400(t *testing.T) {
+	stub := &stubGearStore{}
+	req := httptest.NewRequest(http.MethodGet, "/gear?offset=-5", nil)
+	w := httptest.NewRecorder()
+	gear.NewHandler(stub).ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", w.Code)
+	}
+}
+
 // ── by-ID routes ─────────────────────────────────────────────────────────────
 
 func TestGearHandler_ByID(t *testing.T) {
@@ -178,5 +198,68 @@ func TestGearHandler_List_StoreError_Returns500(t *testing.T) {
 
 	if w.Code != http.StatusInternalServerError {
 		t.Errorf("status = %d, want 500", w.Code)
+	}
+}
+
+// ── photo upload ──────────────────────────────────────────────────────────────
+
+type stubUploader struct {
+	uploadFn func(ctx context.Context, gearID, contentType string, r http.Request) (string, error)
+	deleteFn func(ctx context.Context, key string) error
+}
+
+func (s *stubUploader) Upload(ctx context.Context, gearID, ct string, r http.Request) (string, error) {
+	return s.uploadFn(ctx, gearID, ct, r)
+}
+func (s *stubUploader) Delete(ctx context.Context, key string) error {
+	return s.deleteFn(ctx, key)
+}
+
+func TestGearHandler_Photo_UnsupportedMediaType_Returns415(t *testing.T) {
+	uploader := &stubUploader{
+		uploadFn: func(_ context.Context, _, _ string, _ http.Request) (string, error) {
+			return "key", nil
+		},
+		deleteFn: func(_ context.Context, _ string) error { return nil },
+	}
+	stub := &stubGearStore{}
+	req := httptest.NewRequest(http.MethodPost, "/gear/bbbbbbbb-0000-0000-0000-000000000001/photo", nil)
+	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
+	req.Header.Set("Content-Type", "application/pdf")
+	w := httptest.NewRecorder()
+	gear.NewHandler(stub).WithPhotos(uploader).ServeHTTP(w, req)
+
+	if w.Code != http.StatusUnsupportedMediaType {
+		t.Errorf("status = %d, want 415", w.Code)
+	}
+}
+
+func TestGearHandler_Photo_CleansUpOnSetPhotoKeyFailure(t *testing.T) {
+	deleted := false
+	uploader := &stubUploader{
+		uploadFn: func(_ context.Context, _, _ string, _ http.Request) (string, error) {
+			return "gear/id/photo.jpg", nil
+		},
+		deleteFn: func(_ context.Context, _ string) error {
+			deleted = true
+			return nil
+		},
+	}
+	stub := &stubGearStore{
+		setPhotoFn: func(_ context.Context, _ gear.GearID, _, _ string) error {
+			return errors.New("db error")
+		},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/gear/bbbbbbbb-0000-0000-0000-000000000001/photo", nil)
+	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
+	req.Header.Set("Content-Type", "image/jpeg")
+	w := httptest.NewRecorder()
+	gear.NewHandler(stub).WithPhotos(uploader).ServeHTTP(w, req)
+
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", w.Code)
+	}
+	if !deleted {
+		t.Error("expected uploaded object to be deleted on SetPhotoKey failure")
 	}
 }
