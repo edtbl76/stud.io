@@ -20,7 +20,7 @@ const (
 type GearTypeStore interface {
 	List(ctx context.Context) ([]GearType, error)
 	Get(ctx context.Context, id TypeID) (GearType, error)
-	Create(ctx context.Context, name, description, performedBy string) (GearType, error)
+	Create(ctx context.Context, in CreateInput, performedBy string) (GearType, error)
 	Update(ctx context.Context, id TypeID, in UpdateInput, performedBy string) (GearType, error)
 	SoftDelete(ctx context.Context, id TypeID, performedBy string) error
 }
@@ -93,7 +93,7 @@ func (h *Handler) handleCreate(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, http.StatusBadRequest, "type_name is required")
 		return
 	}
-	gt, err := h.store.Create(r.Context(), body.TypeName, body.TypeDescription, httputil.UserFromRequest(r))
+	gt, err := h.store.Create(r.Context(), CreateInput{Name: body.TypeName, Description: body.TypeDescription}, httputil.UserFromRequest(r))
 	if err != nil {
 		slog.Error("gear-types create", "err", err)
 		httputil.WriteError(w, http.StatusInternalServerError, msgInternalError)

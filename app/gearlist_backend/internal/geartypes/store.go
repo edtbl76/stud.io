@@ -21,6 +21,12 @@ type GearType struct {
 	TypeDescription pgtype.Text
 }
 
+// CreateInput holds the required fields for creating a gear type.
+type CreateInput struct {
+	Name        string
+	Description string
+}
+
 // UpdateInput holds the optional fields for a PATCH request.
 // A nil pointer means the field is not being updated.
 type UpdateInput struct {
@@ -83,9 +89,9 @@ VALUES ($1, $2)
 RETURNING type_id, type_name, type_description`
 
 // Create inserts a new gear type and writes an audit entry.
-func (s *Store) Create(ctx context.Context, name, description, performedBy string) (GearType, error) {
+func (s *Store) Create(ctx context.Context, in CreateInput, performedBy string) (GearType, error) {
 	return s.txResult(ctx, func(txs *Store) (GearType, error) {
-		rows, err := txs.db.Query(ctx, createSQL, name, nullableText(description))
+		rows, err := txs.db.Query(ctx, createSQL, in.Name, nullableText(in.Description))
 		if err != nil {
 			return GearType{}, err
 		}

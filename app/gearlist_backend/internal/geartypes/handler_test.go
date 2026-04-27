@@ -19,7 +19,7 @@ import (
 type stubStore struct {
 	listFn   func(ctx context.Context) ([]geartypes.GearType, error)
 	getFn    func(ctx context.Context, id geartypes.TypeID) (geartypes.GearType, error)
-	createFn func(ctx context.Context, name, description, by string) (geartypes.GearType, error)
+	createFn func(ctx context.Context, in geartypes.CreateInput, by string) (geartypes.GearType, error)
 	updateFn func(ctx context.Context, id geartypes.TypeID, in geartypes.UpdateInput, by string) (geartypes.GearType, error)
 	deleteFn func(ctx context.Context, id geartypes.TypeID, by string) error
 }
@@ -30,8 +30,8 @@ func (s *stubStore) List(ctx context.Context) ([]geartypes.GearType, error) {
 func (s *stubStore) Get(ctx context.Context, id geartypes.TypeID) (geartypes.GearType, error) {
 	return s.getFn(ctx, id)
 }
-func (s *stubStore) Create(ctx context.Context, name, description, by string) (geartypes.GearType, error) {
-	return s.createFn(ctx, name, description, by)
+func (s *stubStore) Create(ctx context.Context, in geartypes.CreateInput, by string) (geartypes.GearType, error) {
+	return s.createFn(ctx, in, by)
 }
 func (s *stubStore) Update(ctx context.Context, id geartypes.TypeID, in geartypes.UpdateInput, by string) (geartypes.GearType, error) {
 	return s.updateFn(ctx, id, in, by)
@@ -118,9 +118,9 @@ func TestHandler_GetByID(t *testing.T) {
 // ── POST /gear-types ──────────────────────────────────────────────────────────
 
 func TestHandler_Create_Returns201(t *testing.T) {
-	stub := &stubStore{createFn: func(_ context.Context, name, _, _ string) (geartypes.GearType, error) {
+	stub := &stubStore{createFn: func(_ context.Context, in geartypes.CreateInput, _ string) (geartypes.GearType, error) {
 		gt := fixedType()
-		gt.TypeName = name
+		gt.TypeName = in.Name
 		return gt, nil
 	}}
 	body, _ := json.Marshal(map[string]string{"type_name": "Amp"})

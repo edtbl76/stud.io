@@ -44,7 +44,7 @@ func withTx(t *testing.T, pool *pgxpool.Pool, fn func(ctx context.Context, store
 func TestStore_List_ReturnsInsertedType(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		if _, err := s.Create(ctx, "TestListType", "", "testuser"); err != nil {
+		if _, err := s.Create(ctx, geartypes.CreateInput{Name: "TestListType"}, "testuser"); err != nil {
 			t.Fatalf("create: %v", err)
 		}
 		types, err := s.List(ctx)
@@ -67,7 +67,7 @@ func TestStore_List_ReturnsInsertedType(t *testing.T) {
 func TestStore_List_ExcludesDeleted(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "ToBeDeleted", "", "testuser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "ToBeDeleted"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -91,7 +91,7 @@ func TestStore_List_ExcludesDeleted(t *testing.T) {
 func TestStore_Get_ReturnsRow(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		created, err := s.Create(ctx, "FetchMe", "desc", "testuser")
+		created, err := s.Create(ctx, geartypes.CreateInput{Name: "FetchMe", Description: "desc"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -122,7 +122,7 @@ func TestStore_Get_NotFound(t *testing.T) {
 func TestStore_Create_ReturnsNewType(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "NewType", "a description", "testuser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "NewType", Description: "a description"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -138,7 +138,7 @@ func TestStore_Create_ReturnsNewType(t *testing.T) {
 func TestStore_Create_WritesAuditLog(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "AuditedType", "", "audituser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "AuditedType"}, "audituser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -161,7 +161,7 @@ func TestStore_Create_WritesAuditLog(t *testing.T) {
 func TestStore_Update_ChangesFields(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "Original", "", "testuser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "Original"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -179,7 +179,7 @@ func TestStore_Update_ChangesFields(t *testing.T) {
 func TestStore_Update_PartialPatch_PreservesOtherFields(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "KeepMe", "keep this description", "testuser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "KeepMe", Description: "keep this description"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -199,7 +199,7 @@ func TestStore_Update_PartialPatch_PreservesOtherFields(t *testing.T) {
 func TestStore_SoftDelete_HidesFromGet(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "DeleteMe", "", "testuser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "DeleteMe"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
@@ -216,7 +216,7 @@ func TestStore_SoftDelete_HidesFromGet(t *testing.T) {
 func TestStore_SoftDelete_IdempotentOnAlreadyDeleted(t *testing.T) {
 	pool := testPool(t)
 	withTx(t, pool, func(ctx context.Context, s *geartypes.Store) {
-		gt, err := s.Create(ctx, "AlreadyGone", "", "testuser")
+		gt, err := s.Create(ctx, geartypes.CreateInput{Name: "AlreadyGone"}, "testuser")
 		if err != nil {
 			t.Fatalf("create: %v", err)
 		}
