@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -106,8 +107,13 @@ func (h *Handler) handleList(w http.ResponseWriter, r *http.Request) {
 		httputil.WriteError(w, http.StatusBadRequest, "offset must be non-negative")
 		return
 	}
+	typeID, err := parseOptionalUUID(q.Get("type_id"))
+	if err != nil {
+		httputil.WriteError(w, http.StatusBadRequest, "invalid type_id")
+		return
+	}
 	result, err := h.store.List(r.Context(), ListFilter{
-		Name: q.Get("name"), Limit: limit, Offset: offset,
+		Name: q.Get("name"), Limit: limit, Offset: offset, TypeID: typeID,
 	})
 	if err != nil {
 		internalError(w, "gear list", err)
@@ -207,12 +213,16 @@ func (h *Handler) handlePhoto(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	ct := r.Header.Get("Content-Type")
-	if !IsAllowedPhotoType(ct) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || !IsAllowedPhotoType(mediaType) {
 		httputil.WriteError(w, http.StatusUnsupportedMediaType, "unsupported media type; allowed: image/jpeg, image/png, image/webp")
 		return
 	}
-	key, err := h.photos.Upload(r.Context(), id.String(), ct, *r)
+	key, err := h.photos.Upload(r.Context(), id.String(), mediaType, *r)
+	if errors.Is(err, ErrPhotoTooLarge) {
+		httputil.WriteError(w, http.StatusRequestEntityTooLarge, "photo exceeds 10 MB limit")
+		return
+	}
 	if err != nil {
 		internalError(w, "gear photo upload", err)
 		return
@@ -238,6 +248,19 @@ func cleanupPhoto(ctx context.Context, photos PhotoUploader, key string) {
 func parseGearID(s string) (GearID, error) {
 	var id GearID
 	return id, id.Scan(s)
+}
+
+// parseOptionalUUID parses a UUID query param. Empty string returns nil, nil.
+// A non-empty but invalid value returns a non-nil error.
+func parseOptionalUUID(s string) (*GearID, error) {
+	if s == "" {
+		return nil, nil
+	}
+	id, err := parseGearID(s)
+	if err != nil {
+		return nil, err
+	}
+	return &id, nil
 }
 
 // resolveID parses the {id} path value, writing 400 and returning false on failure.

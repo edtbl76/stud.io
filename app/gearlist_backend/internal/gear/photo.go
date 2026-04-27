@@ -2,7 +2,9 @@ package gear
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -10,6 +12,11 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+const maxPhotoBytes int64 = 10 * 1024 * 1024 // 10 MB
+
+// ErrPhotoTooLarge is returned when the upload body exceeds maxPhotoBytes.
+var ErrPhotoTooLarge = errors.New("photo exceeds 10 MB limit")
 
 var allowedContentTypes = map[string]string{
 	"image/jpeg": ".jpg",
@@ -61,10 +68,15 @@ func IsAllowedPhotoType(contentType string) bool {
 
 // Upload stores the photo from r and returns the object key.
 // The caller is responsible for validating contentType before calling Upload.
+// Returns ErrPhotoTooLarge when r.ContentLength exceeds maxPhotoBytes.
 func (u *Uploader) Upload(ctx context.Context, gearID, contentType string, r http.Request) (string, error) {
+	if r.ContentLength > maxPhotoBytes {
+		return "", ErrPhotoTooLarge
+	}
 	ext := allowedContentTypes[contentType]
 	key := path.Join("gear", gearID, "photo"+ext)
-	_, err := u.client.PutObject(ctx, u.bucket, key, r.Body, r.ContentLength,
+	body := io.LimitReader(r.Body, maxPhotoBytes)
+	_, err := u.client.PutObject(ctx, u.bucket, key, body, r.ContentLength,
 		minio.PutObjectOptions{ContentType: contentType},
 	)
 	if err != nil {

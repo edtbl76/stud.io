@@ -387,11 +387,20 @@ func (s *Store) execWithAudit(ctx context.Context, id GearID, cfg writeAuditCfg)
 }
 
 // auditGear marshals old and writes an audit entry for a completed write.
+// For non-DELETE operations it re-fetches the current row as NewData.
 func (s *Store) auditGear(ctx context.Context, id GearID, old GearView, a auditOp) error {
 	oldJSON, _ := json.Marshal(old)
+	var newJSON []byte
+	if a.op != "DELETE" {
+		gv, err := s.Get(ctx, id)
+		if err != nil {
+			return fmt.Errorf("audit refetch: %w", err)
+		}
+		newJSON, _ = json.Marshal(gv)
+	}
 	return store.WriteAudit(ctx, s.db, store.AuditEntry{
 		TableName: "gear", RecordID: id, Operation: a.op,
-		OldData: oldJSON, PerformedBy: a.performedBy,
+		OldData: oldJSON, NewData: newJSON, PerformedBy: a.performedBy,
 	})
 }
 

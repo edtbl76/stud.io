@@ -115,7 +115,7 @@ func (s *Store) Update(ctx context.Context, id TypeID, in UpdateInput, performed
 		if err != nil {
 			return GearType{}, err
 		}
-		rows, err := txs.db.Query(ctx, updateSQL, in.Name, in.Description, id)
+		rows, err := txs.db.Query(ctx, updateSQL, nilIfEmpty(in.Name), nilIfEmpty(in.Description), id)
 		if err != nil {
 			return GearType{}, err
 		}
@@ -188,4 +188,13 @@ func (s *Store) txResult(ctx context.Context, fn func(*Store) (GearType, error))
 
 func nullableText(s string) pgtype.Text {
 	return pgtype.Text{String: s, Valid: s != ""}
+}
+
+// nilIfEmpty converts a non-nil pointer to "" into nil so COALESCE in
+// partial-update SQL treats it as "no change" -- consistent with nullableText.
+func nilIfEmpty(s *string) *string {
+	if s != nil && *s == "" {
+		return nil
+	}
+	return s
 }

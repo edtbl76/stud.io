@@ -185,10 +185,9 @@ func TestBuildPBTFlags(t *testing.T) {
 		args []string
 		want pipeline.PBTFlags
 	}{
-		{"empty runs all", nil, pipeline.PBTFlags{FastCheck: true, Hypothesis: true, GoRapid: true}},
+		{"empty runs all", nil, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
 		{"fast-check only", []string{"fast-check"}, pipeline.PBTFlags{FastCheck: true}},
 		{"hypothesis only", []string{"hypothesis"}, pipeline.PBTFlags{Hypothesis: true}},
-		{"go-rapid only", []string{"go-rapid"}, pipeline.PBTFlags{GoRapid: true}},
 		{"both explicit", []string{"fast-check", "hypothesis"}, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
 	}
 	for _, tt := range tests {

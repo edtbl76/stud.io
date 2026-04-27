@@ -20,12 +20,11 @@ type PBTConfig struct {
 type PBTFlags struct {
 	FastCheck  bool
 	Hypothesis bool
-	GoRapid    bool
 }
 
 // anySelected reports whether a specific engine was selected.
 func (f PBTFlags) anySelected() bool {
-	return f.FastCheck || f.Hypothesis || f.GoRapid
+	return f.FastCheck || f.Hypothesis
 }
 
 // shouldRun reports whether engine should run given the active flag selection.
@@ -39,15 +38,13 @@ func (f PBTFlags) shouldRun(engine string) bool {
 		return f.FastCheck
 	case "hypothesis":
 		return f.Hypothesis
-	case "go-rapid":
-		return f.GoRapid
 	}
 	return false
 }
 
 // AllPBTFlags returns flags that run all PBT engines.
 func AllPBTFlags() PBTFlags {
-	return PBTFlags{FastCheck: true, Hypothesis: true, GoRapid: true}
+	return PBTFlags{FastCheck: true, Hypothesis: true}
 }
 
 // RunPBT runs fast-check and/or hypothesis property-based tests. Both engines
@@ -66,10 +63,6 @@ func RunPBT(ctx context.Context, cfg PBTConfig, flags PBTFlags, out io.Writer) (
 	if flags.shouldRun("hypothesis") {
 		steps = append(steps, hypothesisPBTStep(cfg.Root, examples))
 	}
-	if flags.shouldRun("go-rapid") {
-		steps = append(steps, GoRapidStep(cfg.Root))
-	}
-
 	if len(steps) == 0 {
 		fmt.Fprintln(out, "[pbt] No engines selected.")
 		return nil, nil

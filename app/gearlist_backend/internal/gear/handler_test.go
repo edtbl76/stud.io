@@ -56,6 +56,24 @@ func fixedGear() gear.GearView {
 
 // ── GET /gear ─────────────────────────────────────────────────────────────────
 
+func TestGearHandler_List_TypeIDFilter_PassedToStore(t *testing.T) {
+	var gotFilter gear.ListFilter
+	stub := &stubGearStore{listFn: func(_ context.Context, f gear.ListFilter) (gear.ListResult, error) {
+		gotFilter = f
+		return gear.ListResult{}, nil
+	}}
+	req := httptest.NewRequest(http.MethodGet, "/gear?type_id=aaaaaaaa-0000-0000-0000-000000000001", nil)
+	w := httptest.NewRecorder()
+	gear.NewHandler(stub).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if gotFilter.TypeID == nil {
+		t.Error("expected TypeID to be set in ListFilter, got nil")
+	}
+}
+
 func TestGearHandler_List_Returns200(t *testing.T) {
 	stub := &stubGearStore{listFn: func(_ context.Context, _ gear.ListFilter) (gear.ListResult, error) {
 		return gear.ListResult{Items: []gear.GearView{fixedGear()}, Total: 1}, nil
@@ -85,6 +103,7 @@ func TestGearHandler_BadRequest(t *testing.T) {
 		{"negative limit", "/gear?limit=-1", ""},
 		{"negative offset", "/gear?offset=-5", ""},
 		{"invalid UUID", "/gear/not-a-uuid", "not-a-uuid"},
+		{"invalid type_id", "/gear?type_id=not-a-uuid", ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
