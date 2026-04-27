@@ -596,3 +596,33 @@ SELECT
 FROM  admin_tools at
 LEFT JOIN brands b ON b.brand_id = at.brand_id
 WHERE at.deleted_at IS NULL;
+
+-- =============================================================================
+-- GEARLIST
+-- =============================================================================
+CREATE OR REPLACE VIEW gear_view AS
+SELECT
+    g.gear_id,
+    g.gear_name,
+    g.gear_type_id,
+    gt.type_name           AS gear_type_name,
+    g.brand_id,
+    g.model_id,
+    g.serial_number,
+    g.year,
+    g.owner_id,
+    g.photo_key,
+    g.notes,
+    g.num_strings,
+    g.tuning,
+    g.pickup_config,
+    g.pickup_neck_model_id,
+    g.pickup_middle_model_id,
+    g.pickup_bridge_model_id,
+    g.strings_model_id,
+    g.created_at,
+    g.updated_at
+FROM  gear g
+LEFT JOIN gear_types gt ON gt.type_id = g.gear_type_id
+WHERE g.deleted_at IS NULL;
+

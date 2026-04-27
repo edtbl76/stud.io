@@ -104,3 +104,30 @@ func TestValidateRejectsInvalidDBPort(t *testing.T) {
 		}
 	}
 }
+
+func TestMinioEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		want     bool
+	}{
+		{"all fields set", "http://localhost:9000", true},
+		{"endpoint missing", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv("MINIO_ENDPOINT", tt.endpoint)
+			t.Setenv("MINIO_ACCESS_KEY", "key")
+			t.Setenv("MINIO_SECRET_KEY", "secret")
+			t.Setenv("MINIO_BUCKET", "studio-photos")
+			t.Setenv("DB_PASSWORD", "testpass")
+			cfg, err := Load()
+			if err != nil {
+				t.Fatalf("Load(): %v", err)
+			}
+			if cfg.MinioEnabled != tt.want {
+				t.Errorf("MinioEnabled = %v, want %v", cfg.MinioEnabled, tt.want)
+			}
+		})
+	}
+}

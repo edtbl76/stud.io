@@ -15,17 +15,32 @@ type Config struct {
 	DBUser     string
 	DBPassword string
 	AppPort    int
+
+	MinioEndpoint  string
+	MinioAccessKey string
+	MinioSecretKey string
+	MinioBucket    string
+	MinioEnabled   bool // true when all four Minio fields are non-empty
 }
 
 // Load reads configuration from environment variables with sensible defaults.
 func Load() (*Config, error) {
+	endpoint := env("MINIO_ENDPOINT", "")
+	accessKey := env("MINIO_ACCESS_KEY", "")
+	secretKey := env("MINIO_SECRET_KEY", "")
+	bucket := env("MINIO_BUCKET", "studio-photos")
 	cfg := &Config{
-		DBHost:     env("DB_HOST", "studio_db"),
-		DBPort:     envInt("DB_PORT", 5432),
-		DBName:     env("DB_NAME", "masterdb"),
-		DBUser:     env("DB_USER", "studio"),
-		DBPassword: env("DB_PASSWORD", ""),
-		AppPort:    envInt("APP_PORT", 4001),
+		DBHost:         env("DB_HOST", "studio_db"),
+		DBPort:         envInt("DB_PORT", 5432),
+		DBName:         env("DB_NAME", "masterdb"),
+		DBUser:         env("DB_USER", "studio"),
+		DBPassword:     env("DB_PASSWORD", ""),
+		AppPort:        envInt("APP_PORT", 4001),
+		MinioEndpoint:  endpoint,
+		MinioAccessKey: accessKey,
+		MinioSecretKey: secretKey,
+		MinioBucket:    bucket,
+		MinioEnabled:   endpoint != "" && accessKey != "" && secretKey != "",
 	}
 	return cfg, cfg.validate()
 }

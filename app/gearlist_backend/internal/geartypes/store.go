@@ -1,0 +1,149 @@
+package geartypes
+
+import (
+	"context"
+	"encoding/json"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/studiocontrolroom/gearlist_backend/internal/store"
+)
+
+// TypeID is an alias so callers can reference it without importing pgtype directly.
+type TypeID = pgtype.UUID
+
+// GearType is a row from the gear_types table.
+type GearType struct {
+	TypeID          pgtype.UUID
+	TypeName        string
+	TypeDescription pgtype.Text
+}
+
+// UpdateInput holds the optional fields for a PATCH request.
+// A nil pointer means the field is not being updated.
+type UpdateInput struct {
+	Name        *string
+	Description *string
+}
+
+// querier is satisfied by *pgxpool.Pool and pgx.Tx.
+type querier interface {
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
+
+// Store provides data access for gear_types.
+type Store struct{ db querier }
+
+// NewStore returns a Store backed by db.
+func NewStore(db querier) *Store { return &Store{db: db} }
+
+// DB exposes the underlying querier for test helpers that need raw access.
+func (s *Store) DB() querier { return s.db }
+
+const listSQL = `
+SELECT type_id, type_name, type_description
+FROM   gear_types
+WHERE  deleted_at IS NULL
+ORDER  BY type_name`
+
+// List returns all non-deleted gear types ordered by name.
+func (s *Store) List(ctx context.Context) ([]GearType, error) {
+	rows, err := s.db.Query(ctx, listSQL)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return pgx.CollectRows(rows, pgx.RowToStructByName[GearType])
+}
+
+const getSQL = `
+SELECT type_id, type_name, type_description
+FROM   gear_types
+WHERE  type_id = $1 AND deleted_at IS NULL`
+
+// Get returns a single non-deleted gear type by ID.
+func (s *Store) Get(ctx context.Context, id TypeID) (GearType, error) {
+	rows, err := s.db.Query(ctx, getSQL, id)
+	if err != nil {
+		return GearType{}, err
+	}
+	return pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
+}
+
+const createSQL = `
+INSERT INTO gear_types (type_name, type_description)
+VALUES ($1, $2)
+RETURNING type_id, type_name, type_description`
+
+// Create inserts a new gear type and writes an audit entry.
+func (s *Store) Create(ctx context.Context, name, description, performedBy string) (GearType, error) {
+	rows, err := s.db.Query(ctx, createSQL, name, nullableText(description))
+	if err != nil {
+		return GearType{}, err
+	}
+	gt, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
+	if err != nil {
+		return GearType{}, err
+	}
+	newJSON, _ := json.Marshal(gt)
+	return gt, store.WriteAudit(ctx, s.db, store.AuditEntry{
+		TableName: "gear_types", RecordID: gt.TypeID,
+		Operation: "CREATE", NewData: newJSON, PerformedBy: performedBy,
+	})
+}
+
+const updateSQL = `
+UPDATE gear_types
+SET    type_name        = COALESCE($1, type_name),
+       type_description = COALESCE($2, type_description)
+WHERE  type_id = $3 AND deleted_at IS NULL
+RETURNING type_id, type_name, type_description`
+
+// Update applies a partial update to a gear type and writes an audit entry.
+func (s *Store) Update(ctx context.Context, id TypeID, in UpdateInput, performedBy string) (GearType, error) {
+	old, err := s.Get(ctx, id)
+	if err != nil {
+		return GearType{}, err
+	}
+	rows, err := s.db.Query(ctx, updateSQL, in.Name, in.Description, id)
+	if err != nil {
+		return GearType{}, err
+	}
+	updated, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[GearType])
+	if err != nil {
+		return GearType{}, err
+	}
+	oldJSON, _ := json.Marshal(old)
+	newJSON, _ := json.Marshal(updated)
+	return updated, store.WriteAudit(ctx, s.db, store.AuditEntry{
+		TableName: "gear_types", RecordID: id,
+		Operation: "UPDATE", OldData: oldJSON, NewData: newJSON, PerformedBy: performedBy,
+	})
+}
+
+const softDeleteSQL = `
+UPDATE gear_types SET deleted_at = NOW()
+WHERE  type_id = $1 AND deleted_at IS NULL`
+
+// SoftDelete marks a gear type as deleted. Idempotent if already deleted.
+func (s *Store) SoftDelete(ctx context.Context, id TypeID, performedBy string) error {
+	old, err := s.Get(ctx, id)
+	if err != nil {
+		return nil // already deleted or not found — idempotent
+	}
+	if _, err := s.db.Exec(ctx, softDeleteSQL, id); err != nil {
+		return err
+	}
+	oldJSON, _ := json.Marshal(old)
+	return store.WriteAudit(ctx, s.db, store.AuditEntry{
+		TableName: "gear_types", RecordID: id,
+		Operation: "DELETE", OldData: oldJSON, PerformedBy: performedBy,
+	})
+}
+
+func nullableText(s string) pgtype.Text {
+	return pgtype.Text{String: s, Valid: s != ""}
+}

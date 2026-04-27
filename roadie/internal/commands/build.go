@@ -159,11 +159,11 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	if flags.dev && flags.full {
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "  Release gate passed:")
-		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest · go-test")
-		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest · go-test · govulncheck · gosec · staticcheck")
-		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis")
+		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
+		fmt.Fprintln(out, "    Unit:        tsc · jest · ruff · bandit · pytest · go-test")
+		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis · go-rapid")
 		fmt.Fprintln(out, "    E2E:         Playwright")
-		fmt.Fprintln(out, "    Scans:       SonarQube · Trivy · secrets · headers")
+		fmt.Fprintln(out, "    Scan:        SonarQube · Trivy · secrets · headers · govulncheck · gosec · staticcheck")
 		fmt.Fprintln(out, "    Perf:        benchmarks · k6 · Lighthouse")
 	}
 	fmt.Fprintln(out, "============================================================")

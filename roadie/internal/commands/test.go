@@ -30,7 +30,7 @@ func testCmd() *cobra.Command {
   roadie test e2e
   roadie test scan [sonar|trivy|secrets|headers|govulncheck|gosec|staticcheck] [--gate] [--json]
   roadie test perf [bundle|benchmarks|k6|lighthouse] [--no-bundle] [--json]
-  roadie test pbt [fast-check] [hypothesis] [--json]
+  roadie test pbt [fast-check] [hypothesis] [go-rapid] [--json]
   roadie test full`,
 	}
 }
@@ -141,9 +141,9 @@ func perfCmd() *cobra.Command {
 func pbtCmd() *cobra.Command {
 	var jsonOut bool
 	cmd := &cobra.Command{
-		Use:       "pbt [fast-check] [hypothesis]",
-		Short:     "Run property-based tests (fast-check, hypothesis)",
-		ValidArgs: []string{"fast-check", "hypothesis"},
+		Use:       "pbt [fast-check] [hypothesis] [go-rapid]",
+		Short:     "Run property-based tests (fast-check, hypothesis, go-rapid)",
+		ValidArgs: []string{"fast-check", "hypothesis", "go-rapid"},
 		Args:      cobra.OnlyValidArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := loadConfig()
@@ -173,6 +173,8 @@ func buildPBTFlags(args []string) pipeline.PBTFlags {
 			f.FastCheck = true
 		case "hypothesis":
 			f.Hypothesis = true
+		case "go-rapid":
+			f.GoRapid = true
 		}
 	}
 	return f
