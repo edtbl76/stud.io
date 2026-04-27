@@ -88,29 +88,26 @@ func TestHandler_Create_Returns201(t *testing.T) {
 	}
 }
 
-func TestHandler_Create_MissingEventType_Returns400(t *testing.T) {
-	stub := &stubStore{}
-	body, _ := json.Marshal(map[string]any{"notes": "no type"})
-	req := httptest.NewRequest(http.MethodPost, "/gear/cccccccc-0000-0000-0000-000000000001/maintenance", bytes.NewReader(body))
-	req.SetPathValue("id", "cccccccc-0000-0000-0000-000000000001")
-	w := httptest.NewRecorder()
-	maintenance.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+func TestHandler_Create_ValidationErrors(t *testing.T) {
+	const id = "cccccccc-0000-0000-0000-000000000001"
+	tests := []struct {
+		name string
+		body map[string]any
+	}{
+		{"missing event_type", map[string]any{"notes": "no type"}},
+		{"missing event_date", map[string]any{"event_type": "setup"}},
 	}
-}
-
-func TestHandler_Create_MissingEventDate_Returns400(t *testing.T) {
-	stub := &stubStore{}
-	body, _ := json.Marshal(map[string]any{"event_type": "setup"})
-	req := httptest.NewRequest(http.MethodPost, "/gear/cccccccc-0000-0000-0000-000000000001/maintenance", bytes.NewReader(body))
-	req.SetPathValue("id", "cccccccc-0000-0000-0000-000000000001")
-	w := httptest.NewRecorder()
-	maintenance.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b, _ := json.Marshal(tt.body)
+			req := httptest.NewRequest(http.MethodPost, "/gear/"+id+"/maintenance", bytes.NewReader(b))
+			req.SetPathValue("id", id)
+			w := httptest.NewRecorder()
+			maintenance.NewHandler(&stubStore{}).ServeHTTP(w, req)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want 400", w.Code)
+			}
+		})
 	}
 }
 

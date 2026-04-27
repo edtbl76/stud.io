@@ -76,33 +76,45 @@ func TestGearHandler_List_Returns200(t *testing.T) {
 	}
 }
 
-// ── GET /gear/{id} ────────────────────────────────────────────────────────────
+// ── by-ID routes ─────────────────────────────────────────────────────────────
 
-func TestGearHandler_Get_Returns200(t *testing.T) {
-	stub := &stubGearStore{getFn: func(_ context.Context, _ gear.GearID) (gear.GearView, error) {
-		return fixedGear(), nil
-	}}
-	req := httptest.NewRequest(http.MethodGet, "/gear/bbbbbbbb-0000-0000-0000-000000000001", nil)
-	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200", w.Code)
+func TestGearHandler_ByID(t *testing.T) {
+	const id = "bbbbbbbb-0000-0000-0000-000000000001"
+	patchBody, _ := json.Marshal(map[string]any{"gear_name": "Renamed"})
+	tests := []struct {
+		name   string
+		method string
+		path   string
+		body   []byte
+		stub   *stubGearStore
+		want   int
+	}{
+		{"GET found", http.MethodGet, "/gear/" + id, nil, &stubGearStore{getFn: func(_ context.Context, _ gear.GearID) (gear.GearView, error) {
+			return fixedGear(), nil
+		}}, http.StatusOK},
+		{"GET not found", http.MethodGet, "/gear/ffffffff-ffff-ffff-ffff-ffffffffffff", nil, &stubGearStore{getFn: func(_ context.Context, _ gear.GearID) (gear.GearView, error) {
+			return gear.GearView{}, pgx.ErrNoRows
+		}}, http.StatusNotFound},
+		{"PATCH", http.MethodPatch, "/gear/" + id, patchBody, &stubGearStore{updateFn: func(_ context.Context, _ gear.GearID, _ gear.UpdateInput, _ string) (gear.GearView, error) {
+			return fixedGear(), nil
+		}}, http.StatusOK},
+		{"DELETE", http.MethodDelete, "/gear/" + id, nil, &stubGearStore{deleteFn: func(_ context.Context, _ gear.GearID, _ string) error { return nil }}, http.StatusNoContent},
+		{"history", http.MethodGet, "/gear/" + id + "/history", nil, &stubGearStore{historyFn: func(_ context.Context, _ gear.GearID) ([]gear.AuditRow, error) {
+			return []gear.AuditRow{{Operation: "CREATE"}}, nil
+		}}, http.StatusOK},
+		{"photo no uploader", http.MethodPost, "/gear/" + id + "/photo", nil, &stubGearStore{}, http.StatusServiceUnavailable},
 	}
-}
-
-func TestGearHandler_Get_NotFound_Returns404(t *testing.T) {
-	stub := &stubGearStore{getFn: func(_ context.Context, _ gear.GearID) (gear.GearView, error) {
-		return gear.GearView{}, pgx.ErrNoRows
-	}}
-	req := httptest.NewRequest(http.MethodGet, "/gear/ffffffff-ffff-ffff-ffff-ffffffffffff", nil)
-	req.SetPathValue("id", "ffffffff-ffff-ffff-ffff-ffffffffffff")
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", w.Code)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(tt.method, tt.path, bytes.NewReader(tt.body))
+			req.SetPathValue("id", id)
+			req.Header.Set("X-User", "admin")
+			w := httptest.NewRecorder()
+			gear.NewHandler(tt.stub).ServeHTTP(w, req)
+			if w.Code != tt.want {
+				t.Errorf("status = %d, want %d", w.Code, tt.want)
+			}
+		})
 	}
 }
 
@@ -137,73 +149,6 @@ func TestGearHandler_Create_MissingName_Returns400(t *testing.T) {
 
 	if w.Code != http.StatusBadRequest {
 		t.Errorf("status = %d, want 400", w.Code)
-	}
-}
-
-// ── PATCH /gear/{id} ──────────────────────────────────────────────────────────
-
-func TestGearHandler_Update_Returns200(t *testing.T) {
-	stub := &stubGearStore{updateFn: func(_ context.Context, _ gear.GearID, _ gear.UpdateInput, _ string) (gear.GearView, error) {
-		return fixedGear(), nil
-	}}
-	body, _ := json.Marshal(map[string]any{"gear_name": "Renamed"})
-	req := httptest.NewRequest(http.MethodPatch, "/gear/bbbbbbbb-0000-0000-0000-000000000001", bytes.NewReader(body))
-	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
-	req.Header.Set("X-User", "admin")
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200", w.Code)
-	}
-}
-
-// ── DELETE /gear/{id} ─────────────────────────────────────────────────────────
-
-func TestGearHandler_Delete_Returns204(t *testing.T) {
-	stub := &stubGearStore{deleteFn: func(_ context.Context, _ gear.GearID, _ string) error {
-		return nil
-	}}
-	req := httptest.NewRequest(http.MethodDelete, "/gear/bbbbbbbb-0000-0000-0000-000000000001", nil)
-	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
-	req.Header.Set("X-User", "admin")
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusNoContent {
-		t.Errorf("status = %d, want 204", w.Code)
-	}
-}
-
-// ── GET /gear/{id}/history ────────────────────────────────────────────────────
-
-func TestGearHandler_History_Returns200(t *testing.T) {
-	stub := &stubGearStore{historyFn: func(_ context.Context, _ gear.GearID) ([]gear.AuditRow, error) {
-		return []gear.AuditRow{{Operation: "CREATE", PerformedBy: "admin"}}, nil
-	}}
-	req := httptest.NewRequest(http.MethodGet, "/gear/bbbbbbbb-0000-0000-0000-000000000001/history", nil)
-	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want 200", w.Code)
-	}
-}
-
-// ── POST /gear/{id}/photo ─────────────────────────────────────────────────────
-
-func TestGearHandler_Photo_NoUploader_Returns503(t *testing.T) {
-	stub := &stubGearStore{}
-	req := httptest.NewRequest(http.MethodPost, "/gear/bbbbbbbb-0000-0000-0000-000000000001/photo", nil)
-	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
-	req.Header.Set("X-User", "admin")
-	w := httptest.NewRecorder()
-	// NewHandler with nil uploader → 503
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusServiceUnavailable {
-		t.Errorf("status = %d, want 503", w.Code)
 	}
 }
 

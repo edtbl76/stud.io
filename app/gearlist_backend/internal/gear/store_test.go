@@ -60,16 +60,23 @@ func minimalInput(typeID pgtype.UUID) gear.CreateInput {
 	return gear.CreateInput{GearName: "Test Guitar", GearTypeID: typeID}
 }
 
+// withGear seeds a gear_type and gear row, then runs fn inside the same transaction.
+func withGear(t *testing.T, pool *pgxpool.Pool, typeName string, fn func(ctx context.Context, s *gear.Store, g gear.GearView)) {
+	t.Helper()
+	withTx(t, pool, func(ctx context.Context, s *gear.Store) {
+		typeID := seedGearType(t, ctx, s.TX(), typeName)
+		g, err := s.Create(ctx, minimalInput(typeID), "u")
+		if err != nil {
+			t.Fatalf("seed gear: %v", err)
+		}
+		fn(ctx, s, g)
+	})
+}
+
 // ── List ──────────────────────────────────────────────────────────────────────
 
 func TestStore_List_ReturnsResult(t *testing.T) {
-	pool := testPool(t)
-	withTx(t, pool, func(ctx context.Context, s *gear.Store) {
-		tx := s.TX()
-		typeID := seedGearType(t, ctx, tx, "ListTestType")
-		if _, err := s.Create(ctx, minimalInput(typeID), "testuser"); err != nil {
-			t.Fatalf("create: %v", err)
-		}
+	withGear(t, testPool(t), "ListTestType", func(ctx context.Context, s *gear.Store, _ gear.GearView) {
 		result, err := s.List(ctx, gear.ListFilter{Limit: 10})
 		if err != nil {
 			t.Fatalf("list: %v", err)
@@ -126,14 +133,7 @@ func TestStore_List_ExcludesDeleted(t *testing.T) {
 // ── Get ───────────────────────────────────────────────────────────────────────
 
 func TestStore_Get_ReturnsRow(t *testing.T) {
-	pool := testPool(t)
-	withTx(t, pool, func(ctx context.Context, s *gear.Store) {
-		tx := s.TX()
-		typeID := seedGearType(t, ctx, tx, "GetTestType")
-		created, err := s.Create(ctx, minimalInput(typeID), "u")
-		if err != nil {
-			t.Fatalf("create: %v", err)
-		}
+	withGear(t, testPool(t), "GetTestType", func(ctx context.Context, s *gear.Store, created gear.GearView) {
 		got, err := s.Get(ctx, created.GearID)
 		if err != nil {
 			t.Fatalf("get: %v", err)
@@ -199,14 +199,7 @@ func TestStore_Create_WritesAuditLog(t *testing.T) {
 // ── Update ────────────────────────────────────────────────────────────────────
 
 func TestStore_Update_ChangesGearName(t *testing.T) {
-	pool := testPool(t)
-	withTx(t, pool, func(ctx context.Context, s *gear.Store) {
-		tx := s.TX()
-		typeID := seedGearType(t, ctx, tx, "UpdateType")
-		g, err := s.Create(ctx, minimalInput(typeID), "u")
-		if err != nil {
-			t.Fatalf("create: %v", err)
-		}
+	withGear(t, testPool(t), "UpdateType", func(ctx context.Context, s *gear.Store, g gear.GearView) {
 		name := "Renamed Guitar"
 		updated, err := s.Update(ctx, g.GearID, gear.UpdateInput{GearName: &name}, "u")
 		if err != nil {
