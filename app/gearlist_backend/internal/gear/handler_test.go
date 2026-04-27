@@ -76,23 +76,28 @@ func TestGearHandler_List_Returns200(t *testing.T) {
 	}
 }
 
-func TestGearHandler_List_NegativeLimit_Returns400(t *testing.T) {
-	stub := &stubGearStore{}
-	req := httptest.NewRequest(http.MethodGet, "/gear?limit=-1", nil)
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+func TestGearHandler_BadRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		url  string
+		id   string
+	}{
+		{"negative limit", "/gear?limit=-1", ""},
+		{"negative offset", "/gear?offset=-5", ""},
+		{"invalid UUID", "/gear/not-a-uuid", "not-a-uuid"},
 	}
-}
-
-func TestGearHandler_List_NegativeOffset_Returns400(t *testing.T) {
-	stub := &stubGearStore{}
-	req := httptest.NewRequest(http.MethodGet, "/gear?offset=-5", nil)
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, tt.url, nil)
+			if tt.id != "" {
+				req.SetPathValue("id", tt.id)
+			}
+			w := httptest.NewRecorder()
+			gear.NewHandler(&stubGearStore{}).ServeHTTP(w, req)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("status = %d, want 400", w.Code)
+			}
+		})
 	}
 }
 
@@ -173,18 +178,6 @@ func TestGearHandler_Create_MissingName_Returns400(t *testing.T) {
 }
 
 // ── invalid UUID ─────────────────────────────────────────────────────────────
-
-func TestGearHandler_InvalidUUID_Returns400(t *testing.T) {
-	stub := &stubGearStore{}
-	req := httptest.NewRequest(http.MethodGet, "/gear/not-a-uuid", nil)
-	req.SetPathValue("id", "not-a-uuid")
-	w := httptest.NewRecorder()
-	gear.NewHandler(stub).ServeHTTP(w, req)
-
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
-}
 
 // ── store error → 500 ─────────────────────────────────────────────────────────
 
