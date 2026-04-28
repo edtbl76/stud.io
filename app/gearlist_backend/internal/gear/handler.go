@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/studiocontrolroom/gearlist_backend/internal/httputil"
@@ -228,7 +229,7 @@ func (h *Handler) handlePhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.store.SetPhotoKey(r.Context(), id, key, httputil.UserFromRequest(r)); err != nil {
-		cleanupPhoto(r.Context(), h.photos, key)
+		cleanupPhoto(h.photos, key)
 		internalError(w, "gear set photo key", err)
 		return
 	}
@@ -236,8 +237,11 @@ func (h *Handler) handlePhoto(w http.ResponseWriter, r *http.Request) {
 }
 
 // cleanupPhoto removes a successfully uploaded object when the subsequent DB
-// write fails, preventing orphaned objects in storage.
-func cleanupPhoto(ctx context.Context, photos PhotoUploader, key string) {
+// write fails, preventing orphaned objects in storage. Uses a detached context
+// so deletion proceeds even if the original request context was cancelled.
+func cleanupPhoto(photos PhotoUploader, key string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	if err := photos.Delete(ctx, key); err != nil {
 		slog.Error("gear photo cleanup", "err", err)
 	}
