@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5"
@@ -262,9 +263,11 @@ func TestGearHandler_Photo_CleansUpOnSetPhotoKeyFailure(t *testing.T) {
 			return errors.New("db error")
 		},
 	}
-	req := httptest.NewRequest(http.MethodPost, "/gear/bbbbbbbb-0000-0000-0000-000000000001/photo", nil)
+	const fakeBody = "fake image data"
+	req := httptest.NewRequest(http.MethodPost, "/gear/bbbbbbbb-0000-0000-0000-000000000001/photo", strings.NewReader(fakeBody))
 	req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
 	req.Header.Set("Content-Type", "image/jpeg")
+	req.ContentLength = int64(len(fakeBody))
 	w := httptest.NewRecorder()
 	gear.NewHandler(stub).WithPhotos(uploader).ServeHTTP(w, req)
 
@@ -273,5 +276,25 @@ func TestGearHandler_Photo_CleansUpOnSetPhotoKeyFailure(t *testing.T) {
 	}
 	if !deleted {
 		t.Error("expected uploaded object to be deleted on SetPhotoKey failure")
+	}
+}
+
+func TestGearHandler_Photo_UnknownContentLength_Returns413(t *testing.T) {
+	uploader := &stubUploader{
+		uploadFn: func(_ context.Context, _, _ string, _ http.Request) (string, error) {
+			return "key", nil
+		},
+		deleteFn: func(_ context.Context, _ string) error { return nil },
+	}
+	for _, cl := range []int64{-1, 0} {
+		req := httptest.NewRequest(http.MethodPost, "/gear/bbbbbbbb-0000-0000-0000-000000000001/photo", strings.NewReader("data"))
+		req.SetPathValue("id", "bbbbbbbb-0000-0000-0000-000000000001")
+		req.Header.Set("Content-Type", "image/jpeg")
+		req.ContentLength = cl
+		w := httptest.NewRecorder()
+		gear.NewHandler(&stubGearStore{}).WithPhotos(uploader).ServeHTTP(w, req)
+		if w.Code != http.StatusRequestEntityTooLarge {
+			t.Errorf("ContentLength=%d: status = %d, want 413", cl, w.Code)
+		}
 	}
 }

@@ -214,9 +214,8 @@ func (h *Handler) handlePhoto(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil || !IsAllowedPhotoType(mediaType) {
-		httputil.WriteError(w, http.StatusUnsupportedMediaType, "unsupported media type; allowed: image/jpeg, image/png, image/webp")
+	mediaType, ok := parsePhotoRequest(w, r)
+	if !ok {
 		return
 	}
 	key, err := h.photos.Upload(r.Context(), id.String(), mediaType, *r)
@@ -234,6 +233,22 @@ func (h *Handler) handlePhoto(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	httputil.WriteJSON(w, http.StatusOK, map[string]string{"photo_key": key})
+}
+
+// parsePhotoRequest validates the Content-Type and Content-Length of a photo
+// upload request. Returns the media type and true on success, or writes the
+// appropriate error response and returns false.
+func parsePhotoRequest(w http.ResponseWriter, r *http.Request) (string, bool) {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil || !IsAllowedPhotoType(mediaType) {
+		httputil.WriteError(w, http.StatusUnsupportedMediaType, "unsupported media type; allowed: image/jpeg, image/png, image/webp")
+		return "", false
+	}
+	if r.ContentLength <= 0 || r.ContentLength > maxPhotoBytes {
+		httputil.WriteError(w, http.StatusRequestEntityTooLarge, "photo exceeds 10 MB limit")
+		return "", false
+	}
+	return mediaType, true
 }
 
 // cleanupPhoto removes a successfully uploaded object when the subsequent DB
