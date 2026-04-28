@@ -36,9 +36,12 @@ type PBTTestConfig struct {
 
 // PerfTestConfig configures the performance test runner.
 type PerfTestConfig struct {
-	BackendPort  int    `yaml:"backend_port"`
-	FrontendPort int    `yaml:"frontend_port"`
-	CarbonURL    string `yaml:"carbon_base_url"`
+	BackendPort          int    `yaml:"backend_port"`
+	FrontendPort         int    `yaml:"frontend_port"`
+	CarbonURL            string `yaml:"carbon_base_url"`
+	GearlistService      string `yaml:"gearlist_service"`
+	GearlistPort         int    `yaml:"gearlist_port"`
+	GearlistInternalPort int    `yaml:"gearlist_internal_port"`
 }
 
 // TestDBConfig holds credentials for provisioning per-shard test databases.

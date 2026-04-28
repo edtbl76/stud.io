@@ -94,6 +94,9 @@ test:
     backend_port: 5160
     frontend_port: 3010
     carbon_base_url: ""
+    gearlist_service: gearlist_backend_test
+    gearlist_port: 4011
+    gearlist_internal_port: 4001
   pbt:
     # examples controls how many generated test cases fast-check and hypothesis
     # each produce per property. Increase for more thorough pre-release runs.
