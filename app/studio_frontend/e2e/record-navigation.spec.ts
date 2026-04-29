@@ -126,7 +126,7 @@ test.afterAll(async ({ request }) => {
 })
 
 test('search: navigation buttons appear in modal when there are multiple results', async ({ page }) => {
-  await page.goto(`/controlroom/search?q=${encodeURIComponent(NAV_PREFIX)}`)
+  await page.goto(`/search?q=${encodeURIComponent(NAV_PREFIX)}`)
   await expect(page.getByText(/\d+ result/i)).toBeVisible({ timeout: 15_000 })
 
   // Open the first result by name so we target a search result button specifically

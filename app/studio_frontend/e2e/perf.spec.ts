@@ -50,7 +50,7 @@ test.beforeAll(() => {
 })
 
 const PAGES = [
-  '/controlroom/search',
+  '/search',
   '/studio/catalog/brands',
   '/studio/catalog/models',
   '/controlroom/session/effects',
