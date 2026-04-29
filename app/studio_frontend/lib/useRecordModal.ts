@@ -46,6 +46,10 @@ export interface UseRecordModalResult<TForm> {
   recordModalProps: RecordModalSharedProps
 }
 
+function toErrMsg(err: unknown, fallback: string): string {
+  return err instanceof Error ? err.message : fallback
+}
+
 export function useRecordModal<TRecord, TForm>({
   record,
   endpoint,
@@ -60,6 +64,7 @@ export function useRecordModal<TRecord, TForm>({
   const { role } = useAuth()
   const isCreate = record === null
   const isAdmin = role === 'admin'
+  const hasHistory = !!(record && getHistoryUrl)
   const [mode, setMode] = React.useState<ModalMode>(isCreate ? 'edit' : 'view')
   const [form, setForm] = React.useState<TForm>(() => toForm(record))
   const [error, setError] = React.useState<string | null>(null)
@@ -71,13 +76,13 @@ export function useRecordModal<TRecord, TForm>({
       return api.update<TRecord>(endpoint, getRecordId(record), body)
     },
     onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Save failed'),
+    onError: (err) => setError(toErrMsg(err, 'Save failed')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: () => api.delete(endpoint, getRecordId(record!)),
     onSuccess: () => { onMutate(); onClose() },
-    onError: (err) => setError(err instanceof Error ? err.message : 'Delete failed'),
+    onError: (err) => setError(toErrMsg(err, 'Delete failed')),
   })
 
   function set<K extends keyof TForm>(key: K, value: TForm[K]) {
@@ -90,7 +95,7 @@ export function useRecordModal<TRecord, TForm>({
     isEditing: mode === 'edit',
     isHistory: mode === 'history',
     onEdit: () => setMode('edit'),
-    onHistory: (record && getHistoryUrl) ? () => setMode('history') : undefined,
+    onHistory: hasHistory ? () => setMode('history') : undefined,
     onSave: () => { setError(null); saveMutation.mutate() },
     onDelete: () => deleteMutation.mutate(),
     onClose,
