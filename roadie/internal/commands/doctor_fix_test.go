@@ -13,16 +13,19 @@ import (
 
 func TestContainsFinding(t *testing.T) {
 	findings := []secretsFinding{
-		{Type: "HexHighEntropyString", LineNumber: 5},
-		{Type: "BasicAuthCredentials", LineNumber: 12},
+		{Type: "HexHighEntropyString", LineNumber: 5, HashedSecret: "abc123"},
+		{Type: "BasicAuthCredentials", LineNumber: 12, HashedSecret: "def456"},
 	}
-	if !containsFinding(findings, secretsFinding{Type: "HexHighEntropyString", LineNumber: 5}) {
-		t.Error("expected to find HexHighEntropyString:5")
+	if !containsFinding(findings, secretsFinding{Type: "HexHighEntropyString", LineNumber: 5, HashedSecret: "abc123"}) {
+		t.Error("expected to find matching finding")
 	}
-	if containsFinding(findings, secretsFinding{Type: "HexHighEntropyString", LineNumber: 99}) {
+	if containsFinding(findings, secretsFinding{Type: "HexHighEntropyString", LineNumber: 5, HashedSecret: "different"}) {
+		t.Error("same type/line but different hash must not match")
+	}
+	if containsFinding(findings, secretsFinding{Type: "HexHighEntropyString", LineNumber: 99, HashedSecret: "abc123"}) {
 		t.Error("unexpected match for wrong line number")
 	}
-	if containsFinding(nil, secretsFinding{Type: "Anything", LineNumber: 1}) {
+	if containsFinding(nil, secretsFinding{Type: "Anything", LineNumber: 1, HashedSecret: "x"}) {
 		t.Error("expected false for nil findings")
 	}
 }

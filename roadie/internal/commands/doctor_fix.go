@@ -15,6 +15,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const woodpeckerAgentCount = 4
+
 // secretsExcludes mirrors the exclude patterns used in DetectSecretsStep
 // (pipeline/steps.go). Both lists must be kept in sync.
 var secretsExcludes = []string{
@@ -33,8 +35,9 @@ var secretsExcludes = []string{
 type secretsResults map[string][]secretsFinding
 
 type secretsFinding struct {
-	Type       string `json:"type"`
-	LineNumber int    `json:"line_number"`
+	Type         string `json:"type"`
+	LineNumber   int    `json:"line_number"`
+	HashedSecret string `json:"hashed_secret"`
 }
 
 type secretsDiff struct {
@@ -160,7 +163,7 @@ func newFindings(from, to secretsResults) []secretsDiff {
 
 func containsFinding(findings []secretsFinding, f secretsFinding) bool {
 	for _, existing := range findings {
-		if existing.Type == f.Type && existing.LineNumber == f.LineNumber {
+		if existing.Type == f.Type && existing.LineNumber == f.LineNumber && existing.HashedSecret == f.HashedSecret {
 			return true
 		}
 	}
@@ -189,13 +192,13 @@ func printSecretsDiff(out io.Writer, added, removed []secretsDiff) {
 // ── woodpecker ────────────────────────────────────────────────────────────────
 
 func runFixWoodpeckerAgents(ctx context.Context, out io.Writer) error {
-	for i := 1; i <= 4; i++ {
+	for i := 1; i <= woodpeckerAgentCount; i++ {
 		agent := fmt.Sprintf("woodpecker-agent-%d", i)
 		fmt.Fprintf(out, "[fix] Restarting %s...\n", agent)
 		cmd := exec.CommandContext(ctx, "sudo", "systemctl", "restart", agent)
 		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+		cmd.Stdout = out
+		cmd.Stderr = out
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("restarting %s: %w", agent, err)
 		}
