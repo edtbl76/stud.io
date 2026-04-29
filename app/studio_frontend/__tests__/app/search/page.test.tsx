@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import SearchPage from '@/app/controlroom/search/page'
+import SearchPage from '@/app/search/page'
 import type { SearchResult } from '@/lib/types'
 
 jest.mock('@/lib/auth', () => ({
