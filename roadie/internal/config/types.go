@@ -25,6 +25,9 @@ type E2ETestConfig struct {
 	BackendInternalPort   int    `yaml:"backend_internal_port"`
 	BackendBasePort       int    `yaml:"backend_base_port"`
 	FrontendBasePort      int    `yaml:"frontend_base_port"`
+	GearlistService       string `yaml:"gearlist_service"`
+	GearlistPort          int    `yaml:"gearlist_port"`
+	GearlistInternalPort  int    `yaml:"gearlist_internal_port"`
 }
 
 // PBTTestConfig configures property-based test runners (fast-check, hypothesis).

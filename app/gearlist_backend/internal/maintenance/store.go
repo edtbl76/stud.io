@@ -11,12 +11,12 @@ import (
 
 // LogEntry is a row from gear_maintenance_log.
 type LogEntry struct {
-	LogID     pgtype.UUID        `db:"log_id"`
-	GearID    pgtype.UUID        `db:"gear_id"`
-	EventType string             `db:"event_type"`
-	Notes     pgtype.Text        `db:"notes"`
-	EventDate pgtype.Date        `db:"event_date"`
-	CreatedAt pgtype.Timestamptz `db:"created_at"`
+	LogID     pgtype.UUID        `db:"log_id"    json:"log_id"`
+	GearID    pgtype.UUID        `db:"gear_id"   json:"gear_id"`
+	EventType string             `db:"event_type" json:"event_type"`
+	Notes     pgtype.Text        `db:"notes"     json:"notes"`
+	EventDate pgtype.Date        `db:"event_date" json:"event_date"`
+	CreatedAt pgtype.Timestamptz `db:"created_at" json:"created_at"`
 }
 
 // AllowedEventTypes is the set of valid event_type values, matching the

@@ -71,6 +71,7 @@ build:
     - sql/seeds/17_instruments.sql
     - sql/seeds/18_libraries.sql
     - sql/seeds/19_gear_types.sql
+    - sql/seeds/20_gear.sql
   databases:
     - masterdb_test
   rebuild_on:
@@ -90,6 +91,9 @@ test:
     backend_internal_port: 5150
     backend_base_port: 5151
     frontend_base_port: 3001
+    gearlist_service: gearlist_backend_test
+    gearlist_port: 4012
+    gearlist_internal_port: 4001
   perf:
     backend_port: 5160
     frontend_port: 3010

@@ -323,6 +323,18 @@ func validateE2EConfig(cfg *config.Config) error {
 	case cfg.Test.DB.Source == "":
 		return fmt.Errorf("test.db.source is required for E2E tests")
 	}
+	return validateE2EGearlistConfig(e)
+}
+
+func validateE2EGearlistConfig(e config.E2ETestConfig) error {
+	switch {
+	case e.GearlistService == "":
+		return fmt.Errorf("test.e2e.gearlist_service is required for E2E tests")
+	case e.GearlistPort <= 0:
+		return fmt.Errorf("test.e2e.gearlist_port must be > 0 (got %d)", e.GearlistPort)
+	case e.GearlistInternalPort <= 0:
+		return fmt.Errorf("test.e2e.gearlist_internal_port must be > 0 (got %d)", e.GearlistInternalPort)
+	}
 	return nil
 }
 
@@ -357,6 +369,9 @@ func e2eConfigFrom(cfg *config.Config) pipeline.E2EConfig {
 		DBUser:                cfg.Test.DB.User,
 		DBPassword:            cfg.Test.DB.Password, // pragma: allowlist secret
 		DBSource:              cfg.Test.DB.Source,
+		GearlistService:       e.GearlistService,
+		GearlistPort:          e.GearlistPort,
+		GearlistInternalPort:  e.GearlistInternalPort,
 	}
 }
 

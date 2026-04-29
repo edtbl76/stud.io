@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { StudioIllustration } from '@/components/StudioIllustration'
-import { SlidersHorizontal, Users } from 'lucide-react'
+import { Guitar, SlidersHorizontal, Users } from 'lucide-react'
 
 const modules = [
   {
@@ -14,6 +14,12 @@ const modules = [
     icon: Users,
     title: 'Studio Management',
     description: 'Manage gear catalog, config, users, and administration.',
+  },
+  {
+    href: '/gearlist/guitars',
+    icon: Guitar,
+    title: 'GearList',
+    description: 'Track guitars, amps, pedals, and all studio gear.',
   },
 ]
 

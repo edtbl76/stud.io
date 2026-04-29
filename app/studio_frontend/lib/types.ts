@@ -156,6 +156,44 @@ export interface Tool {
   updated_at: string
 }
 
+export interface GearType {
+  type_id: string
+  type_name: string
+  type_description: string | null
+}
+
+export interface Gear {
+  gear_id: string
+  gear_name: string
+  gear_type_id: string | null
+  gear_type_name: string | null
+  brand_id: string | null
+  model_id: string | null
+  serial_number: string | null
+  year: number | null
+  owner_id: string | null
+  photo_key: string | null
+  notes: string | null
+  num_strings: number | null
+  tuning: string | null
+  pickup_config: string | null
+  pickup_neck_model_id: string | null
+  pickup_middle_model_id: string | null
+  pickup_bridge_model_id: string | null
+  strings_model_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MaintenanceLog {
+  log_id: string
+  gear_id: string
+  event_type: string
+  notes: string | null
+  event_date: string | null
+  created_at: string
+}
+
 export interface AuditEntry {
   audit_id: string
   table_name: string

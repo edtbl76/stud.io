@@ -41,12 +41,19 @@ export const api = {
     params.sort_dir?.forEach((d) => p.append('sort_dir', d))
     if (params.filters) appendFilters(p, params.filters)
     const qs = p.toString()
-    return req<{ items: T[]; total: number }>(qs ? `${ep}?${qs}` : ep)
+    const sep = ep.includes('?') ? '&' : '?'
+    return req<{ items: T[]; total: number }>(qs ? `${ep}${sep}${qs}` : ep)
   },
   get:    <T>(ep: string, id: string) => req<T>(`${ep}/${id}`),
   create: <T>(ep: string, body: unknown) => req<T>(ep, { method: 'POST', body: JSON.stringify(body) }),
   update: <T>(ep: string, id: string, body: unknown) => req<T>(`${ep}/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   delete: (ep: string, id: string) => req<void>(`${ep}/${id}`, { method: 'DELETE' }),
+  uploadPhoto: (ep: string, id: string, file: File) =>
+    req<{ photo_key: string }>(`${ep}/${id}/photo`, {
+      method: 'POST',
+      body: file,
+      headers: { 'Content-Type': file.type },
+    }),
   searchGlobal: (q: string, notes = false) =>
     req<SearchResponse>(`/search?q=${encodeURIComponent(q)}&notes=${notes}`),
   searchEntities: (q: string, excludeTable = '', excludeId = '') => {

@@ -130,6 +130,9 @@ func TestValidateE2EConfig_RejectsZeroConfig(t *testing.T) {
 		{"zero frontend port", func(c *config.Config) { c.Test.E2E.FrontendBasePort = 0 }, "frontend_base_port"},
 		{"empty db container", func(c *config.Config) { c.Test.DB.Container = "" }, "container"},
 		{"empty db source", func(c *config.Config) { c.Test.DB.Source = "" }, "source"},
+		{"empty gearlist service", func(c *config.Config) { c.Test.E2E.GearlistService = "" }, "gearlist_service"},
+		{"zero gearlist port", func(c *config.Config) { c.Test.E2E.GearlistPort = 0 }, "gearlist_port"},
+		{"zero gearlist internal port", func(c *config.Config) { c.Test.E2E.GearlistInternalPort = 0 }, "gearlist_internal_port"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -22,6 +22,7 @@ const navGroups: NavGroup[] = [
       { label: 'Model Types',      href: '/studio/config/model-types',      prefetch: { endpoint: '/studio/config/model-types',      queryKey: '/studio/config/model-types' } },
       { label: 'Plugin Formats',   href: '/studio/config/plugin-formats',   prefetch: { endpoint: '/studio/config/plugin-formats',   queryKey: '/studio/config/plugin-formats' } },
       { label: 'Tag Types',        href: '/studio/config/tag-types',        prefetch: { endpoint: '/studio/config/tag-types',        queryKey: '/studio/config/tag-types' } },
+      { label: 'Gear Types',       href: '/studio/config/gear-types',       prefetch: { endpoint: '/gearlist/gear-types',             queryKey: '/gearlist/gear-types' } },
       { label: 'Tool Types',       href: '/studio/config/tool-types',       prefetch: { endpoint: '/studio/config/tool-types',       queryKey: '/studio/config/tool-types' } },
     ],
   },
