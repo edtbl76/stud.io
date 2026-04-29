@@ -12,9 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// AddDoctorCommands registers the doctor command on root.
+// AddDoctorCommands registers the doctor command and its subcommands on root.
 func AddDoctorCommands(root *cobra.Command) {
-	root.AddCommand(doctorCmd())
+	cmd := doctorCmd()
+	cmd.AddCommand(fixCmd())
+	root.AddCommand(cmd)
 }
 
 func doctorCmd() *cobra.Command {
