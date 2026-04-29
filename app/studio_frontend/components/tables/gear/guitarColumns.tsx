@@ -44,9 +44,9 @@ export const guitarColumns: ColumnDef<Gear, unknown>[] = [
     size: 80,
     cell: ({ getValue }) => {
       const val = getValue() as number | null
-      return val
-        ? <span className="text-xs text-muted-foreground">{val}</span>
-        : <span className="text-muted-foreground/40">—</span>
+      return val == null
+        ? <span className="text-muted-foreground/40">—</span>
+        : <span className="text-xs text-muted-foreground">{val}</span>
     },
   },
   {
@@ -79,9 +79,9 @@ export const guitarColumns: ColumnDef<Gear, unknown>[] = [
     size: 80,
     cell: ({ getValue }) => {
       const val = getValue() as number | null
-      return val
-        ? <span className="text-xs text-muted-foreground">{val}</span>
-        : <span className="text-muted-foreground/40">—</span>
+      return val == null
+        ? <span className="text-muted-foreground/40">—</span>
+        : <span className="text-xs text-muted-foreground">{val}</span>
     },
   },
   {

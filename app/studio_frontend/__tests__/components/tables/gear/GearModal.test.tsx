@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { GearModal } from '@/components/tables/gear/GearModal'
 import type { Gear } from '@/lib/types'
+import { GUITAR_TYPE_ID } from '@/lib/gearlist'
 
 const mockCreate = jest.fn()
 const mockUpdate = jest.fn()
@@ -23,8 +24,6 @@ jest.mock('@/lib/api', () => ({
     uploadPhoto: (...args: unknown[]) => mockUploadPhoto(...args),
   },
 }))
-
-const GUITAR_TYPE_ID = 'a1b2c3d4-0001-0000-0000-000000000001'
 
 const mockGear: Gear = {
   gear_id: 'gear-1',

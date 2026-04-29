@@ -2,8 +2,14 @@ import * as React from 'react'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { GearListSidebar } from '@/components/layout/GearListSidebar'
 
+const mockPrefetchInfiniteQuery = jest.fn()
+const mockPrefetchQuery = jest.fn()
+
 jest.mock('@tanstack/react-query', () => ({
-  useQueryClient: () => ({ prefetchInfiniteQuery: jest.fn(), prefetchQuery: jest.fn() }),
+  useQueryClient: () => ({
+    prefetchInfiniteQuery: mockPrefetchInfiniteQuery,
+    prefetchQuery: mockPrefetchQuery,
+  }),
 }))
 
 jest.mock('@/lib/api', () => ({ api: { listPaged: jest.fn(), list: jest.fn() } }))
@@ -63,5 +69,25 @@ describe('GearListSidebar', () => {
     expect(screen.queryByRole('link', { name: 'Guitars' })).not.toBeInTheDocument()
     fireEvent.click(toggle)
     expect(screen.getByRole('link', { name: 'Guitars' })).toBeInTheDocument()
+  })
+
+  it('prefetches Guitars list on hover using type_id filter and gear_name sort', () => {
+    render(<GearListSidebar />)
+    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Guitars' }))
+    expect(mockPrefetchInfiniteQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['/gearlist/guitars', [{ id: 'gear_name', desc: false }], {}],
+      })
+    )
+  })
+
+  it('prefetches Other Gear list on hover using gear_name sort', () => {
+    render(<GearListSidebar />)
+    fireEvent.mouseEnter(screen.getByRole('link', { name: 'Other Gear' }))
+    expect(mockPrefetchInfiniteQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['/gearlist/other-gear', [{ id: 'gear_name', desc: false }], {}],
+      })
+    )
   })
 })

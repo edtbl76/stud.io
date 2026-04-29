@@ -3,8 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { SidebarShell } from '@/components/layout/SidebarShell'
 import { NavGroup, SidebarNavGroup, useSidebarGroups } from '@/components/layout/SidebarNav'
-
-const GUITAR_TYPE_ID = 'a1b2c3d4-0001-0000-0000-000000000001'
+import { GUITAR_TYPE_ID } from '@/lib/gearlist'
 
 const navGroups: NavGroup[] = [
   {

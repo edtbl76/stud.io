@@ -252,7 +252,7 @@ Status code, body, and `Content-Type` are passed through from the Go service unm
 | `PATCH` | `/gearlist/gear/{id}` | Update gear item (admin) |
 | `DELETE` | `/gearlist/gear/{id}` | Soft-delete gear item (admin) |
 | `GET` | `/gearlist/gear/{id}/history` | Audit history for a gear item |
-| `POST` | `/gearlist/gear/{id}/photo` | Upload photo (admin; `Content-Type: image/jpeg|png|webp`, max 10 MB) |
+| `POST` | `/gearlist/gear/{id}/photo` | Upload photo (admin; `Content-Type: image/jpeg`, `image/png`, or `image/webp`, max 10 MB) |
 | `GET` | `/gearlist/gear/{id}/maintenance` | List maintenance log entries |
 | `POST` | `/gearlist/gear/{id}/maintenance` | Add maintenance log entry (admin) |
 

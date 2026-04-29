@@ -9,4 +9,7 @@ VALUES (
 )
 ON CONFLICT (gear_id) DO UPDATE
     SET gear_name    = EXCLUDED.gear_name,
+        gear_type_id = EXCLUDED.gear_type_id,
+        pickup_config = EXCLUDED.pickup_config,
+        num_strings  = EXCLUDED.num_strings,
         deleted_at   = NULL;

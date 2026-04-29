@@ -4,8 +4,7 @@ import { TablePage } from '@/components/TablePage'
 import { guitarColumns, guitarSortFields } from '@/components/tables/gear/guitarColumns'
 import { GearModal } from '@/components/tables/gear/GearModal'
 import { Gear } from '@/lib/types'
-
-const GUITAR_TYPE_ID = 'a1b2c3d4-0001-0000-0000-000000000001'
+import { GUITAR_TYPE_ID } from '@/lib/gearlist'
 
 export default function GuitarsPage() {
   return (

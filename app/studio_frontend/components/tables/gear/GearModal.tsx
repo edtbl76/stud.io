@@ -13,10 +13,10 @@ import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/NativeSelect'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
+import { GUITAR_TYPE_ID } from '@/lib/gearlist'
 
 const ENDPOINT = '/gearlist/gear'
 const GEAR_TYPES_ENDPOINT = '/gearlist/gear-types'
-const GUITAR_TYPE_ID = 'a1b2c3d4-0001-0000-0000-000000000001'
 const PICKUP_CONFIGS = ['SSS', 'HH', 'HSH', 'SSH'] as const
 type PickupConfig = typeof PICKUP_CONFIGS[number]
 
@@ -72,27 +72,30 @@ function toForm(record: Gear | null): FormState {
   }
 }
 
-function ns(s: string): string | null { return s || null }
-function ni(s: string): number | null { return s ? Number.parseInt(s, 10) : null }
+function ns(s: string): string | null { return s.trim() || null }
+function ni(s: string): number | null { return s.trim() ? Number.parseInt(s, 10) : null }
 
 function pickupModelId(slots: PickupSlot[] | undefined, pos: PickupSlot['pos'], value: string): string | null {
-  return (slots ?? []).some(s => s.pos === pos) ? (value || null) : null
+  return (slots ?? []).some(s => s.pos === pos) ? (value.trim() || null) : null
 }
 
 function buildGearPayload(form: FormState): Record<string, unknown> {
-  const slots = form.pickup_config ? PICKUP_SLOTS[form.pickup_config as PickupConfig] : undefined
+  const isGuitar = form.gear_type_id === GUITAR_TYPE_ID
+  const slots = isGuitar && form.pickup_config ? PICKUP_SLOTS[form.pickup_config as PickupConfig] : undefined
   return {
     ...(form.gear_name    && { gear_name:    form.gear_name }),
     ...(form.gear_type_id && { gear_type_id: form.gear_type_id }),
-    serial_number:          ns(form.serial_number),
-    year:                   ni(form.year),
-    notes:                  ns(form.notes),
-    num_strings:            ni(form.num_strings),
-    tuning:                 ns(form.tuning),
-    pickup_config:          ns(form.pickup_config),
-    pickup_neck_model_id:   pickupModelId(slots, 'neck',   form.pickup_neck_model_id),
-    pickup_middle_model_id: pickupModelId(slots, 'middle', form.pickup_middle_model_id),
-    pickup_bridge_model_id: pickupModelId(slots, 'bridge', form.pickup_bridge_model_id),
+    serial_number: ns(form.serial_number),
+    year:          ni(form.year),
+    notes:         ns(form.notes),
+    ...(isGuitar && {
+      num_strings:            ni(form.num_strings),
+      tuning:                 ns(form.tuning),
+      pickup_config:          ns(form.pickup_config),
+      pickup_neck_model_id:   pickupModelId(slots, 'neck',   form.pickup_neck_model_id),
+      pickup_middle_model_id: pickupModelId(slots, 'middle', form.pickup_middle_model_id),
+      pickup_bridge_model_id: pickupModelId(slots, 'bridge', form.pickup_bridge_model_id),
+    }),
   }
 }
 
