@@ -126,6 +126,8 @@ This command targets the database named in `providers.database.db_name`. It will
 | Command | Description |
 |---|---|
 | `roadie doctor` | Check prerequisites (Docker, Node, Python, Go, tools) and print a pass/fail summary |
+| `roadie doctor fix secrets [--dry]` | Re-run detect-secrets scan, diff against `.secrets.baseline`, and rewrite the baseline with new findings added. `--dry` prints the diff without writing. |
+| `roadie doctor fix woodpecker-agents` | Restart all Woodpecker CI agent containers to clear stale pipeline locks. |
 | `roadie version` | Print the roadie version |
 | `roadie help` | Show help for any command |
 | `roadie completion` | Generate shell autocompletion script |
@@ -321,6 +323,7 @@ roadie/
       db.go                  — db init Cobra subcommand with confirmation gate
       test.go                — test unit/e2e/scan/perf/pbt/full Cobra subcommands
       doctor.go              — doctor Cobra subcommand; prerequisite checks
+      doctor_fix.go          — doctor fix secrets [--dry] and doctor fix woodpecker-agents
 ```
 
 ---

@@ -25,13 +25,16 @@ app/studio_frontend/
 │   │   └── [...path]/      # Catch-all proxy — forwards all other requests to FastAPI
 │   ├── login/              # Login page
 │   ├── page.tsx            # Home page — module selection tiles + StudioIllustration
+│   ├── search/             # Global search results page (/search?q=...)
+│   │   ├── layout.tsx      # Renders Sidebar + main content area
+│   │   └── page.tsx        # SearchContent: query, tabs, notes toggle, modal dispatch
 │   ├── controlroom/        # ControlRoom module
 │   │   ├── layout.tsx      # Renders Sidebar + main content area
 │   │   ├── catalog/        # Brands, Models
 │   │   ├── session/        # Effects, Instruments, Libraries, Workstations
 │   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
 │   │   ├── config/         # Lookup table editors (7 tables)
-│   │   ├── search/         # Global search results page (/controlroom/search?q=...)
+│   │   ├── search/         # Redirect to /search (preserves ?q= param)
 │   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore
 │   ├── studio/             # Studio Management module
 │   │   ├── layout.tsx      # Renders UsersSidebar + main content area
@@ -53,7 +56,7 @@ app/studio_frontend/
 │   ├── ModelLinks.tsx       # Renders ModelRef[] as clickable chips; click fetches and opens ModelModal inline
 │   ├── ParentLinks.tsx      # Renders parent_ref arrays
 │   ├── StudioIllustration.tsx # SVG music studio scene rendered on the home page
-│   ├── layout/             # SidebarShell, Sidebar, UsersSidebar, GearListSidebar, ModuleSwitcher, LayoutShell
+│   ├── layout/             # TopBar, LayoutShell, SidebarShell, Sidebar, UsersSidebar, GearListSidebar, ModuleSwitcher
 │   ├── tables/             # Per-table modal and column definitions
 │   │   ├── brands/         # BrandModal, columns
 │   │   ├── models/         # ModelModal, columns
@@ -86,18 +89,19 @@ app/studio_frontend/
 
 ## App shell
 
-STUD.io uses a multi-module shell. The root layout (`app/layout.tsx`) renders `LayoutShell`, which is a thin client wrapper that passes `/login` through unstyled and wraps all other routes in the background container.
+STUD.io uses a multi-module shell. The root layout (`app/layout.tsx`) renders `LayoutShell`, which passes `/login` through unstyled and wraps all other routes with the fixed `TopBar` and a `pt-12` content offset. `TopBar` (h-12, z-50, fixed) renders on every non-login page and contains the global search form — submitting navigates to `/search?q=...`.
 
 Each module has its own Next.js layout file that mounts the appropriate sidebar:
 
 | Module | Route prefix | Layout | Sidebar |
 |---|---|---|---|
 | Home | `/` | `app/layout.tsx` | none |
+| Search | `/search/` | `app/search/layout.tsx` | `Sidebar` |
 | ControlRoom | `/controlroom/` | `app/controlroom/layout.tsx` | `Sidebar` |
 | Studio Management | `/studio/` | `app/studio/layout.tsx` | `UsersSidebar` |
 | GearList | `/gearlist/` | `app/gearlist/layout.tsx` | `GearListSidebar` |
 
-All sidebars (`Sidebar`, `UsersSidebar`, `GearListSidebar`) are built on `SidebarShell`, which owns the `<aside>` wrapper, the STUD.io header (links back to home), the username/sign-out row, and the `ModuleSwitcher` footer. Each sidebar passes its `subtitle` prop and module-specific nav as children.
+All sidebars (`Sidebar`, `UsersSidebar`, `GearListSidebar`) are built on `SidebarShell`, which owns the `<aside>` wrapper (fixed, `top-12`, `h-[calc(100vh-3rem)]` to sit below the TopBar), the STUD.io header (links back to home), the username/sign-out row, and the `ModuleSwitcher` footer. Each sidebar passes its `subtitle` prop and module-specific nav as children.
 
 `ModuleSwitcher` reads the current pathname via `usePathname` and renders links to all modules except the one the user is currently in. There are always one-click links to Home, ControlRoom, Studio Management, and GearList from any page.
 
@@ -185,14 +189,14 @@ Field types supported:
 - `text` — renders a plain text `Input`; replaces existing value
 - `parentsearch` — renders `ParentSelect` pre-populated with the union of all selected rows' existing parents as chips. Adding parents merges them into each row; removing a chip removes that parent from any row that had it. Apply is always enabled (allows clearing all parents).
 
-### Search page (`app/controlroom/search/page.tsx`)
+### Search page (`app/search/page.tsx`)
 
-The global search results page at `/controlroom/search?q=<query>`. Calls `GET /search` via `api.searchGlobal`. Displays results grouped by table with:
+The global search results page at `/search?q=<query>`. Calls `GET /search` via `api.searchGlobal`. Displays results grouped by table with:
 - **Tab bar** — an All tab plus one tab per table with matches; clicking a tab filters the list
 - **Notes toggle** — extends the search to description/notes fields when enabled
-- Each result is a link to the source table page with `?open=<id>`, which causes `TablePage` to auto-open the record's modal on arrival
+- Each result opens a `SearchRecordModal` in-place; a "Go to [Table]" button navigates to the table page and opens the record modal there
 
-The search input lives in `Sidebar` (not in a per-page toolbar). Submitting the form navigates to `/controlroom/search?q=...`.
+The search input lives in `TopBar` (fixed, visible on all pages). Submitting navigates to `/search?q=...`. The old route `/controlroom/search` redirects here, preserving the `?q=` param.
 
 ---
 

@@ -204,7 +204,7 @@ function SearchContent(): React.ReactElement | null {
   }
 
   function handleMutate() {
-    queryClient.invalidateQueries({ queryKey: ['global-search'] }).catch(() => {})
+    queryClient.invalidateQueries({ queryKey: ['global-search'] }).catch((err) => console.error('Failed to invalidate global-search cache', err))
   }
 
   if (q.length < 2) {
