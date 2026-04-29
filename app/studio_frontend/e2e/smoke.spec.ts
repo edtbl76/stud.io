@@ -27,3 +27,18 @@ for (const path of TABLES) {
     await expect(page.getByRole('table')).toBeVisible({ timeout: 10000 })
   })
 }
+
+const GEARLIST_TABLES = [
+  '/gearlist/guitars',
+  '/gearlist/other-gear',
+  '/studio/config/gear-types',
+]
+
+for (const path of GEARLIST_TABLES) {
+  test(`loads ${path}`, async ({ page }) => {
+    await page.goto(path)
+    await expect(page.getByRole('table')).toBeVisible({ timeout: 10000 })
+    // Catches a missing DB schema or unreachable gearlist backend
+    await expect(page.getByText(/error loading data/i)).not.toBeVisible()
+  })
+}

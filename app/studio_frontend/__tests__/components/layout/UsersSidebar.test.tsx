@@ -65,6 +65,7 @@ describe('UsersSidebar', () => {
   it.each([
     ['Effect Types',     '/studio/config/effect-types'],
     ['Entity Types',     '/studio/config/entity-types'],
+    ['Gear Types',       '/studio/config/gear-types'],
     ['Instrument Types', '/studio/config/instrument-types'],
     ['Model Types',      '/studio/config/model-types'],
     ['Plugin Formats',   '/studio/config/plugin-formats'],

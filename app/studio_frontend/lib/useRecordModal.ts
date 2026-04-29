@@ -27,7 +27,7 @@ interface UseRecordModalOptions<TRecord, TForm> {
   record: TRecord | null
   endpoint: string
   getRecordId: (record: TRecord) => string
-  getHistoryUrl: (record: TRecord) => string
+  getHistoryUrl?: (record: TRecord) => string
   getTitle: (mode: ModalMode, record: TRecord | null) => string
   toForm: (record: TRecord | null) => TForm
   buildPayload: (form: TForm) => Record<string, unknown>
@@ -90,7 +90,7 @@ export function useRecordModal<TRecord, TForm>({
     isEditing: mode === 'edit',
     isHistory: mode === 'history',
     onEdit: () => setMode('edit'),
-    onHistory: record ? () => setMode('history') : undefined,
+    onHistory: (record && getHistoryUrl) ? () => setMode('history') : undefined,
     onSave: () => { setError(null); saveMutation.mutate() },
     onDelete: () => deleteMutation.mutate(),
     onClose,
@@ -105,7 +105,7 @@ export function useRecordModal<TRecord, TForm>({
     error,
     isCreate,
     isAdmin,
-    historyUrl: record ? getHistoryUrl(record) : '',
+    historyUrl: (record && getHistoryUrl) ? getHistoryUrl(record) : '',
     recordModalProps,
   }
 }

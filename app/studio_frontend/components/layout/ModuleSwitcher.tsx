@@ -2,12 +2,13 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Home, SlidersHorizontal, Users } from 'lucide-react'
+import { Guitar, Home, SlidersHorizontal, Users } from 'lucide-react'
 
 const MODULES = [
-  { label: 'Home',         href: '/',                          prefix: '/',            icon: Home              },
-  { label: 'ControlRoom',  href: '/controlroom/session/effects', prefix: '/controlroom', icon: SlidersHorizontal },
-  { label: 'Studio Management', href: '/studio/admin/users',   prefix: '/studio',      icon: Users             },
+  { label: 'Home',              href: '/',                            prefix: '/',            icon: Home              },
+  { label: 'ControlRoom',       href: '/controlroom/session/effects', prefix: '/controlroom', icon: SlidersHorizontal },
+  { label: 'Studio Management', href: '/studio/admin/users',         prefix: '/studio',      icon: Users             },
+  { label: 'GearList',          href: '/gearlist/guitars',            prefix: '/gearlist',    icon: Guitar            },
 ]
 
 function isCurrent(prefix: string, pathname: string): boolean {

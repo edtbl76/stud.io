@@ -17,35 +17,35 @@ type GearID = pgtype.UUID
 
 // GearView is a row from gear_view, with FK columns resolved to display names.
 type GearView struct {
-	GearID              pgtype.UUID        `db:"gear_id"`
-	GearName            string             `db:"gear_name"`
-	GearTypeID          pgtype.UUID        `db:"gear_type_id"`
-	GearTypeName        pgtype.Text        `db:"gear_type_name"`
-	BrandID             pgtype.UUID        `db:"brand_id"`
-	ModelID             pgtype.UUID        `db:"model_id"`
-	SerialNumber        pgtype.Text        `db:"serial_number"`
-	Year                pgtype.Int4        `db:"year"`
-	OwnerID             pgtype.UUID        `db:"owner_id"`
-	PhotoKey            pgtype.Text        `db:"photo_key"`
-	Notes               pgtype.Text        `db:"notes"`
-	NumStrings          pgtype.Int4        `db:"num_strings"`
-	Tuning              pgtype.Text        `db:"tuning"`
-	PickupConfig        pgtype.Text        `db:"pickup_config"`
-	PickupNeckModelID   pgtype.UUID        `db:"pickup_neck_model_id"`
-	PickupMiddleModelID pgtype.UUID        `db:"pickup_middle_model_id"`
-	PickupBridgeModelID pgtype.UUID        `db:"pickup_bridge_model_id"`
-	StringsModelID      pgtype.UUID        `db:"strings_model_id"`
-	CreatedAt           pgtype.Timestamptz `db:"created_at"`
-	UpdatedAt           pgtype.Timestamptz `db:"updated_at"`
+	GearID              pgtype.UUID        `db:"gear_id"               json:"gear_id"`
+	GearName            string             `db:"gear_name"             json:"gear_name"`
+	GearTypeID          pgtype.UUID        `db:"gear_type_id"          json:"gear_type_id"`
+	GearTypeName        pgtype.Text        `db:"gear_type_name"        json:"gear_type_name"`
+	BrandID             pgtype.UUID        `db:"brand_id"              json:"brand_id"`
+	ModelID             pgtype.UUID        `db:"model_id"              json:"model_id"`
+	SerialNumber        pgtype.Text        `db:"serial_number"         json:"serial_number"`
+	Year                pgtype.Int4        `db:"year"                  json:"year"`
+	OwnerID             pgtype.UUID        `db:"owner_id"              json:"owner_id"`
+	PhotoKey            pgtype.Text        `db:"photo_key"             json:"photo_key"`
+	Notes               pgtype.Text        `db:"notes"                 json:"notes"`
+	NumStrings          pgtype.Int4        `db:"num_strings"           json:"num_strings"`
+	Tuning              pgtype.Text        `db:"tuning"                json:"tuning"`
+	PickupConfig        pgtype.Text        `db:"pickup_config"         json:"pickup_config"`
+	PickupNeckModelID   pgtype.UUID        `db:"pickup_neck_model_id"  json:"pickup_neck_model_id"`
+	PickupMiddleModelID pgtype.UUID        `db:"pickup_middle_model_id" json:"pickup_middle_model_id"`
+	PickupBridgeModelID pgtype.UUID        `db:"pickup_bridge_model_id" json:"pickup_bridge_model_id"`
+	StringsModelID      pgtype.UUID        `db:"strings_model_id"      json:"strings_model_id"`
+	CreatedAt           pgtype.Timestamptz `db:"created_at"            json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `db:"updated_at"            json:"updated_at"`
 }
 
 // AuditRow is a single row from audit_log for gear history.
 type AuditRow struct {
-	Operation   string             `db:"operation"`
-	OldData     []byte             `db:"old_data"`
-	NewData     []byte             `db:"new_data"`
-	PerformedBy string             `db:"performed_by"`
-	PerformedAt pgtype.Timestamptz `db:"performed_at"`
+	Operation   string             `db:"operation"    json:"operation"`
+	OldData     []byte             `db:"old_data"     json:"old_data"`
+	NewData     []byte             `db:"new_data"     json:"new_data"`
+	PerformedBy string             `db:"performed_by" json:"performed_by"`
+	PerformedAt pgtype.Timestamptz `db:"performed_at" json:"performed_at"`
 }
 
 // CreateInput holds the fields for creating a new gear item.

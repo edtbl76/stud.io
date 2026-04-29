@@ -33,9 +33,15 @@ app/studio_frontend/
 │   │   ├── config/         # Lookup table editors (7 tables)
 │   │   ├── search/         # Global search results page (/controlroom/search?q=...)
 │   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore
-│   └── users/              # User Management module
-│       ├── layout.tsx      # Renders UsersSidebar + main content area
-│       └── page.tsx        # User list / management page
+│   ├── studio/             # Studio Management module
+│   │   ├── layout.tsx      # Renders UsersSidebar + main content area
+│   │   ├── catalog/        # Brands, Models
+│   │   ├── config/         # Lookup table editors (effect-types, gear-types, etc.)
+│   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore, Users
+│   └── gearlist/           # GearList module (Go service backend)
+│       ├── layout.tsx      # Renders GearListSidebar + main content area
+│       ├── guitars/        # Guitars page (pre-filtered to Guitar gear type)
+│       └── other-gear/     # Other Gear page (all gear, type-filterable column)
 ├── components/
 │   ├── DataTable.tsx        # Virtualized TanStack Table wrapper; accepts controlled visibility/sizing from useSessionState
 │   ├── DataTableToolbar.tsx # Toolbar: sort pills, column picker (ColumnMenu), filter clear, Reset View button
@@ -47,7 +53,7 @@ app/studio_frontend/
 │   ├── ModelLinks.tsx       # Renders ModelRef[] as clickable chips; click fetches and opens ModelModal inline
 │   ├── ParentLinks.tsx      # Renders parent_ref arrays
 │   ├── StudioIllustration.tsx # SVG music studio scene rendered on the home page
-│   ├── layout/             # SidebarShell, Sidebar, UsersSidebar, ModuleSwitcher, LayoutShell
+│   ├── layout/             # SidebarShell, Sidebar, UsersSidebar, GearListSidebar, ModuleSwitcher, LayoutShell
 │   ├── tables/             # Per-table modal and column definitions
 │   │   ├── brands/         # BrandModal, columns
 │   │   ├── models/         # ModelModal, columns
@@ -56,10 +62,11 @@ app/studio_frontend/
 │   │   ├── libraries/      # LibraryModal, columns
 │   │   ├── workstations/   # WorkstationModal, columns
 │   │   ├── tools/          # ToolModal, columns (shared by all 5 tool tables)
-│   │   └── config/         # ConfigModal, columns (shared by all 7 lookup tables)
+│   │   ├── config/         # ConfigModal, columns (shared by all config lookup tables)
+│   │   └── gear/           # GearModal, columns, guitarColumns
 │   └── ui/                 # shadcn/ui primitives (Button, Input, Dialog, etc.)
 ├── lib/
-│   ├── api.ts                   # Typed fetch wrapper — calls relative /api/... paths
+│   ├── api.ts                   # Typed fetch wrapper — calls relative /api/... paths; uploadPhoto sends raw File binary
 │   ├── auth.tsx                 # AuthContext, useAuth hook, session management
 │   ├── bulkEdit.ts              # BulkEditField interface — type union: multiselect, singleselect, text, parentsearch
 │   ├── columnMeta.ts            # TypeScript module augmentation — adds filterParam and defaultHidden to TanStack ColumnMeta
@@ -87,11 +94,12 @@ Each module has its own Next.js layout file that mounts the appropriate sidebar:
 |---|---|---|---|
 | Home | `/` | `app/layout.tsx` | none |
 | ControlRoom | `/controlroom/` | `app/controlroom/layout.tsx` | `Sidebar` |
-| User Management | `/users/` | `app/users/layout.tsx` | `UsersSidebar` |
+| Studio Management | `/studio/` | `app/studio/layout.tsx` | `UsersSidebar` |
+| GearList | `/gearlist/` | `app/gearlist/layout.tsx` | `GearListSidebar` |
 
-Both `Sidebar` and `UsersSidebar` are built on `SidebarShell`, which owns the `<aside>` wrapper, the STUD.io header (links back to home), the username/sign-out row, and the `ModuleSwitcher` footer. Each sidebar passes its `subtitle` prop (`"ControlRoom"` or `"User Management"`) and its module-specific nav as children.
+All sidebars (`Sidebar`, `UsersSidebar`, `GearListSidebar`) are built on `SidebarShell`, which owns the `<aside>` wrapper, the STUD.io header (links back to home), the username/sign-out row, and the `ModuleSwitcher` footer. Each sidebar passes its `subtitle` prop and module-specific nav as children.
 
-`ModuleSwitcher` reads the current pathname via `usePathname` and renders links to all modules except the one the user is currently in, so there is always a one-click escape to any other module or to home.
+`ModuleSwitcher` reads the current pathname via `usePathname` and renders links to all modules except the one the user is currently in. There are always one-click links to Home, ControlRoom, Studio Management, and GearList from any page.
 
 ---
 
@@ -117,7 +125,7 @@ The generic modal shell used by all per-table modals. Handles:
 - View / edit / history mode toggle
 - Two-stage delete confirmation (Delete → "Are you sure?" → Confirm Delete)
 - `isSaving` / `isDeleting` loading states with button disabling
-- Admin-only Edit button; History button for existing records (any authenticated user)
+- Admin-only Edit button; History button for existing records (when `getHistoryUrl` is provided in `useRecordModal` — optional, so modals backed by endpoints without a history route can omit it)
 
 ### `RecordHistoryView`
 
@@ -137,6 +145,11 @@ Each modal composes `RecordModal` and owns:
 - Edit-mode form with `Input`, `Textarea`, `BrandSelect`, `ModelSelect`, and `MultiSelect` fields
 
 `EffectModal`, `InstrumentModal`, and `LibraryModal` include a **Models** field (`ModelSelect` in edit mode, `ModelLinks` in view mode) and a **Parents** field (`ParentSelect` in edit mode, `ParentLinks` in view mode). `model_ids` and `parent_ids` are always sent to the API even when empty to allow clearing. The `excludeTable`/`excludeId` props on `ParentSelect` prevent a record from selecting itself as a parent.
+
+`GearModal` is the gear-specific modal. It adds:
+- **Pickup config** — `NativeSelect` (SSS/HH/HSH/SSH); guitar-only, shown only when the gear type is Guitar. Selecting a config renders conditional pickup slot inputs (neck/middle/bridge Model ID fields) based on the configuration's slot layout.
+- **Photo upload** — file input in edit mode (existing records only; new records must be saved first). Uploads immediately on file selection via `api.uploadPhoto`, which sends raw binary with `Content-Type: image/jpeg|png|webp`. Independent of form save.
+- **Maintenance log** — read-only section at the bottom of view mode, fetched from `GET /gearlist/gear/{id}/maintenance` on modal open.
 
 ### `ModelLinks`
 
@@ -282,3 +295,4 @@ E2E spec files:
 - `brands.spec.ts` — brand typeahead returns results in create modal; shows Create option for unknown brand names
 - `bulk-edit.spec.ts` — bulk selection and apply flow
 - `search.spec.ts` — global search: TopBar query navigation, results page, tab filtering, deep-link to record modal
+- `gearlist.spec.ts` — GearList module: guitars and other gear pages load; create modal opens; gear row click opens detail modal; guitar edit mode shows pickup config select

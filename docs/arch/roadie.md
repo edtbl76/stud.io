@@ -86,9 +86,9 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 
 | Command | Description | Replaces |
 |---|---|---|
-| `roadie test unit [tsc\|jest\|ruff\|bandit\|pytest\|pip-audit\|npm-audit]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
+| `roadie test unit [tsc\|jest\|ruff\|bandit\|pytest\|go-test\|pip-audit\|npm-audit]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
 | `roadie test e2e` | Run full sharded Playwright suite | `test-e2e.sh` (delegates internally) |
-| `roadie test scan [sonar\|trivy\|secrets\|headers] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
+| `roadie test scan [sonar\|trivy\|secrets\|headers\|govulncheck\|gosec\|staticcheck] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
 | `roadie test perf [bundle\|benchmarks\|k6\|lighthouse] [--no-bundle]` | Run performance suite in collect mode | `test-perf.sh` (delegates internally) |
 | `roadie test pbt [fast-check\|hypothesis] [--json]` | Run property-based tests in collect mode | — |
 | `roadie test full` | Run unit + pbt (parallel), then scan (--gate) → e2e → perf | — |

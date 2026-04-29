@@ -16,9 +16,9 @@ type TypeID = pgtype.UUID
 
 // GearType is a row from the gear_types table.
 type GearType struct {
-	TypeID          pgtype.UUID
-	TypeName        string
-	TypeDescription pgtype.Text
+	TypeID          pgtype.UUID `db:"type_id"          json:"type_id"`
+	TypeName        string      `db:"type_name"        json:"type_name"`
+	TypeDescription pgtype.Text `db:"type_description" json:"type_description"`
 }
 
 // CreateInput holds the required fields for creating a gear type.

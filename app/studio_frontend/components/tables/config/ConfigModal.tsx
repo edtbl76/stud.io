@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label'
 interface ConfigModalProps {
   record: LookupOut | null
   slug: string
+  endpoint?: string
   onClose: () => void
   onMutate: () => void
 }
@@ -44,13 +45,14 @@ function getConfigTitle(mode: ModalMode, record: LookupOut | null): string {
   return record.type_name
 }
 
-export function ConfigModal({ record, slug, onClose, onMutate }: Readonly<ConfigModalProps>) {
+export function ConfigModal({ record, slug, endpoint, onClose, onMutate }: Readonly<ConfigModalProps>) {
+  const resolvedEndpoint = endpoint ?? `/studio/config/${slug}`
   const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
     useRecordModal<LookupOut, FormState>({
       record,
-      endpoint: `/studio/config/${slug}`,
+      endpoint: resolvedEndpoint,
       getRecordId: (r) => r.type_id,
-      getHistoryUrl: (r) => `/config/${slug}/${r.type_id}/history`,
+      getHistoryUrl: endpoint ? undefined : (r) => `/config/${slug}/${r.type_id}/history`,
       getTitle: getConfigTitle,
       toForm,
       buildPayload: buildConfigPayload,

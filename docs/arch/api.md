@@ -236,15 +236,29 @@ The proxy strips the outer auth layer and passes the validated user identity to 
 
 Status code, body, and `Content-Type` are passed through from the Go service unmodified.
 
-**Examples**
+**Go service endpoints**
 
-```text
-GET  /gearlist/health          → 200 {"status":"ok"}
-GET  /gearlist/guitars         → proxied to GET  http://gearlist_backend:4001/guitars
-POST /gearlist/guitars         → proxied to POST http://gearlist_backend:4001/guitars
-```
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/gearlist/health` | Health check — `{"status":"ok"}` |
+| `GET` | `/gearlist/gear-types` | List all gear types |
+| `POST` | `/gearlist/gear-types` | Create gear type (admin) |
+| `GET` | `/gearlist/gear-types/{id}` | Get gear type |
+| `PATCH` | `/gearlist/gear-types/{id}` | Update gear type (admin) |
+| `DELETE` | `/gearlist/gear-types/{id}` | Soft-delete gear type (admin) |
+| `GET` | `/gearlist/gear` | List gear (filterable by `name`, `type_id`) |
+| `POST` | `/gearlist/gear` | Create gear item (admin) |
+| `GET` | `/gearlist/gear/{id}` | Get gear item |
+| `PATCH` | `/gearlist/gear/{id}` | Update gear item (admin) |
+| `DELETE` | `/gearlist/gear/{id}` | Soft-delete gear item (admin) |
+| `GET` | `/gearlist/gear/{id}/history` | Audit history for a gear item |
+| `POST` | `/gearlist/gear/{id}/photo` | Upload photo (admin; `Content-Type: image/jpeg|png|webp`, max 10 MB) |
+| `GET` | `/gearlist/gear/{id}/maintenance` | List maintenance log entries |
+| `POST` | `/gearlist/gear/{id}/maintenance` | Add maintenance log entry (admin) |
 
 The Go service never receives the original JWT. It trusts `X-User`/`X-Role` because it is not reachable outside the Docker bridge network.
+
+The gear list endpoint uses the same `{ items: [...], total: N }` response shape as FastAPI paginated endpoints. `gear-types` returns a flat array.
 
 ---
 

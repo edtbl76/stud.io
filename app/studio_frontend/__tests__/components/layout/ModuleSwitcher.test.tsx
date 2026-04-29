@@ -44,4 +44,18 @@ describe('ModuleSwitcher', () => {
     render(<ModuleSwitcher />)
     expect(screen.getByRole('link', { name: /studio management/i })).toHaveAttribute('href', '/studio/admin/users')
   })
+
+  it('hides GearList when on a /gearlist path', () => {
+    mockPathname = '/gearlist/guitars'
+    render(<ModuleSwitcher />)
+    expect(screen.queryByRole('link', { name: /gearlist/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /home/i })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /controlroom/i })).toBeInTheDocument()
+  })
+
+  it('GearList link points to /gearlist/guitars', () => {
+    mockPathname = '/controlroom/session/effects'
+    render(<ModuleSwitcher />)
+    expect(screen.getByRole('link', { name: /gearlist/i })).toHaveAttribute('href', '/gearlist/guitars')
+  })
 })

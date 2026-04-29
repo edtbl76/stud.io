@@ -357,6 +357,9 @@ func e2eConfigFrom(cfg *config.Config) pipeline.E2EConfig {
 		DBUser:                cfg.Test.DB.User,
 		DBPassword:            cfg.Test.DB.Password, // pragma: allowlist secret
 		DBSource:              cfg.Test.DB.Source,
+		GearlistService:       e.GearlistService,
+		GearlistPort:          e.GearlistPort,
+		GearlistInternalPort:  e.GearlistInternalPort,
 	}
 }
 

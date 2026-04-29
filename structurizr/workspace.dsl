@@ -15,7 +15,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         }
 
         developer = person "Developer" {
-            description "Operates the local development environment. Uses the Roadie CLI to start, stop, restart, and check the status of the STUD.io Docker stack. Runs 'roadie build' to rebuild images and apply schema to test databases, 'roadie release' for the full release gate, and 'roadie db init' for first-time production database setup. Will also use Roadie for test, scan, and performance commands as Phase 5 is implemented."
+            description "Operates the local development environment. Uses the Roadie CLI to start, stop, restart, and check the status of the STUD.io Docker stack. Runs 'roadie build' to rebuild images and apply schema to test databases, 'roadie release' for the full release gate, and 'roadie db init' for first-time production database setup. Uses 'roadie test unit/scan/perf/pbt/e2e/full' to run test and quality suites."
             tags "Developer"
         }
 
@@ -70,7 +70,7 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                 }
 
                 apiClient = component "API Client" {
-                    description "Typed fetch wrapper with methods for list, listPaged, get, create, update, delete, and searchGlobal. All calls target relative /api/... paths — no Authorization header is set by client code. The browser sends the httpOnly cookie automatically."
+                    description "Typed fetch wrapper with methods for list, listPaged, get, create, update, delete, searchGlobal, and uploadPhoto. All calls target relative /api/... paths — no Authorization header is set by client code. The browser sends the httpOnly cookie automatically. uploadPhoto sends a raw File as the request body with the file's Content-Type, bypassing the default application/json header. listPaged handles endpoints that already contain query params by using & instead of ? as the separator."
                     technology "lib/api.ts"
                     tags "Library"
                 }
@@ -82,13 +82,13 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                 }
 
                 modalSystem = component "Modal System" {
-                    description "RecordModal shell supporting view, edit, history, and two-stage delete modes. Eight domain-specific modals (BrandModal, ModelModal, EffectModal, InstrumentModal, LibraryModal, WorkstationModal, ToolModal, ConfigModal) each compose RecordModal and own their form state. RecordHistoryView renders the full audit trail with field-level diffs and undo."
+                    description "RecordModal shell supporting view, edit, history, and two-stage delete modes. Nine domain-specific modals (BrandModal, ModelModal, EffectModal, InstrumentModal, LibraryModal, WorkstationModal, ToolModal, ConfigModal, GearModal) each compose RecordModal and own their form state. GearModal adds guitar pickup slot UI (conditional on gear type), inline photo upload via api.uploadPhoto (raw File binary, independent of form save), and a maintenance log read-only section. RecordHistoryView renders the full audit trail with field-level diffs and undo. History is optional — modals backed by endpoints without a history route can omit it."
                     technology "components/RecordModal.tsx + components/tables/"
                     tags "UI"
                 }
 
                 pages = component "Pages" {
-                    description "Multi-module shell with three top-level areas: (1) Home — module selection tiles at /; (2) ControlRoom at /controlroom/ — catalog (brands, models), session (effects, instruments, libraries, workstations), tools (workflow, measurement, reference, composition, admin), config (7 lookup tables), search, and admin (stats, change-review, backup, import/export); (3) User Management at /users/. Each module has its own Next.js layout mounting Sidebar or UsersSidebar (both built on SidebarShell). ModuleSwitcher in every sidebar provides one-click navigation between modules."
+                    description "Multi-module shell with four top-level areas: (1) Home — module selection tiles at /; (2) ControlRoom at /controlroom/ — catalog (brands, models), session (effects, instruments, libraries, workstations), tools (workflow, measurement, reference, composition, admin), config, search, and admin; (3) Studio Management at /studio/ — catalog, config (including Gear Types), and admin; (4) GearList at /gearlist/ — Guitars page (pre-filtered by Guitar gear type UUID) and Other Gear page (flat list). Each module has its own Next.js layout mounting Sidebar, UsersSidebar, or GearListSidebar (all built on SidebarShell). ModuleSwitcher in every sidebar provides one-click navigation between all four modules."
                     technology "app/"
                     tags "UI"
                 }
@@ -172,6 +172,52 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
                     technology "routers/_xlsx_schema|_build|_import.py"
                     tags "Library"
                 }
+            }
+
+            # ── GearList Backend ─────────────────────────────────────────────
+
+            gearlistBackend = container "GearList Backend" {
+                description "Go service managing gear inventory: gear types, individual gear items, maintenance logs, and photo uploads. Exposes a REST API on port 4001. All writes are audited. Receives pre-authenticated requests from FastAPI (X-User / X-Role headers); never handles JWTs directly."
+                technology "Go 1.26 / net/http / pgx v5 / minio-go"
+                tags "Backend"
+
+                gearTypesRouter = component "Gear Types Handler" {
+                    description "CRUD for gear_types lookup table. Paginated list, get, create (admin), update (admin), soft-delete (admin). All writes recorded in audit_log."
+                    technology "internal/geartypes/"
+                    tags "Router"
+                }
+
+                gearRouter = component "Gear Handler" {
+                    description "CRUD for the gear table. Paginated list with name and type_id filters, get, create (admin), update (admin), soft-delete (admin), history, photo upload. Reads from gear_view (resolves gear_type_name). Photo upload proxied to MinIO; DB write failure triggers orphan cleanup."
+                    technology "internal/gear/"
+                    tags "Router"
+                }
+
+                maintenanceRouter = component "Maintenance Handler" {
+                    description "Append-only maintenance log for gear items. List entries, create entry (admin). No update or delete."
+                    technology "internal/maintenance/"
+                    tags "Router"
+                }
+
+                gearlistConfig = component "Config" {
+                    description "Loads APP_PORT, DB_HOST/PORT/USER/PASSWORD/NAME, and MinIO credentials (MINIO_ENDPOINT, MINIO_ACCESS_KEY, MINIO_SECRET_KEY, MINIO_BUCKET) from environment variables. MinIO is optional — if MINIO_ENDPOINT is empty, photo upload returns 503."
+                    technology "internal/config/"
+                    tags "InfrastructureComponent"
+                }
+
+                photoUploader = component "Photo Uploader" {
+                    description "Uploads gear photos to MinIO using minio-go. Validates Content-Type (jpeg/png/webp) and Content-Length (max 10 MB) before the upload. Returns the object key (gear/{id}/photo.{ext}). On DB write failure the caller deletes the object to prevent orphans. Uses a detached context for cleanup so cancellation of the request context does not prevent deletion."
+                    technology "internal/gear/photo.go"
+                    tags "Library"
+                }
+            }
+
+            # ── MinIO ─────────────────────────────────────────────────────────
+
+            minio = container "MinIO" {
+                description "S3-compatible object store for gear photos. Bucket: studio-photos. API on port 1983, admin console on port 1982. Accessible only within the Docker bridge network — the Go service uploads directly; clients retrieve photos via the FastAPI BFF proxy."
+                technology "MinIO (latest)"
+                tags "Infrastructure"
             }
 
             # ── Database ─────────────────────────────────────────────────────
@@ -372,6 +418,9 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         frontend -> backend "REST API over internal Docker network — JWT attached by BFF proxy"
         backend -> database "asyncpg connection pool — parameterised SQL only"
         backend -> google "Validates Google ID tokens via google-auth library"
+        backend -> gearlistBackend "HTTP proxy — strips JWT, injects X-User / X-Role headers"
+        gearlistBackend -> database "pgx connection pool — parameterised SQL only"
+        gearlistBackend -> minio "minio-go client — PutObject / RemoveObject for gear photos"
 
         # ── Roadie → ControlRoom containers ──────────────────────────────────
 
@@ -416,6 +465,16 @@ workspace "STUD.io ControlRoom" "C4 architecture model for the ControlRoom music
         stepFactories -> labelWriter "Each ToolStep.Run wraps out with NewLabelWriter(step.Name)"
         toolStepPipeline -> labelWriter "ToolStep.Run routes all output through LabelWriter"
         pipelineEngine -> dockerDaemon "TrivyStep: docker run ghcr.io/aquasecurity/trivy:latest image ..."
+
+        # ── GearList Backend component relationships ──────────────────────────
+
+        gearlistConfig -> gearRouter "Supplies DSN and MinIO credentials at startup"
+        gearlistConfig -> gearTypesRouter "Supplies DSN at startup"
+        gearRouter -> photoUploader "Delegates photo upload and cleanup"
+        photoUploader -> minio "PutObject / RemoveObject"
+        gearRouter -> database "pgx — reads gear_view, writes gear base table + audit_log"
+        gearTypesRouter -> database "pgx — reads/writes gear_types + audit_log"
+        maintenanceRouter -> database "pgx — reads/writes gear_maintenance_log"
 
         # ── Frontend component relationships ──────────────────────────────────
 

@@ -74,6 +74,9 @@ const PAGES = [
   '/studio/admin/stats',
   '/studio/admin/backup',
   '/studio/admin/import-export',
+  '/gearlist/guitars',
+  '/gearlist/other-gear',
+  '/studio/config/gear-types',
 ]
 
 function pct(score: number | null | undefined): string {
