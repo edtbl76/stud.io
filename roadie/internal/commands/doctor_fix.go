@@ -161,9 +161,13 @@ func newFindings(from, to secretsResults) []secretsDiff {
 	return diffs
 }
 
+func (f secretsFinding) equals(other secretsFinding) bool {
+	return f.Type == other.Type && f.LineNumber == other.LineNumber && f.HashedSecret == other.HashedSecret
+}
+
 func containsFinding(findings []secretsFinding, f secretsFinding) bool {
 	for _, existing := range findings {
-		if existing.Type == f.Type && existing.LineNumber == f.LineNumber && existing.HashedSecret == f.HashedSecret {
+		if existing.equals(f) {
 			return true
 		}
 	}
