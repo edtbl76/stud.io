@@ -142,3 +142,17 @@ describe('GearModal — edit mode (guitar)', () => {
     expect(screen.queryByLabelText(/photo/i)).not.toBeInTheDocument()
   })
 })
+
+describe('GearModal — edit mode (non-guitar)', () => {
+  const ampGear: Gear = { ...mockGear, gear_type_id: 'a1b2c3d4-0002-0000-0000-000000000002', gear_type_name: 'Amp' }
+
+  beforeEach(() => jest.clearAllMocks())
+
+  it('does not show guitar-specific fields for non-guitar types', () => {
+    renderWithClient(<GearModal record={ampGear} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+    expect(screen.queryByLabelText(/pickup config/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/strings/i)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/tuning/i)).not.toBeInTheDocument()
+  })
+})

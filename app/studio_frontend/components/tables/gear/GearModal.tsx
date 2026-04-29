@@ -270,8 +270,11 @@ function GearViewDetails({ record, gearTypes }: Readonly<ViewDetailsProps>) {
 function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
   const [log, setLog] = React.useState<MaintenanceLog[]>([])
   React.useEffect(() => {
+    let cancelled = false
     api.list<MaintenanceLog>(`${ENDPOINT}/${gearId}/maintenance`)
-      .then(setLog).catch(() => setLog([]))
+      .then((data) => { if (!cancelled) setLog(data) })
+      .catch(() => { if (!cancelled) setLog([]) })
+    return () => { cancelled = true }
   }, [gearId])
 
   if (log.length === 0) return null
