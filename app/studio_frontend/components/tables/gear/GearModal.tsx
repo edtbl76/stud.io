@@ -116,24 +116,30 @@ interface EditSectionProps {
   onMutate: () => void
 }
 
-function GearEditSection({ form, set, gearTypes, record, onMutate }: Readonly<EditSectionProps>) {
-  const [uploadError, setUploadError] = React.useState<string | null>(null)
-  const [isUploading, setIsUploading] = React.useState(false)
+function usePhotoUpload(record: Gear | null, onMutate: () => void) {
+  const [error, setError] = React.useState<string | null>(null)
+  const [uploading, setUploading] = React.useState(false)
 
-  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function upload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !record) return
-    setIsUploading(true)
-    setUploadError(null)
+    setUploading(true)
+    setError(null)
     try {
       await api.uploadPhoto(ENDPOINT, record.gear_id, file)
       onMutate()
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed')
+      setError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
-      setIsUploading(false)
+      setUploading(false)
     }
   }
+
+  return { upload, uploading, error }
+}
+
+function GearEditSection({ form, set, gearTypes, record, onMutate }: Readonly<EditSectionProps>) {
+  const { upload, uploading, error: uploadError } = usePhotoUpload(record, onMutate)
 
   return (
     <>
@@ -144,10 +150,10 @@ function GearEditSection({ form, set, gearTypes, record, onMutate }: Readonly<Ed
       {record && (
         <div className="mt-4 flex flex-col gap-1.5">
           <Label htmlFor="photo_upload">
-            Photo {isUploading && <span className="text-muted-foreground">(uploading…)</span>}
+            Photo {uploading && <span className="text-muted-foreground">(uploading…)</span>}
           </Label>
           <input id="photo_upload" type="file" accept="image/jpeg,image/png,image/webp"
-            className="text-xs" onChange={handlePhotoUpload} disabled={isUploading} />
+            className="text-xs" onChange={upload} disabled={uploading} />
         </div>
       )}
     </>

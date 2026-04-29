@@ -322,6 +322,12 @@ func validateE2EConfig(cfg *config.Config) error {
 		return fmt.Errorf("test.db.container is required for E2E tests")
 	case cfg.Test.DB.Source == "":
 		return fmt.Errorf("test.db.source is required for E2E tests")
+	}
+	return validateE2EGearlistConfig(e)
+}
+
+func validateE2EGearlistConfig(e config.E2ETestConfig) error {
+	switch {
 	case e.GearlistService == "":
 		return fmt.Errorf("test.e2e.gearlist_service is required for E2E tests")
 	case e.GearlistPort <= 0:
