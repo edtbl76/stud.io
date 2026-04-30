@@ -34,7 +34,6 @@ app/studio_frontend/
 │   │   ├── session/        # Effects, Instruments, Libraries, Workstations
 │   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
 │   │   ├── config/         # Lookup table editors (7 tables)
-│   │   ├── search/         # Redirect to /search (preserves ?q= param)
 │   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore
 │   ├── studio/             # Studio Management module
 │   │   ├── layout.tsx      # Renders UsersSidebar + main content area
@@ -196,7 +195,7 @@ The global search results page at `/search?q=<query>`. Calls `GET /search` via `
 - **Notes toggle** — extends the search to description/notes fields when enabled
 - Each result opens a `SearchRecordModal` in-place; a "Go to [Table]" button navigates to the table page and opens the record modal there
 
-The search input lives in `TopBar` (fixed, visible on all pages). Submitting navigates to `/search?q=...`. The old route `/controlroom/search` redirects here, preserving the `?q=` param.
+The search input lives in `TopBar` (fixed, visible on all pages). Submitting navigates to `/search?q=...`.
 
 ---
 
