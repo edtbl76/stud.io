@@ -228,3 +228,36 @@ async def test_fulltext_search_plan_is_valid(conn):
     pt = _plan_text(plan)
     # Full-text search uses websearch_to_tsquery — verify at least one source table appears
     assert any(t in pt for t in ('brands', 'models', 'effects', 'instruments', 'libraries'))
+
+
+# ---------------------------------------------------------------------------
+# Scanner table index existence assertions
+# Catalog queries are deterministic regardless of table row count or planner
+# statistics — correct for a schema validation unit with empty test tables.
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_idx_scan_results_scan_id_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'plugin_scan_results' AND indexname = 'idx_scan_results_scan_id'"
+    )
+    assert row is not None, "idx_scan_results_scan_id must exist on plugin_scan_results"
+
+
+@pytest.mark.asyncio
+async def test_idx_scan_results_scan_status_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'plugin_scan_results' AND indexname = 'idx_scan_results_scan_status'"
+    )
+    assert row is not None, "idx_scan_results_scan_status must exist on plugin_scan_results"
+
+
+@pytest.mark.asyncio
+async def test_idx_scans_scanned_at_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'plugin_scans' AND indexname = 'idx_scans_scanned_at'"
+    )
+    assert row is not None, "idx_scans_scanned_at must exist on plugin_scans"

@@ -62,6 +62,17 @@ A `gear_view` in `sql/views.sql` joins `gear` with `gear_types` to resolve `gear
 
 Every write to `gear_types` and `gear` is recorded in the shared `audit_log` table.
 
+### Plugin Scanner tables (FastAPI — `scanner_schema.sql`)
+
+Defined in `sql/scanner_schema.sql`. Used by the FastAPI scanner routes and the plugin-scanner binary.
+
+| Table | Description |
+|---|---|
+| `plugin_scans` | One row per scan run uploaded by the plugin-scanner binary. Fields: `scan_id UUID PK`, `scanned_at TIMESTAMPTZ`, `source_machine TEXT`, `total_count INT`. No soft delete — hard-deleted when purged. |
+| `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), and confirmation state (`confirmed_at`, `confirmed_by`). No soft delete. |
+| `scanner_api_keys` | API keys for plugin-scanner binary authentication. Stores `label TEXT`, `key_hint TEXT` (last 4 chars of plaintext), `hashed_key TEXT UNIQUE` (bcrypt), `created_at`, `revoked_at`. Plaintext key never stored. |
+| `scanner_exclusions` | Plugins excluded from all future scan reports. Fields: `exclusion_id UUID PK`, `vendor TEXT`, `name TEXT`, `excluded_at TIMESTAMPTZ`. UNIQUE constraint on `(vendor, name)`. |
+
 ### Soft delete
 
 All content tables (brands, models, effects, instruments, libraries, workstations, and all five tool tables) and all lookup/config tables have a `deleted_at TIMESTAMPTZ` column. Deleting a record through the API sets `deleted_at` to the current time rather than removing the row. All semantic views filter `WHERE deleted_at IS NULL` so soft-deleted records are invisible to normal queries.
@@ -147,6 +158,6 @@ The Go service uploads photos directly to MinIO using the `minio-go` client. If 
 
 ## Schema and migrations
 
-The schema lives in `sql/schema.sql` (FastAPI tables) and `sql/gearlist_schema.sql` (GearList Go service tables). Both are applied idempotently by `roadie build` in order: `schema.sql → gearlist_schema.sql → views.sql`.
+The schema lives in three files applied idempotently by `roadie build` in order: `schema.sql` (FastAPI catalog tables) → `gearlist_schema.sql` (GearList Go service tables) → `scanner_schema.sql` (Plugin Scanner tables) → `views.sql` (semantic read views).
 
 There is no migration framework. Schema changes are made directly to the SQL files and applied by restarting the stack. For destructive changes (column renames, type changes), the database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data.
