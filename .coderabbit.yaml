@@ -22,7 +22,6 @@ reviews:
     - "!**/__pycache__/**"
     - "!**/*.pyc"
     - "!.secrets.baseline"
-    - "!structurizr/workspace.json"
     - "!docs/superpowers/**"
 
   path_instructions:

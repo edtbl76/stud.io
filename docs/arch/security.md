@@ -108,9 +108,9 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 
 Two layers:
 
-**Pre-commit hook** (`detect-secrets-hook` in `.pre-commit-config.yaml`): scans staged files on every commit against `.secrets.baseline`. Aborts the commit if a new secret is detected. Excludes `package-lock.json`, `.secrets.baseline` itself, and `structurizr/workspace.json` (generated file with Base64 layout data).
+**Pre-commit hook** (`detect-secrets-hook` in `.pre-commit-config.yaml`): scans staged files on every commit against `.secrets.baseline`. Aborts the commit if a new secret is detected. Excludes `package-lock.json` and `.secrets.baseline` itself.
 
-**CI check** (`roadie test scan secrets`): rescans the full working tree (excluding `node_modules`, `.git`, lock files, `.next`, `__pycache__`, `.secrets.baseline`, and `structurizr/workspace.json`) and compares against `.secrets.baseline`. Exits 1 if any finding is not in the baseline.
+**CI check** (`roadie test scan secrets`): rescans the full working tree (excluding `node_modules`, `.git`, lock files, `.next`, `__pycache__`, and `.secrets.baseline`) and compares against `.secrets.baseline`. Exits 1 if any finding is not in the baseline.
 
 ### Baseline management
 
@@ -127,7 +127,6 @@ detect-secrets scan \
     --exclude-files '.*\.next/.*' \
     --exclude-files '.*__pycache__.*' \
     --exclude-files '\.secrets\.baseline' \
-    --exclude-files 'structurizr/workspace\.json' \
     --baseline .secrets.baseline
 ```
 

@@ -50,7 +50,7 @@ func devCmd(use, short string, fn func(context.Context, *stack.Manager, *config.
 			return fn(cmd.Context(), newManager(cfg), cfg, dev)
 		},
 	}
-	cmd.Flags().BoolVar(&dev, "dev", false, "include dev tools (SonarQube, Structurizr)")
+	cmd.Flags().BoolVar(&dev, "dev", false, "include dev tools (SonarQube, Woodpecker)")
 	return cmd
 }
 

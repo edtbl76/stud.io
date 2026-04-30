@@ -30,9 +30,6 @@ stack:
     - name: SonarQube
       type: http
       url: http://localhost:1969
-    - name: Structurizr
-      type: http
-      url: http://localhost:1967
     - name: Woodpecker
       type: http
       url: http://localhost:1984/healthz
@@ -43,7 +40,6 @@ stack:
     gearlist: http://localhost:4001
     minio: http://localhost:1982  # console UI; http is intentional for local dev — upgrade to https when MinIO is behind a TLS reverse-proxy
     sonarqube: http://localhost:1969
-    structurizr: http://localhost:1967
     woodpecker: http://localhost:1984
 
 build:

@@ -198,7 +198,6 @@ func (m *Manager) printURLs(cfg *config.Config, withDev bool) {
 	printURL(m.out, "MinIO", urls.MinIO)
 	if withDev {
 		printURL(m.out, "SonarQube", urls.SonarQube)
-		printURL(m.out, "Structurizr", urls.Structurizr)
 		printURL(m.out, "Woodpecker", urls.Woodpecker)
 	}
 	fmt.Fprintln(m.out)

@@ -72,16 +72,6 @@ services:
       - ./woodpecker-private-key.pem:/etc/woodpecker/private-key.pem:ro
     restart: unless-stopped
 
-  structurizr:
-    image: structurizr/structurizr
-    container_name: structurizr
-    command: local
-    ports:
-      - "1967:8080"
-    volumes:
-      - ./structurizr:/usr/local/structurizr
-    restart: unless-stopped
-
   sonarqube:
     image: sonarqube:community
     container_name: sonarqube

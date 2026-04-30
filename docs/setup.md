@@ -50,7 +50,7 @@ The commit is aborted if any check fails. Hook configuration lives in `.pre-comm
 - `bandit` skips B104 (intentional `0.0.0.0` Docker binding) and B608 (asyncpg queries use f-strings for hardcoded table names only — all values are parameterized). Config in `.bandit`.
 - `pip-audit` ignores CVE-2024-23342 (Minerva timing attack on ECDSA keys in the `ecdsa` package — irrelevant because HS256/HMAC JWTs are used, not EC keys).
 - `npm-audit` runs at `--audit-level=critical` only. GHSA-9g9p-9gw9-jx7f and GHSA-h25m-26qc-wcjf (Next.js 14.x) are resolved — the app is on Next.js 16.
-- `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). `package-lock.json`, `.secrets.baseline` itself, and `structurizr/workspace.json` (generated file with Base64 layout data) are excluded from scanning. If you add a new legitimate non-secret that triggers a false positive, update the baseline (see `docs/arch/security.md` — Baseline management).
+- `detect-secrets` uses `.secrets.baseline` to suppress known findings (test fixture passwords, local dev DB credentials). `package-lock.json` and `.secrets.baseline` itself are excluded from scanning. If you add a new legitimate non-secret that triggers a false positive, update the baseline (see `docs/arch/security.md` — Baseline management).
 
 ### 4. Generate HTTPS certificates
 
@@ -75,7 +75,7 @@ The `nginx/certs/` directory is git-ignored — certs must be generated locally 
 To manage the stack without running tests:
 ```bash
 roadie start        # start production stack
-roadie start --dev  # start production stack + dev tools (SonarQube, Structurizr)
+roadie start --dev  # start production stack + dev tools (SonarQube, Woodpecker)
 roadie stop         # stop production stack
 roadie stop --dev   # stop production stack + dev tools
 roadie restart      # stop then start
@@ -86,7 +86,7 @@ To build and run the full test suite:
 ```bash
 roadie build               # rebuild images if changed, apply schema + seeds to test DBs, run unit tests
 roadie build --e2e         # also run Playwright E2E shards
-roadie build --dev         # include dev overlay (SonarQube + Structurizr)
+roadie build --dev         # include dev overlay (SonarQube + Woodpecker)
 roadie build --skip-tests  # rebuild images if changed and apply schema + seeds, skip unit tests
 roadie build --schema-only # apply schema + seeds to test DBs only; skip container rebuilds and tests
 roadie build --force-build # force container rebuild even if Dockerfiles and dependencies are unchanged
@@ -171,9 +171,9 @@ Add via Woodpecker UI → Secrets, or `woodpecker-cli secret add`.
 
 ---
 
-## Dev tooling stack (SonarQube + Structurizr)
+## Dev tooling stack (SonarQube + Woodpecker)
 
-A separate Docker project (`dev`) runs SonarQube and Structurizr, completely isolated from the studio stack.
+A separate Docker project (`dev`) runs SonarQube and Woodpecker, completely isolated from the studio stack.
 
 ```bash
 roadie start --dev    # Start (safe to run every time — idempotent)
@@ -195,7 +195,7 @@ roadie build --dev
 | Service | URL | Notes |
 |---|---|---|
 | SonarQube | `http://localhost:1969` | Login: `admin` / `My@mpGoesTo11` |
-| Structurizr | `http://localhost:1967` | No login required |
+| Woodpecker | `http://localhost:1984` | GitHub login |
 
 ### Running a scan
 

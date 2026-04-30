@@ -73,7 +73,7 @@ roadie [command] [flags]
 | `roadie restart [--dev]` | Stop then start | `roadie.sh restart` |
 | `roadie status` | Show running services | `roadie.sh status` |
 
-The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-compose.dev.yml`).
+The `--dev` flag includes the SonarQube dev overlay (`docker-compose.dev.yml`).
 
 #### Build commands
 
@@ -105,7 +105,7 @@ test:
 
 Frontend PBT tests live in `app/studio_frontend/__tests__/pbt/`. Backend PBT tests live in `app/controlroom_backend/tests/pbt/`. These are excluded from the pre-commit hook — run `roadie test pbt` manually or rely on `roadie test full`.
 
-`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`. `--force-build` bypasses the container rebuild check and always runs `--build --force-recreate`.
+`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`. `--force-build` bypasses the container rebuild check and always runs `--build --force-recreate`.
 
 `roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
 
@@ -181,15 +181,11 @@ stack:
     - name: SonarQube
       type: http
       url: http://localhost:1969
-    - name: Structurizr
-      type: http
-      url: http://localhost:1967
   urls:
     app: https://localhost:2112
     api: https://localhost:5150
     docs: https://localhost:5150/docs
     sonarqube: http://localhost:1969
-    structurizr: http://localhost:1967
 
 build:
   schema_files:                              # applied in order to each database in `databases`

@@ -34,4 +34,4 @@ repos:
         entry: detect-secrets-hook
         language: system
         args: ['--baseline', '.secrets.baseline']
-        exclude: package-lock\.json|\.secrets\.baseline|structurizr/workspace\.json|app/studio_frontend/e2e/\.auth/|app/studio_frontend/perf-reports/
+        exclude: package-lock\.json|\.secrets\.baseline|app/studio_frontend/e2e/\.auth/|app/studio_frontend/perf-reports/

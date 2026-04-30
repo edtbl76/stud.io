@@ -51,7 +51,7 @@ first-time production setup.`,
 			return runBuild(cmd.Context(), cfg, flags, os.Stdout)
 		},
 	}
-	cmd.Flags().BoolVar(&flags.dev, "dev", false, "include dev tools (SonarQube, Structurizr)")
+	cmd.Flags().BoolVar(&flags.dev, "dev", false, "include dev tools (SonarQube, Woodpecker)")
 	cmd.Flags().BoolVar(&flags.skipTests, "skip-tests", false, "skip unit tests")
 	cmd.Flags().BoolVar(&flags.schemaOnly, "schema-only", false, "apply schema to test databases without rebuilding containers or running tests")
 	cmd.Flags().BoolVar(&flags.forceBuild, "force-build", false, "force container rebuild even if Dockerfiles and dependencies are unchanged")
@@ -152,9 +152,8 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	fmt.Fprintf(out, "  MinIO:    %s\n", u.MinIO)
 	if flags.dev {
 		fmt.Fprintln(out, "")
-		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
-		fmt.Fprintf(out, "  Structurizr:  %s\n", u.Structurizr)
-		fmt.Fprintf(out, "  Woodpecker:   %s\n", u.Woodpecker)
+		fmt.Fprintf(out, "  SonarQube:  %s\n", u.SonarQube)
+		fmt.Fprintf(out, "  Woodpecker: %s\n", u.Woodpecker)
 	}
 	if flags.dev && flags.full {
 		fmt.Fprintln(out, "")

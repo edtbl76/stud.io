@@ -117,12 +117,11 @@ type HealthCheck struct {
 
 // URLsConfig holds the display URLs shown after a successful stack start.
 type URLsConfig struct {
-	App         string `yaml:"app"`
-	API         string `yaml:"api"`
-	Docs        string `yaml:"docs"`
-	GearList    string `yaml:"gearlist"`
-	MinIO       string `yaml:"minio"`
-	SonarQube   string `yaml:"sonarqube"`
-	Structurizr string `yaml:"structurizr"`
-	Woodpecker  string `yaml:"woodpecker"`
+	App        string `yaml:"app"`
+	API        string `yaml:"api"`
+	Docs       string `yaml:"docs"`
+	GearList   string `yaml:"gearlist"`
+	MinIO      string `yaml:"minio"`
+	SonarQube  string `yaml:"sonarqube"`
+	Woodpecker string `yaml:"woodpecker"`
 }
