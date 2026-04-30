@@ -228,3 +228,37 @@ async def test_fulltext_search_plan_is_valid(conn):
     pt = _plan_text(plan)
     # Full-text search uses websearch_to_tsquery — verify at least one source table appears
     assert any(t in pt for t in ('brands', 'models', 'effects', 'instruments', 'libraries'))
+
+
+# ---------------------------------------------------------------------------
+# Scanner table index assertions
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_scan_results_by_scan_id_uses_index(conn):
+    plan = await conn.fetchval(
+        "EXPLAIN (FORMAT JSON) SELECT * FROM plugin_scan_results WHERE scan_id = $1",
+        '00000000-0000-0000-0000-000000000000',
+    )
+    assert _uses_index(_plan_text(plan)), \
+        "plugin_scan_results scan_id lookup should use idx_scan_results_scan_id"
+
+
+@pytest.mark.asyncio
+async def test_scan_results_by_scan_status_uses_index(conn):
+    plan = await conn.fetchval(
+        "EXPLAIN (FORMAT JSON) SELECT * FROM plugin_scan_results "
+        "WHERE scan_id = $1 AND status = $2",
+        '00000000-0000-0000-0000-000000000000', 'untracked',
+    )
+    assert _uses_index(_plan_text(plan)), \
+        "plugin_scan_results (scan_id, status) lookup should use idx_scan_results_scan_status"
+
+
+@pytest.mark.asyncio
+async def test_scans_by_date_uses_index(conn):
+    plan = await conn.fetchval(
+        "EXPLAIN (FORMAT JSON) SELECT * FROM plugin_scans WHERE scanned_at < NOW()",
+    )
+    assert _uses_index(_plan_text(plan)), \
+        "plugin_scans date filter should use idx_scans_scanned_at"
