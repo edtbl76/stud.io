@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS plugin_scans (
     scan_id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     scanned_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     source_machine TEXT        NOT NULL,
-    total_count    INT         NOT NULL
+    total_count    INT         NOT NULL CHECK (total_count >= 0)
 );
 
 -- One row per discovered plugin per scan run.
@@ -20,11 +20,11 @@ CREATE TABLE IF NOT EXISTS plugin_scan_results (
     name         TEXT        NOT NULL,
     vendor       TEXT        NOT NULL,
     version      TEXT        NOT NULL,
-    format       TEXT        NOT NULL,   -- vst3 | au | vst2
+    format       TEXT        NOT NULL CHECK (format IN ('vst3', 'au', 'vst2')),
     path         TEXT        NOT NULL,
-    status       TEXT        NOT NULL,   -- matched | version_mismatch | unconfirmed | untracked | orphaned
-    confidence   TEXT,                   -- exact | high | medium | low | none
-    score        NUMERIC(5,2),           -- 0.00–100.00; NULL for exact matches and unmatched
+    status       TEXT        NOT NULL CHECK (status IN ('matched', 'version_mismatch', 'unconfirmed', 'untracked', 'orphaned')),
+    confidence   TEXT        CHECK (confidence IN ('exact', 'high', 'medium', 'low', 'none')),
+    score        NUMERIC(5,2) CHECK (score BETWEEN 0 AND 100),
     record_id    UUID,                   -- matched ControlRoom record (soft ref, no FK — table is dynamic)
     record_table TEXT,                   -- effects | instruments | ...
     confirmed_at TIMESTAMPTZ,

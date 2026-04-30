@@ -158,6 +158,6 @@ The Go service uploads photos directly to MinIO using the `minio-go` client. If 
 
 ## Schema and migrations
 
-The schema lives in `sql/schema.sql` (FastAPI tables) and `sql/gearlist_schema.sql` (GearList Go service tables). Both are applied idempotently by `roadie build` in order: `schema.sql → gearlist_schema.sql → views.sql`.
+The schema lives in three files applied idempotently by `roadie build` in order: `schema.sql` (FastAPI catalog tables) → `gearlist_schema.sql` (GearList Go service tables) → `scanner_schema.sql` (Plugin Scanner tables) → `views.sql` (semantic read views).
 
 There is no migration framework. Schema changes are made directly to the SQL files and applied by restarting the stack. For destructive changes (column renames, type changes), the database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data.

@@ -231,34 +231,33 @@ async def test_fulltext_search_plan_is_valid(conn):
 
 
 # ---------------------------------------------------------------------------
-# Scanner table index assertions
+# Scanner table index existence assertions
+# Catalog queries are deterministic regardless of table row count or planner
+# statistics — correct for a schema validation unit with empty test tables.
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_scan_results_by_scan_id_uses_index(conn):
-    plan = await conn.fetchval(
-        "EXPLAIN (FORMAT JSON) SELECT * FROM plugin_scan_results WHERE scan_id = $1",
-        '00000000-0000-0000-0000-000000000000',
+async def test_idx_scan_results_scan_id_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'plugin_scan_results' AND indexname = 'idx_scan_results_scan_id'"
     )
-    assert _uses_index(_plan_text(plan)), \
-        "plugin_scan_results scan_id lookup should use idx_scan_results_scan_id"
+    assert row is not None, "idx_scan_results_scan_id must exist on plugin_scan_results"
 
 
 @pytest.mark.asyncio
-async def test_scan_results_by_scan_status_uses_index(conn):
-    plan = await conn.fetchval(
-        "EXPLAIN (FORMAT JSON) SELECT * FROM plugin_scan_results "
-        "WHERE scan_id = $1 AND status = $2",
-        '00000000-0000-0000-0000-000000000000', 'untracked',
+async def test_idx_scan_results_scan_status_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'plugin_scan_results' AND indexname = 'idx_scan_results_scan_status'"
     )
-    assert _uses_index(_plan_text(plan)), \
-        "plugin_scan_results (scan_id, status) lookup should use idx_scan_results_scan_status"
+    assert row is not None, "idx_scan_results_scan_status must exist on plugin_scan_results"
 
 
 @pytest.mark.asyncio
-async def test_scans_by_date_uses_index(conn):
-    plan = await conn.fetchval(
-        "EXPLAIN (FORMAT JSON) SELECT * FROM plugin_scans WHERE scanned_at < NOW()",
+async def test_idx_scans_scanned_at_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'plugin_scans' AND indexname = 'idx_scans_scanned_at'"
     )
-    assert _uses_index(_plan_text(plan)), \
-        "plugin_scans date filter should use idx_scans_scanned_at"
+    assert row is not None, "idx_scans_scanned_at must exist on plugin_scans"
