@@ -39,6 +39,34 @@ async def test_scanner_api_keys_table_exists(conn):
 
 
 @pytest.mark.asyncio
+async def test_scanner_plugin_links_table_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_schema = 'public' AND table_name = 'scanner_plugin_links'"
+    )
+    assert row is not None
+
+
+@pytest.mark.asyncio
+async def test_scanner_plugin_links_unique_fingerprint(conn):
+    await conn.execute(
+        "INSERT INTO scanner_plugin_links "
+        "(scanned_vendor, scanned_name, fingerprint, record_id, record_table, confirmed_by) "
+        "VALUES ($1, $2, $3, $4, $5, $6)",
+        'Acme Audio', 'Reverb Pro', 'acme audio reverb pro',
+        '00000000-0000-0000-0000-000000000001', 'effects', 'admin',
+    )
+    with pytest.raises(Exception, match='unique'):
+        await conn.execute(
+            "INSERT INTO scanner_plugin_links "
+            "(scanned_vendor, scanned_name, fingerprint, record_id, record_table, confirmed_by) "
+            "VALUES ($1, $2, $3, $4, $5, $6)",
+            'Acme Audio', 'Reverb Pro', 'acme audio reverb pro',
+            '00000000-0000-0000-0000-000000000002', 'effects', 'admin',
+        )
+
+
+@pytest.mark.asyncio
 async def test_scanner_exclusions_table_exists(conn):
     row = await conn.fetchrow(
         "SELECT 1 FROM information_schema.tables "

@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS plugin_scan_results (
     version      TEXT        NOT NULL,
     format       TEXT        NOT NULL CHECK (format IN ('vst3', 'au', 'vst2')),
     path         TEXT        NOT NULL,
-    status       TEXT        NOT NULL CHECK (status IN ('matched', 'version_mismatch', 'unconfirmed', 'untracked', 'orphaned')),
+    status       TEXT        NOT NULL CHECK (status IN ('matched', 'version_mismatch', 'unconfirmed', 'untracked', 'orphaned', 'ignored')),
     confidence   TEXT        CHECK (confidence IN ('exact', 'high', 'medium', 'low', 'none')),
     score        NUMERIC(5,2) CHECK (score BETWEEN 0 AND 100),
     record_id    UUID,                   -- matched ControlRoom record (soft ref, no FK — table is dynamic)
@@ -50,6 +50,21 @@ CREATE TABLE IF NOT EXISTS scanner_exclusions (
     name         TEXT        NOT NULL,
     excluded_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE (vendor, name)
+);
+
+-- Persistent confirmed match links.
+-- Survives scan history purges — one link per scanned plugin fingerprint.
+-- Created on confirm, deleted on reject.
+CREATE TABLE IF NOT EXISTS scanner_plugin_links (
+    link_id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    scanned_vendor TEXT        NOT NULL,
+    scanned_name   TEXT        NOT NULL,
+    fingerprint    TEXT        NOT NULL,   -- "{vendor} {name}".lower().strip()
+    record_id      UUID        NOT NULL,
+    record_table   TEXT        NOT NULL,
+    confirmed_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    confirmed_by   TEXT        NOT NULL,
+    UNIQUE (fingerprint)
 );
 
 -- Indexes -------------------------------------------------------------------

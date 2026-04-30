@@ -238,3 +238,39 @@ async def test_unauthenticated_cannot_create_user(client):
         json={"username": "newuser", "password": "pass", "role": "user"},
     )
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Scanner — role enforcement
+# ---------------------------------------------------------------------------
+
+async def test_user_cannot_create_scanner_key(client, auth_headers):
+    response = await client.post("/scanner/keys", json={"label": "x"}, headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_user_cannot_revoke_scanner_key(client, auth_headers):
+    response = await client.delete(f"/scanner/keys/{DUMMY_UUID}", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_user_cannot_add_exclusion(client, auth_headers):
+    response = await client.post(
+        "/scanner/exclude", json={"vendor": "Acme", "name": "Plugin"}, headers=auth_headers,
+    )
+    assert response.status_code == 403
+
+
+async def test_user_cannot_purge_scans(client, auth_headers):
+    response = await client.delete("/scanner/scans?older_than_days=30", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_list_scanner_keys(client):
+    response = await client.get("/scanner/keys")
+    assert response.status_code == 401
+
+
+async def test_unauthenticated_cannot_get_scan_report(client):
+    response = await client.get("/scanner/report")
+    assert response.status_code == 401

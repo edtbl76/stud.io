@@ -72,6 +72,7 @@ Defined in `sql/scanner_schema.sql`. Used by the FastAPI scanner routes and the 
 | `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), and confirmation state (`confirmed_at`, `confirmed_by`). No soft delete. |
 | `scanner_api_keys` | API keys for plugin-scanner binary authentication. Stores `label TEXT`, `key_hint TEXT` (last 4 chars of plaintext), `hashed_key TEXT UNIQUE` (bcrypt), `created_at`, `revoked_at`. Plaintext key never stored. |
 | `scanner_exclusions` | Plugins excluded from all future scan reports. Fields: `exclusion_id UUID PK`, `vendor TEXT`, `name TEXT`, `excluded_at TIMESTAMPTZ`. UNIQUE constraint on `(vendor, name)`. |
+| `scanner_plugin_links` | Persistent confirmed match links — survives scan history purges. Maps a scanned plugin fingerprint (`"{vendor} {name}".lower()`) to a confirmed ControlRoom catalog record. Created on confirm, deleted on reject. UNIQUE on `fingerprint`. |
 
 ### Soft delete
 
