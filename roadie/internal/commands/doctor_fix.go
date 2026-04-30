@@ -27,7 +27,6 @@ var secretsExcludes = []string{
 	`.*\.next/.*`,
 	`.*__pycache__.*`,
 	`\.secrets\.baseline`,
-	`structurizr/workspace\.json`,
 	`.*/e2e/\.auth/.*`,
 	`.*/perf-reports/.*`,
 }

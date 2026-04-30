@@ -26,7 +26,6 @@ stack:
     api: https://localhost:5150
     docs: https://localhost:5150/docs
     sonarqube: http://localhost:1969
-    structurizr: http://localhost:1967
 
 build:
   schema_files:

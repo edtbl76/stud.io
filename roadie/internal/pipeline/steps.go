@@ -271,7 +271,6 @@ func DetectSecretsStep(root Root) ToolStep {
 		`--exclude-files '.*\.next/.*' ` +
 		`--exclude-files '.*__pycache__.*' ` +
 		`--exclude-files '\.secrets\.baseline' ` +
-		`--exclude-files 'structurizr/workspace\.json' ` +
 		`--exclude-files '.*/e2e/\.auth/.*' ` +
 		`--exclude-files '.*/perf-reports/.*' ` +
 		`> /tmp/secrets_current.json; ` +
