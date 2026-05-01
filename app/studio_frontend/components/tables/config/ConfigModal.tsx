@@ -52,7 +52,7 @@ export function ConfigModal({ record, slug, endpoint, onClose, onMutate }: Reado
       record,
       endpoint: resolvedEndpoint,
       getRecordId: (r) => r.type_id,
-      getHistoryUrl: endpoint ? undefined : (r) => `/config/${slug}/${r.type_id}/history`,
+      getHistoryUrl: endpoint ? undefined : (r) => `/studio/config/${slug}/${r.type_id}/history`,
       getTitle: getConfigTitle,
       toForm,
       buildPayload: buildConfigPayload,

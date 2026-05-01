@@ -6,7 +6,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 
 - Base URL: `https://localhost:5150`
 - Interactive docs: `https://localhost:5150/docs` (Swagger UI)
-- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, and `/health`
+- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, `/health`, and `/scanner/scan` (which uses API key auth: `Authorization: Bearer psc_...`)
 
 ---
 
@@ -311,3 +311,41 @@ The xlxs logic is split across three internal modules:
 `POST /admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents the undo. UPDATE restoration skips `created_at` and `updated_at` (both are auto-managed columns); all other fields are restored, with UUID and datetime strings in `old_data` coerced back to their native types before binding to the database.
 
 `DELETE /admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.
+
+### Plugin Scanner
+
+All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Authorization: Bearer psc_...`); all other routes use JWT bearer auth.
+
+#### Core
+
+`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
+
+`GET /scanner/report` — authenticated user. Returns the latest scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record).
+
+`POST /scanner/confirm` — admin only. Accepts a list of confirmation decisions. Each item specifies a `result_id` and `action`:
+- `confirm` — links the scanned plugin to the matched record; updates version in the catalog table; writes a `scanner_plugin_links` entry.
+- `reject` — clears the match; plugin reverts to `untracked`; removes the persistent link if one existed.
+- `ignore` — adds the plugin to `scanner_exclusions`; status becomes `ignored`; excluded from all future scans.
+- `create` — inserts a new record in the specified `target_table`; links it; status becomes `matched`.
+
+Confirmation errors are isolated per item (one failure does not roll back others). Returns `{applied, errors}`.
+
+#### API Key Management (admin only)
+
+`GET /scanner/keys` — list all API keys (label, hint, created/revoked timestamps). Hashed key never returned.
+
+`POST /scanner/keys` — create a new API key. Body: `{label}`. Returns the full key (`psc_` + 64 hex chars) once — it cannot be retrieved again.
+
+`DELETE /scanner/keys/{key_id}` — revoke a key (sets `revoked_at`). Returns 404 if already revoked.
+
+#### Exclusion Management (admin only)
+
+`POST /scanner/exclude` — add a plugin to the exclusion list. Body: `{vendor, name}`. Idempotent (ON CONFLICT DO NOTHING).
+
+`DELETE /scanner/exclude/{exclusion_id}` — remove an exclusion. Returns 404 if not found.
+
+#### Scan History
+
+`GET /scanner/scans` — authenticated user. Returns all scan runs with per-run status counts and confirmation counts, newest first.
+
+`DELETE /scanner/scans?older_than_days=N` — admin only. Hard-deletes scan runs (and their results via CASCADE) older than N days. Returns `{deleted_count}`.

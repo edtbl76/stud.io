@@ -194,7 +194,7 @@ export function BrandModal({ record, onClose, onMutate }: Readonly<BrandModalPro
       record,
       endpoint: ENDPOINT,
       getRecordId: (r) => r.brand_id,
-      getHistoryUrl: (r) => `/brands/${r.brand_id}/history`,
+      getHistoryUrl: (r) => `${ENDPOINT}/${r.brand_id}/history`,
       getTitle: getBrandTitle,
       toForm,
       buildPayload: buildBrandPayload,
