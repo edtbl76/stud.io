@@ -97,6 +97,30 @@ async def load_persistent_links(conn) -> dict[str, tuple[str, str]]:
     return {r["fingerprint"]: (str(r["record_id"]), r["record_table"]) for r in rows}
 
 
+def _meta_candidates(results: list) -> dict[str, tuple]:
+    """Return {rid: (table, record_id)} for results that need a catalog metadata fetch."""
+    return {
+        str(r["record_id"]): (r["record_table"], r["record_id"])
+        for r in results
+        if r["record_id"] and r["record_table"] in CATALOG_TABLES
+    }
+
+
+async def fetch_match_meta(conn, results: list) -> dict[str, dict]:
+    """Fetch catalog name/vendor/version for each distinct matched record."""
+    meta: dict[str, dict] = {}
+    for rid, (table, record_id) in _meta_candidates(results).items():
+        pk, nc = CATALOG_TABLES[table]
+        rec = await conn.fetchrow(
+            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version "
+            f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
+            record_id,
+        )
+        if rec:
+            meta[rid] = dict(rec)
+    return meta
+
+
 # ---------------------------------------------------------------------------
 # Tier helpers (pure)
 # ---------------------------------------------------------------------------

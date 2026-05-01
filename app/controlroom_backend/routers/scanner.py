@@ -15,11 +15,12 @@ from fastapi import APIRouter, Depends, Header, HTTPException, status
 
 from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
-from routers.scanner_actions import apply_confirmation
+from routers.scanner_actions import apply_confirmation, insert_orphans
 from routers.scanner_match import (
     CATALOG_TABLES,
     CatalogRecord,
     build_catalog_index,
+    fetch_match_meta,
     load_exclusions,
     load_persistent_links,
     match_plugin,
@@ -63,25 +64,6 @@ def _assign_status(confidence: str, disk_ver: str, record_ver: str | None) -> st
     if confidence == "exact":
         return "matched" if disk_ver == (record_ver or "") else "version_mismatch"
     return "unconfirmed"
-
-
-async def _fetch_match_meta(conn: Connection, results: list) -> dict[str, dict]:
-    meta: dict[str, dict] = {}
-    for r in results:
-        if not r["record_id"]:
-            continue
-        rid, table = str(r["record_id"]), r["record_table"]
-        if rid in meta or table not in CATALOG_TABLES:
-            continue
-        pk, nc = CATALOG_TABLES[table]
-        rec = await conn.fetchrow(
-            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version "
-            f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
-            r["record_id"],
-        )
-        if rec:
-            meta[rid] = dict(rec)
-    return meta
 
 
 async def _linked_plugin_row(
@@ -143,7 +125,7 @@ async def ingest_scan(
             " VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
             rows,
         )
-        await _insert_orphans(conn, scan_id, links, seen)
+        await insert_orphans(conn, scan_id, links, seen)
 
     counts = await conn.fetchrow(
         "SELECT "
@@ -155,33 +137,6 @@ async def ingest_scan(
         "FROM plugin_scan_results WHERE scan_id=$1", scan_id,
     )
     return ScanSummary(scan_id=scan_id, **dict(counts))
-
-
-async def _insert_orphans(
-    conn: Connection,
-    scan_id: UUID,
-    links: dict[str, tuple[str, str]],
-    seen: set[str],
-) -> None:
-    for fp, (record_id, table) in links.items():
-        if fp in seen:
-            continue
-        pk, nc = CATALOG_TABLES.get(table, (None, None))
-        if not pk:
-            continue
-        rec = await conn.fetchrow(
-            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version "
-            f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
-            UUID(record_id),
-        )
-        if rec:
-            await conn.execute(
-                "INSERT INTO plugin_scan_results "
-                "(scan_id,name,vendor,version,format,path,status,confidence,record_id,record_table)"
-                " VALUES ($1,$2,$3,$4,'unknown','','orphaned','exact',$5,$6)",
-                scan_id, rec["name"], rec["vendor"] or "", rec["version"] or "",
-                UUID(record_id), table,
-            )
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +160,7 @@ async def get_report(
         "FROM plugin_scan_results WHERE scan_id=$1",
         scan["scan_id"],
     )
-    meta = await _fetch_match_meta(conn, results)
+    meta = await fetch_match_meta(conn, results)
     grouped: dict[str, list[ScanResult]] = {
         s: [] for s in ("matched", "version_mismatch", "unconfirmed", "untracked", "orphaned")
     }

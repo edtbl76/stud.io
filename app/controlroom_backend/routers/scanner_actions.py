@@ -1,11 +1,13 @@
-"""Plugin Scanner — confirm action handlers.
+"""Plugin Scanner — confirm action handlers and scan ingest helpers.
 
-Private module imported only by scanner.py.
-Each handler applies one user decision to a scan result.
+Imported by scanner.py. Contains:
+- Confirm action dispatch (apply_confirmation)
+- Orphan row insertion (insert_orphans)
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
+from uuid import UUID
 
 from asyncpg import Connection
 
@@ -109,3 +111,41 @@ async def apply_confirmation(conn: Connection, c: Confirmation, username: str) -
     if not handler:
         raise ValueError(f"unknown action: {c.action}")
     await handler(conn, _ConfirmCtx(c=c, row=dict(row), fp=fp, username=username))
+
+
+# ---------------------------------------------------------------------------
+# Orphan row insertion (used by ingest_scan)
+# ---------------------------------------------------------------------------
+
+async def _insert_orphan_row(
+    conn: Connection, scan_id: UUID, record_id: str, table: str,
+) -> None:
+    pk, nc = CATALOG_TABLES.get(table, (None, None))
+    if not pk:
+        return
+    rec = await conn.fetchrow(
+        f"SELECT {nc} AS name, b.brand_name AS vendor, t.version "
+        f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
+        UUID(record_id),
+    )
+    if not rec:
+        return
+    vendor = rec["vendor"] or ""
+    version = rec["version"] or ""
+    await conn.execute(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id,name,vendor,version,format,path,status,confidence,record_id,record_table)"
+        " VALUES ($1,$2,$3,$4,'unknown','','orphaned','exact',$5,$6)",
+        scan_id, rec["name"], vendor, version, UUID(record_id), table,
+    )
+
+
+async def insert_orphans(
+    conn: Connection,
+    scan_id: UUID,
+    links: dict[str, tuple[str, str]],
+    seen: set[str],
+) -> None:
+    for fp, (record_id, table) in links.items():
+        if fp not in seen:
+            await _insert_orphan_row(conn, scan_id, record_id, table)
