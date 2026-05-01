@@ -165,7 +165,7 @@ export function ToolModal({ record, category, onClose, onMutate }: Readonly<Tool
       record,
       endpoint: `/studio/tools/${category}`,
       getRecordId: (r) => r.tool_id,
-      getHistoryUrl: (r) => `/tools/${category}/${r.tool_id}/history`,
+      getHistoryUrl: (r) => `/studio/tools/${category}/${r.tool_id}/history`,
       getTitle,
       toForm,
       buildPayload: buildToolPayload,
