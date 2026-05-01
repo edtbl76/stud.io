@@ -139,7 +139,6 @@ class ConfirmationCounts(BaseModel):
     confirmed: int = 0
     rejected: int = 0
     ignored: int = 0
-    created: int = 0
 
 
 class ScanRun(BaseModel):

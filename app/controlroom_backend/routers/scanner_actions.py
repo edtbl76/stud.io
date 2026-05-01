@@ -91,7 +91,9 @@ async def _action_create(conn: Connection, ctx: _ConfirmCtx) -> None:
     await conn.execute(
         "INSERT INTO scanner_plugin_links "
         "(scanned_vendor,scanned_name,fingerprint,record_id,record_table,confirmed_by) "
-        "VALUES ($1,$2,$3,$4,$5,$6)",
+        "VALUES ($1,$2,$3,$4,$5,$6) "
+        "ON CONFLICT (fingerprint) DO UPDATE SET record_id=$4,record_table=$5,"
+        "confirmed_at=NOW(),confirmed_by=$6",
         ctx.row["vendor"], ctx.row["name"], ctx.fp, new_id, ctx.c.target_table, ctx.username,
     )
 

@@ -72,14 +72,15 @@ def _assign_status(confidence: str, disk_ver: str, record_ver: str | None) -> st
 
 async def _linked_plugin_row(
     conn: Connection, scan_id: UUID, p: ScannedPlugin, link: tuple[str, str],
-) -> tuple:
+) -> tuple | None:
     record_id, table = link
     if table not in CATALOG_TABLES:
         raise ValueError(f"persistent link has unknown record_table: {table!r}")
     pk, _ = CATALOG_TABLES[table]
     rec = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", UUID(record_id))
-    rv = rec["version"] if rec else ""
-    st = "matched" if p.version == rv else "version_mismatch"
+    if rec is None:
+        return None
+    st = "matched" if p.version == rec["version"] else "version_mismatch"
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
             st, "exact", None, UUID(record_id), table)
 
@@ -122,8 +123,10 @@ async def ingest_scan(
             fp = f"{p.vendor} {p.name}".lower().strip()
             seen.add(fp)
             if fp in links:
-                rows.append(await _linked_plugin_row(conn, scan_id, p, links[fp]))
-            else:
+                row = await _linked_plugin_row(conn, scan_id, p, links[fp])
+                if row is not None:
+                    rows.append(row)
+            elif fp not in exclusions:
                 rows.append(_unlinked_plugin_row(scan_id, p, index, exclusions))
         await conn.executemany(
             "INSERT INTO plugin_scan_results "
