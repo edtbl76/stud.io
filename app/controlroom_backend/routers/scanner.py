@@ -38,11 +38,15 @@ router = APIRouter()
 # API key auth dependency
 # ---------------------------------------------------------------------------
 
+def _is_bearer_token(authorization: str | None) -> bool:
+    return bool(authorization and authorization.startswith("Bearer "))
+
+
 async def get_scanner_auth(
     conn: Annotated[Connection, Depends(get_conn)],
     authorization: Annotated[str | None, Header()] = None,
 ) -> str:
-    if not authorization or not authorization.startswith("Bearer "):
+    if not _is_bearer_token(authorization):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
     token = authorization.removeprefix("Bearer ").strip()
     rows = await conn.fetch(
@@ -74,8 +78,8 @@ async def _linked_plugin_row(
         raise ValueError(f"persistent link has unknown record_table: {table!r}")
     pk, _ = CATALOG_TABLES[table]
     rec = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", UUID(record_id))
-    rv = rec["version"] if rec else None
-    st = "matched" if p.version == (rv or "") else "version_mismatch"
+    rv = rec["version"] if rec else ""
+    st = "matched" if p.version == rv else "version_mismatch"
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
             st, "exact", None, UUID(record_id), table)
 
