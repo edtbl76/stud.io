@@ -39,10 +39,10 @@ router = APIRouter()
 # ---------------------------------------------------------------------------
 
 async def get_scanner_auth(
-    authorization: Annotated[str, Header()],
     conn: Annotated[Connection, Depends(get_conn)],
+    authorization: Annotated[str | None, Header()] = None,
 ) -> str:
-    if not authorization.startswith("Bearer "):
+    if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
     token = authorization.removeprefix("Bearer ").strip()
     rows = await conn.fetch(
@@ -70,6 +70,8 @@ async def _linked_plugin_row(
     conn: Connection, scan_id: UUID, p: ScannedPlugin, link: tuple[str, str],
 ) -> tuple:
     record_id, table = link
+    if table not in CATALOG_TABLES:
+        raise ValueError(f"persistent link has unknown record_table: {table!r}")
     pk, _ = CATALOG_TABLES[table]
     rec = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", UUID(record_id))
     rv = rec["version"] if rec else None
@@ -162,7 +164,7 @@ async def get_report(
     )
     meta = await fetch_match_meta(conn, results)
     grouped: dict[str, list[ScanResult]] = {
-        s: [] for s in ("matched", "version_mismatch", "unconfirmed", "untracked", "orphaned")
+        s: [] for s in ("matched", "version_mismatch", "unconfirmed", "untracked", "orphaned", "ignored")
     }
     for r in results:
         group = grouped.get(r["status"])
@@ -187,6 +189,6 @@ async def confirm_results(
             async with conn.transaction():
                 await apply_confirmation(conn, c, user.username)
             applied += 1
-        except Exception as exc:
+        except ValueError as exc:
             errors.append({"result_id": str(c.result_id), "error": str(exc)})
     return ConfirmResult(applied=applied, errors=errors)

@@ -76,6 +76,15 @@ async def test_ingest_scan_invalid_key_returns_401(client):
 
 
 @pytest.mark.asyncio
+async def test_ingest_scan_missing_auth_returns_401(client):
+    response = await client.post(
+        "/scanner/scan",
+        json={"source_machine": "x", "plugins": []},
+    )
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_ingest_scan_revoked_key_returns_401(client, conn, scanner_key):
     key_id, raw = scanner_key
     await conn.execute(
@@ -137,8 +146,16 @@ async def test_confirm_reject_clears_match(client, conn, admin_headers):
 
 
 @pytest.mark.asyncio
-async def test_confirm_ignore_adds_exclusion(client, conn, admin_headers):
+async def test_confirm_ignore_adds_exclusion_and_removes_link(client, conn, admin_headers):
     _, result_id = await _insert_scan(conn, "untracked")
+    fp = "acme audio reverb pro"
+    await conn.execute(
+        "INSERT INTO scanner_plugin_links "
+        "(scanned_vendor,scanned_name,fingerprint,record_id,record_table,confirmed_by) "
+        "VALUES ($1,$2,$3,$4,$5,$6)",
+        "Acme Audio", "Reverb Pro", fp,
+        "00000000-0000-0000-0000-000000000001", "effects", "adminuser",
+    )
     response = await client.post(
         "/scanner/confirm",
         json={"confirmations": [{"result_id": str(result_id), "action": "ignore"}]},
@@ -149,6 +166,25 @@ async def test_confirm_ignore_adds_exclusion(client, conn, admin_headers):
         "SELECT COUNT(*) FROM scanner_exclusions WHERE vendor='Acme Audio' AND name='Reverb Pro'"
     )
     assert count == 1
+    link_count = await conn.fetchval(
+        "SELECT COUNT(*) FROM scanner_plugin_links WHERE fingerprint=$1", fp,
+    )
+    assert link_count == 0
+
+
+@pytest.mark.asyncio
+async def test_confirm_unknown_result_id_returns_error_entry(client, admin_headers):
+    fake_id = "00000000-0000-0000-0000-000000000099"
+    response = await client.post(
+        "/scanner/confirm",
+        json={"confirmations": [{"result_id": fake_id, "action": "reject"}]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["applied"] == 0
+    assert len(data["errors"]) == 1
+    assert data["errors"][0]["result_id"] == fake_id
 
 
 @pytest.mark.asyncio

@@ -1,13 +1,15 @@
 """Pydantic schemas for the Plugin Scanner API."""
 from __future__ import annotations
 
+from collections.abc import Mapping
+from datetime import datetime
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
 
 
-def build_match_meta(r: dict, m: dict | None) -> "MatchMeta":
+def build_match_meta(r: Mapping[str, Any], m: dict[str, Any] | None) -> "MatchMeta":
     return MatchMeta(
         confidence=r["confidence"] or "none",
         score=float(r["score"]) if r["score"] is not None else None,
@@ -18,7 +20,7 @@ def build_match_meta(r: dict, m: dict | None) -> "MatchMeta":
     )
 
 
-def build_scan_result(r: dict, meta: dict[str, dict]) -> "ScanResult":
+def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> "ScanResult":
     rid = str(r["record_id"]) if r["record_id"] else None
     m = meta.get(rid) if rid else None
     return ScanResult(
@@ -53,6 +55,7 @@ class ScanSummary(BaseModel):
     unconfirmed: int
     untracked: int
     orphaned: int
+    ignored: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -82,12 +85,13 @@ class ScanResult(BaseModel):
 
 class ScanReport(BaseModel):
     scan_id: UUID
-    scanned_at: Any
+    scanned_at: datetime
     matched: list[ScanResult]
     version_mismatch: list[ScanResult]
     unconfirmed: list[ScanResult]
     untracked: list[ScanResult]
     orphaned: list[ScanResult]
+    ignored: list[ScanResult] = []
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +110,7 @@ class ConfirmPayload(BaseModel):
 
 class ConfirmResult(BaseModel):
     applied: int
-    errors: list[dict]
+    errors: list[dict[str, Any]]
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +132,7 @@ class StatusCounts(BaseModel):
     unconfirmed: int = 0
     untracked: int = 0
     orphaned: int = 0
+    ignored: int = 0
 
 
 class ConfirmationCounts(BaseModel):
@@ -139,7 +144,7 @@ class ConfirmationCounts(BaseModel):
 
 class ScanRun(BaseModel):
     scan_id: UUID
-    scanned_at: Any
+    scanned_at: datetime
     source_machine: str
     total_count: int
     status_counts: StatusCounts
@@ -154,8 +159,8 @@ class APIKeyResponse(BaseModel):
     key_id: UUID
     label: str
     key_hint: str
-    created_at: Any
-    revoked_at: Any = None
+    created_at: datetime
+    revoked_at: datetime | None = None
 
 
 class APIKeyCreated(APIKeyResponse):

@@ -1,12 +1,9 @@
-"""Pure matching module for the Plugin Scanner.
-
-No FastAPI or asyncpg imports — this module is testable in isolation.
-All functions accept plain Python types and return plain dataclasses.
-"""
+"""Plugin Scanner — catalog index, DB loaders, and matching logic."""
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from asyncpg import Connection, Record
 from rapidfuzz import fuzz
 
 # ---------------------------------------------------------------------------
@@ -68,7 +65,7 @@ class MatchResult:
 # DB loaders (accept asyncpg Connection)
 # ---------------------------------------------------------------------------
 
-async def build_catalog_index(conn) -> list[CatalogRecord]:
+async def build_catalog_index(conn: Connection) -> list[CatalogRecord]:
     rows = await conn.fetch(_CATALOG_UNION)
     return [
         CatalogRecord(
@@ -83,21 +80,21 @@ async def build_catalog_index(conn) -> list[CatalogRecord]:
     ]
 
 
-async def load_exclusions(conn) -> set[str]:
+async def load_exclusions(conn: Connection) -> set[str]:
     rows = await conn.fetch(
         "SELECT vendor, name FROM scanner_exclusions"
     )
     return {f"{r['vendor']} {r['name']}".lower().strip() for r in rows}
 
 
-async def load_persistent_links(conn) -> dict[str, tuple[str, str]]:
+async def load_persistent_links(conn: Connection) -> dict[str, tuple[str, str]]:
     rows = await conn.fetch(
         "SELECT fingerprint, record_id::text, record_table FROM scanner_plugin_links"
     )
     return {r["fingerprint"]: (str(r["record_id"]), r["record_table"]) for r in rows}
 
 
-def _meta_candidates(results: list) -> dict[str, tuple]:
+def _meta_candidates(results: list[Record]) -> dict[str, tuple]:
     """Return {rid: (table, record_id)} for results that need a catalog metadata fetch."""
     return {
         str(r["record_id"]): (r["record_table"], r["record_id"])
@@ -106,7 +103,7 @@ def _meta_candidates(results: list) -> dict[str, tuple]:
     }
 
 
-async def fetch_match_meta(conn, results: list) -> dict[str, dict]:
+async def fetch_match_meta(conn: Connection, results: list[Record]) -> dict[str, dict]:
     """Fetch catalog name/vendor/version for each distinct matched record."""
     meta: dict[str, dict] = {}
     for rid, (table, record_id) in _meta_candidates(results).items():

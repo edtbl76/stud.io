@@ -156,6 +156,7 @@ async def list_scans(
                 unconfirmed=r["unconfirmed"],
                 untracked=r["untracked"],
                 orphaned=r["orphaned"],
+                ignored=r["ignored"],
             ),
             confirmation_counts=ConfirmationCounts(
                 confirmed=r["confirmed"],

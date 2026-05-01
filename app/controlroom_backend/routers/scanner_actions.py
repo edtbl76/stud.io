@@ -30,6 +30,10 @@ async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:
         "confirmed_by=$2 WHERE result_id=$1", ctx.c.result_id, ctx.username,
     )
     table, rid = ctx.row["record_table"], ctx.row["record_id"]
+    if table not in CATALOG_TABLES:
+        raise ValueError(
+            f"result_id {ctx.c.result_id}: unknown record_table {table!r}"
+        )
     pk, _ = CATALOG_TABLES[table]
     old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", rid)
     await conn.execute(
@@ -62,6 +66,7 @@ async def _action_ignore(conn: Connection, ctx: _ConfirmCtx) -> None:
         "INSERT INTO scanner_exclusions (vendor,name) VALUES ($1,$2) ON CONFLICT DO NOTHING",
         ctx.row["vendor"], ctx.row["name"],
     )
+    await conn.execute("DELETE FROM scanner_plugin_links WHERE fingerprint=$1", ctx.fp)
     await conn.execute(
         "UPDATE plugin_scan_results SET status='ignored',confirmed_at=NOW(),"
         "confirmed_by=$2 WHERE result_id=$1", ctx.c.result_id, ctx.username,

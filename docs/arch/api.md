@@ -6,7 +6,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 
 - Base URL: `https://localhost:5150`
 - Interactive docs: `https://localhost:5150/docs` (Swagger UI)
-- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, and `/health`
+- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, `/health`, and `/scanner/scan` (which uses API key auth: `Authorization: Bearer psc_...`)
 
 ---
 
@@ -320,7 +320,7 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 
 `POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
 
-`GET /scanner/report` — authenticated user. Returns the latest scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`. Each result includes scanned metadata and match context (confidence, score, matched record).
+`GET /scanner/report` — authenticated user. Returns the latest scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record).
 
 `POST /scanner/confirm` — admin only. Accepts a list of confirmation decisions. Each item specifies a `result_id` and `action`:
 - `confirm` — links the scanned plugin to the matched record; updates version in the catalog table; writes a `scanner_plugin_links` entry.
