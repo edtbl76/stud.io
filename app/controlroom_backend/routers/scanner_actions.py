@@ -24,24 +24,9 @@ class _ConfirmCtx:
     username: str
 
 
-async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:
-    await conn.execute(
-        "UPDATE plugin_scan_results SET status='matched',confirmed_at=NOW(),"
-        "confirmed_by=$2 WHERE result_id=$1", ctx.c.result_id, ctx.username,
-    )
-    table, rid = ctx.row["record_table"], ctx.row["record_id"]
-    if table not in CATALOG_TABLES:
-        raise ValueError(
-            f"result_id {ctx.c.result_id}: unknown record_table {table!r}"
-        )
-    pk, _ = CATALOG_TABLES[table]
-    old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", rid)
-    await conn.execute(
-        f"UPDATE {table} SET version=$1,updated_at=NOW() WHERE {pk}=$2", ctx.row["version"], rid,
-    )
-    await log_audit(conn, table, rid, "UPDATE", ctx.username,
-                    old_data=dict(old) if old else None,
-                    new_data={"version": ctx.row["version"]})
+async def _upsert_plugin_link(
+    conn: Connection, ctx: _ConfirmCtx, rid: object, table: str,
+) -> None:
     await conn.execute(
         "INSERT INTO scanner_plugin_links "
         "(scanned_vendor,scanned_name,fingerprint,record_id,record_table,confirmed_by) "
@@ -50,6 +35,31 @@ async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:
         "confirmed_at=NOW(),confirmed_by=$6",
         ctx.row["vendor"], ctx.row["name"], ctx.fp, rid, table, ctx.username,
     )
+
+
+async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:
+    table, rid = ctx.row["record_table"], ctx.row["record_id"]
+    if table not in CATALOG_TABLES:
+        raise ValueError(
+            f"result_id {ctx.c.result_id}: unknown record_table {table!r}"
+        )
+    pk, _ = CATALOG_TABLES[table]
+    old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", rid)
+    if old is None:
+        raise ValueError(
+            f"result_id {ctx.c.result_id}: catalog record {rid} in {table!r} no longer exists"
+        )
+    await conn.execute(
+        "UPDATE plugin_scan_results SET status='matched',confirmed_at=NOW(),"
+        "confirmed_by=$2 WHERE result_id=$1", ctx.c.result_id, ctx.username,
+    )
+    await conn.execute(
+        f"UPDATE {table} SET version=$1,updated_at=NOW() WHERE {pk}=$2", ctx.row["version"], rid,
+    )
+    await log_audit(conn, table, rid, "UPDATE", ctx.username,
+                    old_data=dict(old) if old else None,
+                    new_data={"version": ctx.row["version"]})
+    await _upsert_plugin_link(conn, ctx, rid, table)
 
 
 async def _action_reject(conn: Connection, ctx: _ConfirmCtx) -> None:
@@ -88,14 +98,7 @@ async def _action_create(conn: Connection, ctx: _ConfirmCtx) -> None:
         "confirmed_at=NOW(),confirmed_by=$3 WHERE result_id=$4",
         new_id, ctx.c.target_table, ctx.username, ctx.c.result_id,
     )
-    await conn.execute(
-        "INSERT INTO scanner_plugin_links "
-        "(scanned_vendor,scanned_name,fingerprint,record_id,record_table,confirmed_by) "
-        "VALUES ($1,$2,$3,$4,$5,$6) "
-        "ON CONFLICT (fingerprint) DO UPDATE SET record_id=$4,record_table=$5,"
-        "confirmed_at=NOW(),confirmed_by=$6",
-        ctx.row["vendor"], ctx.row["name"], ctx.fp, new_id, ctx.c.target_table, ctx.username,
-    )
+    await _upsert_plugin_link(conn, ctx, new_id, ctx.c.target_table)
 
 
 _ACTIONS = {
