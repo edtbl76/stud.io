@@ -124,23 +124,33 @@ func (c *APIClient) doPost(ctx context.Context, body []byte, idempotencyKey stri
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusUnauthorized {
-		return nil, &authError{}
-	}
-	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-		return nil, &clientError{code: resp.StatusCode}
-	}
-	if resp.StatusCode >= 500 {
-		return nil, fmt.Errorf("server error: %d", resp.StatusCode)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	if err := checkStatus(resp); err != nil {
+		return nil, err
 	}
 
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
+	return decodeBody(data)
+}
+
+func checkStatus(resp *http.Response) error {
+	switch {
+	case resp.StatusCode == http.StatusUnauthorized:
+		return &authError{}
+	case resp.StatusCode >= 400 && resp.StatusCode < 500:
+		return &clientError{code: resp.StatusCode}
+	case resp.StatusCode >= 500:
+		return fmt.Errorf("server error: %d", resp.StatusCode)
+	case resp.StatusCode != http.StatusOK:
+		return fmt.Errorf("unexpected status: %d", resp.StatusCode)
+	default:
+		return nil
+	}
+}
+
+func decodeBody(data []byte) (*scanner.ServerSummary, error) {
 	var summary scanner.ServerSummary
 	if err := json.Unmarshal(data, &summary); err != nil {
 		return nil, fmt.Errorf("decoding response: %w", err)
