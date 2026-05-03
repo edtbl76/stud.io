@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -46,6 +47,7 @@ func runDoctor(ctx context.Context, out io.Writer) error {
 		{"GearList", checkHTTP("http://localhost:4001/health")},
 		{"MinIO", checkHTTP("http://localhost:1983/minio/health/live")},
 		{"SonarQube", checkHTTP("http://localhost:1969")},
+		{"tailscale-funnel :1984", checkTailscaleFunnel(woodpeckerFunnelPort)},
 	}
 
 	fmt.Fprintln(out, "")
@@ -80,6 +82,18 @@ func checkBinary(name string) func(ctx context.Context) bool {
 func checkDockerCompose(ctx context.Context) bool {
 	cmd := exec.CommandContext(ctx, "docker", "compose", "version")
 	return cmd.Run() == nil
+}
+
+// checkTailscaleFunnel returns a check that passes when `tailscale funnel status`
+// reports an active funnel entry for the given port.
+func checkTailscaleFunnel(port int) func(ctx context.Context) bool {
+	return func(ctx context.Context) bool {
+		out, err := exec.CommandContext(ctx, "tailscale", "funnel", "status").Output()
+		if err != nil {
+			return false
+		}
+		return strings.Contains(string(out), fmt.Sprintf(":%d", port))
+	}
 }
 
 // checkHTTP returns a check that passes when the URL returns a 2xx response.

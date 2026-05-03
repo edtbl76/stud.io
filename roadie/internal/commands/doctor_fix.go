@@ -16,6 +16,7 @@ import (
 )
 
 const woodpeckerAgentCount = 4
+const woodpeckerFunnelPort = 1984
 
 // secretsExcludes mirrors the exclude patterns used in DetectSecretsStep
 // (pipeline/steps.go). Both lists must be kept in sync.
@@ -50,9 +51,9 @@ func fixCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "fix <target>",
 		Short: "Apply automated fixes for common issues",
-		Long:  "Available targets: secrets, woodpecker-agents",
+		Long:  "Available targets: secrets, woodpecker-agents, tailscale-funnel",
 	}
-	cmd.AddCommand(fixSecretsCmd(), fixWoodpeckerAgentsCmd())
+	cmd.AddCommand(fixSecretsCmd(), fixWoodpeckerAgentsCmd(), fixTailscaleFunnelCmd())
 	return cmd
 }
 
@@ -190,6 +191,30 @@ func printSecretsDiff(out io.Writer, added, removed []secretsDiff) {
 	}
 	printDiffGroup(out, "New findings to baseline", "+", added)
 	printDiffGroup(out, "Entries removed from codebase", "-", removed)
+}
+
+// ── tailscale funnel ──────────────────────────────────────────────────────────
+
+func fixTailscaleFunnelCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "tailscale-funnel",
+		Short: fmt.Sprintf("Enable Tailscale Funnel on :%d for Woodpecker CI", woodpeckerFunnelPort),
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return runFixTailscaleFunnel(cmd.Context(), woodpeckerFunnelPort, os.Stdout)
+		},
+	}
+}
+
+func runFixTailscaleFunnel(ctx context.Context, port int, out io.Writer) error {
+	fmt.Fprintf(out, "[fix] Enabling Tailscale Funnel on :%d...\n", port)
+	cmd := exec.CommandContext(ctx, "tailscale", "funnel", strconv.Itoa(port))
+	cmd.Stdout = out
+	cmd.Stderr = out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("tailscale funnel %d: %w", port, err)
+	}
+	fmt.Fprintf(out, "[fix] Tailscale Funnel on :%d enabled.\n", port)
+	return nil
 }
 
 // ── woodpecker ────────────────────────────────────────────────────────────────
