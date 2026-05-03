@@ -59,6 +59,17 @@ _STATS_GROUPS: list[tuple[str, list[tuple[str, str, bool]]]] = [
         ("Tag Types",         "tag_types",        True),
         ("Tool Types",        "tool_types",       True),
     ]),
+    ("GearList", [
+        ("Gear",       "gear",       True),
+        ("Gear Types", "gear_types", True),
+    ]),
+    ("Scanner", [
+        ("Scans",        "plugin_scans",        False),
+        ("Scan Results", "plugin_scan_results", False),
+        ("API Keys",     "scanner_api_keys",    False),
+        ("Exclusions",   "scanner_exclusions",  False),
+        ("Plugin Links", "scanner_plugin_links", False),
+    ]),
 ]
 
 

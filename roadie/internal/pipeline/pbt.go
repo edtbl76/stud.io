@@ -20,11 +20,12 @@ type PBTConfig struct {
 type PBTFlags struct {
 	FastCheck  bool
 	Hypothesis bool
+	Rapid      bool
 }
 
 // anySelected reports whether a specific engine was selected.
 func (f PBTFlags) anySelected() bool {
-	return f.FastCheck || f.Hypothesis
+	return f.FastCheck || f.Hypothesis || f.Rapid
 }
 
 // shouldRun reports whether engine should run given the active flag selection.
@@ -38,13 +39,15 @@ func (f PBTFlags) shouldRun(engine string) bool {
 		return f.FastCheck
 	case "hypothesis":
 		return f.Hypothesis
+	case "rapid":
+		return f.Rapid
 	}
 	return false
 }
 
 // AllPBTFlags returns flags that run all PBT engines.
 func AllPBTFlags() PBTFlags {
-	return PBTFlags{FastCheck: true, Hypothesis: true}
+	return PBTFlags{FastCheck: true, Hypothesis: true, Rapid: true}
 }
 
 // RunPBT runs fast-check and/or hypothesis property-based tests. Both engines
@@ -62,6 +65,9 @@ func RunPBT(ctx context.Context, cfg PBTConfig, flags PBTFlags, out io.Writer) (
 	}
 	if flags.shouldRun("hypothesis") {
 		steps = append(steps, hypothesisPBTStep(cfg.Root, examples))
+	}
+	if flags.shouldRun("rapid") {
+		steps = append(steps, rapidPBTStep(cfg.Root))
 	}
 	if len(steps) == 0 {
 		fmt.Fprintln(out, "[pbt] No engines selected.")
@@ -104,5 +110,17 @@ func hypothesisPBTStep(root Root, examples int) ToolStep {
 		Bin:  "bash",
 		Args: []string{"-c", script},
 		Env:  append(pathEnv(ResolvePython()), "HYPOTHESIS_MAX_EXAMPLES="+strconv.Itoa(examples)),
+	}
+}
+
+// rapidPBTStep runs Go property-based tests in plugin_scanner using pgregory.net/rapid.
+// Tests are named TestProperties* and discovered via -run TestProperties.
+func rapidPBTStep(root Root) ToolStep {
+	return ToolStep{
+		Name: "rapid",
+		Bin:  "go",
+		Args: []string{"test", "-run", "TestProperties", "./..."},
+		Dir:  filepath.Join(string(root), pluginScannerDir),
+		Env:  pathEnv(ResolveGoExe()),
 	}
 }

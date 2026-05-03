@@ -94,9 +94,11 @@ services:
       /bin/sh -c "
         mc alias set local http://studio_minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
         mc mb --ignore-existing local/studio-photos &&
+        mc mb --ignore-existing local/studio-downloads &&
+        mc anonymous set download local/studio-downloads &&
         mc admin user add local $$MINIO_SVC_ACCESS_KEY $$MINIO_SVC_SECRET_KEY &&
         mc admin policy attach local readwrite --user $$MINIO_SVC_ACCESS_KEY &&
-        echo 'MinIO: bucket and service account ready.'
+        echo 'MinIO: buckets and service account ready.'
       "
     restart: on-failure
 

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BINARY="plugin-scanner"
+VERSION="__VERSION__"
+INSTALL_DIR="/usr/local/bin"
+
+if [ ! -f "$BINARY" ]; then
+  echo "Error: $BINARY not found in the current directory." >&2
+  echo "Run this script from the extracted zip directory." >&2
+  exit 1
+fi
+
+xattr -d com.apple.quarantine "$BINARY" 2>/dev/null || true
+chmod +x "$BINARY"
+mv "$BINARY" "$INSTALL_DIR/$BINARY"
+
+echo "plugin-scanner $VERSION installed to $INSTALL_DIR"

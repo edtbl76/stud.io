@@ -45,13 +45,14 @@ async def _insert_scan(conn, status: str = "untracked") -> tuple:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_ingest_scan_returns_summary(client, scanner_key):
+async def test_ingest_scan_returns_summary(client, conn, scanner_key):
     _, raw = scanner_key
     payload = {
         "source_machine": "studio-mac",
         "plugins": [
             {"name": "Reverb Pro", "vendor": "Acme Audio",
-             "version": "1.0.0", "format": "vst3", "path": "/path/reverb.vst3"},
+             "version": "1.0.0", "format": "vst3", "path": "/path/reverb.vst3",
+             "metadata_source": "moduleinfo.json"},
         ],
     }
     response = await client.post(
@@ -63,6 +64,11 @@ async def test_ingest_scan_returns_summary(client, scanner_key):
     data = response.json()
     assert "scan_id" in data
     assert data["untracked"] + data["matched"] + data["unconfirmed"] == 1
+    stored = await conn.fetchval(
+        "SELECT metadata_source FROM plugin_scan_results WHERE scan_id=$1",
+        data["scan_id"],
+    )
+    assert stored == "moduleinfo.json"
 
 
 @pytest.mark.asyncio

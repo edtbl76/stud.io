@@ -9,6 +9,7 @@ import (
 const frontendDir = "app/studio_frontend"
 const backendDir = "app/controlroom_backend"
 const gearlistDir = "app/gearlist_backend"
+const pluginScannerDir = "app/plugin_scanner"
 
 // Root is the filesystem root of the monorepo, used to resolve tool paths.
 type Root string
@@ -148,17 +149,20 @@ func NpmAuditStep(root Root) ToolStep {
 	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
 }
 
-// goStep builds a ToolStep that runs bin with args in the gearlist_backend
-// directory. Used by Go tool steps to avoid duplication.
-func goStep(name, bin string, args []string, root Root) ToolStep {
-	r := string(root)
+// goModuleStep builds a ToolStep running bin with args in the given absolute directory.
+func goModuleStep(name, bin string, args []string, dir string) ToolStep {
 	return ToolStep{
 		Name: name,
 		Bin:  bin,
 		Args: args,
-		Dir:  filepath.Join(r, gearlistDir),
+		Dir:  dir,
 		Env:  pathEnv(ResolveGoBin()),
 	}
+}
+
+// goStep builds a ToolStep in the gearlist_backend directory.
+func goStep(name, bin string, args []string, root Root) ToolStep {
+	return goModuleStep(name, bin, args, filepath.Join(string(root), gearlistDir))
 }
 
 // GoTestStep returns a step that runs all Go tests with the race detector and
@@ -292,6 +296,37 @@ func DetectSecretsStep(root Root) ToolStep {
 		Args: []string{"-c", script},
 		Dir:  r,
 	}
+}
+
+// GoTestPluginScannerStep runs all plugin_scanner tests with the race detector.
+func GoTestPluginScannerStep(root Root) ToolStep {
+	return ToolStep{
+		Name: "go-test-scanner",
+		Bin:  "go",
+		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
+		Dir:  filepath.Join(string(root), pluginScannerDir),
+		Env:  pathEnv(ResolveGoExe()),
+	}
+}
+
+// GoVetPluginScannerStep runs go vet against plugin_scanner.
+func GoVetPluginScannerStep(root Root) ToolStep {
+	return goModuleStep("go-vet-scanner", "go", []string{"vet", "./..."}, filepath.Join(string(root), pluginScannerDir))
+}
+
+// GovulncheckPluginScannerStep scans plugin_scanner for known Go vulnerabilities.
+func GovulncheckPluginScannerStep(root Root) ToolStep {
+	return goModuleStep("govulncheck-scanner", goBinPath("govulncheck"), []string{"./..."}, filepath.Join(string(root), pluginScannerDir))
+}
+
+// GosecPluginScannerStep runs gosec static analysis against plugin_scanner.
+func GosecPluginScannerStep(root Root) ToolStep {
+	return goModuleStep("gosec-scanner", goBinPath("gosec"), []string{"-quiet", "./..."}, filepath.Join(string(root), pluginScannerDir))
+}
+
+// StaticcheckPluginScannerStep runs staticcheck against plugin_scanner.
+func StaticcheckPluginScannerStep(root Root) ToolStep {
+	return goModuleStep("staticcheck-scanner", goBinPath("staticcheck"), []string{"./..."}, filepath.Join(string(root), pluginScannerDir))
 }
 
 // SecurityHeadersStep runs pytest against the HTTP security header assertions.

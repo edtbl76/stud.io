@@ -41,6 +41,7 @@ class ScannedPlugin(BaseModel):
     version: str
     format: str
     path: str
+    metadata_source: str | None = None
 
 
 class ScanPayload(BaseModel):

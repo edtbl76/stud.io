@@ -82,7 +82,7 @@ async def _linked_plugin_row(
         return None
     st = "matched" if p.version == rec["version"] else "version_mismatch"
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
-            st, "exact", None, UUID(record_id), table)
+            st, "exact", None, UUID(record_id), table, p.metadata_source)
 
 
 def _unlinked_plugin_row(
@@ -95,7 +95,7 @@ def _unlinked_plugin_row(
     rec_id = UUID(result.record.record_id) if result.record else None
     rec_table = result.record.record_table if result.record else None
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
-            st, result.confidence, result.score, rec_id, rec_table)
+            st, result.confidence, result.score, rec_id, rec_table, p.metadata_source)
 
 
 # ---------------------------------------------------------------------------
@@ -130,8 +130,8 @@ async def ingest_scan(
                 rows.append(_unlinked_plugin_row(scan_id, p, index, exclusions))
         await conn.executemany(
             "INSERT INTO plugin_scan_results "
-            "(scan_id,name,vendor,version,format,path,status,confidence,score,record_id,record_table)"
-            " VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
+            "(scan_id,name,vendor,version,format,path,status,confidence,score,record_id,record_table,metadata_source)"
+            " VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
             rows,
         )
         await insert_orphans(conn, scan_id, links, seen)

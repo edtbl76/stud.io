@@ -6,7 +6,7 @@ import { TopBar } from '@/components/layout/TopBar'
 
 export function LayoutShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const pathname = usePathname()
-  if (pathname === '/login') return <>{children}</>
+  if (pathname === '/login' || pathname === '/') return <>{children}</>
   return (
     <div className="min-h-screen bg-background">
       <TopBar />

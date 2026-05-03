@@ -43,6 +43,12 @@ export default function LoginPage() {
     })
   }
 
+  // If the GSI script was already loaded from a previous page visit (e.g. after
+  // logout), onLoad won't fire again. Calling initGoogle() on mount covers that case.
+  React.useEffect(() => {
+    initGoogle()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
