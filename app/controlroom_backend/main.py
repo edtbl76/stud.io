@@ -8,7 +8,8 @@ from config import settings
 from database import init_pool, close_pool, get_conn
 from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, users
-from routers import backup_ops, change_review, admin_stats, import_export
+from routers import backup_ops, change_review, admin_stats, import_export, gearlist
+from routers import scanner, scanner_admin
 from routers.auth import seed_default_admin
 
 
@@ -20,6 +21,7 @@ async def lifespan(app: FastAPI):
         await seed_default_admin(conn)
     yield
     await close_pool()
+    await gearlist.close_client()
 
 
 app = FastAPI(title="STUD.io ControlRoom API", lifespan=lifespan)
@@ -48,6 +50,9 @@ app.include_router(change_review.router, prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(admin_stats.router,     prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(import_export.router,  prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(users.router,        prefix="/studio/admin/users", tags=["users"])
+app.include_router(gearlist.router,       prefix="/gearlist",           tags=["gearlist"])
+app.include_router(scanner.router,        prefix="/scanner",            tags=["scanner"])
+app.include_router(scanner_admin.router,  prefix="/scanner",            tags=["scanner"])
 
 
 @app.get("/health")

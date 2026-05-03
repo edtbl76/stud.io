@@ -51,7 +51,7 @@ first-time production setup.`,
 			return runBuild(cmd.Context(), cfg, flags, os.Stdout)
 		},
 	}
-	cmd.Flags().BoolVar(&flags.dev, "dev", false, "include dev tools (SonarQube, Structurizr)")
+	cmd.Flags().BoolVar(&flags.dev, "dev", false, "include dev tools (SonarQube, Woodpecker)")
 	cmd.Flags().BoolVar(&flags.skipTests, "skip-tests", false, "skip unit tests")
 	cmd.Flags().BoolVar(&flags.schemaOnly, "schema-only", false, "apply schema to test databases without rebuilding containers or running tests")
 	cmd.Flags().BoolVar(&flags.forceBuild, "force-build", false, "force container rebuild even if Dockerfiles and dependencies are unchanged")
@@ -145,24 +145,24 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 	fmt.Fprintln(out, "============================================================")
 	fmt.Fprintln(out, "  All systems go.")
 	fmt.Fprintln(out, "")
-	fmt.Fprintf(out, "  App:   %s\n", u.App)
-	fmt.Fprintf(out, "  API:   %s\n", u.API)
-	fmt.Fprintf(out, "  Docs:  %s\n", u.Docs)
-	fmt.Fprintf(out, "  MinIO: %s\n", u.MinIO)
+	fmt.Fprintf(out, "  App:      %s\n", u.App)
+	fmt.Fprintf(out, "  API:      %s\n", u.API)
+	fmt.Fprintf(out, "  Docs:     %s\n", u.Docs)
+	fmt.Fprintf(out, "  GearList: %s\n", u.GearList)
+	fmt.Fprintf(out, "  MinIO:    %s\n", u.MinIO)
 	if flags.dev {
 		fmt.Fprintln(out, "")
-		fmt.Fprintf(out, "  SonarQube:    %s\n", u.SonarQube)
-		fmt.Fprintf(out, "  Structurizr:  %s\n", u.Structurizr)
-		fmt.Fprintf(out, "  Woodpecker:   %s\n", u.Woodpecker)
+		fmt.Fprintf(out, "  SonarQube:  %s\n", u.SonarQube)
+		fmt.Fprintf(out, "  Woodpecker: %s\n", u.Woodpecker)
 	}
 	if flags.dev && flags.full {
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "  Release gate passed:")
 		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
-		fmt.Fprintln(out, "    Unit:        tsc · jest · pytest")
+		fmt.Fprintln(out, "    Unit:        tsc · jest · ruff · bandit · pytest · go-test")
 		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis")
 		fmt.Fprintln(out, "    E2E:         Playwright")
-		fmt.Fprintln(out, "    Scans:       SonarQube · Trivy · secrets · headers")
+		fmt.Fprintln(out, "    Scan:        SonarQube · Trivy · secrets · headers · govulncheck · gosec · staticcheck")
 		fmt.Fprintln(out, "    Perf:        benchmarks · k6 · Lighthouse")
 	}
 	fmt.Fprintln(out, "============================================================")
@@ -184,10 +184,11 @@ func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
 
 // buildUnitPipeline returns unit test steps filtered by tools. If tools is
-// empty, the default suite runs: npm-install → tsc → jest → ruff → bandit → pytest.
+// empty, the default suite runs: tsc · jest · ruff · bandit · pytest · go-test.
 // pip-audit and npm-audit are excluded from the default run and only included
-// when explicitly named (they run as separate pre-commit hooks to avoid double
-// execution and because they make network calls).
+// when explicitly named (they make network calls and run as separate pre-commit
+// hooks). govulncheck also makes a network call and belongs to the Scan suite
+// (roadie test scan govulncheck), not the Unit pipeline.
 // NpmInstallStep is prepended whenever tsc, jest, or npm-audit is selected,
 // unless withInstall is false (used by roadie test full, which runs npm-install
 // once before launching unit and PBT goroutines concurrently).
@@ -245,6 +246,7 @@ func filteredSteps(root pipeline.Root, run func(string) bool, explicit bool) []p
 			pbtDir := filepath.Join(string(root), "app", "controlroom_backend", "tests", "pbt")
 			return pipeline.PytestStep(root, "--benchmark-skip", "--ignore="+pbtDir)
 		}},
+		{"go-test", false, func() pipeline.ToolStep { return pipeline.GoTestStep(root) }},
 		{"pip-audit", true, func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
 		{"npm-audit", true, func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}

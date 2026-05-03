@@ -111,7 +111,7 @@ export function EffectModal({ record, onClose, onMutate }: Readonly<EffectModalP
       record,
       endpoint: ENDPOINT,
       getRecordId: (r) => r.effect_id,
-      getHistoryUrl: (r) => `/effects/${r.effect_id}/history`,
+      getHistoryUrl: (r) => `${ENDPOINT}/${r.effect_id}/history`,
       getTitle: getEffectTitle,
       toForm,
       buildPayload: buildEffectPayload,

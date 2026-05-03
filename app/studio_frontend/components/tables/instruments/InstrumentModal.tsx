@@ -107,7 +107,7 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
       record,
       endpoint: ENDPOINT,
       getRecordId: (r) => r.instrument_id,
-      getHistoryUrl: (r) => `/instruments/${r.instrument_id}/history`,
+      getHistoryUrl: (r) => `${ENDPOINT}/${r.instrument_id}/history`,
       getTitle: getInstrumentTitle,
       toForm,
       buildPayload: buildInstrumentPayload,

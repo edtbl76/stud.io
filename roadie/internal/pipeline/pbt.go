@@ -16,7 +16,7 @@ type PBTConfig struct {
 	Examples int
 }
 
-// PBTFlags controls which PBT engines run. Both false means run all.
+// PBTFlags controls which PBT engines run. All false means run all.
 type PBTFlags struct {
 	FastCheck  bool
 	Hypothesis bool
@@ -63,7 +63,6 @@ func RunPBT(ctx context.Context, cfg PBTConfig, flags PBTFlags, out io.Writer) (
 	if flags.shouldRun("hypothesis") {
 		steps = append(steps, hypothesisPBTStep(cfg.Root, examples))
 	}
-
 	if len(steps) == 0 {
 		fmt.Fprintln(out, "[pbt] No engines selected.")
 		return nil, nil

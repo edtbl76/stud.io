@@ -6,7 +6,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 
 - Base URL: `https://localhost:5150`
 - Interactive docs: `https://localhost:5150/docs` (Swagger UI)
-- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, and `/health`
+- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, `/health`, and `/scanner/scan` (which uses API key auth: `Authorization: Bearer psc_...`)
 
 ---
 
@@ -26,6 +26,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/search` | `routers/search.py` | Cross-table full-text search (PostgreSQL FTS) |
 | `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/users` | `routers/users.py` | User management (admin only) |
+| `/gearlist/*` | `routers/gearlist.py` | Catch-all proxy to the internal GearList Go service |
 
 ---
 
@@ -211,6 +212,56 @@ Tests use a separate `masterdb_test` database. Each test wraps its operations in
 
 ---
 
+## GearList proxy
+
+All routes under `/gearlist/*` are handled by `routers/gearlist.py`, which forwards requests to the internal GearList Go service (`gearlist_backend`).
+
+**Configuration**
+
+| Item | Detail |
+|---|---|
+| Upstream URL | `GEARLIST_URL` env var (default `http://gearlist_backend:4001`) |
+| Client | `httpx.AsyncClient` lazy singleton, timeout 30 s |
+| Auth | `get_current_user` — all routes require a valid JWT |
+
+**Forwarded request**
+
+The proxy strips the outer auth layer and passes the validated user identity to the Go service via headers:
+
+- `X-User` — `user.username`
+- `X-Role` — `user.role`
+- Request body and query parameters are forwarded unchanged.
+
+**Response**
+
+Status code, body, and `Content-Type` are passed through from the Go service unmodified.
+
+**Go service endpoints**
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/gearlist/health` | Health check — `{"status":"ok"}` |
+| `GET` | `/gearlist/gear-types` | List all gear types |
+| `POST` | `/gearlist/gear-types` | Create gear type (admin) |
+| `GET` | `/gearlist/gear-types/{id}` | Get gear type |
+| `PATCH` | `/gearlist/gear-types/{id}` | Update gear type (admin) |
+| `DELETE` | `/gearlist/gear-types/{id}` | Soft-delete gear type (admin) |
+| `GET` | `/gearlist/gear` | List gear (filterable by `name`, `type_id`) |
+| `POST` | `/gearlist/gear` | Create gear item (admin) |
+| `GET` | `/gearlist/gear/{id}` | Get gear item |
+| `PATCH` | `/gearlist/gear/{id}` | Update gear item (admin) |
+| `DELETE` | `/gearlist/gear/{id}` | Soft-delete gear item (admin) |
+| `GET` | `/gearlist/gear/{id}/history` | Audit history for a gear item |
+| `POST` | `/gearlist/gear/{id}/photo` | Upload photo (admin; `Content-Type: image/jpeg`, `image/png`, or `image/webp`, max 10 MB) |
+| `GET` | `/gearlist/gear/{id}/maintenance` | List maintenance log entries |
+| `POST` | `/gearlist/gear/{id}/maintenance` | Add maintenance log entry (admin) |
+
+The Go service never receives the original JWT. It trusts `X-User`/`X-Role` because it is not reachable outside the Docker bridge network.
+
+The gear list endpoint uses the same `{ items: [...], total: N }` response shape as FastAPI paginated endpoints. `gear-types` returns a flat array.
+
+---
+
 ## Admin operations
 
 ### Backup
@@ -260,3 +311,41 @@ The xlxs logic is split across three internal modules:
 `POST /admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents the undo. UPDATE restoration skips `created_at` and `updated_at` (both are auto-managed columns); all other fields are restored, with UUID and datetime strings in `old_data` coerced back to their native types before binding to the database.
 
 `DELETE /admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.
+
+### Plugin Scanner
+
+All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Authorization: Bearer psc_...`); all other routes use JWT bearer auth.
+
+#### Core
+
+`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
+
+`GET /scanner/report` — authenticated user. Returns the latest scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record).
+
+`POST /scanner/confirm` — admin only. Accepts a list of confirmation decisions. Each item specifies a `result_id` and `action`:
+- `confirm` — links the scanned plugin to the matched record; updates version in the catalog table; writes a `scanner_plugin_links` entry.
+- `reject` — clears the match; plugin reverts to `untracked`; removes the persistent link if one existed.
+- `ignore` — adds the plugin to `scanner_exclusions`; status becomes `ignored`; excluded from all future scans.
+- `create` — inserts a new record in the specified `target_table`; links it; status becomes `matched`.
+
+Confirmation errors are isolated per item (one failure does not roll back others). Returns `{applied, errors}`.
+
+#### API Key Management (admin only)
+
+`GET /scanner/keys` — list all API keys (label, hint, created/revoked timestamps). Hashed key never returned.
+
+`POST /scanner/keys` — create a new API key. Body: `{label}`. Returns the full key (`psc_` + 64 hex chars) once — it cannot be retrieved again.
+
+`DELETE /scanner/keys/{key_id}` — revoke a key (sets `revoked_at`). Returns 404 if already revoked.
+
+#### Exclusion Management (admin only)
+
+`POST /scanner/exclude` — add a plugin to the exclusion list. Body: `{vendor, name}`. Idempotent (ON CONFLICT DO NOTHING).
+
+`DELETE /scanner/exclude/{exclusion_id}` — remove an exclusion. Returns 404 if not found.
+
+#### Scan History
+
+`GET /scanner/scans` — authenticated user. Returns all scan runs with per-run status counts and confirmation counts, newest first.
+
+`DELETE /scanner/scans?older_than_days=N` — admin only. Hard-deletes scan runs (and their results via CASCADE) older than N days. Returns `{deleted_count}`.

@@ -27,6 +27,7 @@ All enumerable values are stored as lookup tables rather than PostgreSQL ENUMs. 
 | `effect_types` | `effects` |
 | `instrument_types` | `instruments` |
 | `model_types` | `models` |
+| `gear_types` | `gear` — managed via Studio Management Config; seeded with Guitar, Amp, Pedal, Bass, Keyboard, Drum Machine, Synth, Other |
 
 Array columns (e.g. `tag_ids UUID[]`) store references to these lookup tables directly in the row. There are no join tables.
 
@@ -46,6 +47,32 @@ Array columns (e.g. `tag_ids UUID[]`) store references to these lookup tables di
 | `composition_tools` | Scoring, notation, and composition applications |
 | `admin_tools` | License managers, downloaders, product portals |
 | `users` | Application user accounts |
+
+### GearList tables (Go service — `gearlist_backend`)
+
+These tables are defined in `sql/gearlist_schema.sql` and owned by the Go `gearlist_backend` service. They live in the same PostgreSQL instance (`masterdb`) as the FastAPI tables.
+
+| Table | Description |
+|---|---|
+| `gear_types` | Lookup table for gear categories (Guitar, Amp, Pedal, etc.). Same shape as FastAPI lookup tables: `type_id UUID PK`, `type_name TEXT NOT NULL UNIQUE`, `type_description TEXT`, `deleted_at TIMESTAMPTZ`. |
+| `gear` | Individual gear items. References `gear_types`. Guitar-specific fields: `num_strings INT`, `tuning TEXT`, `pickup_config TEXT` (SSS/HH/HSH/SSH), `pickup_neck_model_id UUID`, `pickup_middle_model_id UUID`, `pickup_bridge_model_id UUID`. Also stores `photo_key TEXT` (MinIO object path). Soft-deleted via `deleted_at`. |
+| `gear_maintenance_log` | Append-only log of maintenance events for a gear item. Fields: `log_id UUID PK`, `gear_id UUID FK`, `event_type TEXT` (restring/setup/repair/modification/other), `notes TEXT`, `event_date DATE`, `created_at TIMESTAMPTZ`. No update or delete. |
+
+A `gear_view` in `sql/views.sql` joins `gear` with `gear_types` to resolve `gear_type_name` for list queries.
+
+Every write to `gear_types` and `gear` is recorded in the shared `audit_log` table.
+
+### Plugin Scanner tables (FastAPI — `scanner_schema.sql`)
+
+Defined in `sql/scanner_schema.sql`. Used by the FastAPI scanner routes and the plugin-scanner binary.
+
+| Table | Description |
+|---|---|
+| `plugin_scans` | One row per scan run uploaded by the plugin-scanner binary. Fields: `scan_id UUID PK`, `scanned_at TIMESTAMPTZ`, `source_machine TEXT`, `total_count INT`. No soft delete — hard-deleted when purged. |
+| `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), and confirmation state (`confirmed_at`, `confirmed_by`). No soft delete. |
+| `scanner_api_keys` | API keys for plugin-scanner binary authentication. Stores `label TEXT`, `key_hint TEXT` (last 4 chars of plaintext), `hashed_key TEXT UNIQUE` (bcrypt), `created_at`, `revoked_at`. Plaintext key never stored. |
+| `scanner_exclusions` | Plugins excluded from all future scan reports. Fields: `exclusion_id UUID PK`, `vendor TEXT`, `name TEXT`, `excluded_at TIMESTAMPTZ`. UNIQUE constraint on `(vendor, name)`. |
+| `scanner_plugin_links` | Persistent confirmed match links — survives scan history purges. Maps a scanned plugin fingerprint (`"{vendor} {name}".lower().strip()`) to a confirmed ControlRoom catalog record. Created on confirm, deleted on reject. UNIQUE on `fingerprint`. |
 
 ### Soft delete
 
@@ -115,8 +142,23 @@ Different tables carry different notes fields based on what's relevant:
 
 ---
 
+## Object storage (MinIO)
+
+Gear photo uploads are stored in [MinIO](https://min.io/), an S3-compatible object store running as a Docker service.
+
+| Item | Detail |
+|---|---|
+| API port | 1983 |
+| Admin console | 1982 |
+| Bucket | `studio-photos` (created on first boot by init script) |
+| Object key format | `gear/{gear_id}/photo.{ext}` |
+| Accepted formats | `image/jpeg`, `image/png`, `image/webp` |
+| Max upload size | 10 MB (enforced by `gearlist_backend` before the MinIO call) |
+
+The Go service uploads photos directly to MinIO using the `minio-go` client. If the subsequent database write fails, the uploaded object is deleted to prevent orphans. The frontend retrieves photos via the FastAPI BFF proxy at `/gearlist/gear/{id}/photo` (not yet implemented as a separate GET — currently the `photo_key` is stored and clients construct the URL separately).
+
 ## Schema and migrations
 
-The schema lives in `sql/schema.sql`. It is applied idempotently by `roadie build` (uses `CREATE TABLE IF NOT EXISTS`, `CREATE OR REPLACE VIEW`, etc.).
+The schema lives in three files applied idempotently by `roadie build` in order: `schema.sql` (FastAPI catalog tables) → `gearlist_schema.sql` (GearList Go service tables) → `scanner_schema.sql` (Plugin Scanner tables) → `views.sql` (semantic read views).
 
-There is no migration framework. Schema changes are made directly to `sql/schema.sql` and applied by restarting the stack. For destructive changes (column renames, type changes), the database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data.
+There is no migration framework. Schema changes are made directly to the SQL files and applied by restarting the stack. For destructive changes (column renames, type changes), the database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data.

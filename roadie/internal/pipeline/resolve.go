@@ -123,6 +123,65 @@ func resolvePythonInHome(homeDir string) string {
 	return ""
 }
 
+// ResolveGoBin returns the directory containing go-installed tool binaries
+// (govulncheck, gosec, staticcheck), or "" if it cannot be determined.
+// Resolution order: GOBIN env var, GOPATH/bin entries, then ~/go/bin. GOBIN is
+// checked first so CI agents can provide an explicit path without relying
+// on HOME, which Woodpecker's local backend overrides with a temp dir.
+func ResolveGoBin() string {
+	for _, dir := range gobinCandidates() {
+		if info, err := os.Stat(dir); err == nil && info.IsDir() {
+			return dir
+		}
+	}
+	return ""
+}
+
+// gobinCandidates builds the ordered list of directories to probe for
+// go-installed binaries: GOBIN, each GOPATH/bin, then ~/go/bin.
+func gobinCandidates() []string {
+	var dirs []string
+	if gobin := os.Getenv("GOBIN"); gobin != "" {
+		dirs = append(dirs, gobin)
+	}
+	for _, entry := range strings.Split(os.Getenv("GOPATH"), string(os.PathListSeparator)) {
+		if entry = strings.TrimSpace(entry); entry != "" {
+			dirs = append(dirs, filepath.Join(entry, "bin"))
+		}
+	}
+	if home, err := os.UserHomeDir(); err == nil && home != "" {
+		dirs = append(dirs, filepath.Join(home, "go", "bin"))
+	}
+	return dirs
+}
+
+// goBinPath returns the absolute path to a go-installed binary (govulncheck,
+// gosec, staticcheck). Falls back to the bare name when ResolveGoBin returns ""
+// so the step still attempts execution via PATH.
+func goBinPath(name string) string {
+	if dir := ResolveGoBin(); dir != "" {
+		return filepath.Join(dir, name)
+	}
+	return name
+}
+
+// ResolveGoExe returns the bin directory containing the go binary, or ""
+// if go cannot be found in well-known locations. Snap systems install go
+// at /snap/bin/go; standard installations use /usr/local/go/bin.
+func ResolveGoExe() string {
+	return resolveGoExe([]string{"/snap/bin", "/usr/local/go/bin", "/usr/bin"})
+}
+
+// resolveGoExe is the testable core of ResolveGoExe.
+func resolveGoExe(candidates []string) string {
+	for _, dir := range candidates {
+		if fileExists(filepath.Join(dir, "go")) {
+			return dir
+		}
+	}
+	return ""
+}
+
 func fileExists(path string) bool {
 	info, err := os.Stat(path)
 	return err == nil && !info.IsDir() && info.Mode().Perm()&0o111 != 0

@@ -1,8 +1,6 @@
 'use client'
 
-import * as React from 'react'
-import { usePathname, useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { SidebarShell } from '@/components/layout/SidebarShell'
 import { NavGroup, SidebarNavGroup, useSidebarGroups } from '@/components/layout/SidebarNav'
 
@@ -30,33 +28,10 @@ const navGroups: NavGroup[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const { openGroups, toggleGroup } = useSidebarGroups(navGroups, pathname)
-  const [searchQuery, setSearchQuery] = React.useState('')
-
-  function handleSearch(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const q = searchQuery.trim()
-    if (q.length < 2) return
-    router.push(`/controlroom/search?q=${encodeURIComponent(q)}`)
-  }
 
   return (
     <SidebarShell subtitle="ControlRoom">
-      <div className="px-3 py-2.5 border-b border-sidebar-border">
-        <form onSubmit={handleSearch}>
-          <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-muted/40 border border-border/50">
-            <Search className="h-3 w-3 text-muted-foreground shrink-0" />
-            <input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Global search..."
-              className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
-            />
-          </div>
-        </form>
-      </div>
       <nav className="py-3">
         {navGroups.map((group) => (
           <SidebarNavGroup

@@ -1,0 +1,177 @@
+"""Plugin Scanner — catalog index, DB loaders, and matching logic."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+from asyncpg import Connection, Record
+from rapidfuzz import fuzz
+
+# ---------------------------------------------------------------------------
+# Score thresholds (named constants — no magic numbers in match_plugin)
+# ---------------------------------------------------------------------------
+
+TIER2_HIGH   = 85.0
+TIER2_MEDIUM = 65.0
+TIER2_LOW    = 45.0
+TIER3_LOW    = 65.0
+
+# ---------------------------------------------------------------------------
+# Catalog tables included in the matching index
+# Maps table name → (pk_column, name_column)
+# ---------------------------------------------------------------------------
+
+CATALOG_TABLES: dict[str, tuple[str, str]] = {
+    "effects":           ("effect_id",          "effect_name"),
+    "instruments":       ("instrument_id",       "instrument_name"),
+    "workstations":      ("workstation_id",      "tool_name"),
+    "workflow_tools":    ("workflow_tool_id",    "tool_name"),
+    "measurement_tools": ("measurement_tool_id", "tool_name"),
+    "reference_tools":   ("reference_tool_id",  "tool_name"),
+    "composition_tools": ("composition_tool_id", "tool_name"),
+    "admin_tools":       ("admin_tool_id",       "tool_name"),
+}
+
+_CATALOG_UNION = " UNION ALL ".join(
+    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
+    f"{name} AS name, b.brand_name AS vendor, t.version "
+    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
+    f"WHERE t.deleted_at IS NULL"
+    for tbl, (pk, name) in CATALOG_TABLES.items()
+)
+
+
+# ---------------------------------------------------------------------------
+# Dataclasses
+# ---------------------------------------------------------------------------
+
+@dataclass
+class CatalogRecord:
+    record_id: str
+    record_table: str
+    name: str
+    vendor: str | None
+    version: str | None
+    search_key: str  # precomputed: f"{vendor or ''} {name}".lower().strip()
+
+
+@dataclass
+class MatchResult:
+    confidence: str       # "exact" | "high" | "medium" | "low" | "none"
+    score: float | None   # None for exact matches
+    record: CatalogRecord | None
+
+
+# ---------------------------------------------------------------------------
+# DB loaders (accept asyncpg Connection)
+# ---------------------------------------------------------------------------
+
+async def build_catalog_index(conn: Connection) -> list[CatalogRecord]:
+    rows = await conn.fetch(_CATALOG_UNION)
+    return [
+        CatalogRecord(
+            record_id=str(r["record_id"]),
+            record_table=r["record_table"],
+            name=r["name"] or "",
+            vendor=r["vendor"],
+            version=r["version"],
+            search_key=f"{r['vendor'] or ''} {r['name'] or ''}".lower().strip(),
+        )
+        for r in rows
+    ]
+
+
+async def load_exclusions(conn: Connection) -> set[str]:
+    rows = await conn.fetch(
+        "SELECT vendor, name FROM scanner_exclusions"
+    )
+    return {f"{r['vendor']} {r['name']}".lower().strip() for r in rows}
+
+
+async def load_persistent_links(conn: Connection) -> dict[str, tuple[str, str]]:
+    rows = await conn.fetch(
+        "SELECT fingerprint, record_id::text, record_table FROM scanner_plugin_links"
+    )
+    return {r["fingerprint"]: (str(r["record_id"]), r["record_table"]) for r in rows}
+
+
+def _meta_candidates(results: list[Record]) -> dict[str, tuple]:
+    """Return {rid: (table, record_id)} for results that need a catalog metadata fetch."""
+    return {
+        str(r["record_id"]): (r["record_table"], r["record_id"])
+        for r in results
+        if r["record_id"] and r["record_table"] in CATALOG_TABLES
+    }
+
+
+async def fetch_match_meta(conn: Connection, results: list[Record]) -> dict[str, dict]:
+    """Fetch catalog name/vendor/version for each distinct matched record."""
+    meta: dict[str, dict] = {}
+    for rid, (table, record_id) in _meta_candidates(results).items():
+        pk, nc = CATALOG_TABLES[table]
+        rec = await conn.fetchrow(
+            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version "
+            f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
+            record_id,
+        )
+        if rec:
+            meta[rid] = dict(rec)
+    return meta
+
+
+# ---------------------------------------------------------------------------
+# Tier helpers (pure)
+# ---------------------------------------------------------------------------
+
+def _tier2_match(fingerprint: str, index: list[CatalogRecord]) -> MatchResult | None:
+    if not index:
+        return None
+    best = max(index, key=lambda r: fuzz.token_sort_ratio(fingerprint, r.search_key))
+    score = fuzz.token_sort_ratio(fingerprint, best.search_key)
+    if score >= TIER2_HIGH:
+        return MatchResult("high", score, best)
+    if score >= TIER2_MEDIUM:
+        return MatchResult("medium", score, best)
+    if score >= TIER2_LOW:
+        return MatchResult("low", score, best)
+    return None
+
+
+def _tier3_match(name: str, index: list[CatalogRecord]) -> MatchResult | None:
+    if not index:
+        return None
+    name_key = name.lower().strip()
+    best = max(index, key=lambda r: fuzz.token_sort_ratio(name_key, r.name.lower()))
+    score = fuzz.token_sort_ratio(name_key, best.name.lower())
+    if score >= TIER3_LOW:
+        return MatchResult("low", score, best)
+    return None
+
+
+# ---------------------------------------------------------------------------
+# Core matching function (pure — no I/O)
+# ---------------------------------------------------------------------------
+
+def match_plugin(
+    name: str,
+    vendor: str,
+    index: list[CatalogRecord],
+    exclusions: set[str],
+) -> tuple[str, MatchResult]:
+    """Return (fingerprint, MatchResult).
+
+    Persistent links are resolved by the caller before this function is called.
+    """
+    fingerprint = f"{vendor} {name}".lower().strip()
+
+    if fingerprint in exclusions:
+        return fingerprint, MatchResult("none", None, None)
+
+    for record in index:
+        if record.search_key == fingerprint:
+            return fingerprint, MatchResult("exact", None, record)
+
+    result = _tier2_match(fingerprint, index) or _tier3_match(name, index)
+    if result:
+        return fingerprint, result
+
+    return fingerprint, MatchResult("none", None, None)

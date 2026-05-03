@@ -193,7 +193,7 @@ export function LibraryModal({ record, onClose, onMutate }: Readonly<LibraryModa
       record,
       endpoint: ENDPOINT,
       getRecordId: (r) => r.library_id,
-      getHistoryUrl: (r) => `/libraries/${r.library_id}/history`,
+      getHistoryUrl: (r) => `${ENDPOINT}/${r.library_id}/history`,
       getTitle: getLibraryTitle,
       toForm,
       buildPayload: buildLibraryPayload,

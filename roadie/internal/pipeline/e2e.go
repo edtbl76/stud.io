@@ -29,6 +29,9 @@ type E2EConfig struct {
 	DBUser                string
 	DBPassword            string
 	DBSource              string
+	GearlistService       string
+	GearlistPort          int
+	GearlistInternalPort  int
 }
 
 // healthTarget groups the parameters for waitForShards.
@@ -112,6 +115,10 @@ func setupBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 	if err := dc.run(ctx, out, "build", cfg.BackendService); err != nil {
 		return err
 	}
+	fmt.Fprintln(out, "Building gearlist backend image...")
+	if err := dc.run(ctx, out, "build", "--no-cache", cfg.GearlistService); err != nil {
+		return err
+	}
 	fmt.Fprintf(out, "Stopping dev backend (freeing port %d)...\n", cfg.BackendBasePort)
 	if err := dc.run(ctx, out, "stop", cfg.BackendService); err != nil {
 		return err
@@ -119,10 +126,38 @@ func setupBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 	if err := provisionShardDBs(ctx, cfg, out); err != nil {
 		return err
 	}
+	if err := startGearlistE2EBackend(ctx, cfg, root, out); err != nil {
+		return err
+	}
 	if err := startBackendShards(ctx, cfg, root, out); err != nil {
 		return err
 	}
 	return waitForShards(ctx, healthTarget{cfg.Shards, cfg.BackendBasePort, "/health"}, out)
+}
+
+func gearlistE2EContainer(cfg E2EConfig) string { return cfg.GearlistService + "_e2e" }
+
+func startGearlistE2EBackend(ctx context.Context, cfg E2EConfig, root string, out io.Writer) error {
+	container := gearlistE2EContainer(cfg)
+	fmt.Fprintf(out, "Starting gearlist backend (%s on port %d)...\n", container, cfg.GearlistPort)
+	exec.CommandContext(ctx, "docker", "rm", "-f", container).Run() //nolint
+	db := fmt.Sprintf("%s_0", cfg.DBSource)
+	cmd := exec.CommandContext(ctx, "docker", "compose",
+		"-f", filepath.Join(root, cfg.DevComposeFile),
+		"-p", cfg.BackendComposeProject,
+		"run", "-d",
+		"--name", container,
+		"-p", fmt.Sprintf("%d:%d", cfg.GearlistPort, cfg.GearlistInternalPort),
+		"-e", "DB_NAME="+db,
+		cfg.GearlistService,
+	)
+	cmd.Stdout = out
+	cmd.Stderr = out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("starting gearlist e2e backend: %w", err)
+	}
+	url := fmt.Sprintf("http://localhost:%d/health", cfg.GearlistPort)
+	return waitForHTTP(ctx, url, 30, 2*time.Second)
 }
 
 func restoreDevBackend(cfg E2EConfig, root string) {
@@ -249,6 +284,7 @@ func startBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 		// Remove any stale container first.
 		exec.CommandContext(ctx, "docker", "rm", "-f", container).Run() //nolint
 
+		gearlistURL := fmt.Sprintf("http://%s:%d", gearlistE2EContainer(cfg), cfg.GearlistInternalPort)
 		cmd := exec.CommandContext(ctx, "docker", "compose",
 			"-f", filepath.Join(root, cfg.DevComposeFile),
 			"-p", cfg.BackendComposeProject,
@@ -256,6 +292,7 @@ func startBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 			"--name", container,
 			"-p", fmt.Sprintf("%d:%d", port, cfg.BackendInternalPort),
 			"-e", "DB_NAME="+db,
+			"-e", "GEARLIST_URL="+gearlistURL,
 			cfg.BackendService,
 		)
 		cmd.Stdout = out
@@ -429,6 +466,7 @@ func removeBackendShards(cfg E2EConfig) {
 		container := fmt.Sprintf("%s_%d", cfg.BackendService, i)
 		exec.CommandContext(ctx, "docker", "rm", "-f", container).Run() //nolint
 	}
+	exec.CommandContext(ctx, "docker", "rm", "-f", gearlistE2EContainer(cfg)).Run() //nolint
 }
 
 func removeShardNextDirs(cfg E2EConfig, root string) {

@@ -194,10 +194,10 @@ func (m *Manager) printURLs(cfg *config.Config, withDev bool) {
 	printURL(m.out, "App", urls.App)
 	printURL(m.out, "API", urls.API)
 	printURL(m.out, "Docs", urls.Docs)
+	printURL(m.out, "GearList", urls.GearList)
 	printURL(m.out, "MinIO", urls.MinIO)
 	if withDev {
 		printURL(m.out, "SonarQube", urls.SonarQube)
-		printURL(m.out, "Structurizr", urls.Structurizr)
 		printURL(m.out, "Woodpecker", urls.Woodpecker)
 	}
 	fmt.Fprintln(m.out)

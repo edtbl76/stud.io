@@ -25,6 +25,9 @@ type E2ETestConfig struct {
 	BackendInternalPort   int    `yaml:"backend_internal_port"`
 	BackendBasePort       int    `yaml:"backend_base_port"`
 	FrontendBasePort      int    `yaml:"frontend_base_port"`
+	GearlistService       string `yaml:"gearlist_service"`
+	GearlistPort          int    `yaml:"gearlist_port"`
+	GearlistInternalPort  int    `yaml:"gearlist_internal_port"`
 }
 
 // PBTTestConfig configures property-based test runners (fast-check, hypothesis).
@@ -36,9 +39,12 @@ type PBTTestConfig struct {
 
 // PerfTestConfig configures the performance test runner.
 type PerfTestConfig struct {
-	BackendPort  int    `yaml:"backend_port"`
-	FrontendPort int    `yaml:"frontend_port"`
-	CarbonURL    string `yaml:"carbon_base_url"`
+	BackendPort          int    `yaml:"backend_port"`
+	FrontendPort         int    `yaml:"frontend_port"`
+	CarbonURL            string `yaml:"carbon_base_url"`
+	GearlistService      string `yaml:"gearlist_service"`
+	GearlistPort         int    `yaml:"gearlist_port"`
+	GearlistInternalPort int    `yaml:"gearlist_internal_port"`
 }
 
 // TestDBConfig holds credentials for provisioning per-shard test databases.
@@ -111,11 +117,11 @@ type HealthCheck struct {
 
 // URLsConfig holds the display URLs shown after a successful stack start.
 type URLsConfig struct {
-	App         string `yaml:"app"`
-	API         string `yaml:"api"`
-	Docs        string `yaml:"docs"`
-	MinIO       string `yaml:"minio"`
-	SonarQube   string `yaml:"sonarqube"`
-	Structurizr string `yaml:"structurizr"`
-	Woodpecker  string `yaml:"woodpecker"`
+	App        string `yaml:"app"`
+	API        string `yaml:"api"`
+	Docs       string `yaml:"docs"`
+	GearList   string `yaml:"gearlist"`
+	MinIO      string `yaml:"minio"`
+	SonarQube  string `yaml:"sonarqube"`
+	Woodpecker string `yaml:"woodpecker"`
 }

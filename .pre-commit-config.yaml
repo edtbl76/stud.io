@@ -10,7 +10,7 @@ repos:
     hooks:
       - id: unit-tests
         name: unit tests (tsc + jest + ruff + bandit + pytest)
-        entry: bash -c 'source ~/.nvm/nvm.sh 2>/dev/null || true; roadie test unit'
+        entry: bash -c 'source ~/.nvm/nvm.sh 2>/dev/null || true; export PATH="$HOME/go/bin:$PATH"; roadie test unit'
         language: system
         pass_filenames: false
         always_run: true
@@ -34,4 +34,4 @@ repos:
         entry: detect-secrets-hook
         language: system
         args: ['--baseline', '.secrets.baseline']
-        exclude: package-lock\.json|\.secrets\.baseline|structurizr/workspace\.json|app/studio_frontend/e2e/\.auth/|app/studio_frontend/perf-reports/
+        exclude: package-lock\.json|\.secrets\.baseline|app/studio_frontend/e2e/\.auth/|app/studio_frontend/perf-reports/

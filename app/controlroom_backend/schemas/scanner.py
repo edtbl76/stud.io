@@ -1,0 +1,166 @@
+"""Pydantic schemas for the Plugin Scanner API."""
+from __future__ import annotations
+
+from collections.abc import Mapping
+from datetime import datetime
+from typing import Any
+from uuid import UUID
+
+from pydantic import BaseModel
+
+
+def build_match_meta(r: Mapping[str, Any], m: dict[str, Any] | None) -> "MatchMeta":
+    return MatchMeta(
+        confidence=r["confidence"] or "none",
+        score=float(r["score"]) if r["score"] is not None else None,
+        record_id=r["record_id"], record_table=r["record_table"],
+        record_name=m["name"] if m else None,
+        record_vendor=m["vendor"] if m else None,
+        record_version=m["version"] if m else None,
+    )
+
+
+def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> "ScanResult":
+    rid = str(r["record_id"]) if r["record_id"] else None
+    m = meta.get(rid) if rid else None
+    return ScanResult(
+        result_id=r["result_id"], status=r["status"],
+        name=r["name"], vendor=r["vendor"], version=r["version"],
+        format=r["format"], path=r["path"],
+        match=build_match_meta(r, m) if r["record_id"] else None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Ingest
+# ---------------------------------------------------------------------------
+
+class ScannedPlugin(BaseModel):
+    name: str
+    vendor: str
+    version: str
+    format: str
+    path: str
+
+
+class ScanPayload(BaseModel):
+    plugins: list[ScannedPlugin]
+    source_machine: str
+
+
+class ScanSummary(BaseModel):
+    scan_id: UUID
+    matched: int
+    version_mismatch: int
+    unconfirmed: int
+    untracked: int
+    orphaned: int
+    ignored: int = 0
+
+
+# ---------------------------------------------------------------------------
+# Report
+# ---------------------------------------------------------------------------
+
+class MatchMeta(BaseModel):
+    confidence: str
+    score: float | None = None
+    record_id: UUID | None = None
+    record_table: str | None = None
+    record_name: str | None = None
+    record_vendor: str | None = None
+    record_version: str | None = None
+
+
+class ScanResult(BaseModel):
+    result_id: UUID
+    status: str
+    name: str
+    vendor: str
+    version: str
+    format: str
+    path: str
+    match: MatchMeta | None = None
+
+
+class ScanReport(BaseModel):
+    scan_id: UUID
+    scanned_at: datetime
+    matched: list[ScanResult]
+    version_mismatch: list[ScanResult]
+    unconfirmed: list[ScanResult]
+    untracked: list[ScanResult]
+    orphaned: list[ScanResult]
+    ignored: list[ScanResult] = []
+
+
+# ---------------------------------------------------------------------------
+# Confirm
+# ---------------------------------------------------------------------------
+
+class Confirmation(BaseModel):
+    result_id: UUID
+    action: str
+    target_table: str | None = None
+
+
+class ConfirmPayload(BaseModel):
+    confirmations: list[Confirmation]
+
+
+class ConfirmResult(BaseModel):
+    applied: int
+    errors: list[dict[str, Any]]
+
+
+# ---------------------------------------------------------------------------
+# Admin
+# ---------------------------------------------------------------------------
+
+class CreateExclusionRequest(BaseModel):
+    vendor: str
+    name: str
+
+
+class PurgeResult(BaseModel):
+    deleted_count: int
+
+
+class StatusCounts(BaseModel):
+    matched: int = 0
+    version_mismatch: int = 0
+    unconfirmed: int = 0
+    untracked: int = 0
+    orphaned: int = 0
+    ignored: int = 0
+
+
+class ConfirmationCounts(BaseModel):
+    confirmed: int = 0
+    rejected: int = 0
+    ignored: int = 0
+
+
+class ScanRun(BaseModel):
+    scan_id: UUID
+    scanned_at: datetime
+    source_machine: str
+    total_count: int
+    status_counts: StatusCounts
+    confirmation_counts: ConfirmationCounts
+
+
+class CreateKeyRequest(BaseModel):
+    label: str
+
+
+class APIKeyResponse(BaseModel):
+    key_id: UUID
+    label: str
+    key_hint: str
+    created_at: datetime
+    revoked_at: datetime | None = None
+
+
+class APIKeyCreated(APIKeyResponse):
+    key: str

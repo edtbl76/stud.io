@@ -19,7 +19,7 @@ export function SidebarShell({ subtitle, children }: Readonly<SidebarShellProps>
 
   return (
     <aside
-      className="fixed left-0 top-0 z-40 h-screen w-56 shrink-0 overflow-y-auto"
+      className="fixed left-0 top-12 z-40 h-[calc(100vh-3rem)] w-56 shrink-0 overflow-y-auto"
       style={{
         backgroundColor: 'hsl(var(--sidebar-bg))',
         borderRight: '1px solid hsl(var(--sidebar-border))',

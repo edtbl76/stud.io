@@ -73,7 +73,7 @@ roadie [command] [flags]
 | `roadie restart [--dev]` | Stop then start | `roadie.sh restart` |
 | `roadie status` | Show running services | `roadie.sh status` |
 
-The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-compose.dev.yml`).
+The `--dev` flag includes the SonarQube and Woodpecker dev overlay (`docker-compose.dev.yml`).
 
 #### Build commands
 
@@ -86,9 +86,9 @@ The `--dev` flag includes the SonarQube and Structurizr dev overlay (`docker-com
 
 | Command | Description | Replaces |
 |---|---|---|
-| `roadie test unit [tsc\|jest\|ruff\|bandit\|pytest\|pip-audit\|npm-audit]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
+| `roadie test unit [tsc\|jest\|ruff\|bandit\|pytest\|go-test\|pip-audit\|npm-audit]` | Run unit suite; positional args filter tools | `test-unit.sh`, `run-tsc.sh`, `run-jest.sh`, `run-pytest.sh` |
 | `roadie test e2e` | Run full sharded Playwright suite | `test-e2e.sh` (delegates internally) |
-| `roadie test scan [sonar\|trivy\|secrets\|headers] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
+| `roadie test scan [sonar\|trivy\|secrets\|headers\|govulncheck\|gosec\|staticcheck] [--gate]` | Run security checks in collect mode | `test-scan.sh` |
 | `roadie test perf [bundle\|benchmarks\|k6\|lighthouse] [--no-bundle]` | Run performance suite in collect mode | `test-perf.sh` (delegates internally) |
 | `roadie test pbt [fast-check\|hypothesis] [--json]` | Run property-based tests in collect mode | — |
 | `roadie test full` | Run unit + pbt (parallel), then scan (--gate) → e2e → perf | — |
@@ -105,7 +105,7 @@ test:
 
 Frontend PBT tests live in `app/studio_frontend/__tests__/pbt/`. Backend PBT tests live in `app/controlroom_backend/tests/pbt/`. These are excluded from the pre-commit hook — run `roadie test pbt` manually or rely on `roadie test full`.
 
-`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube/Structurizr overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`. `--force-build` bypasses the container rebuild check and always runs `--build --force-recreate`.
+`--full` is shorthand for `--e2e --scan --perf`. `--dev` includes the SonarQube and Woodpecker overlay. `--skip-tests` skips the unit suite but does not suppress `--e2e`, `--scan`, or `--perf`. `--force-build` bypasses the container rebuild check and always runs `--build --force-recreate`.
 
 `roadie release` is equivalent to `roadie build --dev --full` — no flags can be omitted.
 
@@ -126,6 +126,8 @@ This command targets the database named in `providers.database.db_name`. It will
 | Command | Description |
 |---|---|
 | `roadie doctor` | Check prerequisites (Docker, Node, Python, Go, tools) and print a pass/fail summary |
+| `roadie doctor fix secrets [--dry]` | Re-run detect-secrets scan, diff against `.secrets.baseline`, and rewrite the baseline with new findings added. `--dry` prints the diff without writing. |
+| `roadie doctor fix woodpecker-agents` | Restart all Woodpecker CI agent containers to clear stale pipeline locks. |
 | `roadie version` | Print the roadie version |
 | `roadie help` | Show help for any command |
 | `roadie completion` | Generate shell autocompletion script |
@@ -179,15 +181,11 @@ stack:
     - name: SonarQube
       type: http
       url: http://localhost:1969
-    - name: Structurizr
-      type: http
-      url: http://localhost:1967
   urls:
     app: https://localhost:2112
     api: https://localhost:5150
     docs: https://localhost:5150/docs
     sonarqube: http://localhost:1969
-    structurizr: http://localhost:1967
 
 build:
   schema_files:                              # applied in order to each database in `databases`
@@ -321,6 +319,7 @@ roadie/
       db.go                  — db init Cobra subcommand with confirmation gate
       test.go                — test unit/e2e/scan/perf/pbt/full Cobra subcommands
       doctor.go              — doctor Cobra subcommand; prerequisite checks
+      doctor_fix.go          — doctor fix secrets [--dry] and doctor fix woodpecker-agents
 ```
 
 ---

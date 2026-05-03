@@ -15,6 +15,21 @@ services:
       - studio_default
     restart: unless-stopped
 
+  gearlist_backend_test:
+    build:
+      context: ./app/gearlist_backend
+    container_name: gearlist_backend_test
+    environment:
+      APP_PORT: 4001
+      DB_HOST: studio_db
+      DB_PORT: 5432
+      DB_USER: studio
+      DB_PASSWORD: studio  # pragma: allowlist secret
+      DB_NAME: masterdb_test
+    networks:
+      - studio_default
+    restart: unless-stopped
+
   sonarqube_db:
     image: postgres:17
     container_name: sonarqube_db
@@ -55,16 +70,6 @@ services:
       - woodpecker_data:/var/lib/woodpecker
       # Stable symlink: ln -sf stud-io-woodpecker.<date>.private-key.pem woodpecker-private-key.pem
       - ./woodpecker-private-key.pem:/etc/woodpecker/private-key.pem:ro
-    restart: unless-stopped
-
-  structurizr:
-    image: structurizr/structurizr
-    container_name: structurizr
-    command: local
-    ports:
-      - "1967:8080"
-    volumes:
-      - ./structurizr:/usr/local/structurizr
     restart: unless-stopped
 
   sonarqube:

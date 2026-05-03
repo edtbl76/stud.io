@@ -139,11 +139,79 @@ func RunSonarScan(ctx context.Context, root Root, gate bool, out io.Writer) erro
 // ScanFlags controls which scan suites run.
 type ScanFlags struct {
 	Sonar, Trivy, Secrets, Headers, Gate bool
+	Govulncheck, Gosec, Staticcheck      bool
 }
 
 // AllScanFlags returns ScanFlags with all suites enabled.
 func AllScanFlags(gate bool) ScanFlags {
-	return ScanFlags{Sonar: true, Trivy: true, Secrets: true, Headers: true, Gate: gate}
+	return ScanFlags{
+		Sonar: true, Trivy: true, Secrets: true, Headers: true, Gate: gate,
+		Govulncheck: true, Gosec: true, Staticcheck: true,
+	}
+}
+
+type scanTask struct {
+	name string
+	run  func() error
+}
+
+// sonarTask returns a scan task that runs the full SonarQube pipeline.
+func sonarTask(ctx context.Context, root Root, flags ScanFlags, out io.Writer) scanTask {
+	return scanTask{"sonar", func() error { return RunSonarScan(ctx, root, flags.Gate, out) }}
+}
+
+// trivyTask returns a scan task that runs backend then frontend Trivy scans sequentially.
+func trivyTask(ctx context.Context, root Root, out io.Writer) scanTask {
+	b, f := TrivyBackendStep(root), TrivyFrontendStep(root)
+	return scanTask{"trivy", func() error {
+		if err := b.Run(ctx, out); err != nil {
+			return err
+		}
+		return f.Run(ctx, out)
+	}}
+}
+
+// stepTask wraps a single ToolStep as a scanTask.
+func stepTask(ctx context.Context, s ToolStep, out io.Writer) scanTask {
+	return scanTask{s.Name, func() error { return s.Run(ctx, out) }}
+}
+
+// enabledSimpleSteps returns only the single-step scan tools that are flagged on.
+// Sonar and Trivy are excluded because they require special orchestration.
+func enabledSimpleSteps(root Root, flags ScanFlags) []ToolStep {
+	type entry struct {
+		ok   bool
+		step ToolStep
+	}
+	candidates := []entry{
+		{flags.Secrets, DetectSecretsStep(root)},
+		{flags.Headers, SecurityHeadersStep(root)},
+		{flags.Govulncheck, GovulncheckStep(root)},
+		{flags.Gosec, GosecStep(root)},
+		{flags.Staticcheck, StaticcheckStep(root)},
+	}
+	var steps []ToolStep
+	for _, c := range candidates {
+		if c.ok {
+			steps = append(steps, c.step)
+		}
+	}
+	return steps
+}
+
+// buildScanTasks assembles the ordered list of scan tasks from flags.
+func buildScanTasks(ctx context.Context, root Root, flags ScanFlags, out io.Writer) []scanTask {
+	var tasks []scanTask
+	if flags.Sonar {
+		tasks = append(tasks, sonarTask(ctx, root, flags, out))
+	}
+	if flags.Trivy {
+		tasks = append(tasks, trivyTask(ctx, root, out))
+	}
+	for _, s := range enabledSimpleSteps(root, flags) {
+		tasks = append(tasks, stepTask(ctx, s, out))
+	}
+	return tasks
 }
 
 // RunScan runs all selected security scan suites in parallel and returns
@@ -151,40 +219,12 @@ func AllScanFlags(gate bool) ScanFlags {
 // run sequentially within a single goroutine; sonar, secrets, and headers each
 // run in their own goroutine concurrently alongside trivy.
 func RunScan(ctx context.Context, root Root, flags ScanFlags, out io.Writer) ([]StepResult, error) {
-	type task struct {
-		name string
-		run  func() error
-	}
-	var tasks []task
-
-	if flags.Sonar {
-		tasks = append(tasks, task{"sonar", func() error {
-			return RunSonarScan(ctx, root, flags.Gate, out)
-		}})
-	}
-	if flags.Trivy {
-		b, f := TrivyBackendStep(root), TrivyFrontendStep(root)
-		tasks = append(tasks, task{"trivy", func() error {
-			if err := b.Run(ctx, out); err != nil {
-				return err
-			}
-			return f.Run(ctx, out)
-		}})
-	}
-	if flags.Secrets {
-		s := DetectSecretsStep(root)
-		tasks = append(tasks, task{s.Name, func() error { return s.Run(ctx, out) }})
-	}
-	if flags.Headers {
-		h := SecurityHeadersStep(root)
-		tasks = append(tasks, task{h.Name, func() error { return h.Run(ctx, out) }})
-	}
-
+	tasks := buildScanTasks(ctx, root, flags, out)
 	results := make([]StepResult, len(tasks))
 	var wg sync.WaitGroup
 	for i, t := range tasks {
 		wg.Add(1)
-		go func(i int, t task) {
+		go func(i int, t scanTask) {
 			defer wg.Done()
 			start := time.Now()
 			results[i] = StepResult{Name: t.name, Err: t.run(), Duration: time.Since(start)}

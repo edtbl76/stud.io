@@ -80,7 +80,7 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
       record,
       endpoint: ENDPOINT,
       getRecordId: (r) => r.workstation_id,
-      getHistoryUrl: (r) => `/workstations/${r.workstation_id}/history`,
+      getHistoryUrl: (r) => `${ENDPOINT}/${r.workstation_id}/history`,
       getTitle: getWorkstationTitle,
       toForm,
       buildPayload: buildWorkstationPayload,

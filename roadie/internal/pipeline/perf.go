@@ -13,11 +13,14 @@ import (
 
 // PerfConfig holds everything the perf runner needs, including the repo root.
 type PerfConfig struct {
-	BackendPort    int
-	FrontendPort   int
-	CarbonURL      string
-	BackendService string
-	DBSource       string
+	BackendPort          int
+	FrontendPort         int
+	CarbonURL            string
+	GearlistService      string
+	GearlistPort         int
+	GearlistInternalPort int
+	BackendService       string
+	DBSource             string
 	// compose file + project for starting the perf backend container
 	DevComposeFile        string
 	BackendComposeProject string
@@ -80,6 +83,12 @@ func (r perfRunner) run(ctx context.Context, flags PerfFlags, out io.Writer) ([]
 	}
 	defer stopPerfBackend(container)
 
+	gearlistContainer := r.cfg.GearlistService + "_perf"
+	if err := r.startGearlistBackend(ctx, gearlistContainer, out); err != nil {
+		return nil, err
+	}
+	defer stopPerfBackend(gearlistContainer)
+
 	if err := r.prepareFrontend(ctx, flags, out); err != nil {
 		return nil, err
 	}
@@ -133,6 +142,27 @@ func (r perfRunner) startBackend(ctx context.Context, container string, out io.W
 		return fmt.Errorf("starting perf backend: %w", err)
 	}
 	url := fmt.Sprintf("http://localhost:%d/health", r.cfg.BackendPort)
+	return waitForHTTP(ctx, url, 30, 2*time.Second)
+}
+
+func (r perfRunner) startGearlistBackend(ctx context.Context, container string, out io.Writer) error {
+	fmt.Fprintf(out, "[perf] Starting gearlist backend on port %d...\n", r.cfg.GearlistPort)
+	exec.CommandContext(ctx, "docker", "rm", "-f", container).Run() //nolint
+	cmd := exec.CommandContext(ctx, "docker", "compose",
+		"-f", filepath.Join(r.cfg.Root, r.cfg.DevComposeFile),
+		"-p", r.cfg.BackendComposeProject,
+		"run", "-d",
+		"--name", container,
+		"-p", fmt.Sprintf("%d:%d", r.cfg.GearlistPort, r.cfg.GearlistInternalPort),
+		"-e", "DB_NAME="+r.cfg.DBSource,
+		r.cfg.GearlistService,
+	)
+	cmd.Stdout = out
+	cmd.Stderr = out
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("starting perf gearlist backend: %w", err)
+	}
+	url := fmt.Sprintf("http://localhost:%d/health", r.cfg.GearlistPort)
 	return waitForHTTP(ctx, url, 30, 2*time.Second)
 }
 
@@ -315,7 +345,10 @@ func runPerfK6(ctx context.Context, cfg PerfConfig, root string, out io.Writer) 
 			Name: "k6:" + name,
 			Bin:  "k6",
 			Args: []string{"run", filepath.Join(k6Dir, e.Name())},
-			Env:  []string{fmt.Sprintf("BACKEND_URL=http://localhost:%d", cfg.BackendPort)},
+			Env: []string{
+				fmt.Sprintf("BACKEND_URL=http://localhost:%d", cfg.BackendPort),
+				fmt.Sprintf("GEARLIST_URL=http://localhost:%d", cfg.GearlistPort),
+			},
 		}
 		err := step.Run(ctx, out)
 		results = append(results, StepResult{Name: "k6:" + name, Err: err, Duration: time.Since(start)})

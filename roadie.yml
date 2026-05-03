@@ -20,6 +20,9 @@ stack:
     - name: Frontend
       type: http
       url: https://localhost:2112
+    - name: GearList
+      type: http
+      url: http://localhost:4001/health
     - name: MinIO
       type: http
       url: http://localhost:1983/minio/health/live
@@ -27,9 +30,6 @@ stack:
     - name: SonarQube
       type: http
       url: http://localhost:1969
-    - name: Structurizr
-      type: http
-      url: http://localhost:1967
     - name: Woodpecker
       type: http
       url: http://localhost:1984/healthz
@@ -37,14 +37,16 @@ stack:
     app: https://localhost:2112
     api: https://localhost:5150
     docs: https://localhost:5150/docs
+    gearlist: http://localhost:4001
     minio: http://localhost:1982  # console UI; http is intentional for local dev — upgrade to https when MinIO is behind a TLS reverse-proxy
     sonarqube: http://localhost:1969
-    structurizr: http://localhost:1967
     woodpecker: http://localhost:1984
 
 build:
   schema_files:
     - sql/schema.sql
+    - sql/gearlist_schema.sql
+    - sql/scanner_schema.sql
     - sql/views.sql
   seed_files:
     - sql/seeds/01_entity_types.sql
@@ -65,6 +67,8 @@ build:
     - sql/seeds/16_effects.sql
     - sql/seeds/17_instruments.sql
     - sql/seeds/18_libraries.sql
+    - sql/seeds/19_gear_types.sql
+    - sql/seeds/20_gear.sql
   databases:
     - masterdb_test
   rebuild_on:
@@ -73,6 +77,8 @@ build:
     - app/controlroom_backend/requirements.txt
     - app/studio_frontend/Dockerfile
     - app/studio_frontend/package.json
+    - app/gearlist_backend/Dockerfile
+    - app/gearlist_backend/go.sum
 
 test:
   e2e:
@@ -82,10 +88,16 @@ test:
     backend_internal_port: 5150
     backend_base_port: 5151
     frontend_base_port: 3001
+    gearlist_service: gearlist_backend_test
+    gearlist_port: 4012
+    gearlist_internal_port: 4001
   perf:
     backend_port: 5160
     frontend_port: 3010
     carbon_base_url: ""
+    gearlist_service: gearlist_backend_test
+    gearlist_port: 4011
+    gearlist_internal_port: 4001
   pbt:
     # examples controls how many generated test cases fast-check and hypothesis
     # each produce per property. Increase for more thorough pre-release runs.

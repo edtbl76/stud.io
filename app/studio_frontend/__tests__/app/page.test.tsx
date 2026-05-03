@@ -29,6 +29,13 @@ describe('HomePage', () => {
     expect(link).toHaveTextContent('Manage gear catalog, config, users, and administration.')
   })
 
+  it('renders the GearList module tile linking to /gearlist/guitars', () => {
+    render(<HomePage />)
+    const link = screen.getByRole('link', { name: /gearlist/i })
+    expect(link).toHaveAttribute('href', '/gearlist/guitars')
+    expect(link).toHaveTextContent('Track guitars, amps, pedals, and all studio gear.')
+  })
+
   it('renders the studio illustration', () => {
     render(<HomePage />)
     expect(screen.getByTestId('studio-illustration')).toBeInTheDocument()

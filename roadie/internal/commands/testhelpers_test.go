@@ -24,6 +24,9 @@ func minimalTestConfig() *config.Config {
 				BackendInternalPort:   5150,
 				BackendBasePort:       5151,
 				FrontendBasePort:      3001,
+				GearlistService:       "gearlist_backend_test",
+				GearlistPort:          4012,
+				GearlistInternalPort:  4001,
 			},
 			Perf: config.PerfTestConfig{
 				BackendPort:  5160,

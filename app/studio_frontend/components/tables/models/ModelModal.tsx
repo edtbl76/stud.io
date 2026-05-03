@@ -96,7 +96,7 @@ export function ModelModal({ record, onClose, onMutate }: Readonly<ModelModalPro
       record,
       endpoint: ENDPOINT,
       getRecordId: (r) => r.model_id,
-      getHistoryUrl: (r) => `/models/${r.model_id}/history`,
+      getHistoryUrl: (r) => `${ENDPOINT}/${r.model_id}/history`,
       getTitle: getModelTitle,
       toForm,
       buildPayload: buildModelPayload,
