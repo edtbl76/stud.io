@@ -35,6 +35,9 @@ func TestPropertiesConfigRoundTrip(t *testing.T) {
 		if cfg.APIKey != apiKey {
 			rt.Fatalf("api_key round-trip failed: got %q, want %q", cfg.APIKey, apiKey)
 		}
+		if cfg.ServerURL != serverURL {
+			rt.Fatalf("server_url round-trip failed: got %q, want %q", cfg.ServerURL, serverURL)
+		}
 	})
 }
 

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 def build_match_meta(r: Mapping[str, Any], m: dict[str, Any] | None) -> "MatchMeta":
@@ -35,6 +35,9 @@ def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> 
 # Ingest
 # ---------------------------------------------------------------------------
 
+_ALLOWED_FORMATS = {"vst3", "au", "vst2"}
+
+
 class ScannedPlugin(BaseModel):
     name: str
     vendor: str
@@ -42,6 +45,14 @@ class ScannedPlugin(BaseModel):
     format: str
     path: str
     metadata_source: str | None = None
+
+    @field_validator("format", mode="before")
+    @classmethod
+    def normalize_format(cls, v: object) -> str:
+        normalized = str(v).lower()
+        if normalized not in _ALLOWED_FORMATS:
+            raise ValueError(f"format must be one of {sorted(_ALLOWED_FORMATS)}, got {v!r}")
+        return normalized
 
 
 class ScanPayload(BaseModel):

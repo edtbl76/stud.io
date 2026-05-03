@@ -19,7 +19,7 @@ GOOS=darwin GOARCH=arm64 go build \
   ./cmd/plugin-scanner
 
 echo "Preparing release archive..."
-sed "s/__VERSION__/${VERSION}/" install.sh.tmpl > /tmp/install.sh
+sed "s|__VERSION__|${VERSION}|g" install.sh.tmpl > /tmp/install.sh
 chmod +x /tmp/install.sh
 mkdir -p "/tmp/${ARTIFACT}"
 cp plugin-scanner "/tmp/${ARTIFACT}/"

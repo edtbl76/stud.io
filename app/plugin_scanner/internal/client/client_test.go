@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,7 +32,7 @@ func TestPostScan_SuccessReturnsSummary(t *testing.T) {
 		json.NewEncoder(w).Encode(summary)
 	})
 
-	plugins := []metadata.DiscoveredPlugin{{Name: "Synth", Format: "VST3"}}
+	plugins := []metadata.DiscoveredPlugin{{Name: "Synth", Format: "vst3"}}
 	got, err := c.PostScan(context.Background(), plugins, "test-mac")
 	if err != nil {
 		t.Fatal(err)
@@ -57,6 +58,27 @@ func TestPostScan_401_NoRetry(t *testing.T) {
 	}
 	if attempts != 1 {
 		t.Errorf("expected 1 attempt on 401, got %d", attempts)
+	}
+}
+
+func TestPostScan_4xx_NoRetry(t *testing.T) {
+	for _, code := range []int{400, 403, 404, 422} {
+		code := code
+		t.Run(fmt.Sprintf("%d", code), func(t *testing.T) {
+			attempts := 0
+			c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+				attempts++
+				w.WriteHeader(code)
+			})
+
+			_, err := c.PostScan(context.Background(), nil, "mac")
+			if err == nil {
+				t.Fatalf("expected error on %d", code)
+			}
+			if attempts != 1 {
+				t.Errorf("expected 1 attempt on %d, got %d", code, attempts)
+			}
+		})
 	}
 }
 
@@ -109,14 +131,43 @@ func TestPostScan_APIKeyNotInErrorMessage(t *testing.T) {
 	defer func() { retryBackoff = orig }()
 
 	_, err := c.PostScan(context.Background(), nil, "mac")
-	if err != nil && strings.Contains(err.Error(), "test-key") {
+	if err == nil {
+		t.Fatal("expected error from 500 response")
+	}
+	if strings.Contains(err.Error(), "test-key") {
 		t.Error("API key must not appear in error message")
+	}
+}
+
+func TestPostScan_IdempotencyKeyConsistentAcrossRetries(t *testing.T) {
+	var keys []string
+	orig := retryBackoff
+	retryBackoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
+	defer func() { retryBackoff = orig }()
+
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		keys = append(keys, r.Header.Get("X-Idempotency-Key"))
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+
+	c.PostScan(context.Background(), nil, "mac") //nolint:errcheck
+
+	if len(keys) != maxRetries {
+		t.Fatalf("expected %d attempts, got %d", maxRetries, len(keys))
+	}
+	if keys[0] == "" {
+		t.Fatal("X-Idempotency-Key header must not be empty")
+	}
+	for i, k := range keys[1:] {
+		if k != keys[0] {
+			t.Errorf("attempt %d idempotency key %q differs from attempt 0 key %q", i+1, k, keys[0])
+		}
 	}
 }
 
 func TestBuildPayload_MetadataSourceIncluded(t *testing.T) {
 	plugins := []metadata.DiscoveredPlugin{
-		{Name: "P", Vendor: "V", Format: "VST3", MetadataSource: "moduleinfo.json"},
+		{Name: "P", Vendor: "V", Format: "vst3", MetadataSource: "moduleinfo.json"},
 	}
 	payload := buildPayload(plugins, "mac")
 	if payload.Plugins[0].MetadataSource == nil {
@@ -128,7 +179,7 @@ func TestBuildPayload_MetadataSourceIncluded(t *testing.T) {
 }
 
 func TestBuildPayload_EmptyMetadataSourceOmitted(t *testing.T) {
-	plugins := []metadata.DiscoveredPlugin{{Name: "P", Format: "VST3", MetadataSource: ""}}
+	plugins := []metadata.DiscoveredPlugin{{Name: "P", Format: "vst3", MetadataSource: ""}}
 	payload := buildPayload(plugins, "mac")
 	if payload.Plugins[0].MetadataSource != nil {
 		t.Error("empty MetadataSource should be omitted from payload")

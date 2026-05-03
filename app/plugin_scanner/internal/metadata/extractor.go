@@ -96,14 +96,14 @@ func warnIfVST3Conflict(bundlePath BundlePath, mi moduleInfo, pi plistInfo, piEr
 func vst3FromModuleInfo(bundlePath BundlePath, mi moduleInfo) DiscoveredPlugin {
 	return DiscoveredPlugin{
 		Name: mi.Name, Vendor: mi.Vendor, Version: mi.Version,
-		Format: "VST3", Path: string(bundlePath), MetadataSource: "moduleinfo.json",
+		Format: "vst3", Path: string(bundlePath), MetadataSource: "moduleinfo.json",
 	}
 }
 
 func vst3FromPlist(bundlePath BundlePath, pi plistInfo) DiscoveredPlugin {
 	return DiscoveredPlugin{
 		Name: pi.name, Vendor: pi.vendor, Version: pi.version,
-		Format: "VST3", Path: string(bundlePath), MetadataSource: "Info.plist",
+		Format: "vst3", Path: string(bundlePath), MetadataSource: "Info.plist",
 	}
 }
 
@@ -150,7 +150,7 @@ func (e *AUExtractor) Extract(bundlePath BundlePath) (DiscoveredPlugin, error) {
 
 	return DiscoveredPlugin{
 		Name: name, Vendor: vendor, Version: version,
-		Format: "AU", Path: p, MetadataSource: "Info.plist",
+		Format: "au", Path: p, MetadataSource: "Info.plist",
 	}, nil
 }
 
@@ -195,7 +195,7 @@ func (e *VST2Extractor) Extract(bundlePath BundlePath) (DiscoveredPlugin, error)
 	}
 	return DiscoveredPlugin{
 		Name: pi.name, Vendor: pi.vendor, Version: pi.version,
-		Format: "VST2", Path: p, MetadataSource: "Info.plist",
+		Format: "vst2", Path: p, MetadataSource: "Info.plist",
 	}, nil
 }
 
@@ -247,11 +247,11 @@ func vendorFromBundleID(id string) string {
 func formatFromPath(path string) string {
 	switch strings.ToLower(filepath.Ext(path)) {
 	case ".vst3":
-		return "VST3"
+		return "vst3"
 	case ".component":
-		return "AU"
+		return "au"
 	case ".vst":
-		return "VST2"
+		return "vst2"
 	default:
 		return ""
 	}

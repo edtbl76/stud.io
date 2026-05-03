@@ -28,11 +28,13 @@ describe('LayoutShell', () => {
     usePathname.mockReturnValue('/controlroom/session/effects')
     render(<LayoutShell><div>content</div></LayoutShell>)
     expect(screen.getByPlaceholderText('Search everything...')).toBeInTheDocument()
+    expect(screen.getByText('content')).toBeInTheDocument()
   })
 
   it('renders TopBar on /search', () => {
     usePathname.mockReturnValue('/search')
     render(<LayoutShell><div>content</div></LayoutShell>)
     expect(screen.getByPlaceholderText('Search everything...')).toBeInTheDocument()
+    expect(screen.getByText('content')).toBeInTheDocument()
   })
 })

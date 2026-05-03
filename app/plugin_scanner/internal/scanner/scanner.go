@@ -83,7 +83,7 @@ func (s *Scanner) Scan(ctx context.Context, paths []string) ([]metadata.Discover
 		close(ch)
 	}()
 
-	var plugins []metadata.DiscoveredPlugin
+	plugins := []metadata.DiscoveredPlugin{}
 	for p := range ch {
 		plugins = append(plugins, p)
 	}

@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
@@ -61,7 +62,7 @@ func (c *APIClient) PostScan(ctx context.Context, plugins []metadata.DiscoveredP
 	if err != nil {
 		return nil, fmt.Errorf("marshalling payload: %w", err)
 	}
-	summary, err := c.postWithRetry(ctx, body)
+	summary, err := c.postWithRetry(ctx, body, newUUID())
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +72,7 @@ func (c *APIClient) PostScan(ctx context.Context, plugins []metadata.DiscoveredP
 	return summary, nil
 }
 
-func (c *APIClient) postWithRetry(ctx context.Context, body []byte) (*scanner.ServerSummary, error) {
+func (c *APIClient) postWithRetry(ctx context.Context, body []byte, idempotencyKey string) (*scanner.ServerSummary, error) {
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
 		if ctx.Err() != nil {
@@ -80,7 +81,7 @@ func (c *APIClient) postWithRetry(ctx context.Context, body []byte) (*scanner.Se
 		if err := waitBackoff(ctx, attempt); err != nil {
 			return nil, err
 		}
-		summary, err := c.doPost(ctx, body)
+		summary, err := c.doPost(ctx, body, idempotencyKey)
 		if err == nil {
 			return summary, nil
 		}
@@ -104,7 +105,7 @@ func waitBackoff(ctx context.Context, attempt int) error {
 	}
 }
 
-func (c *APIClient) doPost(ctx context.Context, body []byte) (*scanner.ServerSummary, error) {
+func (c *APIClient) doPost(ctx context.Context, body []byte, idempotencyKey string) (*scanner.ServerSummary, error) {
 	attemptCtx, cancel := context.WithTimeout(ctx, perAttemptTimeout)
 	defer cancel()
 
@@ -115,6 +116,7 @@ func (c *APIClient) doPost(ctx context.Context, body []byte) (*scanner.ServerSum
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+	req.Header.Set("X-Idempotency-Key", idempotencyKey)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -124,6 +126,9 @@ func (c *APIClient) doPost(ctx context.Context, body []byte) (*scanner.ServerSum
 
 	if resp.StatusCode == http.StatusUnauthorized {
 		return nil, &authError{}
+	}
+	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		return nil, &clientError{code: resp.StatusCode}
 	}
 	if resp.StatusCode >= 500 {
 		return nil, fmt.Errorf("server error: %d", resp.StatusCode)
@@ -164,7 +169,23 @@ type authError struct{}
 
 func (e *authError) Error() string { return "API key is invalid or revoked" }
 
+// clientError signals any other 4xx — not retried.
+type clientError struct{ code int }
+
+func (e *clientError) Error() string { return fmt.Sprintf("client error: %d", e.code) }
+
 func isTerminalError(err error) bool {
-	_, ok := err.(*authError)
-	return ok
+	switch err.(type) {
+	case *authError, *clientError:
+		return true
+	}
+	return false
+}
+
+func newUUID() string {
+	var b [16]byte
+	_, _ = rand.Read(b[:])
+	b[6] = (b[6] & 0x0f) | 0x40 // version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // variant bits
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }

@@ -31,44 +31,44 @@ class StatsResponse(BaseModel):
 # Table names below are hardcoded constants — they must never be sourced from
 # external input. The `users` table is intentionally excluded; user counts belong
 # on the Users page, not the catalog stats page.
-# (display_name, table_name, has_soft_delete)
-_STATS_GROUPS: list[tuple[str, list[tuple[str, str, bool]]]] = [
+# (display_name, table_name, has_soft_delete, active_filter)
+_STATS_GROUPS: list[tuple[str, list[tuple[str, str, bool, str | None]]]] = [
     ("Catalog", [
-        ("Brands",  "brands",  True),
-        ("Models",  "models",  True),
+        ("Brands",  "brands",  True,  None),
+        ("Models",  "models",  True,  None),
     ]),
     ("Session", [
-        ("Effects",      "effects",      True),
-        ("Instruments",  "instruments",  True),
-        ("Libraries",    "libraries",    True),
-        ("Workstations", "workstations", True),
+        ("Effects",      "effects",      True, None),
+        ("Instruments",  "instruments",  True, None),
+        ("Libraries",    "libraries",    True, None),
+        ("Workstations", "workstations", True, None),
     ]),
     ("Tools", [
-        ("Admin",       "admin_tools",       True),
-        ("Composition", "composition_tools", True),
-        ("Measurement", "measurement_tools", True),
-        ("Reference",   "reference_tools",   True),
-        ("Workflow",    "workflow_tools",    True),
+        ("Admin",       "admin_tools",       True, None),
+        ("Composition", "composition_tools", True, None),
+        ("Measurement", "measurement_tools", True, None),
+        ("Reference",   "reference_tools",   True, None),
+        ("Workflow",    "workflow_tools",    True, None),
     ]),
     ("Config", [
-        ("Effect Types",      "effect_types",     True),
-        ("Entity Types",      "entity_types",     True),
-        ("Instrument Types",  "instrument_types", True),
-        ("Model Types",       "model_types",      True),
-        ("Plugin Formats",    "plugin_formats",   True),
-        ("Tag Types",         "tag_types",        True),
-        ("Tool Types",        "tool_types",       True),
+        ("Effect Types",      "effect_types",     True, None),
+        ("Entity Types",      "entity_types",     True, None),
+        ("Instrument Types",  "instrument_types", True, None),
+        ("Model Types",       "model_types",      True, None),
+        ("Plugin Formats",    "plugin_formats",   True, None),
+        ("Tag Types",         "tag_types",        True, None),
+        ("Tool Types",        "tool_types",       True, None),
     ]),
     ("GearList", [
-        ("Gear",       "gear",       True),
-        ("Gear Types", "gear_types", True),
+        ("Gear",       "gear",       True, None),
+        ("Gear Types", "gear_types", True, None),
     ]),
     ("Scanner", [
-        ("Scans",        "plugin_scans",        False),
-        ("Scan Results", "plugin_scan_results", False),
-        ("API Keys",     "scanner_api_keys",    False),
-        ("Exclusions",   "scanner_exclusions",  False),
-        ("Plugin Links", "scanner_plugin_links", False),
+        ("Scans",        "plugin_scans",         False, None),
+        ("Scan Results", "plugin_scan_results",  False, None),
+        ("API Keys",     "scanner_api_keys",     False, "revoked_at IS NULL"),
+        ("Exclusions",   "scanner_exclusions",   False, None),
+        ("Plugin Links", "scanner_plugin_links", False, None),
     ]),
 ]
 
@@ -78,11 +78,16 @@ async def _fetch_table_stat(
     display_name: str,
     table_name: str,
     has_soft_delete: bool,
+    active_filter: str | None = None,
 ) -> TableStat:
     """Fetch active row count and pending audit counts for a single table."""
     if has_soft_delete:
         row = await conn.fetchrow(
             f"SELECT COUNT(*)::int AS cnt FROM {table_name} WHERE deleted_at IS NULL"  # safe: table_name from _STATS_GROUPS constant
+        )
+    elif active_filter:
+        row = await conn.fetchrow(
+            f"SELECT COUNT(*)::int AS cnt FROM {table_name} WHERE {active_filter}"  # safe: table_name and active_filter from _STATS_GROUPS constant
         )
     else:
         row = await conn.fetchrow(
@@ -128,8 +133,8 @@ async def stats(
 
     for label, table_triples in _STATS_GROUPS:
         table_stats: list[TableStat] = []
-        for display_name, table_name, has_soft_delete in table_triples:
-            stat = await _fetch_table_stat(conn, display_name, table_name, has_soft_delete)
+        for display_name, table_name, has_soft_delete, active_filter in table_triples:
+            stat = await _fetch_table_stat(conn, display_name, table_name, has_soft_delete, active_filter)
             table_stats.append(stat)
             total += stat.count
 
