@@ -59,7 +59,7 @@ func New(out io.Writer, noColor, jsonMode bool) *Scanner {
 // Scan walks all paths concurrently and returns discovered plugins and skipped paths.
 func (s *Scanner) Scan(ctx context.Context, paths []string) ([]metadata.DiscoveredPlugin, []string, error) {
 	ch := make(chan metadata.DiscoveredPlugin, discoveryChannelBuffer)
-	var skipped []string
+	skipped := []string{}
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	var count atomic.Int64

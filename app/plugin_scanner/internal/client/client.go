@@ -47,11 +47,12 @@ type progressFunc func(current, total int)
 
 // NewAPIClient creates an APIClient with retry and custom TLS.
 func NewAPIClient(serverURL, apiKey string, tlsCfg *tls.Config, progress progressFunc) *APIClient {
-	transport := &http.Transport{TLSClientConfig: tlsCfg}
+	base := http.DefaultTransport.(*http.Transport).Clone()
+	base.TLSClientConfig = tlsCfg
 	return &APIClient{
 		serverURL:  serverURL,
 		apiKey:     apiKey,
-		httpClient: &http.Client{Transport: transport},
+		httpClient: &http.Client{Transport: base},
 		progress:   progress,
 	}
 }
