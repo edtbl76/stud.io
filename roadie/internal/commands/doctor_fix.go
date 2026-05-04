@@ -207,7 +207,7 @@ func fixTailscaleFunnelCmd() *cobra.Command {
 
 func runFixTailscaleFunnel(ctx context.Context, port int, out io.Writer) error {
 	fmt.Fprintf(out, "[fix] Enabling Tailscale Funnel on :%d...\n", port)
-	cmd := exec.CommandContext(ctx, "tailscale", "funnel", strconv.Itoa(port))
+	cmd := exec.CommandContext(ctx, "tailscale", "funnel", "--bg", "--yes", strconv.Itoa(port))
 	cmd.Stdout = out
 	cmd.Stderr = out
 	if err := cmd.Run(); err != nil {

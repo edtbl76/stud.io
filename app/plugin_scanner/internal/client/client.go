@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/studiocontrolroom/plugin_scanner/internal/metadata"
@@ -110,8 +111,9 @@ func (c *APIClient) doPost(ctx context.Context, body []byte, idempotencyKey stri
 	attemptCtx, cancel := context.WithTimeout(ctx, perAttemptTimeout)
 	defer cancel()
 
+	base := strings.TrimRight(c.serverURL, "/")
 	req, err := http.NewRequestWithContext(attemptCtx, http.MethodPost,
-		c.serverURL+"/scanner/scan", bytes.NewReader(body))
+		base+"/scanner/scan", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
