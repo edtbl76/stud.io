@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,27 +75,87 @@ func writeMigration(t *testing.T, dir, name, content string) {
 	}
 }
 
-func applyToDir(t *testing.T, cfg *config.Config, db *fakeDB, out *strings.Builder, dir string) error {
+func applyToDir(t *testing.T, db *fakeDB, dir string) (string, error) {
 	t.Helper()
-	m, err := newMigrator(cfg, db, out)
+	var out strings.Builder
+	m, err := newMigrator(migrateConfig(), db, &out)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return m.apply(context.Background(), dir)
+	err = m.apply(context.Background(), dir)
+	return out.String(), err
 }
 
-func TestRunMigrate_AppliesNewMigrations(t *testing.T) {
-	dir := t.TempDir()
-	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
-	writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
-
-	db := newFakeDB()
-	var out strings.Builder
-	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
-		t.Fatal(err)
+func TestRunMigrate_NothingCases(t *testing.T) {
+	cases := []struct {
+		name    string
+		setup   func(dir string)
+		applied []string
+	}{
+		{
+			name:    "empty dir",
+			setup:   func(_ string) {},
+			applied: nil,
+		},
+		{
+			name: "all already applied",
+			setup: func(dir string) {
+				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+			},
+			applied: []string{"001_init.sql"},
+		},
 	}
-	if !strings.Contains(out.String(), "Applied 2 migration(s)") {
-		t.Errorf("expected 2 applied, got: %s", out.String())
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tc.setup(dir)
+			out, err := applyToDir(t, newFakeDB(tc.applied...), dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(out, "Nothing to apply") {
+				t.Errorf("expected nothing-to-apply, got: %s", out)
+			}
+		})
+	}
+}
+
+func TestRunMigrate_AppliesCases(t *testing.T) {
+	cases := []struct {
+		name      string
+		setup     func(dir string)
+		wantCount int
+	}{
+		{
+			name: "applies all new migrations",
+			setup: func(dir string) {
+				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+				writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
+			},
+			wantCount: 2,
+		},
+		{
+			name: "ignores non-sql files",
+			setup: func(dir string) {
+				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+				os.WriteFile(filepath.Join(dir, "README.md"), []byte("docs"), 0644) //nolint:errcheck
+			},
+			wantCount: 1,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tc.setup(dir)
+			out, err := applyToDir(t, newFakeDB(), dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := fmt.Sprintf("Applied %d migration(s)", tc.wantCount)
+			if !strings.Contains(out, want) {
+				t.Errorf("expected %q, got: %s", want, out)
+			}
+		})
 	}
 }
 
@@ -103,42 +164,15 @@ func TestRunMigrate_SkipsAlreadyApplied(t *testing.T) {
 	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
 	writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
 
-	db := newFakeDB("001_init.sql")
-	var out strings.Builder
-	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
+	out, err := applyToDir(t, newFakeDB("001_init.sql"), dir)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "Applied 1 migration(s)") {
-		t.Errorf("expected 1 applied, got: %s", out.String())
+	if !strings.Contains(out, "Applied 1 migration(s)") {
+		t.Errorf("expected 1 applied, got: %s", out)
 	}
-	if !strings.Contains(out.String(), "skip  001_init.sql") {
-		t.Errorf("expected skip message for 001_init.sql, got: %s", out.String())
-	}
-}
-
-func TestRunMigrate_NothingToApply(t *testing.T) {
-	dir := t.TempDir()
-	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
-
-	db := newFakeDB("001_init.sql")
-	var out strings.Builder
-	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out.String(), "Nothing to apply") {
-		t.Errorf("expected nothing-to-apply message, got: %s", out.String())
-	}
-}
-
-func TestRunMigrate_EmptyDir(t *testing.T) {
-	dir := t.TempDir()
-	db := newFakeDB()
-	var out strings.Builder
-	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out.String(), "Nothing to apply") {
-		t.Errorf("expected nothing-to-apply for empty dir, got: %s", out.String())
+	if !strings.Contains(out, "skip  001_init.sql") {
+		t.Errorf("expected skip message for 001_init.sql, got: %s", out)
 	}
 }
 
@@ -155,7 +189,7 @@ func TestRunMigrate_RecordsEachMigration(t *testing.T) {
 	writeMigration(t, dir, "002_b.sql", "SELECT 2;")
 
 	db := newFakeDB()
-	if err := applyToDir(t, migrateConfig(), db, &strings.Builder{}, dir); err != nil {
+	if _, err := applyToDir(t, db, dir); err != nil {
 		t.Fatal(err)
 	}
 	insertCount := 0
@@ -166,21 +200,6 @@ func TestRunMigrate_RecordsEachMigration(t *testing.T) {
 	}
 	if insertCount != 2 {
 		t.Errorf("expected 2 INSERT calls, got %d; calls: %v", insertCount, db.execCalls)
-	}
-}
-
-func TestRunMigrate_IgnoresNonSQLFiles(t *testing.T) {
-	dir := t.TempDir()
-	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("docs"), 0644) //nolint:errcheck
-
-	db := newFakeDB()
-	var out strings.Builder
-	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out.String(), "Applied 1 migration(s)") {
-		t.Errorf("expected 1 applied (README ignored), got: %s", out.String())
 	}
 }
 
