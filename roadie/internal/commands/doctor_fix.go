@@ -220,6 +220,15 @@ func runFixTailscaleFunnel(ctx context.Context, port int, out io.Writer) error {
 // ── woodpecker ────────────────────────────────────────────────────────────────
 
 func runFixWoodpeckerAgents(ctx context.Context, out io.Writer) error {
+	fmt.Fprintln(out, "[fix] Reloading systemd daemon...")
+	reload := exec.CommandContext(ctx, "sudo", "systemctl", "daemon-reload")
+	reload.Stdin = os.Stdin
+	reload.Stdout = out
+	reload.Stderr = out
+	if err := reload.Run(); err != nil {
+		return fmt.Errorf("daemon-reload: %w", err)
+	}
+
 	for i := 1; i <= woodpeckerAgentCount; i++ {
 		agent := fmt.Sprintf("woodpecker-agent-%d", i)
 		fmt.Fprintf(out, "[fix] Restarting %s...\n", agent)
