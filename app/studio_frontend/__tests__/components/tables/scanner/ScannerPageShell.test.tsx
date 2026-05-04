@@ -44,6 +44,16 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
+const BASE_RUN = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: 0, version_mismatch: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 }
+const BASE_REPORT = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: [], version_mismatch: [], unconfirmed: [], untracked: [], orphaned: [], ignored: [] }
+
+function mockRun(overrides = {}) {
+  api.scanner.runs.mockResolvedValue([{ ...BASE_RUN, ...overrides }])
+}
+function mockReport(overrides = {}) {
+  api.scanner.report.mockResolvedValue({ ...BASE_REPORT, ...overrides })
+}
+
 describe('ScannerPageShell', () => {
   beforeEach(() => jest.clearAllMocks())
 
@@ -54,50 +64,29 @@ describe('ScannerPageShell', () => {
   })
 
   it('renders matched results when report loads', async () => {
-    api.scanner.runs.mockResolvedValue([
-      { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: 1, version_mismatch: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 },
-    ])
-    api.scanner.report.mockResolvedValue({
-      scan_id: 's1',
-      scanned_at: '2026-05-04T12:00:00Z',
-      matched: [{ result_id: 'r1', status: 'matched', name: 'Reverb Pro', vendor: 'Acme', version: '1.0', format: 'vst3', path: '/p', confidence: null, score: null, matched_record: null, dismissed_at: null }],
-      version_mismatch: [], unconfirmed: [], untracked: [], orphaned: [], ignored: [],
-    })
+    mockRun({ matched: 1 })
+    mockReport({ matched: [{ result_id: 'r1', status: 'matched', name: 'Reverb Pro', vendor: 'Acme', version: '1.0', format: 'vst3', path: '/p', confidence: null, score: null, matched_record: null, dismissed_at: null }] })
     render(<ScannerPageShell section="matched" />, { wrapper })
     await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
   })
 
   it('shows section empty state when section has no results', async () => {
-    api.scanner.runs.mockResolvedValue([
-      { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: 0, version_mismatch: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 },
-    ])
-    api.scanner.report.mockResolvedValue({
-      scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z',
-      matched: [], version_mismatch: [], unconfirmed: [], untracked: [], orphaned: [], ignored: [],
-    })
+    mockRun()
+    mockReport()
     render(<ScannerPageShell section="matched" />, { wrapper })
     await waitFor(() => expect(screen.getByTestId('scanner-empty-state')).toBeInTheDocument())
   })
 
   it('shows retry button when report fails to load', async () => {
-    api.scanner.runs.mockResolvedValue([
-      { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: 0, version_mismatch: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 },
-    ])
+    mockRun()
     api.scanner.report.mockRejectedValue(new Error('Network error'))
     render(<ScannerPageShell section="matched" />, { wrapper })
     await waitFor(() => expect(screen.getByTestId('scanner-retry-button')).toBeInTheDocument())
   })
 
   it('renders BulkActionBar for unconfirmed section', async () => {
-    api.scanner.runs.mockResolvedValue([
-      { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: 0, version_mismatch: 0, unconfirmed: 1, untracked: 0, orphaned: 0, ignored: 0 },
-    ])
-    api.scanner.report.mockResolvedValue({
-      scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z',
-      matched: [], version_mismatch: [],
-      unconfirmed: [{ result_id: 'r1', status: 'unconfirmed', name: 'Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', confidence: 'high', score: 90, matched_record: null, dismissed_at: null }],
-      untracked: [], orphaned: [], ignored: [],
-    })
+    mockRun({ unconfirmed: 1 })
+    mockReport({ unconfirmed: [{ result_id: 'r1', status: 'unconfirmed', name: 'Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', confidence: 'high', score: 90, matched_record: null, dismissed_at: null }] })
     render(<ScannerPageShell section="unconfirmed" />, { wrapper })
     await waitFor(() => expect(screen.getByTestId('confirm-all-high-confidence-button')).toBeInTheDocument())
   })

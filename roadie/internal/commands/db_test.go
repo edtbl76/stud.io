@@ -64,7 +64,7 @@ func migrateConfig() *config.Config {
 }
 
 // ---------------------------------------------------------------------------
-// runMigrate tests
+// migrator tests
 // ---------------------------------------------------------------------------
 
 func writeMigration(t *testing.T, dir, name, content string) {
@@ -74,24 +74,23 @@ func writeMigration(t *testing.T, dir, name, content string) {
 	}
 }
 
+func applyToDir(t *testing.T, cfg *config.Config, db *fakeDB, out *strings.Builder, dir string) error {
+	t.Helper()
+	m, err := newMigrator(cfg, db, out)
+	if err != nil {
+		return err
+	}
+	return m.apply(context.Background(), dir)
+}
+
 func TestRunMigrate_AppliesNewMigrations(t *testing.T) {
 	dir := t.TempDir()
 	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
 	writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
 
-	orig := migrationsDir
-	// migrationsDir is a package-level const; we override via a local variable in runMigrate.
-	// Since it's a const we test via a wrapper that accepts the dir.
-	_ = orig
-
-	db := newFakeDB() // nothing applied yet
+	db := newFakeDB()
 	var out strings.Builder
-	cfg := migrateConfig()
-
-	// Override the dir by temporarily changing migrationsDir is not possible with const.
-	// Instead, create the expected path structure relative to working dir.
-	// For the test, we invoke runMigrateFromDir directly.
-	if err := runMigrateFromDir(context.Background(), cfg, db, &out, dir); err != nil {
+	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Applied 2 migration(s)") {
@@ -106,8 +105,7 @@ func TestRunMigrate_SkipsAlreadyApplied(t *testing.T) {
 
 	db := newFakeDB("001_init.sql")
 	var out strings.Builder
-
-	if err := runMigrateFromDir(context.Background(), migrateConfig(), db, &out, dir); err != nil {
+	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Applied 1 migration(s)") {
@@ -124,8 +122,7 @@ func TestRunMigrate_NothingToApply(t *testing.T) {
 
 	db := newFakeDB("001_init.sql")
 	var out strings.Builder
-
-	if err := runMigrateFromDir(context.Background(), migrateConfig(), db, &out, dir); err != nil {
+	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Nothing to apply") {
@@ -137,8 +134,7 @@ func TestRunMigrate_EmptyDir(t *testing.T) {
 	dir := t.TempDir()
 	db := newFakeDB()
 	var out strings.Builder
-
-	if err := runMigrateFromDir(context.Background(), migrateConfig(), db, &out, dir); err != nil {
+	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Nothing to apply") {
@@ -147,8 +143,7 @@ func TestRunMigrate_EmptyDir(t *testing.T) {
 }
 
 func TestRunMigrate_MissingDBName(t *testing.T) {
-	cfg := &config.Config{}
-	err := runMigrateFromDir(context.Background(), cfg, newFakeDB(), &strings.Builder{}, t.TempDir())
+	_, err := newMigrator(&config.Config{}, newFakeDB(), &strings.Builder{})
 	if err == nil || !strings.Contains(err.Error(), "db_name") {
 		t.Errorf("expected db_name error, got: %v", err)
 	}
@@ -160,7 +155,7 @@ func TestRunMigrate_RecordsEachMigration(t *testing.T) {
 	writeMigration(t, dir, "002_b.sql", "SELECT 2;")
 
 	db := newFakeDB()
-	if err := runMigrateFromDir(context.Background(), migrateConfig(), db, &strings.Builder{}, dir); err != nil {
+	if err := applyToDir(t, migrateConfig(), db, &strings.Builder{}, dir); err != nil {
 		t.Fatal(err)
 	}
 	insertCount := 0
@@ -177,11 +172,11 @@ func TestRunMigrate_RecordsEachMigration(t *testing.T) {
 func TestRunMigrate_IgnoresNonSQLFiles(t *testing.T) {
 	dir := t.TempDir()
 	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
-	os.WriteFile(filepath.Join(dir, "README.md"), []byte("docs"), 0644)
+	os.WriteFile(filepath.Join(dir, "README.md"), []byte("docs"), 0644) //nolint:errcheck
 
 	db := newFakeDB()
 	var out strings.Builder
-	if err := runMigrateFromDir(context.Background(), migrateConfig(), db, &out, dir); err != nil {
+	if err := applyToDir(t, migrateConfig(), db, &out, dir); err != nil {
 		t.Fatal(err)
 	}
 	if !strings.Contains(out.String(), "Applied 1 migration(s)") {

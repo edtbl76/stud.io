@@ -13,7 +13,7 @@ from uuid import UUID
 
 import bcrypt
 from asyncpg import Connection
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 
 from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
@@ -192,19 +192,25 @@ async def get_report(
 # PATCH /results/{result_id}/dismiss
 # ---------------------------------------------------------------------------
 
-@router.patch("/results/{result_id}/dismiss", status_code=204, responses={404: {"description": "Scan result not found"}})
+async def _update_or_404(conn: Connection, sql: str, pk: UUID, detail: str) -> None:
+    if not await conn.fetchval(sql, pk):
+        raise HTTPException(status_code=404, detail=detail)
+
+
+@router.patch("/results/{result_id}/dismiss", responses={404: {"description": "Scan result not found"}})
 async def dismiss_result(
     result_id: UUID,
     _user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
+    response: Response,
 ) -> None:
-    updated = await conn.fetchval(
-        "UPDATE plugin_scan_results SET dismissed_at = NOW() "
-        "WHERE result_id = $1 RETURNING result_id",
+    await _update_or_404(
+        conn,
+        "UPDATE plugin_scan_results SET dismissed_at = NOW() WHERE result_id = $1 RETURNING result_id",
         result_id,
+        "Scan result not found",
     )
-    if not updated:
-        raise HTTPException(status_code=404, detail="Scan result not found")
+    response.status_code = 204
 
 
 # ---------------------------------------------------------------------------
@@ -217,13 +223,15 @@ async def keep_link(
     _user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> None:
-    updated = await conn.fetchval(
-        "UPDATE scanner_plugin_links SET keep_permanently = TRUE "
-        "WHERE link_id = $1 RETURNING link_id",
-        link_id,
+    current = await conn.fetchval(
+        "SELECT keep_permanently FROM scanner_plugin_links WHERE link_id = $1", link_id
     )
-    if not updated:
+    if current is None:
         raise HTTPException(status_code=404, detail="Plugin link not found")
+    if not current:
+        await conn.execute(
+            "UPDATE scanner_plugin_links SET keep_permanently = TRUE WHERE link_id = $1", link_id
+        )
 
 
 # ---------------------------------------------------------------------------

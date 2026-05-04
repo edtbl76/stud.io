@@ -41,6 +41,40 @@ const REPORT_KEY_MAP: Record<Exclude<ScanSection, 'exclusions'>, ScanArrayKey> =
 
 interface CreateModalState { result: ScanResult }
 
+function useScannerActions(effectiveScanId: string | null) {
+  const queryClient = useQueryClient()
+  const invalidateReport = () => queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] })
+
+  const confirmMutation = useMutation({
+    mutationFn: (decisions: ConfirmDecision[]) => api.scanner.confirm(decisions),
+    onError: () => toast.error('Failed to apply decisions. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+  const dismissMutation = useMutation({
+    mutationFn: (resultId: string) => api.scanner.dismiss(resultId),
+    onError: () => toast.error('Failed to dismiss result. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+  const keepMutation = useMutation({
+    mutationFn: (linkId: string) => api.scanner.keep(linkId),
+    onError: () => toast.error('Failed to mark as permanent. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+
+  return {
+    handleConfirm: (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'confirm' }]),
+    handleReject:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'reject' }]),
+    handleIgnore:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'ignore' }]),
+    handleConfirmAll: (results: ScanResult[]) => {
+      const high = results.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence))
+      if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
+    },
+    handleDismiss: (id: string) => dismissMutation.mutate(id),
+    handleKeep:    (id: string) => keepMutation.mutate(id),
+    handleRemove:  (result: ScanResult) => confirmMutation.mutate([{ result_id: result.result_id, action: 'ignore' }]),
+  }
+}
+
 export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>) {
   const queryClient = useQueryClient()
   const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
@@ -61,41 +95,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
     enabled: !!effectiveScanId,
   })
 
-  const confirmMutation = useMutation({
-    mutationFn: (decisions: ConfirmDecision[]) => api.scanner.confirm(decisions),
-    onError: () => toast.error('Failed to apply decisions. Please try again.'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] }),
-  })
-
-  const dismissMutation = useMutation({
-    mutationFn: (resultId: string) => api.scanner.dismiss(resultId),
-    onError: () => toast.error('Failed to dismiss result. Please try again.'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] }),
-  })
-
-  const keepMutation = useMutation({
-    mutationFn: (linkId: string) => api.scanner.keep(linkId),
-    onError: () => toast.error('Failed to mark as permanent. Please try again.'),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] }),
-  })
-
-  function handleConfirm(resultId: string) {
-    confirmMutation.mutate([{ result_id: resultId, action: 'confirm' }])
-  }
-
-  function handleReject(resultId: string) {
-    confirmMutation.mutate([{ result_id: resultId, action: 'reject' }])
-  }
-
-  function handleIgnore(resultId: string) {
-    confirmMutation.mutate([{ result_id: resultId, action: 'ignore' }])
-  }
-
-  function handleConfirmAllHighConfidence(results: ScanResult[]) {
-    const high = results.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence))
-    if (high.length === 0) return
-    confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
-  }
+  const actions = useScannerActions(effectiveScanId)
 
   if (section === 'exclusions') {
     return (
@@ -108,69 +108,31 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
 
   const sectionResults: ScanResult[] = report ? (report[REPORT_KEY_MAP[section]] ?? []) : []
 
+  async function handlePurge(days: Parameters<typeof api.scanner.purge>[0]) {
+    await api.scanner.purge(days)
+    await queryClient.invalidateQueries({ queryKey: ['scanner', 'runs'] })
+    setSelectedScanId(null)
+  }
+
   return (
     <div className="flex flex-col h-full">
       {runs.length === 0 ? (
         <EmptyState />
       ) : (
-        <>
-          <div className="px-4 pt-4 pb-2">
-            <ScanRunPicker
-              runs={runs}
-              selectedId={effectiveScanId}
-              onChange={setSelectedScanId}
-              onPurge={async (days) => {
-                await api.scanner.purge(days)
-                await queryClient.invalidateQueries({ queryKey: ['scanner', 'runs'] })
-                setSelectedScanId(null)
-              }}
-            />
-          </div>
-
-          {isScanning && latestRun && (
-            <ScanInProgressBanner scannedAt={latestRun.scan_id} />
-          )}
-
-          <ScanSectionHeader title={SECTION_TITLES[section]} count={sectionResults.length} />
-
-          {section === 'unconfirmed' && (
-            <BulkActionBar
-              highConfidenceCount={sectionResults.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence)).length}
-              onConfirmAll={() => handleConfirmAllHighConfidence(sectionResults)}
-            />
-          )}
-
-          {reportError ? (
-            <div className="flex flex-col items-center justify-center flex-1 gap-3 text-sm text-muted-foreground">
-              <p>Failed to load scan results.</p>
-              <button
-                onClick={() => refetchReport()}
-                className="text-primary underline"
-                data-testid="scanner-retry-button"
-              >
-                Retry
-              </button>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-hidden">
-              <VirtualSectionList
-                items={buildListItems(section, sectionResults)}
-                estimatedItemHeight={estimatedHeight(section)}
-                renderItem={(item) => renderRow(item, section, {
-                  onConfirm: handleConfirm,
-                  onReject: handleReject,
-                  onIgnore: handleIgnore,
-                  onDismiss: (id) => dismissMutation.mutate(id),
-                  onKeep: (id) => keepMutation.mutate(id),
-                  onRemove: (result) => confirmMutation.mutate([{ result_id: result.result_id, action: 'ignore' }]),
-                  onCreateRecord: (result) => setCreateModal({ result }),
-                  onViewRecord: () => { /* opens existing record modal — wired in OrphanedRow */ },
-                })}
-                emptyState={<SectionEmptyState section={section} />}
-              />
-            </div>
-          )}
-        </>
+        <ScannerSectionContent
+          runs={runs}
+          effectiveScanId={effectiveScanId}
+          section={section}
+          sectionResults={sectionResults}
+          isScanning={isScanning}
+          latestRunScanId={latestRun?.scan_id}
+          reportError={reportError}
+          actions={actions}
+          onScanIdChange={setSelectedScanId}
+          onPurge={handlePurge}
+          onCreateRecord={(result) => setCreateModal({ result })}
+          onRefetch={() => refetchReport()}
+        />
       )}
 
       {createModal && (
@@ -190,6 +152,62 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
         />
       )}
     </div>
+  )
+}
+
+interface ScannerSectionContentProps {
+  runs: import('@/lib/types').ScanRun[]
+  effectiveScanId: string | null
+  section: Exclude<ScanSection, 'exclusions'>
+  sectionResults: ScanResult[]
+  isScanning: boolean
+  latestRunScanId: string | undefined
+  reportError: boolean
+  actions: ReturnType<typeof useScannerActions>
+  onScanIdChange: (id: string) => void
+  onPurge: (days: Parameters<typeof api.scanner.purge>[0]) => Promise<void>
+  onCreateRecord: (result: ScanResult) => void
+  onRefetch: () => void
+}
+
+function ScannerSectionContent({
+  runs, effectiveScanId, section, sectionResults, isScanning, latestRunScanId,
+  reportError, actions, onScanIdChange, onPurge, onCreateRecord, onRefetch,
+}: Readonly<ScannerSectionContentProps>) {
+  return (
+    <>
+      <div className="px-4 pt-4 pb-2">
+        <ScanRunPicker runs={runs} selectedId={effectiveScanId} onChange={onScanIdChange} onPurge={onPurge} />
+      </div>
+      {isScanning && latestRunScanId && <ScanInProgressBanner scannedAt={latestRunScanId} />}
+      <ScanSectionHeader title={SECTION_TITLES[section]} count={sectionResults.length} />
+      {section === 'unconfirmed' && (
+        <BulkActionBar
+          highConfidenceCount={sectionResults.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence)).length}
+          onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
+        />
+      )}
+      {reportError ? (
+        <div className="flex flex-col items-center justify-center flex-1 gap-3 text-sm text-muted-foreground">
+          <p>Failed to load scan results.</p>
+          <button onClick={onRefetch} className="text-primary underline" data-testid="scanner-retry-button">Retry</button>
+        </div>
+      ) : (
+        <div className="flex-1 overflow-hidden">
+          <VirtualSectionList
+            items={buildListItems(section, sectionResults)}
+            estimatedItemHeight={estimatedHeight(section)}
+            renderItem={(item) => renderRow(item, section, {
+              onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
+              onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
+              onCreateRecord,
+              onViewRecord: () => { /* opens existing record modal — wired in OrphanedRow */ },
+            })}
+            emptyState={<SectionEmptyState section={section} />}
+          />
+        </div>
+      )}
+    </>
   )
 }
 
@@ -223,25 +241,30 @@ interface RowHandlers {
   onViewRecord: (result: ScanResult) => void
 }
 
+function ConfidenceDivider() {
+  return (
+    <div className="px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="flex-1 border-t border-border" />
+      <span>Medium / Low confidence</span>
+      <div className="flex-1 border-t border-border" />
+    </div>
+  )
+}
+
+type RowRenderer = (result: ScanResult, h: RowHandlers) => React.ReactNode
+
+const ROW_RENDERERS: Partial<Record<ScanSection, RowRenderer>> = {
+  matched:              (r) => <MatchedRow result={r} />,
+  'version-mismatches': (r) => <VersionMismatchRow result={r} />,
+  unconfirmed:          (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} />,
+  untracked:            (r, h) => <UntrackedRow result={r} onCreateRecord={h.onCreateRecord} onIgnore={h.onIgnore} />,
+  orphaned:             (r, h) => <OrphanedRow result={r} onDismiss={h.onDismiss} onKeepPermanently={h.onKeep} onRemoveFromCatalog={h.onRemove} onViewRecord={h.onViewRecord} />,
+}
+
 function renderRow(item: ListItem, section: ScanSection, h: RowHandlers): React.ReactNode {
-  if ('type' in item && item.type === 'divider') {
-    return (
-      <div className="px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground">
-        <div className="flex-1 border-t border-border" />
-        <span>Medium / Low confidence</span>
-        <div className="flex-1 border-t border-border" />
-      </div>
-    )
-  }
-  const result = item as ScanResult
-  switch (section) {
-    case 'matched':            return <MatchedRow result={result} />
-    case 'version-mismatches': return <VersionMismatchRow result={result} />
-    case 'unconfirmed':        return <UnconfirmedRow result={result} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} />
-    case 'untracked':          return <UntrackedRow result={result} onCreateRecord={h.onCreateRecord} onIgnore={h.onIgnore} />
-    case 'orphaned':           return <OrphanedRow result={result} onDismiss={h.onDismiss} onKeepPermanently={h.onKeep} onRemoveFromCatalog={h.onRemove} onViewRecord={h.onViewRecord} />
-    default:                   return null
-  }
+  if ('type' in item && item.type === 'divider') return <ConfidenceDivider />
+  const render = ROW_RENDERERS[section]
+  return render ? render(item as ScanResult, h) : null
 }
 
 function SectionEmptyState({ section }: Readonly<{ section: ScanSection }>) {

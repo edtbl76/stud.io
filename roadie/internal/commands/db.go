@@ -108,66 +108,104 @@ migrations are skipped. Files are applied in alphabetical order.`,
 	}
 }
 
-func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer) error {
-	return runMigrateFromDir(ctx, cfg, db, out, migrationsDir)
+type migrator struct {
+	db    providers.SQLDatabaseProvider
+	dbCfg providers.DBConfig
+	out   io.Writer
 }
 
-func runMigrateFromDir(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer, dir string) error {
+func newMigrator(cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer) (*migrator, error) {
 	if cfg.Providers.Database.DBName == "" {
-		return fmt.Errorf("providers.database.db_name is not set in roadie.yml")
+		return nil, fmt.Errorf("providers.database.db_name is not set in roadie.yml")
 	}
-	dbCfg := providers.DBConfig{
-		Service: cfg.Providers.Database.Service,
-		User:    cfg.Providers.Database.User,
-		DBName:  cfg.Providers.Database.DBName,
-	}
+	return &migrator{
+		db:  db,
+		out: out,
+		dbCfg: providers.DBConfig{
+			Service: cfg.Providers.Database.Service,
+			User:    cfg.Providers.Database.User,
+			DBName:  cfg.Providers.Database.DBName,
+		},
+	}, nil
+}
 
-	if err := db.ExecSQL(ctx, dbCfg, createMigrationsTableSQL); err != nil {
+func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer) error {
+	m, err := newMigrator(cfg, db, out)
+	if err != nil {
+		return err
+	}
+	return m.apply(ctx, migrationsDir)
+}
+
+func (m *migrator) apply(ctx context.Context, dir string) error {
+	if err := m.db.ExecSQL(ctx, m.dbCfg, createMigrationsTableSQL); err != nil {
 		return fmt.Errorf("creating schema_migrations table: %w", err)
 	}
+	applied, err := m.loadApplied(ctx)
+	if err != nil {
+		return err
+	}
+	count, err := m.applyEntries(ctx, dir, applied)
+	if err != nil {
+		return err
+	}
+	return m.printSummary(count)
+}
 
+func (m *migrator) applyEntries(ctx context.Context, dir string, applied map[string]bool) (int, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("reading %s: %w", dir, err)
+		return 0, fmt.Errorf("reading %s: %w", dir, err)
 	}
-
-	applied, err := db.QueryRows(ctx, dbCfg, "SELECT filename FROM schema_migrations ORDER BY filename")
-	if err != nil {
-		return fmt.Errorf("querying applied migrations: %w", err)
-	}
-	appliedSet := make(map[string]bool, len(applied))
-	for _, f := range applied {
-		appliedSet[f] = true
-	}
-
 	count := 0
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
 			continue
 		}
-		name := entry.Name()
-		if appliedSet[name] {
-			fmt.Fprintf(out, "[migrate] skip  %s (already applied)\n", name)
+		if applied[entry.Name()] {
+			fmt.Fprintf(m.out, "[migrate] skip  %s (already applied)\n", entry.Name())
 			continue
 		}
-		fmt.Fprintf(out, "[migrate] apply %s...\n", name)
-		if err := db.ExecSQLFile(ctx, dbCfg, filepath.Join(dir, name)); err != nil {
-			return fmt.Errorf("applying %s: %w", name, err)
-		}
-		record := fmt.Sprintf(
-			"INSERT INTO schema_migrations (filename) VALUES ('%s') ON CONFLICT DO NOTHING",
-			strings.ReplaceAll(name, "'", "''"),
-		)
-		if err := db.ExecSQL(ctx, dbCfg, record); err != nil {
-			return fmt.Errorf("recording %s: %w", name, err)
+		if err := m.applyOne(ctx, dir, entry.Name()); err != nil {
+			return count, err
 		}
 		count++
 	}
+	return count, nil
+}
 
+func (m *migrator) loadApplied(ctx context.Context) (map[string]bool, error) {
+	rows, err := m.db.QueryRows(ctx, m.dbCfg, "SELECT filename FROM schema_migrations ORDER BY filename")
+	if err != nil {
+		return nil, fmt.Errorf("querying applied migrations: %w", err)
+	}
+	set := make(map[string]bool, len(rows))
+	for _, f := range rows {
+		set[f] = true
+	}
+	return set, nil
+}
+
+func (m *migrator) applyOne(ctx context.Context, dir, name string) error {
+	fmt.Fprintf(m.out, "[migrate] apply %s...\n", name)
+	if err := m.db.ExecSQLFile(ctx, m.dbCfg, filepath.Join(dir, name)); err != nil {
+		return fmt.Errorf("applying %s: %w", name, err)
+	}
+	record := fmt.Sprintf(
+		"INSERT INTO schema_migrations (filename) VALUES ('%s') ON CONFLICT DO NOTHING",
+		strings.ReplaceAll(name, "'", "''"),
+	)
+	if err := m.db.ExecSQL(ctx, m.dbCfg, record); err != nil {
+		return fmt.Errorf("recording %s: %w", name, err)
+	}
+	return nil
+}
+
+func (m *migrator) printSummary(count int) error {
 	if count == 0 {
-		fmt.Fprintln(out, "[migrate] Nothing to apply — all migrations are current.")
+		fmt.Fprintln(m.out, "[migrate] Nothing to apply — all migrations are current.")
 	} else {
-		fmt.Fprintf(out, "[migrate] Applied %d migration(s) to %s.\n", count, dbCfg.DBName)
+		fmt.Fprintf(m.out, "[migrate] Applied %d migration(s) to %s.\n", count, m.dbCfg.DBName)
 	}
 	return nil
 }
