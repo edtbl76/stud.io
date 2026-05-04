@@ -1,4 +1,4 @@
-import type { SearchResponse } from '@/lib/types'
+import type { ConfirmDecision, Exclusion, ScanReport, ScanRun, SearchResponse } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -61,5 +61,27 @@ export const api = {
     if (excludeTable) p.set('exclude_table', excludeTable)
     if (excludeId) p.set('exclude_id', excludeId)
     return req<{ results: Array<{ table_name: string; id: string; name: string; brand_name: string | null }> }>(`/search/entities?${p}`)
+  },
+  scanner: {
+    runs: () => req<ScanRun[]>('/studio/scanner/scans'),
+    report: (scanId?: string) => {
+      const qs = scanId ? `?scan_id=${encodeURIComponent(scanId)}` : ''
+      return req<ScanReport>(`/studio/scanner/report${qs}`)
+    },
+    confirm: (decisions: ConfirmDecision[]) =>
+      req<{ applied: number; errors: unknown[] }>('/studio/scanner/confirm', {
+        method: 'POST', body: JSON.stringify({ confirmations: decisions }),
+      }),
+    dismiss: (resultId: string) =>
+      req<void>(`/studio/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }),
+    keep: (linkId: string) =>
+      req<void>(`/studio/scanner/links/${linkId}/keep`, { method: 'PATCH' }),
+    exclusions: () => req<Exclusion[]>('/studio/scanner/exclusions'),
+    removeExclusion: (exclusionId: string) =>
+      req<void>(`/studio/scanner/exclude/${exclusionId}`, { method: 'DELETE' }),
+    purge: (olderThanDays: number | 'all') => {
+      const qs = olderThanDays === 'all' ? '' : `?older_than_days=${olderThanDays}`
+      return req<{ deleted_count: number }>(`/studio/scanner/scans${qs}`, { method: 'DELETE' })
+    },
   },
 }

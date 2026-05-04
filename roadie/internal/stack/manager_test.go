@@ -15,10 +15,10 @@ import (
 // ── Mock providers ───────────────────────────────────────────────────────────
 
 type mockContainer struct {
-	upErr          error
-	downErr        error
-	upCalls        int
-	removedNames   []string
+	upErr        error
+	downErr      error
+	upCalls      int
+	removedNames []string
 }
 
 func (m *mockContainer) Up(_ context.Context, _ providers.UpConfig) error {
@@ -47,6 +47,9 @@ func (m *mockDB) IsReady(_ context.Context, _ providers.DBConfig) (bool, error) 
 }
 func (m *mockDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string) error     { return nil }
 func (m *mockDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, _ string) error { return nil }
+func (m *mockDB) QueryRows(_ context.Context, _ providers.DBConfig, _ string) ([]string, error) {
+	return nil, nil
+}
 
 type mockHTTP struct {
 	reachable bool
@@ -183,6 +186,9 @@ func (c *capturingDB) ExecSQL(_ context.Context, _ providers.DBConfig, _ string)
 func (c *capturingDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, _ string) error {
 	return nil
 }
+func (c *capturingDB) QueryRows(_ context.Context, _ providers.DBConfig, _ string) ([]string, error) {
+	return nil, nil
+}
 
 // assertUpError verifies that fn returns an error containing "compose failed".
 func assertUpError(t *testing.T, fn func(*Manager) error) {
@@ -266,7 +272,7 @@ func (c *capturingContainer) IsRunning(_ context.Context, _ string) (bool, error
 func (c *capturingContainer) Status(_ context.Context) ([]providers.ServiceStatus, error) {
 	return nil, nil
 }
-func (c *capturingContainer) Exec(_ context.Context, _ string, _ []string) error { return nil }
+func (c *capturingContainer) Exec(_ context.Context, _ string, _ []string) error   { return nil }
 func (c *capturingContainer) RemoveContainers(_ context.Context, _ []string) error { return nil }
 
 func TestManager_Start_WithDev_RunsDevChecks(t *testing.T) {

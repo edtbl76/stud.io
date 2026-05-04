@@ -93,6 +93,9 @@ func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.
 	if err := applySeeds(ctx, cfg, out); err != nil {
 		return err
 	}
+	if err := runMigrate(ctx, cfg, providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil), out); err != nil {
+		return err
+	}
 	if flags.schemaOnly {
 		return nil
 	}

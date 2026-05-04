@@ -16,11 +16,11 @@ async def test_stats_returns_200(client, admin_headers):
     assert response.status_code == 200
 
 
-async def test_stats_has_six_groups(client, admin_headers):
+async def test_stats_has_five_groups(client, admin_headers):
     response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     labels = [g["label"] for g in data["groups"]]
-    assert labels == ["Catalog", "Session", "Tools", "Config", "GearList", "Scanner"]
+    assert labels == ["Catalog", "Session", "Tools", "Config", "GearList"]
 
 
 async def test_stats_has_all_tables(client, admin_headers):
@@ -34,7 +34,6 @@ async def test_stats_has_all_tables(client, admin_headers):
         "Effect Types", "Entity Types", "Instrument Types",
         "Model Types", "Plugin Formats", "Tag Types", "Tool Types",
         "Gear", "Gear Types",
-        "Scans", "Scan Results", "API Keys", "Exclusions", "Plugin Links",
     }
     assert all_names == expected
 

@@ -320,7 +320,7 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 
 `POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
 
-`GET /scanner/report` — authenticated user. Returns the latest scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record).
+`GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record). If `scan_id` is omitted, returns the latest scan. Returns 404 if the specified scan_id is not found.
 
 `POST /scanner/confirm` — admin only. Accepts a list of confirmation decisions. Each item specifies a `result_id` and `action`:
 - `confirm` — links the scanned plugin to the matched record; updates version in the catalog table; writes a `scanner_plugin_links` entry.
@@ -329,6 +329,12 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 - `create` — inserts a new record in the specified `target_table`; links it; status becomes `matched`.
 
 Confirmation errors are isolated per item (one failure does not roll back others). Returns `{applied, errors}`.
+
+#### Orphan Management (admin only)
+
+`PATCH /scanner/results/{result_id}/dismiss` — admin only. Sets `dismissed_at` on the scan result, hiding it from the current report. The orphan reappears in future scan runs (dismissed_at is per-result-row, not global). Returns 204 or 404.
+
+`PATCH /scanner/links/{link_id}/keep` — admin only. Sets `keep_permanently = true` on the confirmed plugin link, suppressing orphan flagging for that plugin in all future scans. Returns 204 or 404.
 
 #### API Key Management (admin only)
 

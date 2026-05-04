@@ -48,6 +48,7 @@ build:
     - sql/gearlist_schema.sql
     - sql/scanner_schema.sql
     - sql/migrations/add_metadata_source.sql
+    - sql/migrations/add_scanner_dismiss_keep.sql
     - sql/views.sql
   seed_files:
     - sql/seeds/01_entity_types.sql

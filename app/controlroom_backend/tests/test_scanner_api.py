@@ -306,3 +306,104 @@ async def test_user_cannot_purge_scans(client, auth_headers):
 async def test_unauthenticated_cannot_list_keys(client):
     r = await client.get("/scanner/keys")
     assert r.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# GET /scanner/report?scan_id=
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_report_with_scan_id_returns_that_run(client, admin_headers, conn):
+    scan_id, _ = await _insert_scan(conn, status="untracked")
+    r = await client.get(f"/scanner/report?scan_id={scan_id}", headers=admin_headers)
+    assert r.status_code == 200
+    assert r.json()["scan_id"] == str(scan_id)
+
+
+@pytest.mark.asyncio
+async def test_report_with_unknown_scan_id_returns_404(client, admin_headers):
+    import uuid
+    r = await client.get(f"/scanner/report?scan_id={uuid.uuid4()}", headers=admin_headers)
+    assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# PATCH /scanner/results/{id}/dismiss
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_dismiss_result_sets_dismissed_at(client, admin_headers, conn):
+    _, result_id = await _insert_scan(conn, status="orphaned")
+    r = await client.patch(f"/scanner/results/{result_id}/dismiss", headers=admin_headers)
+    assert r.status_code == 204
+    dismissed = await conn.fetchval(
+        "SELECT dismissed_at FROM plugin_scan_results WHERE result_id=$1", result_id
+    )
+    assert dismissed is not None
+
+
+@pytest.mark.asyncio
+async def test_dismiss_result_unknown_returns_404(client, admin_headers):
+    import uuid
+    r = await client.patch(f"/scanner/results/{uuid.uuid4()}/dismiss", headers=admin_headers)
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_dismiss_result(client, auth_headers, conn):
+    _, result_id = await _insert_scan(conn, status="orphaned")
+    r = await client.patch(f"/scanner/results/{result_id}/dismiss", headers=auth_headers)
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_unauthenticated_cannot_dismiss_result(client, conn):
+    _, result_id = await _insert_scan(conn, status="orphaned")
+    r = await client.patch(f"/scanner/results/{result_id}/dismiss")
+    assert r.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# PATCH /scanner/links/{id}/keep
+# ---------------------------------------------------------------------------
+
+async def _insert_link(conn) -> object:
+    return await conn.fetchval(
+        "INSERT INTO scanner_plugin_links "
+        "(scanned_vendor, scanned_name, fingerprint, record_id, record_table, confirmed_by) "
+        "VALUES ($1,$2,$3,$4,$5,$6) RETURNING link_id",
+        "Acme Audio", "Reverb Pro", "acme audio reverb pro",
+        "00000000-0000-0000-0000-000000000001", "effects", "admin",
+    )
+
+
+@pytest.mark.asyncio
+async def test_keep_link_sets_keep_permanently(client, admin_headers, conn):
+    link_id = await _insert_link(conn)
+    r = await client.patch(f"/scanner/links/{link_id}/keep", headers=admin_headers)
+    assert r.status_code == 204
+    kept = await conn.fetchval(
+        "SELECT keep_permanently FROM scanner_plugin_links WHERE link_id=$1", link_id
+    )
+    assert kept is True
+
+
+@pytest.mark.asyncio
+async def test_keep_link_unknown_returns_404(client, admin_headers):
+    import uuid
+    r = await client.patch(f"/scanner/links/{uuid.uuid4()}/keep", headers=admin_headers)
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_keep_link(client, auth_headers, conn):
+    link_id = await _insert_link(conn)
+    r = await client.patch(f"/scanner/links/{link_id}/keep", headers=auth_headers)
+    assert r.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_unauthenticated_cannot_keep_link(client, conn):
+    link_id = await _insert_link(conn)
+    r = await client.patch(f"/scanner/links/{link_id}/keep")
+    assert r.status_code == 401

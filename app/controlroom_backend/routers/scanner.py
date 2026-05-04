@@ -1,8 +1,10 @@
 """Plugin Scanner — core routes.
 
-  POST /scanner/scan     — ingest raw scan (API key auth)
-  GET  /scanner/report   — latest scan report
-  POST /scanner/confirm  — apply user decisions
+  POST /scanner/scan                     — ingest raw scan (API key auth)
+  GET  /scanner/report[?scan_id=]        — scan report (latest or specific run)
+  POST /scanner/confirm                  — apply user decisions
+  PATCH /scanner/results/{id}/dismiss    — dismiss an orphaned result
+  PATCH /scanner/links/{id}/keep         — permanently keep a confirmed link
 """
 from __future__ import annotations
 
@@ -156,10 +158,16 @@ async def ingest_scan(
 async def get_report(
     _user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
+    scan_id: UUID | None = None,
 ) -> ScanReport:
-    scan = await conn.fetchrow(
-        "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
-    )
+    if scan_id is not None:
+        scan = await conn.fetchrow(
+            "SELECT scan_id, scanned_at FROM plugin_scans WHERE scan_id=$1", scan_id
+        )
+    else:
+        scan = await conn.fetchrow(
+            "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
+        )
     if not scan:
         raise HTTPException(status_code=404, detail="No scans found")
 
@@ -178,6 +186,44 @@ async def get_report(
         if group is not None:
             group.append(build_scan_result(r, meta))
     return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], **grouped)
+
+
+# ---------------------------------------------------------------------------
+# PATCH /results/{result_id}/dismiss
+# ---------------------------------------------------------------------------
+
+@router.patch("/results/{result_id}/dismiss", status_code=204, responses={404: {"description": "Scan result not found"}})
+async def dismiss_result(
+    result_id: UUID,
+    _user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> None:
+    updated = await conn.fetchval(
+        "UPDATE plugin_scan_results SET dismissed_at = NOW() "
+        "WHERE result_id = $1 RETURNING result_id",
+        result_id,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Scan result not found")
+
+
+# ---------------------------------------------------------------------------
+# PATCH /links/{link_id}/keep
+# ---------------------------------------------------------------------------
+
+@router.patch("/links/{link_id}/keep", status_code=204, responses={404: {"description": "Plugin link not found"}})
+async def keep_link(
+    link_id: UUID,
+    _user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> None:
+    updated = await conn.fetchval(
+        "UPDATE scanner_plugin_links SET keep_permanently = TRUE "
+        "WHERE link_id = $1 RETURNING link_id",
+        link_id,
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Plugin link not found")
 
 
 # ---------------------------------------------------------------------------

@@ -6,12 +6,20 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/studiocontrolroom/roadie/internal/config"
 	"github.com/studiocontrolroom/roadie/internal/providers"
 )
+
+const migrationsDir = "sql/migrations"
+
+const createMigrationsTableSQL = `CREATE TABLE IF NOT EXISTS schema_migrations (
+    filename   TEXT        PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)`
 
 // AddDBCommands registers the db subcommand group on the root command.
 func AddDBCommands(root *cobra.Command) {
@@ -20,6 +28,7 @@ func AddDBCommands(root *cobra.Command) {
 		Short: "Database management operations",
 	}
 	db.AddCommand(dbInitCmd())
+	db.AddCommand(dbMigrateCmd())
 	root.AddCommand(db)
 }
 
@@ -78,6 +87,87 @@ func validateDBInitConfig(cfg *config.Config) error {
 	}
 	if len(cfg.Build.SchemaFiles) == 0 {
 		return fmt.Errorf("build.schema_files is empty in roadie.yml")
+	}
+	return nil
+}
+
+func dbMigrateCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "migrate",
+		Short: "Apply unapplied migrations from sql/migrations/ to the production database",
+		Long: `Applies any SQL files in sql/migrations/ that have not yet been recorded in
+the schema_migrations tracking table. Safe to run multiple times — already-applied
+migrations are skipped. Files are applied in alphabetical order.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			cfg, err := loadConfig()
+			if err != nil {
+				return err
+			}
+			return runMigrate(cmd.Context(), cfg, providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil), os.Stdout)
+		},
+	}
+}
+
+func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer) error {
+	return runMigrateFromDir(ctx, cfg, db, out, migrationsDir)
+}
+
+func runMigrateFromDir(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer, dir string) error {
+	if cfg.Providers.Database.DBName == "" {
+		return fmt.Errorf("providers.database.db_name is not set in roadie.yml")
+	}
+	dbCfg := providers.DBConfig{
+		Service: cfg.Providers.Database.Service,
+		User:    cfg.Providers.Database.User,
+		DBName:  cfg.Providers.Database.DBName,
+	}
+
+	if err := db.ExecSQL(ctx, dbCfg, createMigrationsTableSQL); err != nil {
+		return fmt.Errorf("creating schema_migrations table: %w", err)
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("reading %s: %w", dir, err)
+	}
+
+	applied, err := db.QueryRows(ctx, dbCfg, "SELECT filename FROM schema_migrations ORDER BY filename")
+	if err != nil {
+		return fmt.Errorf("querying applied migrations: %w", err)
+	}
+	appliedSet := make(map[string]bool, len(applied))
+	for _, f := range applied {
+		appliedSet[f] = true
+	}
+
+	count := 0
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+			continue
+		}
+		name := entry.Name()
+		if appliedSet[name] {
+			fmt.Fprintf(out, "[migrate] skip  %s (already applied)\n", name)
+			continue
+		}
+		fmt.Fprintf(out, "[migrate] apply %s...\n", name)
+		if err := db.ExecSQLFile(ctx, dbCfg, filepath.Join(dir, name)); err != nil {
+			return fmt.Errorf("applying %s: %w", name, err)
+		}
+		record := fmt.Sprintf(
+			"INSERT INTO schema_migrations (filename) VALUES ('%s') ON CONFLICT DO NOTHING",
+			strings.ReplaceAll(name, "'", "''"),
+		)
+		if err := db.ExecSQL(ctx, dbCfg, record); err != nil {
+			return fmt.Errorf("recording %s: %w", name, err)
+		}
+		count++
+	}
+
+	if count == 0 {
+		fmt.Fprintln(out, "[migrate] Nothing to apply — all migrations are current.")
+	} else {
+		fmt.Fprintf(out, "[migrate] Applied %d migration(s) to %s.\n", count, dbCfg.DBName)
 	}
 	return nil
 }

@@ -18,4 +18,7 @@ type SQLDatabaseProvider interface {
 	// Use this for schema and view files — psql -f handles multi-statement
 	// files correctly, unlike -c which is limited to single statements.
 	ExecSQLFile(ctx context.Context, cfg DBConfig, path string) error
+	// QueryRows runs a query and returns each non-empty output line as a string.
+	// Uses psql -t -A (tuples-only, unaligned) for clean line-per-value output.
+	QueryRows(ctx context.Context, cfg DBConfig, query string) ([]string, error)
 }
