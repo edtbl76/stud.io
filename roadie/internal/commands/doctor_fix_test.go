@@ -168,10 +168,52 @@ func TestFixCmd_HasExpectedSubcommands(t *testing.T) {
 	for _, sub := range cmd.Commands() {
 		names[sub.Name()] = true
 	}
-	for _, want := range []string{"secrets", "woodpecker-agents"} {
+	for _, want := range []string{"secrets", "woodpecker-agents", "tailscale-funnel"} {
 		if !names[want] {
 			t.Errorf("fix command missing subcommand %q", want)
 		}
+	}
+}
+
+func TestRunFixTailscaleFunnel_Success(t *testing.T) {
+	dir := t.TempDir()
+	fakeBin := filepath.Join(dir, "tailscale")
+	if err := os.WriteFile(fakeBin, []byte("#!/bin/sh\nexit 0\n"), 0755); err != nil { //nolint:gosec
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+
+	var out strings.Builder
+	if err := runFixTailscaleFunnel(context.Background(), 1984, &out); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(out.String(), ":1984") {
+		t.Errorf("expected port in output, got: %q", out.String())
+	}
+	if !strings.Contains(out.String(), "enabled") {
+		t.Errorf("expected 'enabled' in output, got: %q", out.String())
+	}
+}
+
+func TestRunFixTailscaleFunnel_BinaryFails(t *testing.T) {
+	dir := t.TempDir()
+	fakeBin := filepath.Join(dir, "tailscale")
+	if err := os.WriteFile(fakeBin, []byte("#!/bin/sh\nexit 1\n"), 0755); err != nil { //nolint:gosec
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+
+	var out strings.Builder
+	if err := runFixTailscaleFunnel(context.Background(), 1984, &out); err == nil {
+		t.Error("expected error when tailscale exits non-zero")
+	}
+}
+
+func TestRunFixTailscaleFunnel_BinaryMissing(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	var out strings.Builder
+	if err := runFixTailscaleFunnel(context.Background(), 1984, &out); err == nil {
+		t.Error("expected error when tailscale is not on PATH")
 	}
 }
 

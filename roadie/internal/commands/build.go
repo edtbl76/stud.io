@@ -159,8 +159,8 @@ func printBuildSummary(cfg *config.Config, flags buildFlags, out io.Writer) {
 		fmt.Fprintln(out, "")
 		fmt.Fprintln(out, "  Release gate passed:")
 		fmt.Fprintln(out, "    Pre-commit:  ruff · bandit · pip-audit · npm-audit · detect-secrets · tsc · jest · pytest")
-		fmt.Fprintln(out, "    Unit:        tsc · jest · ruff · bandit · pytest · go-test")
-		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis")
+		fmt.Fprintln(out, "    Unit:        tsc · jest · ruff · bandit · pytest · go-test · go-test-scanner")
+		fmt.Fprintln(out, "    PBT:         fast-check · hypothesis · rapid")
 		fmt.Fprintln(out, "    E2E:         Playwright")
 		fmt.Fprintln(out, "    Scan:        SonarQube · Trivy · secrets · headers · govulncheck · gosec · staticcheck")
 		fmt.Fprintln(out, "    Perf:        benchmarks · k6 · Lighthouse")
@@ -184,7 +184,7 @@ func runUnitTests(ctx context.Context, root string, out io.Writer) error {
 var npmTools = map[string]bool{"tsc": true, "jest": true, "npm-audit": true}
 
 // buildUnitPipeline returns unit test steps filtered by tools. If tools is
-// empty, the default suite runs: tsc · jest · ruff · bandit · pytest · go-test.
+// empty, the default suite runs: tsc · jest · ruff · bandit · pytest · go-test · go-test-scanner.
 // pip-audit and npm-audit are excluded from the default run and only included
 // when explicitly named (they make network calls and run as separate pre-commit
 // hooks). govulncheck also makes a network call and belongs to the Scan suite
@@ -247,6 +247,7 @@ func filteredSteps(root pipeline.Root, run func(string) bool, explicit bool) []p
 			return pipeline.PytestStep(root, "--benchmark-skip", "--ignore="+pbtDir)
 		}},
 		{"go-test", false, func() pipeline.ToolStep { return pipeline.GoTestStep(root) }},
+		{"go-test-scanner", false, func() pipeline.ToolStep { return pipeline.GoTestPluginScannerStep(root) }},
 		{"pip-audit", true, func() pipeline.ToolStep { return pipeline.PipAuditStep(root) }},
 		{"npm-audit", true, func() pipeline.ToolStep { return pipeline.NpmAuditStep(root) }},
 	}

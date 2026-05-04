@@ -5,7 +5,7 @@ import StatsPage from '@/app/studio/admin/stats/page'
 const mockFetch = jest.fn()
 global.fetch = mockFetch
 
-// Mock counts: Catalog 111, Session 917, Tools 63, Config 76 → total 1,167
+// Mock counts: Catalog 111, Session 917, Tools 63, Config 76, GearList 42, Scanner 15 → total 1,224
 const mockStatsResponse = {
   groups: [
     {
@@ -46,8 +46,25 @@ const mockStatsResponse = {
         { name: 'Entity Types', count: 4, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
       ],
     },
+    {
+      label: 'GearList',
+      tables: [
+        { name: 'Gear', count: 38, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Gear Types', count: 4, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+      ],
+    },
+    {
+      label: 'Scanner',
+      tables: [
+        { name: 'Scan Results', count: 12, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Scans', count: 2, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'API Keys', count: 1, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Exclusions', count: 0, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+        { name: 'Plugin Links', count: 0, pending_creates: 0, pending_deletes: 0, pending_updates: 0 },
+      ],
+    },
   ],
-  total: 1167,
+  total: 1224,
 }
 
 const mockStatsWithPendingResponse = {
@@ -131,13 +148,15 @@ function mockErr(detail: string, status = 500) {
 describe('StatsPage', () => {
   beforeEach(() => mockFetch.mockReset())
 
-  it('renders all 4 group labels after fetch', async () => {
+  it('renders all 6 group labels after fetch', async () => {
     mockFetch.mockResolvedValue(mockOk(mockStatsResponse))
     render(<StatsPage />)
     await waitFor(() => expect(screen.getByText('Catalog')).toBeInTheDocument())
     expect(screen.getByText('Session')).toBeInTheDocument()
     expect(screen.getByText('Tools')).toBeInTheDocument()
     expect(screen.getByText('Config')).toBeInTheDocument()
+    expect(screen.getByText('GearList')).toBeInTheDocument()
+    expect(screen.getByText('Scanner')).toBeInTheDocument()
   })
 
   it('renders table display names', async () => {
@@ -152,7 +171,7 @@ describe('StatsPage', () => {
     mockFetch.mockResolvedValue(mockOk(mockStatsResponse))
     render(<StatsPage />)
     await waitFor(() =>
-      expect(screen.getByText('1,167')).toBeInTheDocument()
+      expect(screen.getByText('1,224')).toBeInTheDocument()
     )
   })
 

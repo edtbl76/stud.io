@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -55,6 +56,51 @@ func TestCheckHTTP_Unreachable(t *testing.T) {
 	if check(context.Background()) {
 		t.Error("expected false for unreachable server")
 	}
+}
+
+func TestCheckTailscaleFunnel_Active(t *testing.T) {
+	dir := t.TempDir()
+	fakeBin := writeFakeBin(t, dir, "tailscale",
+		`#!/bin/sh
+echo "https://rogueone.tailbb1c76.ts.net/"
+echo "|-- / tcp://localhost:1984"
+`)
+	_ = fakeBin
+	t.Setenv("PATH", dir)
+
+	check := checkTailscaleFunnel(1984)
+	if !check(context.Background()) {
+		t.Error("expected true when funnel output contains :1984")
+	}
+}
+
+func TestCheckTailscaleFunnel_Inactive(t *testing.T) {
+	dir := t.TempDir()
+	writeFakeBin(t, dir, "tailscale", "#!/bin/sh\necho '# No services running.'\n")
+	t.Setenv("PATH", dir)
+
+	check := checkTailscaleFunnel(1984)
+	if check(context.Background()) {
+		t.Error("expected false when funnel output does not contain :1984")
+	}
+}
+
+func TestCheckTailscaleFunnel_BinaryMissing(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	check := checkTailscaleFunnel(1984)
+	if check(context.Background()) {
+		t.Error("expected false when tailscale is not on PATH")
+	}
+}
+
+// writeFakeBin creates a fake executable named name in dir and returns its path.
+func writeFakeBin(t *testing.T, dir, name, script string) string {
+	t.Helper()
+	path := dir + "/" + name
+	if err := os.WriteFile(path, []byte(script), 0755); err != nil { //nolint:gosec
+		t.Fatal(err)
+	}
+	return path
 }
 
 func TestRunDoctor_OutputFormat(t *testing.T) {

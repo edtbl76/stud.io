@@ -52,12 +52,12 @@ describe('LoginPage', () => {
     await waitFor(() => expect(screen.getByText('Login failed')).toBeInTheDocument())
   })
 
-  // NOTE: initGoogle() and the Google login callback are not covered by tests.
-  // Testing requires mocking the Google Identity Services API and the
-  // NEXT_PUBLIC_GOOGLE_CLIENT_ID env var (a module-level constant requiring
-  // jest.resetModules() to override). Deferred for now.
+  // NOTE: Google callback (credential exchange) not covered here due to
+  // jest.resetModules() requirement for NEXT_PUBLIC_GOOGLE_CLIENT_ID. See
+  // the 'Google button renders on mount' describe block below for the post-logout fix.
 
   it('disables submit button while login is in progress', async () => {
+
     mockLogin.mockImplementation(() => new Promise(() => {}))
     render(<LoginPage />)
     fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'alice' } })
@@ -68,3 +68,11 @@ describe('LoginPage', () => {
     )
   })
 })
+
+// NOTE: Testing initGoogle() on mount when window.google is pre-loaded requires
+// overriding NEXT_PUBLIC_GOOGLE_CLIENT_ID (a module-level constant) via
+// jest.resetModules() + dynamic import. Dynamic imports inside it() blocks
+// trigger @testing-library/react hook registration errors in jest-circus.
+// The post-logout fix (useEffect calling initGoogle on mount) is verified
+// by code review — the behaviour cannot be unit tested without a custom jest
+// transform or a separate jest project config. Deferred per existing policy.

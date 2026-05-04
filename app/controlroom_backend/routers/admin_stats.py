@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, NamedTuple
 
 import asyncpg
 from fastapi import APIRouter, Depends
@@ -28,54 +28,70 @@ class StatsResponse(BaseModel):
     total: int
 
 
+class TableConfig(NamedTuple):
+    display_name: str
+    table_name: str
+    has_soft_delete: bool
+    active_filter: str | None = None
+
+
 # Table names below are hardcoded constants — they must never be sourced from
 # external input. The `users` table is intentionally excluded; user counts belong
 # on the Users page, not the catalog stats page.
-# (display_name, table_name, has_soft_delete)
-_STATS_GROUPS: list[tuple[str, list[tuple[str, str, bool]]]] = [
+_STATS_GROUPS: list[tuple[str, list[TableConfig]]] = [
     ("Catalog", [
-        ("Brands",  "brands",  True),
-        ("Models",  "models",  True),
+        TableConfig("Brands",  "brands",  True),
+        TableConfig("Models",  "models",  True),
     ]),
     ("Session", [
-        ("Effects",      "effects",      True),
-        ("Instruments",  "instruments",  True),
-        ("Libraries",    "libraries",    True),
-        ("Workstations", "workstations", True),
+        TableConfig("Effects",      "effects",      True),
+        TableConfig("Instruments",  "instruments",  True),
+        TableConfig("Libraries",    "libraries",    True),
+        TableConfig("Workstations", "workstations", True),
     ]),
     ("Tools", [
-        ("Admin",       "admin_tools",       True),
-        ("Composition", "composition_tools", True),
-        ("Measurement", "measurement_tools", True),
-        ("Reference",   "reference_tools",   True),
-        ("Workflow",    "workflow_tools",    True),
+        TableConfig("Admin",       "admin_tools",       True),
+        TableConfig("Composition", "composition_tools", True),
+        TableConfig("Measurement", "measurement_tools", True),
+        TableConfig("Reference",   "reference_tools",   True),
+        TableConfig("Workflow",    "workflow_tools",    True),
     ]),
     ("Config", [
-        ("Effect Types",      "effect_types",     True),
-        ("Entity Types",      "entity_types",     True),
-        ("Instrument Types",  "instrument_types", True),
-        ("Model Types",       "model_types",      True),
-        ("Plugin Formats",    "plugin_formats",   True),
-        ("Tag Types",         "tag_types",        True),
-        ("Tool Types",        "tool_types",       True),
+        TableConfig("Effect Types",      "effect_types",     True),
+        TableConfig("Entity Types",      "entity_types",     True),
+        TableConfig("Instrument Types",  "instrument_types", True),
+        TableConfig("Model Types",       "model_types",      True),
+        TableConfig("Plugin Formats",    "plugin_formats",   True),
+        TableConfig("Tag Types",         "tag_types",        True),
+        TableConfig("Tool Types",        "tool_types",       True),
+    ]),
+    ("GearList", [
+        TableConfig("Gear",       "gear",       True),
+        TableConfig("Gear Types", "gear_types", True),
+    ]),
+    ("Scanner", [
+        TableConfig("Scans",        "plugin_scans",         False),
+        TableConfig("Scan Results", "plugin_scan_results",  False),
+        TableConfig("API Keys",     "scanner_api_keys",     False, "revoked_at IS NULL"),
+        TableConfig("Exclusions",   "scanner_exclusions",   False),
+        TableConfig("Plugin Links", "scanner_plugin_links", False),
     ]),
 ]
 
 
-async def _fetch_table_stat(
-    conn: asyncpg.Connection,
-    display_name: str,
-    table_name: str,
-    has_soft_delete: bool,
-) -> TableStat:
+async def _fetch_table_stat(conn: asyncpg.Connection, cfg: TableConfig) -> TableStat:
     """Fetch active row count and pending audit counts for a single table."""
-    if has_soft_delete:
+    if cfg.has_soft_delete:
         row = await conn.fetchrow(
-            f"SELECT COUNT(*)::int AS cnt FROM {table_name} WHERE deleted_at IS NULL"  # safe: table_name from _STATS_GROUPS constant
+            f"SELECT COUNT(*)::int AS cnt FROM {cfg.table_name} WHERE deleted_at IS NULL"  # safe: table_name from _STATS_GROUPS constant
+        )
+    elif cfg.active_filter:
+        row = await conn.fetchrow(
+            f"SELECT COUNT(*)::int AS cnt FROM {cfg.table_name} WHERE {cfg.active_filter}"  # safe: table_name and active_filter from _STATS_GROUPS constant
         )
     else:
         row = await conn.fetchrow(
-            f"SELECT COUNT(*)::int AS cnt FROM {table_name}"  # safe: table_name from _STATS_GROUPS constant
+            f"SELECT COUNT(*)::int AS cnt FROM {cfg.table_name}"  # safe: table_name from _STATS_GROUPS constant
         )
     active_count = row["cnt"]
 
@@ -90,7 +106,7 @@ async def _fetch_table_stat(
           AND acknowledged_at IS NULL
           AND undone_at IS NULL
         """,
-        table_name,
+        cfg.table_name,
     )
     pending_creates = pending_row["creates"]
     pending_deletes = pending_row["deletes"]
@@ -98,7 +114,7 @@ async def _fetch_table_stat(
     adjusted_count = active_count - pending_creates + pending_deletes
 
     return TableStat(
-        name=display_name,
+        name=cfg.display_name,
         count=adjusted_count,
         pending_creates=pending_creates,
         pending_deletes=pending_deletes,
@@ -117,8 +133,8 @@ async def stats(
 
     for label, table_triples in _STATS_GROUPS:
         table_stats: list[TableStat] = []
-        for display_name, table_name, has_soft_delete in table_triples:
-            stat = await _fetch_table_stat(conn, display_name, table_name, has_soft_delete)
+        for cfg in table_triples:
+            stat = await _fetch_table_stat(conn, cfg)
             table_stats.append(stat)
             total += stat.count
 
