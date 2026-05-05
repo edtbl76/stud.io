@@ -1,8 +1,5 @@
 when:
-  - event: push
-    branch: main
   - event: pull_request
-    branch: main
   - event: manual
 
 # Isolate CI test databases from local dev to prevent concurrent run collisions.
