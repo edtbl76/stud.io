@@ -46,7 +46,7 @@ steps:
     depends_on: [npm-install]
     commands:
       - '[ -n "$SONAR_TOKEN" ] || { echo "SONAR_TOKEN is empty — secret may be blocked (forked PR?) or not configured in Woodpecker."; exit 1; }'
-      - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run 'roadie start --dev'."; exit 1; }
+      - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run ''roadie start --dev''."; exit 1; }
       - roadie test scan --gate
     environment:
       SONAR_TOKEN:
@@ -100,4 +100,33 @@ steps:
     when:
       - event: push
         branch: main
+      - event: manual
+
+---
+
+# ── Roadie workflow ──────────────────────────────────────────────────────────
+# Runs only when roadie CLI source or this pipeline file changes.
+when:
+  - event: pull_request
+    path:
+      - roadie/**
+      - .woodpecker/main.yml
+  - event: manual
+
+steps:
+  # ── Step 1: Vet + unit tests ─────────────────────────────────────────────────
+  - name: roadie-unit
+    image: /bin/bash
+    commands:
+      - cd roadie && go vet ./... && go test ./...
+
+  # ── Step 2: Security scans ──────────────────────────────────────────────────
+  - name: roadie-scan
+    image: /bin/bash
+    depends_on: [roadie-unit]
+    commands:
+      - roadie test scan secrets headers
+    when:
+      - event: pull_request
+        path: roadie/**
       - event: manual
