@@ -347,10 +347,14 @@ func waitForHTTP(ctx context.Context, url string, maxAttempts int, pause time.Du
 
 func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) ([]*os.Process, error) {
 	fmt.Fprintf(out, "Starting %d frontend processes...\n", cfg.Shards)
-	// Run npm install with a raw writer to avoid LabelWriter stalling on \r-only
-	// npm progress lines that never flush — npm CI output mixes \r and \n.
-	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
-		return nil, fmt.Errorf("npm install for e2e: %w", err)
+	// Only install if node_modules is absent — when running inside the Woodpecker
+	// pipeline the npm-install step already ran before the parallel phase, and
+	// re-running npm install concurrently with tsc/jest corrupts node_modules.
+	nodeModules := filepath.Join(root, "app", "studio_frontend", "node_modules")
+	if _, err := os.Stat(nodeModules); os.IsNotExist(err) {
+		if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
+			return nil, fmt.Errorf("npm install for e2e: %w", err)
+		}
 	}
 	procs := make([]*os.Process, 0, cfg.Shards)
 	for i := 0; i < cfg.Shards; i++ {
