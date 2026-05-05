@@ -119,10 +119,6 @@ func setupBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 	if err := dc.run(ctx, out, "build", "--no-cache", cfg.GearlistService); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Stopping dev backend (freeing port %d)...\n", cfg.BackendBasePort)
-	if err := dc.run(ctx, out, "stop", cfg.BackendService); err != nil {
-		return err
-	}
 	if err := provisionShardDBs(ctx, cfg, out); err != nil {
 		return err
 	}
@@ -347,29 +343,12 @@ func waitForHTTP(ctx context.Context, url string, maxAttempts int, pause time.Du
 
 func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io.Writer) ([]*os.Process, error) {
 	fmt.Fprintf(out, "Starting %d frontend processes...\n", cfg.Shards)
-	if err := ensureNodeModules(ctx, root, out); err != nil {
-		return nil, err
+	// Run npm install with a raw writer to avoid LabelWriter stalling on \r-only
+	// npm progress lines that never flush — npm CI output mixes \r and \n.
+	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
+		return nil, fmt.Errorf("npm install for e2e: %w", err)
 	}
 	return launchFrontendProcs(ctx, cfg, root)
-}
-
-// ensureNodeModules runs npm install only when node_modules is absent. When
-// Woodpecker's npm-install step has already run, skipping avoids a concurrent
-// write to node_modules while tsc/jest are reading it.
-func ensureNodeModules(ctx context.Context, root string, out io.Writer) error {
-	if nodeModulesExist(root) {
-		return nil
-	}
-	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
-		return fmt.Errorf("npm install for e2e: %w", err)
-	}
-	return nil
-}
-
-func nodeModulesExist(root string) bool {
-	path := filepath.Join(root, "app", "studio_frontend", "node_modules")
-	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
 }
 
 func launchFrontendProcs(ctx context.Context, cfg E2EConfig, root string) ([]*os.Process, error) {
