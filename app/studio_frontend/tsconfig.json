@@ -47,6 +47,13 @@
     ".next-perf/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next/dev",
+    ".next-e2e/dev",
+    ".next-e2e-0/dev",
+    ".next-e2e-1/dev",
+    ".next-e2e-2/dev",
+    ".next-e2e-3/dev",
+    ".next-perf/dev"
   ]
 }
