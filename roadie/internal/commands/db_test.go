@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/studiocontrolroom/roadie/internal/config"
@@ -21,6 +22,7 @@ type fakeDB struct {
 	execErr   error
 	queryErr  error
 	fileErr   error
+	mu        sync.Mutex
 	execCalls []string
 }
 
@@ -34,7 +36,9 @@ func newFakeDB(applied ...string) *fakeDB {
 
 func (f *fakeDB) IsReady(_ context.Context, _ providers.DBConfig) (bool, error) { return true, nil }
 func (f *fakeDB) ExecSQL(_ context.Context, _ providers.DBConfig, sql string) error {
+	f.mu.Lock()
 	f.execCalls = append(f.execCalls, sql)
+	f.mu.Unlock()
 	return f.execErr
 }
 func (f *fakeDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, path string) error {
@@ -89,17 +93,17 @@ func applyToDir(t *testing.T, db *fakeDB, dir string) (string, error) {
 func TestRunMigrate_NothingCases(t *testing.T) {
 	cases := []struct {
 		name    string
-		setup   func(dir string)
+		setup   func(t *testing.T, dir string)
 		applied []string
 	}{
 		{
 			name:    "empty dir",
-			setup:   func(_ string) {},
+			setup:   func(_ *testing.T, _ string) {},
 			applied: nil,
 		},
 		{
 			name: "all already applied",
-			setup: func(dir string) {
+			setup: func(t *testing.T, dir string) {
 				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
 			},
 			applied: []string{"001_init.sql"},
@@ -108,7 +112,7 @@ func TestRunMigrate_NothingCases(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			tc.setup(dir)
+			tc.setup(t, dir)
 			out, err := applyToDir(t, newFakeDB(tc.applied...), dir)
 			if err != nil {
 				t.Fatal(err)
@@ -123,12 +127,12 @@ func TestRunMigrate_NothingCases(t *testing.T) {
 func TestRunMigrate_AppliesCases(t *testing.T) {
 	cases := []struct {
 		name      string
-		setup     func(dir string)
+		setup     func(t *testing.T, dir string)
 		wantCount int
 	}{
 		{
 			name: "applies all new migrations",
-			setup: func(dir string) {
+			setup: func(t *testing.T, dir string) {
 				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
 				writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
 			},
@@ -136,7 +140,7 @@ func TestRunMigrate_AppliesCases(t *testing.T) {
 		},
 		{
 			name: "ignores non-sql files",
-			setup: func(dir string) {
+			setup: func(t *testing.T, dir string) {
 				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
 				os.WriteFile(filepath.Join(dir, "README.md"), []byte("docs"), 0644) //nolint:errcheck
 			},
@@ -146,7 +150,7 @@ func TestRunMigrate_AppliesCases(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
-			tc.setup(dir)
+			tc.setup(t, dir)
 			out, err := applyToDir(t, newFakeDB(), dir)
 			if err != nil {
 				t.Fatal(err)
