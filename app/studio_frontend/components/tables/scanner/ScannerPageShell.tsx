@@ -39,6 +39,17 @@ const REPORT_KEY_MAP: Record<Exclude<ScanSection, 'exclusions'>, ScanArrayKey> =
   'orphaned':           'orphaned',
 }
 
+function isScanInProgress(latestRun: import('@/lib/types').ScanRun | undefined): boolean {
+  if (!latestRun || latestRun.total_count === 0) return false
+  return latestRun.status_counts.matched === 0 && latestRun.status_counts.unconfirmed === 0
+}
+
+function getSectionResults(section: ScanSection, report: ScanReport | undefined): ScanResult[] {
+  if (section === 'exclusions') return []
+  const key = REPORT_KEY_MAP[section]
+  return report?.[key] ?? []
+}
+
 interface CreateModalState { result: ScanResult }
 
 function useScannerActions(effectiveScanId: string | null) {
@@ -75,26 +86,28 @@ function useScannerActions(effectiveScanId: string | null) {
   }
 }
 
-export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>) {
-  const queryClient = useQueryClient()
-  const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
-  const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
-
+function useScannerData(section: ScanSection, selectedScanId: string | null) {
   const { data: runs = [] } = useQuery({
     queryKey: ['scanner', 'runs'],
     queryFn: api.scanner.runs,
   })
-
   const latestRun = runs[0]
-  const isScanning = (latestRun?.total_count ?? 0) > 0 && latestRun?.status_counts.matched === 0 && latestRun?.status_counts.unconfirmed === 0
   const effectiveScanId = selectedScanId ?? latestRun?.scan_id ?? null
-
+  const isScanning = isScanInProgress(latestRun)
   const { data: report, isError: reportError, refetch: refetchReport } = useQuery({
     queryKey: ['scanner', 'report', effectiveScanId],
     queryFn: () => api.scanner.report(effectiveScanId ?? undefined),
     enabled: !!effectiveScanId,
   })
+  const sectionResults = getSectionResults(section, report)
+  return { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults }
+}
 
+export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>) {
+  const queryClient = useQueryClient()
+  const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
+  const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
+  const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
   const actions = useScannerActions(effectiveScanId)
 
   if (section === 'exclusions') {
@@ -105,8 +118,6 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
       </div>
     )
   }
-
-  const sectionResults: ScanResult[] = report ? (report[REPORT_KEY_MAP[section]] ?? []) : []
 
   async function handlePurge(days: Parameters<typeof api.scanner.purge>[0]) {
     await api.scanner.purge(days)
