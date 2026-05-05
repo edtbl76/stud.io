@@ -50,7 +50,7 @@ services:
       - "1984:8000"
       - "9000:9000"
     environment:
-      WOODPECKER_GITHUB: "false"
+      WOODPECKER_GITHUB: "true"
       WOODPECKER_GITHUB_CLIENT: Iv23liaJPsjezjNBlmtf
       WOODPECKER_GITHUB_APP_ID: "3427818"
       WOODPECKER_GITHUB_APP_PRIVATE_KEY_FILE: /etc/woodpecker/private-key.pem
