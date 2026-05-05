@@ -39,14 +39,14 @@ async def test_get_report_requires_auth(client):
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_report_with_scan_id_returns_that_run(client, admin_headers, conn):
+async def test_report_with_scan_id_returns_that_run(client, auth_headers, conn):
     scan_id, _ = await insert_scan(conn, status="untracked")
-    r = await client.get(f"/scanner/report?scan_id={scan_id}", headers=admin_headers)
+    r = await client.get(f"/scanner/report?scan_id={scan_id}", headers=auth_headers)
     assert r.status_code == 200
     assert r.json()["scan_id"] == str(scan_id)
 
 
 @pytest.mark.asyncio
-async def test_report_with_unknown_scan_id_returns_404(client, admin_headers):
-    r = await client.get(f"/scanner/report?scan_id={uuid.uuid4()}", headers=admin_headers)
+async def test_report_with_unknown_scan_id_returns_404(client, auth_headers):
+    r = await client.get(f"/scanner/report?scan_id={uuid.uuid4()}", headers=auth_headers)
     assert r.status_code == 404
