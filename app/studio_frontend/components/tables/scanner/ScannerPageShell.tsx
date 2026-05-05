@@ -66,7 +66,7 @@ function useScannerActions(effectiveScanId: string | null) {
     handleReject:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'reject' }]),
     handleIgnore:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'ignore' }]),
     handleConfirmAll: (results: ScanResult[]) => {
-      const high = results.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence))
+      const high = results.filter(r => r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
       if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
     },
     handleDismiss: (id: string) => dismissMutation.mutate(id),
@@ -86,7 +86,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   })
 
   const latestRun = runs[0]
-  const isScanning = latestRun?.matched === undefined // placeholder; real check needs a status field
+  const isScanning = (latestRun?.total_count ?? 0) > 0 && latestRun?.status_counts.matched === 0 && latestRun?.status_counts.unconfirmed === 0
   const effectiveScanId = selectedScanId ?? latestRun?.scan_id ?? null
 
   const { data: report, isError: reportError, refetch: refetchReport } = useQuery({
@@ -114,6 +114,16 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
     setSelectedScanId(null)
   }
 
+  function handleCreateRecord(result: ScanResult) {
+    setCreateModal({ result })
+  }
+
+  async function handleCreateRecordSubmit(table: string, data: Record<string, string>) {
+    await api.create(`/studio/${table}`, data)
+    await queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] })
+    setCreateModal(null)
+  }
+
   return (
     <div className="flex flex-col h-full">
       {runs.length === 0 ? (
@@ -130,8 +140,8 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           actions={actions}
           onScanIdChange={setSelectedScanId}
           onPurge={handlePurge}
-          onCreateRecord={(result) => setCreateModal({ result })}
-          onRefetch={() => refetchReport()}
+          onCreateRecord={handleCreateRecord}
+          onRefetch={refetchReport}
         />
       )}
 
@@ -143,11 +153,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
             version: createModal.result.version,
             format: createModal.result.format,
           }}
-          onSubmit={async (table, data) => {
-            await api.create(`/studio/${table}`, data)
-            await queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] })
-            setCreateModal(null)
-          }}
+          onSubmit={handleCreateRecordSubmit}
           onClose={() => setCreateModal(null)}
         />
       )}
@@ -183,7 +189,7 @@ function ScannerSectionContent({
       <ScanSectionHeader title={SECTION_TITLES[section]} count={sectionResults.length} />
       {section === 'unconfirmed' && (
         <BulkActionBar
-          highConfidenceCount={sectionResults.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence)).length}
+          highConfidenceCount={sectionResults.filter(r => r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence)).length}
           onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
         />
       )}
@@ -216,8 +222,8 @@ type ListItem = ScanResult | DividerSentinel
 
 function buildListItems(section: ScanSection, results: ScanResult[]): ListItem[] {
   if (section !== 'unconfirmed') return results
-  const high = results.filter(r => r.confidence && HIGH_CONFIDENCE.has(r.confidence))
-  const low = results.filter(r => !r.confidence || !HIGH_CONFIDENCE.has(r.confidence))
+  const high = results.filter(r => r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
+  const low = results.filter(r => !r.match?.confidence || !HIGH_CONFIDENCE.has(r.match.confidence))
   if (high.length === 0 || low.length === 0) return results
   return [...high, { type: 'divider' as const }, ...low]
 }

@@ -3,6 +3,7 @@
   GET    /scanner/keys             — list API keys
   POST   /scanner/keys             — create new API key
   DELETE /scanner/keys/{key_id}    — revoke API key
+  GET    /scanner/exclusions       — list exclusions
   POST   /scanner/exclude          — add to exclusion list
   DELETE /scanner/exclude/{id}     — remove from exclusion list
   GET    /scanner/scans            — scan history with counts
@@ -23,7 +24,7 @@ from routers.auth import UserOut, get_current_user, require_admin
 from schemas.scanner import (
     APIKeyCreated, APIKeyResponse,
     ConfirmationCounts, CreateExclusionRequest,
-    CreateKeyRequest, PurgeResult, ScanRun, StatusCounts,
+    CreateKeyRequest, ExclusionOut, PurgeResult, ScanRun, StatusCounts,
 )
 
 router = APIRouter()
@@ -104,6 +105,18 @@ async def revoke_key(
 # ---------------------------------------------------------------------------
 # Exclusion management
 # ---------------------------------------------------------------------------
+
+@router.get("/exclusions")
+async def list_exclusions(
+    _user: Annotated[UserOut, Depends(get_current_user)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> list[ExclusionOut]:
+    rows = await conn.fetch(
+        "SELECT exclusion_id, vendor, name, excluded_at "
+        "FROM scanner_exclusions ORDER BY excluded_at DESC"
+    )
+    return [ExclusionOut(**dict(r)) for r in rows]
+
 
 @router.post("/exclude", status_code=status.HTTP_204_NO_CONTENT)
 async def add_exclusion(

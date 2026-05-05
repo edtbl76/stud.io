@@ -237,9 +237,7 @@ export interface SearchResponse {
 // Plugin Scanner
 // ---------------------------------------------------------------------------
 
-export interface ScanRun {
-  scan_id: string
-  scanned_at: string
+export interface StatusCounts {
   matched: number
   version_mismatch: number
   unconfirmed: number
@@ -248,12 +246,23 @@ export interface ScanRun {
   ignored: number
 }
 
-export interface MatchedRecord {
-  record_id: string
-  record_table: string
-  name: string
-  vendor: string
-  version: string
+export interface ScanRun {
+  scan_id: string
+  scanned_at: string
+  source_machine: string
+  total_count: number
+  status_counts: StatusCounts
+  confirmation_counts: { confirmed: number; rejected: number; ignored: number }
+}
+
+export interface MatchMeta {
+  confidence: string
+  score: number | null
+  record_id: string | null
+  record_table: string | null
+  record_name: string | null
+  record_vendor: string | null
+  record_version: string | null
 }
 
 export interface ScanResult {
@@ -264,9 +273,7 @@ export interface ScanResult {
   version: string
   format: string
   path: string
-  confidence: 'exact' | 'high' | 'medium' | 'low' | null
-  score: number | null
-  matched_record: MatchedRecord | null
+  match: MatchMeta | null
   dismissed_at: string | null
 }
 

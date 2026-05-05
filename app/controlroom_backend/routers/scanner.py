@@ -173,7 +173,7 @@ async def get_report(
 
     results = await conn.fetch(
         "SELECT result_id,status,name,vendor,version,format,path,"
-        "confidence,score,record_id,record_table "
+        "confidence,score,record_id,record_table,dismissed_at "
         "FROM plugin_scan_results WHERE scan_id=$1",
         scan["scan_id"],
     )
@@ -214,24 +214,32 @@ async def dismiss_result(
 
 
 # ---------------------------------------------------------------------------
-# PATCH /links/{link_id}/keep
+# PATCH /results/{result_id}/keep
 # ---------------------------------------------------------------------------
 
-@router.patch("/links/{link_id}/keep", status_code=204, responses={404: {"description": "Plugin link not found"}})
-async def keep_link(
-    link_id: UUID,
+@router.patch("/results/{result_id}/keep", status_code=204, responses={404: {"description": "Scan result or link not found"}})
+async def keep_result(
+    result_id: UUID,
     _user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> None:
-    current = await conn.fetchval(
-        "SELECT keep_permanently FROM scanner_plugin_links WHERE link_id = $1", link_id
+    row = await conn.fetchrow(
+        "SELECT vendor, name FROM plugin_scan_results WHERE result_id = $1", result_id
     )
-    if current is None:
-        raise HTTPException(status_code=404, detail="Plugin link not found")
-    if not current:
-        await conn.execute(
-            "UPDATE scanner_plugin_links SET keep_permanently = TRUE WHERE link_id = $1", link_id
+    if row is None:
+        raise HTTPException(status_code=404, detail="Scan result not found")
+    fingerprint = f"{row['vendor']} {row['name']}".lower().strip()
+    updated = await conn.fetchval(
+        "UPDATE scanner_plugin_links SET keep_permanently = TRUE "
+        "WHERE fingerprint = $1 AND keep_permanently = FALSE RETURNING link_id",
+        fingerprint,
+    )
+    if updated is None:
+        existing = await conn.fetchval(
+            "SELECT link_id FROM scanner_plugin_links WHERE fingerprint = $1", fingerprint
         )
+        if existing is None:
+            raise HTTPException(status_code=404, detail="No confirmed link found for this result")
 
 
 # ---------------------------------------------------------------------------

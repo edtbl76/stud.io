@@ -11,9 +11,7 @@ const baseResult: ScanResult = {
   version: '1.0.0',
   format: 'vst3',
   path: '/path/reverb.vst3',
-  confidence: 'high',
-  score: 92,
-  matched_record: { record_id: 'rec1', record_table: 'effects', name: 'Reverb Pro', vendor: 'Acme Audio', version: '1.0.0' },
+  match: { confidence: 'high', score: 92, record_id: 'rec1', record_table: 'effects', record_name: 'Reverb Pro', record_vendor: 'Acme Audio', record_version: '1.0.0' },
   dismissed_at: null,
 }
 
@@ -46,7 +44,7 @@ describe('UnconfirmedRow', () => {
   })
 
   it('renders correct confidence badge color class for low confidence', () => {
-    const lowResult = { ...baseResult, confidence: 'low' as const }
+    const lowResult = { ...baseResult, match: { ...baseResult.match!, confidence: 'low' } }
     render(<UnconfirmedRow result={lowResult} onConfirm={jest.fn()} onReject={jest.fn()} onIgnore={jest.fn()} />)
     expect(screen.getByTestId('confidence-badge')).toHaveTextContent('low')
   })

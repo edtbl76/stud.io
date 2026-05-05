@@ -11,9 +11,7 @@ const result: ScanResult = {
   version: '1.0.0',
   format: 'vst3',
   path: '/old/path/eq.vst3',
-  confidence: null,
-  score: null,
-  matched_record: { record_id: 'rec3', record_table: 'effects', name: 'EQ Eight', vendor: 'Ableton', version: '1.0.0' },
+  match: { confidence: 'exact', score: null, record_id: 'rec3', record_table: 'effects', record_name: 'EQ Eight', record_vendor: 'Ableton', record_version: '1.0.0' },
   dismissed_at: null,
 }
 

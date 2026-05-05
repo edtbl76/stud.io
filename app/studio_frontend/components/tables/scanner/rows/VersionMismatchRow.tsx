@@ -3,7 +3,7 @@ import type { ScanResult } from '@/lib/types'
 interface VersionMismatchRowProps { result: ScanResult }
 
 export function VersionMismatchRow({ result }: Readonly<VersionMismatchRowProps>) {
-  const catalogVersion = result.matched_record?.version ?? '—'
+  const catalogVersion = result.match?.record_version ?? '—'
 
   return (
     <div

@@ -11,9 +11,7 @@ const result: ScanResult = {
   version: '2.1.0',
   format: 'au',
   path: '/path/synth.component',
-  confidence: null,
-  score: null,
-  matched_record: null,
+  match: null,
   dismissed_at: null,
 }
 

@@ -63,25 +63,25 @@ export const api = {
     return req<{ results: Array<{ table_name: string; id: string; name: string; brand_name: string | null }> }>(`/search/entities?${p}`)
   },
   scanner: {
-    runs: () => req<ScanRun[]>('/studio/scanner/scans'),
+    runs: () => req<ScanRun[]>('/scanner/scans'),
     report: (scanId?: string) => {
       const qs = scanId ? `?scan_id=${encodeURIComponent(scanId)}` : ''
-      return req<ScanReport>(`/studio/scanner/report${qs}`)
+      return req<ScanReport>(`/scanner/report${qs}`)
     },
     confirm: (decisions: ConfirmDecision[]) =>
-      req<{ applied: number; errors: unknown[] }>('/studio/scanner/confirm', {
+      req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
         method: 'POST', body: JSON.stringify({ confirmations: decisions }),
       }),
     dismiss: (resultId: string) =>
-      req<void>(`/studio/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }),
-    keep: (linkId: string) =>
-      req<void>(`/studio/scanner/links/${linkId}/keep`, { method: 'PATCH' }),
-    exclusions: () => req<Exclusion[]>('/studio/scanner/exclusions'),
+      req<void>(`/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }),
+    keep: (resultId: string) =>
+      req<void>(`/scanner/results/${resultId}/keep`, { method: 'PATCH' }),
+    exclusions: () => req<Exclusion[]>('/scanner/exclusions'),
     removeExclusion: (exclusionId: string) =>
-      req<void>(`/studio/scanner/exclude/${exclusionId}`, { method: 'DELETE' }),
+      req<void>(`/scanner/exclude/${exclusionId}`, { method: 'DELETE' }),
     purge: (olderThanDays: number | 'all') => {
       const qs = olderThanDays === 'all' ? '' : `?older_than_days=${olderThanDays}`
-      return req<{ deleted_count: number }>(`/studio/scanner/scans${qs}`, { method: 'DELETE' })
+      return req<{ deleted_count: number }>(`/scanner/scans${qs}`, { method: 'DELETE' })
     },
   },
 }

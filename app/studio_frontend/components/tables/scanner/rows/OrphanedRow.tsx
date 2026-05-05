@@ -21,11 +21,11 @@ export function OrphanedRow({
       data-testid={`orphaned-row-${result.result_id}`}
     >
       <div className="flex-1 min-w-0">
-        {result.matched_record ? (
+        {result.match?.record_name ? (
           <>
-            <p className="font-medium text-foreground truncate">{result.matched_record.name}</p>
+            <p className="font-medium text-foreground truncate">{result.match.record_name}</p>
             <p className="text-xs text-muted-foreground truncate">
-              {result.matched_record.vendor} · {result.matched_record.version} · last seen: {result.path}
+              {result.match.record_vendor} · {result.match.record_version} · last seen: {result.path}
             </p>
           </>
         ) : (
@@ -37,7 +37,7 @@ export function OrphanedRow({
         <button
           onClick={() => onViewRecord(result)}
           className="rounded border border-border px-2.5 py-1 text-xs hover:bg-muted"
-          aria-label={`View catalog record for ${result.matched_record?.name ?? result.name}`}
+          aria-label={`View catalog record for ${result.match?.record_name ?? result.name}`}
           data-testid={`view-record-button-${result.result_id}`}
         >
           View Record
@@ -45,7 +45,7 @@ export function OrphanedRow({
         <button
           onClick={() => onKeepPermanently(result.result_id)}
           className="rounded border border-border px-2.5 py-1 text-xs hover:bg-muted"
-          aria-label={`Keep ${result.matched_record?.name ?? result.name} permanently`}
+          aria-label={`Keep ${result.match?.record_name ?? result.name} permanently`}
           data-testid={`keep-button-${result.result_id}`}
         >
           Keep
@@ -53,7 +53,7 @@ export function OrphanedRow({
         <button
           onClick={() => onDismiss(result.result_id)}
           className="rounded border border-border px-2.5 py-1 text-xs hover:bg-muted text-muted-foreground"
-          aria-label={`Dismiss ${result.matched_record?.name ?? result.name} for this scan`}
+          aria-label={`Dismiss ${result.match?.record_name ?? result.name} for this scan`}
           data-testid={`dismiss-button-${result.result_id}`}
         >
           Dismiss
@@ -61,7 +61,7 @@ export function OrphanedRow({
         <button
           onClick={() => onRemoveFromCatalog(result)}
           className="rounded border border-destructive/50 px-2.5 py-1 text-xs text-destructive hover:bg-destructive/10"
-          aria-label={`Remove ${result.matched_record?.name ?? result.name} from catalog`}
+          aria-label={`Remove ${result.match?.record_name ?? result.name} from catalog`}
           data-testid={`remove-button-${result.result_id}`}
         >
           Remove

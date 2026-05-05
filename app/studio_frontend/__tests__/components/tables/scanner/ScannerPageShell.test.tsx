@@ -44,11 +44,12 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
-const BASE_RUN = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: 0, version_mismatch: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 }
+const BASE_STATUS_COUNTS = { matched: 0, version_mismatch: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 }
+const BASE_RUN = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', source_machine: 'test', total_count: 0, status_counts: BASE_STATUS_COUNTS, confirmation_counts: { confirmed: 0, rejected: 0, ignored: 0 } }
 const BASE_REPORT = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', matched: [], version_mismatch: [], unconfirmed: [], untracked: [], orphaned: [], ignored: [] }
 
-function mockRun(overrides = {}) {
-  api.scanner.runs.mockResolvedValue([{ ...BASE_RUN, ...overrides }])
+function mockRun(statusOverrides: Partial<typeof BASE_STATUS_COUNTS> = {}) {
+  api.scanner.runs.mockResolvedValue([{ ...BASE_RUN, status_counts: { ...BASE_STATUS_COUNTS, ...statusOverrides } }])
 }
 function mockReport(overrides = {}) {
   api.scanner.report.mockResolvedValue({ ...BASE_REPORT, ...overrides })
@@ -65,7 +66,7 @@ describe('ScannerPageShell', () => {
 
   it('renders matched results when report loads', async () => {
     mockRun({ matched: 1 })
-    mockReport({ matched: [{ result_id: 'r1', status: 'matched', name: 'Reverb Pro', vendor: 'Acme', version: '1.0', format: 'vst3', path: '/p', confidence: null, score: null, matched_record: null, dismissed_at: null }] })
+    mockReport({ matched: [{ result_id: 'r1', status: 'matched', name: 'Reverb Pro', vendor: 'Acme', version: '1.0', format: 'vst3', path: '/p', match: null, dismissed_at: null }] })
     render(<ScannerPageShell section="matched" />, { wrapper })
     await waitFor(() => expect(screen.getByText('Reverb Pro')).toBeInTheDocument())
   })
@@ -86,7 +87,7 @@ describe('ScannerPageShell', () => {
 
   it('renders BulkActionBar for unconfirmed section', async () => {
     mockRun({ unconfirmed: 1 })
-    mockReport({ unconfirmed: [{ result_id: 'r1', status: 'unconfirmed', name: 'Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', confidence: 'high', score: 90, matched_record: null, dismissed_at: null }] })
+    mockReport({ unconfirmed: [{ result_id: 'r1', status: 'unconfirmed', name: 'Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'high', score: 90, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null }, dismissed_at: null }] })
     render(<ScannerPageShell section="unconfirmed" />, { wrapper })
     await waitFor(() => expect(screen.getByTestId('confirm-all-high-confidence-button')).toBeInTheDocument())
   })

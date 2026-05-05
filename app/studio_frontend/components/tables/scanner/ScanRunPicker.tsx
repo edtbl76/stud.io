@@ -51,7 +51,7 @@ export function ScanRunPicker({ runs, selectedId, onChange, onPurge }: Readonly<
         >
           {runs.map((run) => (
             <option key={run.scan_id} value={run.scan_id}>
-              {new Date(run.scanned_at).toLocaleString()} — {run.matched}M {run.unconfirmed}U {run.untracked}T {run.orphaned}O
+              {new Date(run.scanned_at).toLocaleString()} — {run.status_counts.matched}M {run.status_counts.unconfirmed}U {run.status_counts.untracked}T {run.status_counts.orphaned}O
             </option>
           ))}
         </select>

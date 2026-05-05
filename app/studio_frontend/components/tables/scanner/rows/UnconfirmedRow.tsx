@@ -15,20 +15,21 @@ interface UnconfirmedRowProps {
 }
 
 export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore }: Readonly<UnconfirmedRowProps>) {
-  const confidenceStyle = result.confidence ? (CONFIDENCE_STYLES[result.confidence] ?? '') : ''
+  const confidence = result.match?.confidence ?? null
+  const confidenceStyle = confidence ? (CONFIDENCE_STYLES[confidence] ?? '') : ''
 
   return (
     <div
       className="flex items-center gap-4 px-4 py-3 border-b border-border/50 text-sm"
       data-testid={`unconfirmed-row-${result.result_id}`}
     >
-      {result.confidence && (
+      {confidence && (
         <span
           className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${confidenceStyle}`}
-          aria-label={`Confidence: ${result.confidence}`}
+          aria-label={`Confidence: ${confidence}`}
           data-testid="confidence-badge"
         >
-          {result.confidence}
+          {confidence}
         </span>
       )}
 
@@ -37,10 +38,10 @@ export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore }: Readon
         <p className="text-xs text-muted-foreground truncate">{result.vendor} · {result.version} · {result.format}</p>
       </div>
 
-      {result.matched_record && (
+      {result.match?.record_name && (
         <div className="text-xs text-muted-foreground text-right shrink-0 hidden md:block">
-          <p className="text-foreground">{result.matched_record.name}</p>
-          <p>{result.matched_record.record_table}</p>
+          <p className="text-foreground">{result.match.record_name}</p>
+          <p>{result.match.record_table}</p>
         </div>
       )}
 

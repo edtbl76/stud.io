@@ -12,10 +12,10 @@ export function MatchedRow({ result }: Readonly<MatchedRowProps>) {
         <p className="font-medium text-foreground truncate">{result.name}</p>
         <p className="text-xs text-muted-foreground truncate">{result.vendor} · {result.format} · {result.path}</p>
       </div>
-      {result.matched_record && (
+      {result.match?.record_name && (
         <div className="text-xs text-muted-foreground text-right shrink-0">
-          <p className="text-foreground">{result.matched_record.name}</p>
-          <p>{result.matched_record.record_table}</p>
+          <p className="text-foreground">{result.match.record_name}</p>
+          <p>{result.match.record_table}</p>
         </div>
       )}
     </div>
