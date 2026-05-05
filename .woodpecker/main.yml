@@ -1,7 +1,9 @@
 when:
   - event: push
     branch: main
-  - event: [pull_request, manual]
+  - event: pull_request
+    branch: main
+  - event: manual
 
 # Isolate CI test databases from local dev to prevent concurrent run collisions.
 # e2e shards become masterdb_test_ci_0..3; perf backend uses masterdb_test_ci.
@@ -17,6 +19,7 @@ steps:
   - name: build
     image: /bin/bash
     commands:
+      - rm -rf app/studio_frontend/.next-e2e-*
       - docker exec studio_db psql -U studio -lqt | cut -d'|' -f1 | grep -qw masterdb_test_ci || docker exec studio_db createdb -U studio masterdb_test_ci
       - roadie build --schema-only
     environment:
