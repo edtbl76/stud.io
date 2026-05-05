@@ -17,6 +17,7 @@ import { UnconfirmedRow } from './rows/UnconfirmedRow'
 import { UntrackedRow } from './rows/UntrackedRow'
 import { OrphanedRow } from './rows/OrphanedRow'
 import { CreateRecordModal } from './CreateRecordModal'
+import { ViewRecordModal } from './ViewRecordModal'
 
 const HIGH_CONFIDENCE = new Set(['exact', 'high'])
 
@@ -51,6 +52,7 @@ function getSectionResults(section: ScanSection, report: ScanReport | undefined)
 }
 
 interface CreateModalState { result: ScanResult }
+interface ViewModalState { result: ScanResult }
 
 function useScannerActions(effectiveScanId: string | null) {
   const queryClient = useQueryClient()
@@ -107,6 +109,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   const queryClient = useQueryClient()
   const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
   const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
+  const [viewModal, setViewModal] = React.useState<ViewModalState | null>(null)
   const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
   const actions = useScannerActions(effectiveScanId)
 
@@ -127,6 +130,10 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
 
   function handleCreateRecord(result: ScanResult) {
     setCreateModal({ result })
+  }
+
+  function handleViewRecord(result: ScanResult) {
+    setViewModal({ result })
   }
 
   async function handleCreateRecordSubmit(table: string, data: Record<string, string>) {
@@ -152,6 +159,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           onScanIdChange={setSelectedScanId}
           onPurge={handlePurge}
           onCreateRecord={handleCreateRecord}
+          onViewRecord={handleViewRecord}
           onRefetch={refetchReport}
         />
       )}
@@ -166,6 +174,13 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           }}
           onSubmit={handleCreateRecordSubmit}
           onClose={() => setCreateModal(null)}
+        />
+      )}
+
+      {viewModal?.result.match && (
+        <ViewRecordModal
+          match={viewModal.result.match}
+          onClose={() => setViewModal(null)}
         />
       )}
     </div>
@@ -184,12 +199,13 @@ interface ScannerSectionContentProps {
   onScanIdChange: (id: string) => void
   onPurge: (days: Parameters<typeof api.scanner.purge>[0]) => Promise<void>
   onCreateRecord: (result: ScanResult) => void
+  onViewRecord: (result: ScanResult) => void
   onRefetch: () => void
 }
 
 function ScannerSectionContent({
   runs, effectiveScanId, section, sectionResults, isScanning, latestRunScanId,
-  reportError, actions, onScanIdChange, onPurge, onCreateRecord, onRefetch,
+  reportError, actions, onScanIdChange, onPurge, onCreateRecord, onViewRecord, onRefetch,
 }: Readonly<ScannerSectionContentProps>) {
   return (
     <>
@@ -218,7 +234,7 @@ function ScannerSectionContent({
               onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
               onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
               onCreateRecord,
-              onViewRecord: () => { /* opens existing record modal — wired in OrphanedRow */ },
+              onViewRecord,
             })}
             emptyState={<SectionEmptyState section={section} />}
           />
