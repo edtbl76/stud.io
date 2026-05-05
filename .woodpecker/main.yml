@@ -1,6 +1,7 @@
 when:
-  - event: [push, pull_request]
+  - event: push
     branch: main
+  - event: [pull_request, manual]
 
 # Isolate CI test databases from local dev to prevent concurrent run collisions.
 # e2e shards become masterdb_test_ci_0..3; perf backend uses masterdb_test_ci.
