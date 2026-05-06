@@ -35,3 +35,21 @@ curl -sf -X PUT \
   "${ENDPOINT}/${BUCKET}/${OBJECT}"
 
 echo "Released: ${ENDPOINT}/${BUCKET}/${OBJECT}"
+
+# Enforce 10-release cap — delete oldest when bucket exceeds limit.
+MAX_RELEASES=10
+echo "Enforcing release cap (max ${MAX_RELEASES})..."
+LISTING=$(curl -sf -X GET \
+  --aws-sigv4 "aws:amz:us-east-1:s3" \
+  --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
+  "${ENDPOINT}/${BUCKET}?list-type=2&prefix=plugin-scanner/")
+COUNT=$(echo "${LISTING}" | grep -o '<Key>' | wc -l | tr -d ' ')
+while [ "${COUNT}" -gt "${MAX_RELEASES}" ]; do
+  OLDEST=$(echo "${LISTING}" | grep -o '<Key>[^<]*</Key>' | sed 's/<[^>]*>//g' | sort | head -1)
+  echo "Deleting oldest release: ${OLDEST}"
+  curl -sf -X DELETE \
+    --aws-sigv4 "aws:amz:us-east-1:s3" \
+    --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
+    "${ENDPOINT}/${BUCKET}/${OLDEST}"
+  COUNT=$((COUNT - 1))
+done

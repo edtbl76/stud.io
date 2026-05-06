@@ -1,0 +1,26 @@
+when:
+  - event: pull_request
+    path:
+      - app/plugin_scanner/**
+      - .woodpecker/plugin-scanner.yml
+    evaluate: 'not (CI_COMMIT_AUTHOR endsWith "[bot]")'
+  - event: manual
+
+steps:
+  # ── Step 1: Build + release ──────────────────────────────────────────────────
+  # Cross-compiles macOS Apple Silicon binary, zips with install.sh, uploads to
+  # MinIO studio-downloads bucket. Runs on push to main and manual trigger only;
+  # PR builds clone the repo but skip the release step.
+  - name: plugin-scanner-release
+    image: /bin/bash
+    commands:
+      - cd app/plugin_scanner && bash release.sh
+    environment:
+      MINIO_ACCESS_KEY:
+        from_secret: minio_svc_access_key
+      MINIO_SECRET_KEY:
+        from_secret: minio_svc_secret_key
+    when:
+      - event: push
+        branch: main
+      - event: manual

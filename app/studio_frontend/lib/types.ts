@@ -246,6 +246,18 @@ export interface StatusCounts {
   ignored: number
 }
 
+export interface ScannerApiKeyResponse {
+  key_id: string
+  label: string
+  key_hint: string
+  created_at: string
+  revoked_at: string | null
+}
+
+export interface ScannerApiKeyCreated extends ScannerApiKeyResponse {
+  key: string
+}
+
 export interface ScanRun {
   scan_id: string
   scanned_at: string

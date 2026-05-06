@@ -85,20 +85,3 @@ steps:
         branch: main
       - event: manual
 
-  # ── Step 7: plugin-scanner release ──────────────────────────────────────────
-  # Cross-compile macOS Apple Silicon binary, zip with install.sh, upload to MinIO.
-  # Runs on push to main and manual trigger only; depends on unit-pbt and scan.
-  - name: plugin-scanner-release
-    image: /bin/bash
-    depends_on: [unit-pbt, scan]
-    commands:
-      - cd app/plugin_scanner && bash release.sh
-    environment:
-      MINIO_ACCESS_KEY:
-        from_secret: minio_svc_access_key
-      MINIO_SECRET_KEY:
-        from_secret: minio_svc_secret_key
-    when:
-      - event: push
-        branch: main
-      - event: manual
