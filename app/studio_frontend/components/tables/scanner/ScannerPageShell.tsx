@@ -111,22 +111,12 @@ function useScannerData(section: ScanSection, selectedScanId: string | null) {
   return { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults }
 }
 
-export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>) {
+function useScannerPageHandlers(
+  effectiveScanId: string | null,
+  setSelectedScanId: (id: string | null) => void,
+  setCreateModal: (m: CreateModalState | null) => void,
+) {
   const queryClient = useQueryClient()
-  const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
-  const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
-  const [viewRecord, setViewRecord] = React.useState<ScanResult | null>(null)
-  const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
-  const actions = useScannerActions(effectiveScanId)
-
-  if (section === 'exclusions') {
-    return (
-      <div className="flex flex-col h-full">
-        <ScanSectionHeader title="Exclusions" count={0} />
-        <ExclusionsSection />
-      </div>
-    )
-  }
 
   async function handlePurge(days: Parameters<typeof api.scanner.purge>[0]) {
     try {
@@ -138,10 +128,6 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
     }
   }
 
-  function handleCreateRecord(result: ScanResult) {
-    setCreateModal({ result })
-  }
-
   async function handleCreateRecordSubmit(table: string, data: Record<string, string>) {
     try {
       await api.create(`/studio/${table}`, data)
@@ -151,6 +137,30 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
       toast.error(err instanceof Error ? err.message : 'Failed to create record. Please try again.')
       throw err
     }
+  }
+
+  return { handlePurge, handleCreateRecordSubmit }
+}
+
+export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>) {
+  const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
+  const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
+  const [viewRecord, setViewRecord] = React.useState<ScanResult | null>(null)
+  const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
+  const actions = useScannerActions(effectiveScanId)
+  const { handlePurge, handleCreateRecordSubmit } = useScannerPageHandlers(effectiveScanId, setSelectedScanId, setCreateModal)
+
+  if (section === 'exclusions') {
+    return (
+      <div className="flex flex-col h-full">
+        <ScanSectionHeader title="Exclusions" count={0} />
+        <ExclusionsSection />
+      </div>
+    )
+  }
+
+  function handleCreateRecord(result: ScanResult) {
+    setCreateModal({ result })
   }
 
   return (

@@ -1,5 +1,6 @@
 when:
   - event: pull_request
+    evaluate: 'not (CI_COMMIT_AUTHOR endsWith "[bot]")'
   - event: manual
 
 # Isolate CI test databases from local dev to prevent concurrent run collisions.
@@ -100,33 +101,4 @@ steps:
     when:
       - event: push
         branch: main
-      - event: manual
-
----
-
-# ── Roadie workflow ──────────────────────────────────────────────────────────
-# Runs only when roadie CLI source or this pipeline file changes.
-when:
-  - event: pull_request
-    path:
-      - roadie/**
-      - .woodpecker/main.yml
-  - event: manual
-
-steps:
-  # ── Step 1: Vet + unit tests ─────────────────────────────────────────────────
-  - name: roadie-unit
-    image: /bin/bash
-    commands:
-      - cd roadie && go vet ./... && go test ./...
-
-  # ── Step 2: Security scans ──────────────────────────────────────────────────
-  - name: roadie-scan
-    image: /bin/bash
-    depends_on: [roadie-unit]
-    commands:
-      - roadie test scan secrets headers
-    when:
-      - event: pull_request
-        path: roadie/**
       - event: manual

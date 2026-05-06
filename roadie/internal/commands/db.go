@@ -152,6 +152,10 @@ func (m *migrator) apply(ctx context.Context, dir string) error {
 	return m.printSummary(count)
 }
 
+func isMigrationFile(entry os.DirEntry) bool {
+	return !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql")
+}
+
 func (m *migrator) applyEntries(ctx context.Context, dir string, applied map[string]bool) (int, error) {
 	entries, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
@@ -165,7 +169,7 @@ func (m *migrator) applyEntries(ctx context.Context, dir string, applied map[str
 	}
 	count := 0
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
+		if !isMigrationFile(entry) {
 			continue
 		}
 		if applied[entry.Name()] {
