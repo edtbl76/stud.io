@@ -24,6 +24,17 @@ const navGroups: NavGroup[] = [
       { label: 'Workflow',    href: '/controlroom/tools/workflow',    prefetch: { endpoint: '/studio/tools/workflow',    queryKey: '/tools/workflow',    paginated: true, defaultSort: 'full_tool_name' } },
     ],
   },
+  {
+    title: 'PLUGIN SCANNER',
+    items: [
+      { label: 'Matched',            href: '/controlroom/scanner/matched' },
+      { label: 'Version Mismatches', href: '/controlroom/scanner/version-mismatches' },
+      { label: 'Unconfirmed',        href: '/controlroom/scanner/unconfirmed' },
+      { label: 'Untracked',          href: '/controlroom/scanner/untracked' },
+      { label: 'Orphaned',           href: '/controlroom/scanner/orphaned' },
+      { label: 'Exclusions',         href: '/controlroom/scanner/exclusions' },
+    ],
+  },
 ]
 
 export function Sidebar() {

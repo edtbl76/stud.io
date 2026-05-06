@@ -1,8 +1,10 @@
 """Plugin Scanner — core routes.
 
-  POST /scanner/scan     — ingest raw scan (API key auth)
-  GET  /scanner/report   — latest scan report
-  POST /scanner/confirm  — apply user decisions
+  POST /scanner/scan                     — ingest raw scan (API key auth)
+  GET  /scanner/report[?scan_id=]        — scan report (latest or specific run)
+  POST /scanner/confirm                  — apply user decisions
+  PATCH /scanner/results/{id}/dismiss    — dismiss an orphaned result
+  PATCH /scanner/results/{result_id}/keep — permanently keep a confirmed link
 """
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ from uuid import UUID
 
 import bcrypt
 from asyncpg import Connection
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
 
 from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
@@ -156,16 +158,22 @@ async def ingest_scan(
 async def get_report(
     _user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
+    scan_id: UUID | None = None,
 ) -> ScanReport:
-    scan = await conn.fetchrow(
-        "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
-    )
+    if scan_id is not None:
+        scan = await conn.fetchrow(
+            "SELECT scan_id, scanned_at FROM plugin_scans WHERE scan_id=$1", scan_id
+        )
+    else:
+        scan = await conn.fetchrow(
+            "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
+        )
     if not scan:
         raise HTTPException(status_code=404, detail="No scans found")
 
     results = await conn.fetch(
         "SELECT result_id,status,name,vendor,version,format,path,"
-        "confidence,score,record_id,record_table "
+        "confidence,score,record_id,record_table,dismissed_at "
         "FROM plugin_scan_results WHERE scan_id=$1",
         scan["scan_id"],
     )
@@ -178,6 +186,60 @@ async def get_report(
         if group is not None:
             group.append(build_scan_result(r, meta))
     return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], **grouped)
+
+
+# ---------------------------------------------------------------------------
+# PATCH /results/{result_id}/dismiss
+# ---------------------------------------------------------------------------
+
+async def _update_or_404(conn: Connection, sql: str, pk: UUID, detail: str) -> None:
+    if not await conn.fetchval(sql, pk):
+        raise HTTPException(status_code=404, detail=detail)
+
+
+@router.patch("/results/{result_id}/dismiss", responses={404: {"description": "Scan result not found"}})
+async def dismiss_result(
+    result_id: UUID,
+    _user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+    response: Response,
+) -> None:
+    await _update_or_404(
+        conn,
+        "UPDATE plugin_scan_results SET dismissed_at = NOW() WHERE result_id = $1 RETURNING result_id",
+        result_id,
+        "Scan result not found",
+    )
+    response.status_code = 204
+
+
+# ---------------------------------------------------------------------------
+# PATCH /results/{result_id}/keep
+# ---------------------------------------------------------------------------
+
+@router.patch("/results/{result_id}/keep", status_code=204, responses={404: {"description": "Scan result or link not found"}})
+async def keep_result(
+    result_id: UUID,
+    _user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> None:
+    row = await conn.fetchrow(
+        "SELECT vendor, name FROM plugin_scan_results WHERE result_id = $1", result_id
+    )
+    if row is None:
+        raise HTTPException(status_code=404, detail="Scan result not found")
+    fingerprint = f"{row['vendor']} {row['name']}".lower().strip()
+    updated = await conn.fetchval(
+        "UPDATE scanner_plugin_links SET keep_permanently = TRUE "
+        "WHERE fingerprint = $1 AND keep_permanently = FALSE RETURNING link_id",
+        fingerprint,
+    )
+    if updated is None:
+        existing = await conn.fetchval(
+            "SELECT link_id FROM scanner_plugin_links WHERE fingerprint = $1", fingerprint
+        )
+        if existing is None:
+            raise HTTPException(status_code=404, detail="No confirmed link found for this result")
 
 
 # ---------------------------------------------------------------------------

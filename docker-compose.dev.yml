@@ -51,7 +51,7 @@ services:
       - "9000:9000"
     environment:
       WOODPECKER_GITHUB: "true"
-      WOODPECKER_GITHUB_CLIENT: Iv23liaJPsjezjNBlmtf
+      # WOODPECKER_GITHUB_CLIENT: Iv23liaJPsjezjNBlmtf  # OAuth — disabled; GitHub App is sole webhook source
       WOODPECKER_GITHUB_APP_ID: "3427818"
       WOODPECKER_GITHUB_APP_PRIVATE_KEY_FILE: /etc/woodpecker/private-key.pem
       WOODPECKER_HOST: ${WOODPECKER_HOST}
@@ -59,7 +59,7 @@ services:
       WOODPECKER_OPEN: "false"
       WOODPECKER_DATABASE_DRIVER: sqlite3
       WOODPECKER_DATABASE_DATASOURCE: /var/lib/woodpecker/woodpecker.db
-      WOODPECKER_GITHUB_SECRET_FILE: /run/secrets/woodpecker_client_secret
+      # WOODPECKER_GITHUB_SECRET_FILE: /run/secrets/woodpecker_client_secret  # OAuth — disabled
       WOODPECKER_AGENT_SECRET_FILE: /run/secrets/woodpecker_agent_secret
       WOODPECKER_FORGE_WEBHOOK_SECRET_FILE: /run/secrets/woodpecker_webhook_secret
     secrets:

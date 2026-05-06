@@ -69,13 +69,6 @@ _STATS_GROUPS: list[tuple[str, list[TableConfig]]] = [
         TableConfig("Gear",       "gear",       True),
         TableConfig("Gear Types", "gear_types", True),
     ]),
-    ("Scanner", [
-        TableConfig("Scans",        "plugin_scans",         False),
-        TableConfig("Scan Results", "plugin_scan_results",  False),
-        TableConfig("API Keys",     "scanner_api_keys",     False, "revoked_at IS NULL"),
-        TableConfig("Exclusions",   "scanner_exclusions",   False),
-        TableConfig("Plugin Links", "scanner_plugin_links", False),
-    ]),
 ]
 
 

@@ -119,10 +119,6 @@ func setupBackendShards(ctx context.Context, cfg E2EConfig, root string, out io.
 	if err := dc.run(ctx, out, "build", "--no-cache", cfg.GearlistService); err != nil {
 		return err
 	}
-	fmt.Fprintf(out, "Stopping dev backend (freeing port %d)...\n", cfg.BackendBasePort)
-	if err := dc.run(ctx, out, "stop", cfg.BackendService); err != nil {
-		return err
-	}
 	if err := provisionShardDBs(ctx, cfg, out); err != nil {
 		return err
 	}
@@ -352,8 +348,12 @@ func startFrontendShards(ctx context.Context, cfg E2EConfig, root string, out io
 	if err := NpmInstallStep(Root(root)).RunRaw(ctx, out); err != nil {
 		return nil, fmt.Errorf("npm install for e2e: %w", err)
 	}
+	return launchFrontendProcs(ctx, cfg, root)
+}
+
+func launchFrontendProcs(ctx context.Context, cfg E2EConfig, root string) ([]*os.Process, error) {
 	procs := make([]*os.Process, 0, cfg.Shards)
-	for i := 0; i < cfg.Shards; i++ {
+	for i := range cfg.Shards {
 		proc, err := startOneFrontendShard(ctx, cfg, root, i)
 		if err != nil {
 			return procs, err

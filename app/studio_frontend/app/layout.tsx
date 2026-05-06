@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { Toaster } from 'sonner'
 import { Providers } from './providers'
 import { LayoutShell } from '@/components/layout/LayoutShell'
 
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body>
         <Providers>
           <LayoutShell>{children}</LayoutShell>
+          <Toaster richColors position="bottom-right" />
         </Providers>
       </body>
     </html>

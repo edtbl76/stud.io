@@ -62,6 +62,7 @@ const PAGES = [
   '/controlroom/tools/composition',
   '/controlroom/tools/measurement',
   '/controlroom/tools/reference',
+  '/controlroom/scanner/matched',
   '/studio/config/effect-types',
   '/studio/config/entity-types',
   '/studio/config/instrument-types',

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"strings"
 )
 
 // PostgresProvider implements SQLDatabaseProvider by running pg_isready and
@@ -58,6 +59,33 @@ func (p *PostgresProvider) ExecSQL(ctx context.Context, cfg DBConfig, sql string
 // files are applied in sequence (see schemaApplier), schema files should be
 // idempotent (e.g. use IF NOT EXISTS / CREATE OR REPLACE) so a retry after a
 // cross-file failure is safe.
+func (p *PostgresProvider) QueryRows(ctx context.Context, cfg DBConfig, query string) ([]string, error) {
+	args := []string{
+		"compose", "-f", p.composeFile,
+		"exec", "-T", cfg.Service,
+		"psql", "-U", cfg.User,
+	}
+	if cfg.DBName != "" {
+		args = append(args, "-d", cfg.DBName)
+	}
+	args = append(args, "-t", "-A", "-c", query)
+	out, err := p.run.Output(ctx, "docker", args...)
+	if err != nil {
+		return nil, err
+	}
+	return splitLines(string(out)), nil
+}
+
+func splitLines(s string) []string {
+	var lines []string
+	for _, line := range strings.Split(s, "\n") {
+		if line = strings.TrimSpace(line); line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return lines
+}
+
 func (p *PostgresProvider) ExecSQLFile(ctx context.Context, cfg DBConfig, path string) error {
 	f, err := os.Open(path)
 	if err != nil {

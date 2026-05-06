@@ -28,6 +28,7 @@ def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> 
         name=r["name"], vendor=r["vendor"], version=r["version"],
         format=r["format"], path=r["path"],
         match=build_match_meta(r, m) if r["record_id"] else None,
+        dismissed_at=r.get("dismissed_at"),
     )
 
 
@@ -93,6 +94,7 @@ class ScanResult(BaseModel):
     format: str
     path: str
     match: MatchMeta | None = None
+    dismissed_at: datetime | None = None
 
 
 class ScanReport(BaseModel):
@@ -134,6 +136,13 @@ class CreateExclusionRequest(BaseModel):
     name: str
 
 
+class ExclusionOut(BaseModel):
+    exclusion_id: UUID
+    vendor: str
+    name: str
+    excluded_at: datetime
+
+
 class PurgeResult(BaseModel):
     deleted_count: int
 
@@ -158,6 +167,7 @@ class ScanRun(BaseModel):
     scanned_at: datetime
     source_machine: str
     total_count: int
+    status: str = "completed"
     status_counts: StatusCounts
     confirmation_counts: ConfirmationCounts
 
