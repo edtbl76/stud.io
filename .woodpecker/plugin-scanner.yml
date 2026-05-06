@@ -3,7 +3,7 @@ when:
     path:
       - app/plugin_scanner/**
       - .woodpecker/plugin-scanner.yml
-    evaluate: 'not (CI_COMMIT_AUTHOR endsWith "[bot]")'
+    evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
   - event: manual
 
 steps:

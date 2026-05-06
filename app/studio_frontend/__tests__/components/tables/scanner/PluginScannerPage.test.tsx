@@ -44,7 +44,7 @@ describe('PluginScannerPage', () => {
     expect(screen.queryByTestId('download-section')).not.toBeInTheDocument()
   })
 
-  it('shows latest release card when release exists', async () => {
+  function mockLatestRelease() {
     mockFetch.mockResolvedValueOnce({
       status: 200,
       json: async () => ({
@@ -54,21 +54,17 @@ describe('PluginScannerPage', () => {
         size_bytes: 12345678,
       }),
     } as unknown as Response)
+  }
+
+  it('shows latest release card when release exists', async () => {
+    mockLatestRelease()
     render(<PluginScannerPage />, { wrapper })
     await waitFor(() => expect(screen.getByTestId('latest-release-card')).toBeInTheDocument())
     expect(screen.getByTestId('download-button')).toBeInTheDocument()
   })
 
   it('shows release history toggle when download section is visible', async () => {
-    mockFetch.mockResolvedValueOnce({
-      status: 200,
-      json: async () => ({
-        key: 'plugin-scanner/v1.zip',
-        version: 'v1.0.0',
-        released_at: '2026-05-01T00:00:00Z',
-        size_bytes: 1000,
-      }),
-    } as unknown as Response)
+    mockLatestRelease()
     render(<PluginScannerPage />, { wrapper })
     await waitFor(() => screen.getByTestId('release-history-toggle'))
     expect(screen.getByTestId('release-history-toggle')).toBeInTheDocument()
