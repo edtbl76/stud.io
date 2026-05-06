@@ -17,8 +17,14 @@ import { UnconfirmedRow } from './rows/UnconfirmedRow'
 import { UntrackedRow } from './rows/UntrackedRow'
 import { OrphanedRow } from './rows/OrphanedRow'
 import { CreateRecordModal } from './CreateRecordModal'
+import { ViewRecordModal } from './ViewRecordModal'
 
 const HIGH_CONFIDENCE = new Set(['exact', 'high'])
+
+const isHighConfidence = (r: ScanResult) =>
+  !!(r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
+
+const isLowConfidence = (r: ScanResult) => !isHighConfidence(r)
 
 const SECTION_TITLES: Record<ScanSection, string> = {
   'matched':            'Matched',
@@ -77,7 +83,7 @@ function useScannerActions(effectiveScanId: string | null) {
     handleReject:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'reject' }]),
     handleIgnore:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'ignore' }]),
     handleConfirmAll: (results: ScanResult[]) => {
-      const high = results.filter(r => r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
+      const high = results.filter(isHighConfidence)
       if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
     },
     handleDismiss: (id: string) => dismissMutation.mutate(id),
@@ -93,7 +99,9 @@ function useScannerData(section: ScanSection, selectedScanId: string | null) {
   })
   const latestRun = runs[0]
   const effectiveScanId = selectedScanId ?? latestRun?.scan_id ?? null
-  const isScanning = isScanInProgress(latestRun)
+  const isScanning = latestRun?.status
+    ? latestRun.status === 'in_progress'
+    : isScanInProgress(latestRun)
   const { data: report, isError: reportError, refetch: refetchReport } = useQuery({
     queryKey: ['scanner', 'report', effectiveScanId],
     queryFn: () => api.scanner.report(effectiveScanId ?? undefined),
@@ -107,6 +115,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   const queryClient = useQueryClient()
   const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
   const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
+  const [viewRecord, setViewRecord] = React.useState<ScanResult | null>(null)
   const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
   const actions = useScannerActions(effectiveScanId)
 
@@ -120,9 +129,13 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   }
 
   async function handlePurge(days: Parameters<typeof api.scanner.purge>[0]) {
-    await api.scanner.purge(days)
-    await queryClient.invalidateQueries({ queryKey: ['scanner', 'runs'] })
-    setSelectedScanId(null)
+    try {
+      await api.scanner.purge(days)
+      await queryClient.invalidateQueries({ queryKey: ['scanner', 'runs'] })
+      setSelectedScanId(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to purge scan history. Please try again.')
+    }
   }
 
   function handleCreateRecord(result: ScanResult) {
@@ -130,9 +143,14 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   }
 
   async function handleCreateRecordSubmit(table: string, data: Record<string, string>) {
-    await api.create(`/studio/${table}`, data)
-    await queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] })
-    setCreateModal(null)
+    try {
+      await api.create(`/studio/${table}`, data)
+      await queryClient.invalidateQueries({ queryKey: ['scanner', 'report', effectiveScanId] })
+      setCreateModal(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to create record. Please try again.')
+      throw err
+    }
   }
 
   return (
@@ -152,7 +170,15 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           onScanIdChange={setSelectedScanId}
           onPurge={handlePurge}
           onCreateRecord={handleCreateRecord}
+          onViewRecord={(result) => setViewRecord(result)}
           onRefetch={refetchReport}
+        />
+      )}
+
+      {viewRecord && (
+        <ViewRecordModal
+          result={viewRecord}
+          onClose={() => setViewRecord(null)}
         />
       )}
 
@@ -184,12 +210,13 @@ interface ScannerSectionContentProps {
   onScanIdChange: (id: string) => void
   onPurge: (days: Parameters<typeof api.scanner.purge>[0]) => Promise<void>
   onCreateRecord: (result: ScanResult) => void
+  onViewRecord: (result: ScanResult) => void
   onRefetch: () => void
 }
 
 function ScannerSectionContent({
   runs, effectiveScanId, section, sectionResults, isScanning, latestRunScanId,
-  reportError, actions, onScanIdChange, onPurge, onCreateRecord, onRefetch,
+  reportError, actions, onScanIdChange, onPurge, onCreateRecord, onViewRecord, onRefetch,
 }: Readonly<ScannerSectionContentProps>) {
   return (
     <>
@@ -200,7 +227,7 @@ function ScannerSectionContent({
       <ScanSectionHeader title={SECTION_TITLES[section]} count={sectionResults.length} />
       {section === 'unconfirmed' && (
         <BulkActionBar
-          highConfidenceCount={sectionResults.filter(r => r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence)).length}
+          highConfidenceCount={sectionResults.filter(isHighConfidence).length}
           onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
         />
       )}
@@ -218,7 +245,7 @@ function ScannerSectionContent({
               onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
               onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
               onCreateRecord,
-              onViewRecord: () => { /* opens existing record modal — wired in OrphanedRow */ },
+              onViewRecord,
             })}
             emptyState={<SectionEmptyState section={section} />}
           />
@@ -233,16 +260,24 @@ type ListItem = ScanResult | DividerSentinel
 
 function buildListItems(section: ScanSection, results: ScanResult[]): ListItem[] {
   if (section !== 'unconfirmed') return results
-  const high = results.filter(r => r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
-  const low = results.filter(r => !r.match?.confidence || !HIGH_CONFIDENCE.has(r.match.confidence))
+  const high = results.filter(isHighConfidence)
+  const low = results.filter(isLowConfidence)
   if (high.length === 0 || low.length === 0) return results
   return [...high, { type: 'divider' as const }, ...low]
 }
 
+const ROW_HEIGHT_DEFAULT = 56
+const ROW_HEIGHT_WITH_SUBTITLE = 64
+const ROW_HEIGHT_WITH_ACTIONS = 72
+
 function estimatedHeight(section: ScanSection): number {
   const heights: Record<ScanSection, number> = {
-    matched: 56, 'version-mismatches': 64, unconfirmed: 72,
-    untracked: 56, orphaned: 64, exclusions: 56,
+    matched: ROW_HEIGHT_DEFAULT,
+    'version-mismatches': ROW_HEIGHT_WITH_SUBTITLE,
+    unconfirmed: ROW_HEIGHT_WITH_ACTIONS,
+    untracked: ROW_HEIGHT_DEFAULT,
+    orphaned: ROW_HEIGHT_WITH_SUBTITLE,
+    exclusions: ROW_HEIGHT_DEFAULT,
   }
   return heights[section]
 }

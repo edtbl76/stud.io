@@ -4,12 +4,13 @@ import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 export function ExclusionsSection() {
   const queryClient = useQueryClient()
   const [confirmId, setConfirmId] = React.useState<string | null>(null)
 
-  const { data: exclusions = [] } = useQuery({
+  const { data: exclusions = [], isError, error } = useQuery({
     queryKey: ['scanner', 'exclusions'],
     queryFn: api.scanner.exclusions,
   })
@@ -22,6 +23,14 @@ export function ExclusionsSection() {
       setConfirmId(null)
     },
   })
+
+  if (isError) {
+    return (
+      <div className="flex items-center justify-center h-32 text-sm text-destructive" data-testid="exclusions-error-state">
+        Failed to load exclusions: {error instanceof Error ? error.message : 'Unknown error'}
+      </div>
+    )
+  }
 
   if (exclusions.length === 0) {
     return (
@@ -52,33 +61,31 @@ export function ExclusionsSection() {
         ))}
       </div>
 
-      {confirmId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-lg border border-border bg-card p-6 shadow-lg w-80 space-y-4">
-            <p className="text-sm font-medium text-foreground">Remove from exclusion list?</p>
-            <p className="text-xs text-muted-foreground">
-              This plugin will appear in future scan reports again.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setConfirmId(null)}
-                className="rounded border border-border px-3 py-1.5 text-xs"
-                data-testid="exclusion-cancel-button"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => removeMutation.mutate(confirmId)}
-                disabled={removeMutation.isPending}
-                className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
-                data-testid="exclusion-confirm-remove-button"
-              >
-                Remove
-              </button>
-            </div>
+      <Dialog open={!!confirmId} onOpenChange={(open) => { if (!open) setConfirmId(null) }}>
+        <DialogContent className="w-80 max-w-[calc(100vw-2rem)] p-6 space-y-4">
+          <DialogTitle className="text-sm font-medium text-foreground">Remove from exclusion list?</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            This plugin will appear in future scan reports again.
+          </DialogDescription>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setConfirmId(null)}
+              className="rounded border border-border px-3 py-1.5 text-xs"
+              data-testid="exclusion-cancel-button"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => confirmId && removeMutation.mutate(confirmId)}
+              disabled={removeMutation.isPending}
+              className="rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+              data-testid="exclusion-confirm-remove-button"
+            >
+              Remove
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

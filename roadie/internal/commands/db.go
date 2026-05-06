@@ -154,8 +154,14 @@ func (m *migrator) apply(ctx context.Context, dir string) error {
 
 func (m *migrator) applyEntries(ctx context.Context, dir string, applied map[string]bool) (int, error) {
 	entries, err := os.ReadDir(dir)
+	if os.IsNotExist(err) {
+		return 0, nil
+	}
 	if err != nil {
 		return 0, fmt.Errorf("reading %s: %w", dir, err)
+	}
+	if len(entries) == 0 {
+		return 0, nil
 	}
 	count := 0
 	for _, entry := range entries {

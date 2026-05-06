@@ -1,7 +1,9 @@
 'use client'
 
 import * as React from 'react'
+import { toast } from 'sonner'
 import type { ScanRun } from '@/lib/types'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 const PURGE_OPTIONS = [
   { label: 'Keep last 30 days',  value: 30 },
@@ -29,10 +31,12 @@ export function ScanRunPicker({ runs, selectedId, onChange, onPurge }: Readonly<
     setPurging(true)
     try {
       await onPurge(purgeValue)
-    } finally {
-      setPurging(false)
       setConfirmOpen(false)
       setHistoryOpen(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to purge scan history. Please try again.')
+    } finally {
+      setPurging(false)
     }
   }
 
@@ -92,35 +96,34 @@ export function ScanRunPicker({ runs, selectedId, onChange, onPurge }: Readonly<
         </div>
       )}
 
-      {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="rounded-lg border border-border bg-card p-6 shadow-lg w-80 space-y-4">
-            <p className="text-sm font-medium text-foreground">Confirm purge</p>
-            <p className="text-xs text-muted-foreground">
-              This will permanently delete scan runs
-              {purgeValue === 'all' ? ' — all of them' : ` older than ${purgeValue} days`}.
-              This cannot be undone.
-            </p>
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setConfirmOpen(false)}
-                className="rounded border border-border px-3 py-1.5 text-xs"
-                data-testid="purge-cancel-button"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handlePurge}
-                disabled={purging}
-                className="rounded bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground disabled:opacity-50"
-                data-testid="purge-confirm-button"
-              >
-                {purging ? 'Purging...' : 'Confirm Purge'}
-              </button>
-            </div>
+      <Dialog open={confirmOpen} onOpenChange={(open) => { if (!open) setConfirmOpen(false) }}>
+        <DialogContent className="w-80 max-w-[calc(100vw-2rem)] p-6 space-y-4">
+          <DialogTitle className="text-sm font-medium text-foreground">Confirm purge</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            This will permanently delete scan runs
+            {purgeValue === 'all' ? ' — all of them' : ` older than ${purgeValue} days`}.
+            This cannot be undone.
+          </DialogDescription>
+          <div className="flex gap-2 justify-end">
+            <button
+              onClick={() => setConfirmOpen(false)}
+              className="rounded border border-border px-3 py-1.5 text-xs"
+              data-testid="purge-cancel-button"
+              autoFocus
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePurge}
+              disabled={purging}
+              className="rounded bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground disabled:opacity-50"
+              data-testid="purge-confirm-button"
+            >
+              {purging ? 'Purging...' : 'Confirm Purge'}
+            </button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

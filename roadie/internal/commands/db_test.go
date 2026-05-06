@@ -42,6 +42,8 @@ func (f *fakeDB) ExecSQL(_ context.Context, _ providers.DBConfig, sql string) er
 	return f.execErr
 }
 func (f *fakeDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, path string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	f.execCalls = append(f.execCalls, "FILE:"+filepath.Base(path))
 	return f.fileErr
 }

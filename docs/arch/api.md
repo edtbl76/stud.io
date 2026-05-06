@@ -320,7 +320,7 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 
 `POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
 
-`GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record). If `scan_id` is omitted, returns the latest scan. Returns 404 if the specified scan_id is not found.
+`GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record). If `scan_id` is omitted, returns the latest scan. Returns 404 if `scan_id` is omitted and no scans exist, or if the specified `scan_id` is not found.
 
 `POST /scanner/confirm` — admin only. Accepts a list of confirmation decisions. Each item specifies a `result_id` and `action`:
 - `confirm` — links the scanned plugin to the matched record; updates version in the catalog table; writes a `scanner_plugin_links` entry.

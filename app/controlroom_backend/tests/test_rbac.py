@@ -294,3 +294,8 @@ async def test_user_cannot_keep_scanner_result(client, auth_headers):
 async def test_unauthenticated_cannot_keep_scanner_result(client):
     response = await client.patch(f"/scanner/results/{DUMMY_UUID}/keep")
     assert response.status_code == 401
+
+
+async def test_unauthenticated_cannot_list_exclusions(client):
+    response = await client.get("/scanner/exclusions")
+    assert response.status_code == 401

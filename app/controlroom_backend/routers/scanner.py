@@ -4,7 +4,7 @@
   GET  /scanner/report[?scan_id=]        — scan report (latest or specific run)
   POST /scanner/confirm                  — apply user decisions
   PATCH /scanner/results/{id}/dismiss    — dismiss an orphaned result
-  PATCH /scanner/links/{id}/keep         — permanently keep a confirmed link
+  PATCH /scanner/results/{result_id}/keep — permanently keep a confirmed link
 """
 from __future__ import annotations
 

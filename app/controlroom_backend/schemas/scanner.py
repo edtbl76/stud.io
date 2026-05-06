@@ -167,6 +167,7 @@ class ScanRun(BaseModel):
     scanned_at: datetime
     source_machine: str
     total_count: int
+    status: str = "completed"
     status_counts: StatusCounts
     confirmation_counts: ConfirmationCounts
 

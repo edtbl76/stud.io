@@ -56,10 +56,11 @@ test('exclusions section shows empty state when list is empty', async ({ page })
 
 test('scan run picker appears when scans exist', async ({ page }) => {
   await page.goto(`${BASE}/matched`)
-  // If scans exist the picker renders; otherwise empty state renders — both are valid
-  await expect(
-    page.locator('[data-testid="scan-run-select"], [data-testid="scanner-no-scans-state"]')
-  ).toBeVisible({ timeout: 10000 })
+  const picker = page.getByTestId('scan-run-select')
+  const noScans = page.getByTestId('scanner-no-scans-state')
+  await expect(picker.or(noScans)).toBeVisible({ timeout: 10000 })
+  test.skip(await noScans.isVisible(), 'No scan data available in this environment')
+  await expect(picker).toBeVisible()
 })
 
 // ---------------------------------------------------------------------------
@@ -69,8 +70,9 @@ test('scan run picker appears when scans exist', async ({ page }) => {
 test('manage history panel opens when toggle is clicked', async ({ page }) => {
   await page.goto(`${BASE}/matched`)
   const toggle = page.getByTestId('manage-history-toggle')
-  if (await toggle.isVisible()) {
-    await toggle.click()
-    await expect(page.getByTestId('manage-history-panel')).toBeVisible()
-  }
+  const noScans = page.getByTestId('scanner-no-scans-state')
+  await expect(toggle.or(noScans)).toBeVisible({ timeout: 10000 })
+  test.skip(await noScans.isVisible(), 'No scan data available in this environment')
+  await toggle.click()
+  await expect(page.getByTestId('manage-history-panel')).toBeVisible()
 })

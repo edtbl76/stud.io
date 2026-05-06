@@ -251,6 +251,7 @@ export interface ScanRun {
   scanned_at: string
   source_machine: string
   total_count: number
+  status?: 'in_progress' | 'completed'
   status_counts: StatusCounts
   confirmation_counts: { confirmed: number; rejected: number; ignored: number }
 }

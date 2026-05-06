@@ -58,6 +58,7 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | Unconfirmed | Fuzzy matches awaiting review |
 | Untracked | No match found — create a record or ignore |
 | Orphaned | In ControlRoom but no longer on disk |
+| Exclusions | Plugins intentionally excluded from triage — ignored via scan confirm or user policy. Review here to restore a plugin to active scanning by removing its exclusion. |
 
 ## Custom Scan Paths
 
