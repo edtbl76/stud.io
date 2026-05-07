@@ -26,7 +26,7 @@ function defaultLabel(): string {
   return `key-${new Date().toISOString().slice(0, 10)}`
 }
 
-export function APIKeyManager() {
+function useApiKeyManager() {
   const queryClient = useQueryClient()
   const [showRevoked, setShowRevoked] = React.useState(false)
   const [label, setLabel] = React.useState(defaultLabel)
@@ -62,45 +62,94 @@ export function APIKeyManager() {
   })
 
   const visibleKeys = showRevoked ? keys : keys.filter(isActiveKey)
+  const activeCount = keys.filter(isActiveKey).length
+
+  return {
+    keys, label, setLabel, showRevoked, setShowRevoked,
+    newKey, setNewKey, revokeTarget, setRevokeTarget,
+    visibleKeys, activeCount, generateMutation, revokeMutation,
+  }
+}
+
+interface GenerateKeyFormProps {
+  label: string
+  onLabelChange: (v: string) => void
+  onGenerate: () => void
+  isPending: boolean
+}
+
+function GenerateKeyForm({ label, onLabelChange, onGenerate, isPending }: Readonly<GenerateKeyFormProps>) {
+  return (
+    <div className="flex items-end gap-2">
+      <div className="flex-1 space-y-1">
+        <label htmlFor="key-label-input" className="text-xs text-muted-foreground">
+          Key label (optional)
+        </label>
+        <input
+          id="key-label-input"
+          value={label}
+          onChange={(e) => onLabelChange(e.target.value)}
+          placeholder="key-YYYY-MM-DD"
+          className="w-full rounded border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
+          data-testid="key-label-input"
+        />
+      </div>
+      <button
+        onClick={onGenerate}
+        disabled={isPending}
+        className="rounded bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 shrink-0"
+        data-testid="generate-key-button"
+      >
+        {isPending ? 'Generating...' : 'Generate API Key'}
+      </button>
+    </div>
+  )
+}
+
+interface KeyListHeaderProps {
+  activeCount: number
+  showRevoked: boolean
+  onToggleRevoked: () => void
+}
+
+function KeyListHeader({ activeCount, showRevoked, onToggleRevoked }: Readonly<KeyListHeaderProps>) {
+  return (
+    <div className="flex items-center justify-between">
+      <p className="text-xs text-muted-foreground">
+        {activeCount} active key{activeCount === 1 ? '' : 's'}
+      </p>
+      <button
+        onClick={onToggleRevoked}
+        className="text-xs text-muted-foreground underline"
+        data-testid="show-revoked-toggle"
+      >
+        {showRevoked ? 'Hide revoked' : 'Show revoked'}
+      </button>
+    </div>
+  )
+}
+
+export function APIKeyManager() {
+  const {
+    label, setLabel, showRevoked, setShowRevoked,
+    newKey, setNewKey, revokeTarget, setRevokeTarget,
+    visibleKeys, activeCount, generateMutation, revokeMutation,
+  } = useApiKeyManager()
 
   return (
     <section className="space-y-4" data-testid="api-key-manager">
-      <div className="flex items-end gap-2">
-        <div className="flex-1 space-y-1">
-          <label htmlFor="key-label-input" className="text-xs text-muted-foreground">
-            Key label (optional)
-          </label>
-          <input
-            id="key-label-input"
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="key-YYYY-MM-DD"
-            className="w-full rounded border border-border bg-muted px-3 py-1.5 text-sm text-foreground"
-            data-testid="key-label-input"
-          />
-        </div>
-        <button
-          onClick={() => generateMutation.mutate(label || defaultLabel())}
-          disabled={generateMutation.isPending}
-          className="rounded bg-primary px-4 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 shrink-0"
-          data-testid="generate-key-button"
-        >
-          {generateMutation.isPending ? 'Generating...' : 'Generate API Key'}
-        </button>
-      </div>
+      <GenerateKeyForm
+        label={label}
+        onLabelChange={setLabel}
+        onGenerate={() => generateMutation.mutate(label || defaultLabel())}
+        isPending={generateMutation.isPending}
+      />
 
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-muted-foreground">
-          {keys.filter(isActiveKey).length} active key{keys.filter(isActiveKey).length === 1 ? '' : 's'}
-        </p>
-        <button
-          onClick={() => setShowRevoked(v => !v)}
-          className="text-xs text-muted-foreground underline"
-          data-testid="show-revoked-toggle"
-        >
-          {showRevoked ? 'Hide revoked' : 'Show revoked'}
-        </button>
-      </div>
+      <KeyListHeader
+        activeCount={activeCount}
+        showRevoked={showRevoked}
+        onToggleRevoked={() => setShowRevoked(v => !v)}
+      />
 
       <div className="divide-y divide-border/50 rounded border border-border" data-testid="key-list">
         {visibleKeys.length === 0 ? (
