@@ -1,6 +1,9 @@
 when:
   - event: pull_request
     evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
+  - event: push
+    branch: main
+    evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
   - event: manual
 
 # Isolate CI test databases from local dev to prevent concurrent run collisions.

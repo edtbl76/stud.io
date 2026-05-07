@@ -27,7 +27,7 @@ cp /tmp/install.sh "/tmp/${ARTIFACT}/"
 cd /tmp && zip -r "${ARTIFACT}.zip" "${ARTIFACT}/"
 
 echo "Uploading ${ARTIFACT}.zip to ${ENDPOINT}/${BUCKET}/${OBJECT}..."
-curl -sf -X PUT \
+/usr/bin/curl -sf -X PUT \
   --aws-sigv4 "aws:amz:us-east-1:s3" \
   --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
   -H "Content-Type: application/zip" \
@@ -40,7 +40,7 @@ echo "Released: ${ENDPOINT}/${BUCKET}/${OBJECT}"
 MAX_RELEASES=10
 echo "Enforcing release cap (max ${MAX_RELEASES})..."
 while true; do
-  LISTING=$(curl -sf -X GET \
+  LISTING=$(/usr/bin/curl -sf -X GET \
     --aws-sigv4 "aws:amz:us-east-1:s3" \
     --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
     "${ENDPOINT}/${BUCKET}?list-type=2&prefix=plugin-scanner/")
@@ -55,7 +55,7 @@ pairs = sorted(zip(dates, keys))
 print(pairs[0][1] if pairs else '')
 ")
   echo "Deleting oldest release: ${OLDEST}"
-  curl -sf -X DELETE \
+  /usr/bin/curl -sf -X DELETE \
     --aws-sigv4 "aws:amz:us-east-1:s3" \
     --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
     "${ENDPOINT}/${BUCKET}/${OLDEST}"
