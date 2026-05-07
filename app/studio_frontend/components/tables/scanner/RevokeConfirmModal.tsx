@@ -2,17 +2,12 @@
 
 import * as React from 'react'
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import type { ScannerApiKeyResponse } from '@/lib/types'
 
-export interface ScannerApiKey {
-  key_id: string
-  label: string
-  key_hint: string
-  created_at: string
-  revoked_at: string | null
-}
+export type { ScannerApiKeyResponse as ScannerApiKey } from '@/lib/types'
 
 interface RevokeConfirmModalProps {
-  apiKey: ScannerApiKey
+  apiKey: ScannerApiKeyResponse
   isPending: boolean
   onConfirm: () => void
   onCancel: () => void

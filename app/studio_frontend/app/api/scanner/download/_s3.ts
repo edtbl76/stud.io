@@ -23,14 +23,22 @@ function getS3(): S3Client {
   return s3
 }
 
+const AUTH_TIMEOUT_MS = 5_000
+
 export async function requireSession(): Promise<NextResponse | null> {
   const cookieStore = await cookies()
   const token = cookieStore.get('controlroom_token')
   if (!token) return new NextResponse(null, { status: 401 })
-  const res = await fetch(`${BACKEND}/auth/me`, {
-    headers: { authorization: `Bearer ${token.value}` },
-  })
-  if (!res.ok) return new NextResponse(null, { status: 401 })
+  try {
+    const res = await fetch(`${BACKEND}/auth/me`, {
+      headers: { authorization: `Bearer ${token.value}` },
+      cache: 'no-store',
+      signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
+    })
+    if (!res.ok) return new NextResponse(null, { status: 401 })
+  } catch {
+    return new NextResponse(null, { status: 401 })
+  }
   return null
 }
 

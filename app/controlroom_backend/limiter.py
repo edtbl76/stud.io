@@ -6,21 +6,29 @@ office networks do not block all admins when one hits the limit.
 """
 from __future__ import annotations
 
+import logging
+
 from fastapi import Request
 from jose import jwt as _jwt
+from jose.exceptions import JWTError
 from slowapi import Limiter
 
 from config import settings
+
+log = logging.getLogger(__name__)
 
 
 def _key_by_user(request: Request) -> str:
     token = request.headers.get("Authorization", "")
     if token.startswith("Bearer "):
         try:
-            payload = _jwt.decode(token[7:], settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-            return payload.get("sub", "")
-        except Exception:
-            pass
+            payload = _jwt.decode(
+                token[7:], settings.jwt_secret, algorithms=[settings.jwt_algorithm]
+            )
+            if subject := payload.get("sub"):
+                return subject
+        except JWTError as exc:
+            log.debug("JWT decode failed for rate-limit key: %s", exc)
     return request.client.host if request.client else "unknown"
 
 

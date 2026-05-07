@@ -34,6 +34,13 @@ describe('NewKeyModal', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('does not show Copied! when clipboard write fails', async () => {
+    ;(navigator.clipboard.writeText as jest.Mock).mockRejectedValueOnce(new Error('denied'))
+    render(<NewKeyModal result={RESULT} onClose={jest.fn()} />)
+    fireEvent.click(screen.getByTestId('copy-key-button'))
+    expect(screen.queryByText('Copied!')).not.toBeInTheDocument()
+  })
+
   it('shows label and hint', () => {
     render(<NewKeyModal result={RESULT} onClose={jest.fn()} />)
     expect(screen.getByText('ci-runner')).toBeInTheDocument()

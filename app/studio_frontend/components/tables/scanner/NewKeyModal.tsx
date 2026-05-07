@@ -19,8 +19,12 @@ export function NewKeyModal({ result, onClose }: Readonly<NewKeyModalProps>) {
   const [copied, setCopied] = React.useState(false)
 
   async function handleCopy() {
-    await navigator.clipboard.writeText(result.key)
-    setCopied(true)
+    try {
+      await navigator.clipboard.writeText(result.key)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
   }
 
   return (

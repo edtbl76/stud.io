@@ -24,14 +24,13 @@ global.fetch = jest.fn()
 import { listReleases, presignDownload, requireSession, PREFIX } from '@/app/api/scanner/download/_s3'
 import { S3Client } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
+import { cookies } from 'next/headers'
 
 const mockSend = jest.fn()
 ;(S3Client as jest.Mock).mockImplementation(() => ({ send: mockSend }))
 
 beforeEach(() => {
   jest.clearAllMocks()
-  // Reset singleton
-  jest.resetModules()
 })
 
 describe('listReleases', () => {
@@ -85,8 +84,14 @@ describe('requireSession', () => {
   })
 
   it('returns 401 response when no token cookie', async () => {
-    const { cookies } = await import('next/headers')
     ;(cookies as jest.Mock).mockResolvedValueOnce({ get: jest.fn().mockReturnValue(null) })
+    const result = await requireSession()
+    expect(result?.status).toBe(401)
+  })
+
+  it('returns 401 response when fetch times out', async () => {
+    const err = new DOMException('signal timed out', 'TimeoutError')
+    ;(global.fetch as jest.Mock).mockRejectedValueOnce(err)
     const result = await requireSession()
     expect(result?.status).toBe(401)
   })

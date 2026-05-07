@@ -46,6 +46,7 @@ describe('PluginScannerPage', () => {
 
   function mockLatestRelease() {
     mockFetch.mockResolvedValueOnce({
+      ok: true,
       status: 200,
       json: async () => ({
         key: 'plugin-scanner/plugin-scanner-v1.0.0-20260501T000000Z-darwin-arm64.zip',
@@ -73,6 +74,7 @@ describe('PluginScannerPage', () => {
   it('loads history lazily when toggle clicked', async () => {
     mockFetch
       .mockResolvedValueOnce({
+        ok: true,
         status: 200,
         json: async () => ({
           key: 'plugin-scanner/v2.zip', version: 'v2.0.0',
@@ -80,6 +82,7 @@ describe('PluginScannerPage', () => {
         }),
       } as unknown as Response)
       .mockResolvedValueOnce({
+        ok: true,
         status: 200,
         json: async () => [{ key: 'plugin-scanner/v1.zip', version: 'v1.0.0', released_at: '2026-05-01T00:00:00Z', size_bytes: 1000 }],
       } as unknown as Response)
@@ -89,5 +92,13 @@ describe('PluginScannerPage', () => {
     fireEvent.click(screen.getByTestId('release-history-toggle'))
     await waitFor(() => screen.getByTestId('release-history-list'))
     expect(mockFetch).toHaveBeenCalledWith('/api/scanner/download/history')
+    expect(screen.getByText('v1.0.0')).toBeInTheDocument()
+  })
+
+  it('hides download section when latest fetch fails', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('network error'))
+    render(<PluginScannerPage />, { wrapper })
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith('/api/scanner/download/latest'))
+    expect(screen.queryByTestId('download-section')).not.toBeInTheDocument()
   })
 })

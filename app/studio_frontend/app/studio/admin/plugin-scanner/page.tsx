@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { toast } from 'sonner'
 import { APIKeyManager } from '@/components/tables/scanner/APIKeyManager'
 
 interface ReleaseInfo {
@@ -12,8 +13,8 @@ interface ReleaseInfo {
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B'
-  const units = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(1024))
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1)
   return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`
 }
 
@@ -24,11 +25,18 @@ function LatestReleaseCard({ release }: Readonly<{ release: ReleaseInfo }>) {
     setDownloading(true)
     try {
       const res = await fetch(`/api/scanner/download/url?key=${encodeURIComponent(release.key)}`)
+      if (!res.ok) {
+        const msg = await res.text()
+        toast.error(`Download failed: ${msg || res.statusText}`)
+        return
+      }
       const { url } = await res.json()
       const a = document.createElement('a')
       a.href = url
       a.download = release.key.split('/').pop() ?? 'plugin-scanner.zip'
       a.click()
+    } catch {
+      toast.error('Download failed: network error')
     } finally {
       setDownloading(false)
     }
@@ -64,17 +72,28 @@ function ReleaseHistoryCollapsible() {
   const [loading, setLoading] = React.useState(false)
 
   async function handleToggle() {
-    if (!open && history.length === 0) {
+    if (open) {
+      setOpen(false)
+      return
+    }
+    if (history.length === 0) {
       setLoading(true)
       try {
         const res = await fetch('/api/scanner/download/history')
+        if (!res.ok) {
+          toast.error('Failed to load release history')
+          return
+        }
         const data = await res.json()
         setHistory(data)
+      } catch {
+        toast.error('Failed to load release history')
+        return
       } finally {
         setLoading(false)
       }
     }
-    setOpen(v => !v)
+    setOpen(true)
   }
 
   return (
@@ -115,7 +134,7 @@ function DownloadSection() {
   React.useEffect(() => {
     fetch('/api/scanner/download/latest')
       .then(res => {
-        if (res.status === 204) return null
+        if (res.status === 204 || !res.ok) return null
         return res.json()
       })
       .then(data => setLatest(data))

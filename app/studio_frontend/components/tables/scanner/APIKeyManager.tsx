@@ -33,10 +33,14 @@ export function APIKeyManager() {
   const [newKey, setNewKey] = React.useState<NewKeyResult | null>(null)
   const [revokeTarget, setRevokeTarget] = React.useState<ScannerApiKey | null>(null)
 
-  const { data: keys = [] } = useQuery({
+  const { data: keys = [], isError, error } = useQuery({
     queryKey: ['scanner', 'keys'],
     queryFn: api.scanner.listKeys,
   })
+
+  React.useEffect(() => {
+    if (isError) toast.error(`Failed to load API keys: ${error instanceof Error ? error.message : 'unknown error'}`)
+  }, [isError, error])
 
   const generateMutation = useMutation({
     mutationFn: (lbl: string) => api.scanner.createKey(lbl),

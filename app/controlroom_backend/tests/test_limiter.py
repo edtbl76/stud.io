@@ -40,6 +40,17 @@ async def test_key_by_user_falls_back_to_ip_when_no_auth_header():
 
 
 @pytest.mark.asyncio
+async def test_key_by_user_falls_back_to_ip_when_sub_missing():
+    from jose import jwt as _jwt
+    from limiter import _key_by_user
+    from config import settings
+    token = _jwt.encode({"role": "admin"}, settings.jwt_secret, algorithm=settings.jwt_algorithm)
+    req = _make_request(auth_header=f"Bearer {token}", client_host="10.0.0.2")
+    result = _key_by_user(req)
+    assert result == "10.0.0.2"
+
+
+@pytest.mark.asyncio
 async def test_key_by_user_handles_missing_client():
     from limiter import _key_by_user
     req = _make_request()

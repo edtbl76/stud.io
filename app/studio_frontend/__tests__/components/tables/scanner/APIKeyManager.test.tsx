@@ -77,4 +77,11 @@ describe('APIKeyManager', () => {
     render(<APIKeyManager />, { wrapper })
     await waitFor(() => expect(screen.getByTestId('key-list-empty')).toBeInTheDocument())
   })
+
+  it('shows error toast when listKeys fails', async () => {
+    const { toast } = jest.requireMock('sonner') as { toast: { error: jest.Mock } }
+    api.scanner.listKeys.mockRejectedValue(new Error('server error'))
+    render(<APIKeyManager />, { wrapper })
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('server error')))
+  })
 })

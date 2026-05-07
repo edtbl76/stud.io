@@ -4,6 +4,12 @@ when:
       - app/plugin_scanner/**
       - .woodpecker/plugin-scanner.yml
     evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
+  - event: push
+    branch: main
+    path:
+      - app/plugin_scanner/**
+      - .woodpecker/plugin-scanner.yml
+    evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
   - event: manual
 
 steps:
