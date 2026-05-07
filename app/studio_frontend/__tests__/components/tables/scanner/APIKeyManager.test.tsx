@@ -72,6 +72,16 @@ describe('APIKeyManager', () => {
     await waitFor(() => expect(screen.getByTestId('new-key-modal')).toBeInTheDocument())
   })
 
+  it('shows error toast and no modal when createKey fails', async () => {
+    const { toast } = jest.requireMock('sonner') as { toast: { error: jest.Mock } }
+    api.scanner.createKey.mockRejectedValue(new Error('generate failed'))
+    render(<APIKeyManager />, { wrapper })
+    await waitFor(() => screen.getByTestId('generate-key-button'))
+    fireEvent.click(screen.getByTestId('generate-key-button'))
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(screen.queryByTestId('new-key-modal')).not.toBeInTheDocument()
+  })
+
   it('shows empty state when no keys exist', async () => {
     api.scanner.listKeys.mockResolvedValue([])
     render(<APIKeyManager />, { wrapper })

@@ -36,8 +36,11 @@ export async function requireSession(): Promise<NextResponse | null> {
       signal: AbortSignal.timeout(AUTH_TIMEOUT_MS),
     })
     if (!res.ok) return new NextResponse(null, { status: 401 })
-  } catch {
-    return new NextResponse(null, { status: 401 })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return new NextResponse(null, { status: 401 })
+    }
+    throw err
   }
   return null
 }

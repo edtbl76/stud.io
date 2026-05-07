@@ -33,6 +33,7 @@ describe('PluginScannerPage', () => {
   it('renders page heading', async () => {
     mockFetch.mockResolvedValueOnce({ status: 204, json: async () => null } as unknown as Response)
     render(<PluginScannerPage />, { wrapper })
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledWith('/api/scanner/download/latest'))
     expect(screen.getByTestId('plugin-scanner-page')).toBeInTheDocument()
     expect(screen.getByText('Plugin Scanner')).toBeInTheDocument()
   })

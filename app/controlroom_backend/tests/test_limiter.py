@@ -1,7 +1,6 @@
 """Unit tests for the shared rate-limiter key function."""
 from __future__ import annotations
 
-import pytest
 from unittest.mock import MagicMock
 
 
@@ -13,8 +12,7 @@ def _make_request(auth_header: str | None = None, client_host: str = "127.0.0.1"
     return req
 
 
-@pytest.mark.asyncio
-async def test_key_by_user_returns_username_from_valid_jwt():
+def test_key_by_user_returns_username_from_valid_jwt():
     from limiter import _key_by_user
     from routers.auth import _create_token
     raw_token = _create_token("adminuser", "admin")
@@ -23,24 +21,21 @@ async def test_key_by_user_returns_username_from_valid_jwt():
     assert result == "adminuser"
 
 
-@pytest.mark.asyncio
-async def test_key_by_user_falls_back_to_ip_on_invalid_jwt():
+def test_key_by_user_falls_back_to_ip_on_invalid_jwt():
     from limiter import _key_by_user
     req = _make_request(auth_header="Bearer not.a.valid.token", client_host="10.0.0.1")
     result = _key_by_user(req)
     assert result == "10.0.0.1"
 
 
-@pytest.mark.asyncio
-async def test_key_by_user_falls_back_to_ip_when_no_auth_header():
+def test_key_by_user_falls_back_to_ip_when_no_auth_header():
     from limiter import _key_by_user
     req = _make_request(client_host="192.168.1.1")
     result = _key_by_user(req)
     assert result == "192.168.1.1"
 
 
-@pytest.mark.asyncio
-async def test_key_by_user_falls_back_to_ip_when_sub_missing():
+def test_key_by_user_falls_back_to_ip_when_sub_missing():
     from jose import jwt as _jwt
     from limiter import _key_by_user
     from config import settings
@@ -50,8 +45,7 @@ async def test_key_by_user_falls_back_to_ip_when_sub_missing():
     assert result == "10.0.0.2"
 
 
-@pytest.mark.asyncio
-async def test_key_by_user_handles_missing_client():
+def test_key_by_user_handles_missing_client():
     from limiter import _key_by_user
     req = _make_request()
     req.client = None

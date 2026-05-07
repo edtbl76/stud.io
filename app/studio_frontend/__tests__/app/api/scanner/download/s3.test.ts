@@ -95,4 +95,9 @@ describe('requireSession', () => {
     const result = await requireSession()
     expect(result?.status).toBe(401)
   })
+
+  it('re-throws non-timeout errors', async () => {
+    ;(global.fetch as jest.Mock).mockRejectedValueOnce(new TypeError('network failure'))
+    await expect(requireSession()).rejects.toThrow('network failure')
+  })
 })
