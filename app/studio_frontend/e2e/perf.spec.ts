@@ -71,6 +71,7 @@ const PAGES = [
   '/studio/config/tag-types',
   '/studio/config/tool-types',
   '/studio/admin/change-review',
+  '/studio/admin/plugin-scanner',
   '/studio/admin/users',
   '/studio/admin/stats',
   '/studio/admin/backup',

@@ -17,9 +17,10 @@ from uuid import UUID
 
 import bcrypt
 from asyncpg import Connection
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 
 from database import get_conn
+from limiter import limiter
 from routers.auth import UserOut, get_current_user, require_admin
 from schemas.scanner import (
     APIKeyCreated, APIKeyResponse,
@@ -67,7 +68,9 @@ async def list_keys(
 
 
 @router.post("/keys", status_code=status.HTTP_201_CREATED)
+@limiter.limit("10/hour")
 async def create_key(
+    request: Request,
     payload: CreateKeyRequest,
     _user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],

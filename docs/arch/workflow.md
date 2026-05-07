@@ -58,7 +58,7 @@ git checkout main && git pull
 ## Pre-Merge Checklist
 
 Before opening a PR, run locally:
-
+ 
 ```bash
 roadie build             # rebuild images, apply schema to test DBs, run unit tests
 roadie build --e2e       # also run Playwright shards

@@ -3,9 +3,12 @@ from typing import Annotated
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from asyncpg import Connection
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from config import settings
 from database import init_pool, close_pool, get_conn
+from limiter import limiter
 from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, users
 from routers import backup_ops, change_review, admin_stats, import_export, gearlist
@@ -25,6 +28,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="STUD.io ControlRoom API", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

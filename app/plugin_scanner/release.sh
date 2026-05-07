@@ -35,3 +35,28 @@ curl -sf -X PUT \
   "${ENDPOINT}/${BUCKET}/${OBJECT}"
 
 echo "Released: ${ENDPOINT}/${BUCKET}/${OBJECT}"
+
+# Enforce 10-release cap — delete oldest when bucket exceeds limit.
+MAX_RELEASES=10
+echo "Enforcing release cap (max ${MAX_RELEASES})..."
+while true; do
+  LISTING=$(curl -sf -X GET \
+    --aws-sigv4 "aws:amz:us-east-1:s3" \
+    --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
+    "${ENDPOINT}/${BUCKET}?list-type=2&prefix=plugin-scanner/")
+  COUNT=$(echo "${LISTING}" | grep -o '<Key>' | wc -l | tr -d ' ')
+  [ "${COUNT}" -le "${MAX_RELEASES}" ] && break
+  OLDEST=$(echo "${LISTING}" | python3 -c "
+import sys, re
+xml = sys.stdin.read()
+keys = re.findall(r'<Key>([^<]+)</Key>', xml)
+dates = re.findall(r'<LastModified>([^<]+)</LastModified>', xml)
+pairs = sorted(zip(dates, keys))
+print(pairs[0][1] if pairs else '')
+")
+  echo "Deleting oldest release: ${OLDEST}"
+  curl -sf -X DELETE \
+    --aws-sigv4 "aws:amz:us-east-1:s3" \
+    --user "${MINIO_ACCESS_KEY}:${MINIO_SECRET_KEY}" \
+    "${ENDPOINT}/${BUCKET}/${OLDEST}"
+done

@@ -32,6 +32,7 @@ const navGroups: NavGroup[] = [
       { label: 'Backup & Restore',  href: '/studio/admin/backup' },
       { label: 'Change Review',     href: '/studio/admin/change-review' },
       { label: 'Import / Export',   href: '/studio/admin/import-export' },
+      { label: 'Plugin Scanner',    href: '/studio/admin/plugin-scanner' },
       { label: 'Stats',             href: '/studio/admin/stats' },
       { label: 'Users',             href: '/studio/admin/users' },
     ],

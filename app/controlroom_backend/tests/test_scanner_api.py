@@ -183,6 +183,19 @@ async def test_create_key_returns_plaintext_once(client, admin_headers):
 
 
 @pytest.mark.asyncio
+async def test_create_key_rate_limiter_is_registered(client, admin_headers):
+    """Verifies the limiter is wired to the app — normal requests still return 201."""
+    from main import app
+    assert hasattr(app.state, "limiter"), "SlowAPI limiter must be registered on app.state"
+    response = await client.post(
+        "/scanner/keys",
+        json={"label": "rate-limit-smoke"},
+        headers=admin_headers,
+    )
+    assert response.status_code == 201
+
+
+@pytest.mark.asyncio
 async def test_list_keys_omits_hashed_key(client, conn, scanner_key, admin_headers):
     response = await client.get("/scanner/keys", headers=admin_headers)
     assert response.status_code == 200
