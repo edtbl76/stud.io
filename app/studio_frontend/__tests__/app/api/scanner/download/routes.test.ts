@@ -72,13 +72,20 @@ describe('GET /api/scanner/download/history', () => {
   it('returns empty array when only one release exists', async () => {
     listReleases.mockResolvedValue([RELEASE])
     const res = await historyGET()
+    expect(res.status).toBe(200)
     const data = await res.json()
     expect(data).toHaveLength(0)
+  })
+
+  it('returns 502 on S3 error', async () => {
+    listReleases.mockRejectedValue(new Error('S3 down'))
+    const res = await historyGET()
+    expect(res.status).toBe(502)
   })
 })
 
 describe('GET /api/scanner/download/url', () => {
-  function makeRequest(key: string) {
+
     return new NextRequest(`http://localhost/api/scanner/download/url?key=${encodeURIComponent(key)}`)
   }
 
