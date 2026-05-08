@@ -1,11 +1,9 @@
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 const BUCKET = process.env.SCANNER_DOWNLOADS_BUCKET ?? 'studio-downloads'
 export const PREFIX = 'plugin-scanner/'
-const PRESIGN_TTL = 900 // 15 minutes
 const BACKEND = process.env.BACKEND_URL ?? 'http://controlroom_backend:5150'
 
 let s3: S3Client | null = null
@@ -72,10 +70,15 @@ export async function listReleases(): Promise<ReleaseObject[]> {
     }))
 }
 
-export async function presignDownload(key: string): Promise<string> {
-  return getSignedUrl(
-    getS3(),
-    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
-    { expiresIn: PRESIGN_TTL },
-  )
+export interface ObjectStream {
+  body: ReadableStream
+  contentLength?: number
+}
+
+export async function getObject(key: string): Promise<ObjectStream> {
+  const result = await getS3().send(new GetObjectCommand({ Bucket: BUCKET, Key: key }))
+  return {
+    body: result.Body!.transformToWebStream(),
+    contentLength: result.ContentLength,
+  }
 }

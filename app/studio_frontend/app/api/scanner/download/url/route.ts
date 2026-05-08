@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { requireSession, presignDownload, PREFIX } from '../_s3'
+import { requireSession, getObject, PREFIX } from '../_s3'
 
 export async function GET(request: NextRequest) {
   const unauth = await requireSession()
@@ -11,9 +11,15 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = await presignDownload(key)
-    return NextResponse.json({ url })
+    const { body, contentLength } = await getObject(key)
+    const filename = key.split('/').pop() ?? 'plugin-scanner.zip'
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    }
+    if (contentLength != null) headers['Content-Length'] = String(contentLength)
+    return new NextResponse(body, { headers })
   } catch {
-    return NextResponse.json({ error: 'Failed to generate download URL' }, { status: 502 })
+    return NextResponse.json({ error: 'Failed to download file' }, { status: 502 })
   }
 }

@@ -5,6 +5,63 @@ BINARY="plugin-scanner"
 VERSION="__VERSION__"
 INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
 
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+usage() {
+  local code=${1:-0}
+  cat <<EOF
+Usage: $(basename "$0") [--uninstall] [--help]
+
+Installs plugin-scanner $VERSION to \$INSTALL_DIR (default: ~/.local/bin).
+
+Options:
+  --uninstall   Remove plugin-scanner from INSTALL_DIR
+  --help        Show this help message
+
+Environment:
+  INSTALL_DIR   Override the install location (default: ~/.local/bin)
+EOF
+  exit "$code"
+}
+
+check_path() {
+  if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
+    echo ""
+    echo "  NOTE: $INSTALL_DIR is not in your PATH."
+    echo "  Add the following line to your shell RC file (~/.zshrc or ~/.bashrc):"
+    echo ""
+    echo "    export PATH=\"\$PATH:$INSTALL_DIR\""
+    echo ""
+    echo "  Then restart your shell or run: source ~/.zshrc"
+  fi
+}
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+
+UNINSTALL=false
+for arg in "$@"; do
+  case "$arg" in
+    --uninstall) UNINSTALL=true ;;
+    --help|-h)   usage ;;
+    *) echo "Unknown option: $arg" >&2; usage 2 ;;
+  esac
+done
+
+# ── Uninstall ─────────────────────────────────────────────────────────────────
+
+if [ "$UNINSTALL" = true ]; then
+  TARGET="$INSTALL_DIR/$BINARY"
+  if [ -f "$TARGET" ]; then
+    rm "$TARGET"
+    echo "plugin-scanner removed from $INSTALL_DIR"
+  else
+    echo "plugin-scanner not found at $TARGET — nothing to remove."
+  fi
+  exit 0
+fi
+
+# ── Install ───────────────────────────────────────────────────────────────────
+
 if [ ! -f "$BINARY" ]; then
   echo "Error: $BINARY not found in the current directory." >&2
   echo "Run this script from the extracted zip directory." >&2
@@ -19,8 +76,35 @@ if [ ! -w "$INSTALL_DIR" ]; then
   exit 1
 fi
 
-xattr -d com.apple.quarantine "$BINARY" 2>/dev/null || true
-chmod +x "$BINARY"
-mv "$BINARY" "$INSTALL_DIR/$BINARY"
+# Detect existing installation
+TARGET="$INSTALL_DIR/$BINARY"
+if [ -f "$TARGET" ]; then
+  EXISTING=$("$TARGET" version 2>/dev/null || echo "unknown")
+  if [ "$EXISTING" = "$VERSION" ]; then
+    echo "plugin-scanner $VERSION is already installed at $TARGET — nothing to do."
+    check_path
+    exit 0
+  else
+    echo "Replacing existing plugin-scanner ($EXISTING) with $VERSION..."
+  fi
+fi
 
-echo "plugin-scanner $VERSION installed to $INSTALL_DIR"
+# Remove macOS quarantine flag (silent on non-macOS)
+if xattr -d com.apple.quarantine "$BINARY" 2>/dev/null; then
+  echo "Removed macOS quarantine flag from $BINARY"
+fi
+
+chmod +x "$BINARY"
+cp "$BINARY" "$TARGET"
+
+echo ""
+echo "plugin-scanner $VERSION installed to $TARGET"
+
+# Smoke test
+if "$TARGET" version >/dev/null 2>&1; then
+  echo "Smoke test passed: $("$TARGET" version)"
+else
+  echo "Warning: installed binary did not respond to version" >&2
+fi
+
+check_path
