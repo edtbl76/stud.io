@@ -21,22 +21,13 @@ function formatBytes(bytes: number): string {
 function LatestReleaseCard({ release }: Readonly<{ release: ReleaseInfo }>) {
   const [downloading, setDownloading] = React.useState(false)
 
-  async function handleDownload() {
+  function handleDownload() {
     setDownloading(true)
     try {
-      const res = await fetch(`/api/scanner/download/url?key=${encodeURIComponent(release.key)}`)
-      if (!res.ok) {
-        const msg = await res.text()
-        toast.error(`Download failed: ${msg || res.statusText}`)
-        return
-      }
-      const { url } = await res.json()
       const a = document.createElement('a')
-      a.href = url
+      a.href = `/api/scanner/download/url?key=${encodeURIComponent(release.key)}`
       a.download = release.key.split('/').pop() ?? 'plugin-scanner.zip'
       a.click()
-    } catch {
-      toast.error('Download failed: network error')
     } finally {
       setDownloading(false)
     }

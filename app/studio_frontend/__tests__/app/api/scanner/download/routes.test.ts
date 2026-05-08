@@ -7,7 +7,7 @@ jest.mock('@/app/api/scanner/download/_s3', () => ({
   PREFIX: 'plugin-scanner/',
   requireSession: jest.fn(),
   listReleases: jest.fn(),
-  presignDownload: jest.fn(),
+  getObject: jest.fn(),
 }))
 
 import { GET as latestGET } from '@/app/api/scanner/download/latest/route'
@@ -16,7 +16,7 @@ import { GET as urlGET } from '@/app/api/scanner/download/url/route'
 import * as s3mod from '@/app/api/scanner/download/_s3'
 import { NextRequest } from 'next/server'
 
-const { requireSession, listReleases, presignDownload } = s3mod as jest.Mocked<typeof s3mod>
+const { requireSession, listReleases, getObject } = s3mod as jest.Mocked<typeof s3mod>
 
 const RELEASE = {
   key: 'plugin-scanner/plugin-scanner-v1.0.0-20260501T000000Z-darwin-arm64.zip',
@@ -82,12 +82,14 @@ describe('GET /api/scanner/download/url', () => {
     return new NextRequest(`http://localhost/api/scanner/download/url?key=${encodeURIComponent(key)}`)
   }
 
-  it('returns presigned URL for valid key', async () => {
-    presignDownload.mockResolvedValue('https://minio/presigned')
+  const mockStream = new ReadableStream()
+
+  it('streams file with attachment header for valid key', async () => {
+    getObject.mockResolvedValue({ body: mockStream, contentLength: 1234 })
     const res = await urlGET(makeRequest(RELEASE.key))
     expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data.url).toBe('https://minio/presigned')
+    expect(res.headers.get('Content-Disposition')).toContain('attachment')
+    expect(res.headers.get('Content-Type')).toBe('application/zip')
   })
 
   it('returns 400 for key without plugin-scanner/ prefix', async () => {
@@ -100,8 +102,8 @@ describe('GET /api/scanner/download/url', () => {
     expect(res.status).toBe(400)
   })
 
-  it('returns 502 on presign error', async () => {
-    presignDownload.mockRejectedValue(new Error('S3 error'))
+  it('returns 502 on S3 error', async () => {
+    getObject.mockRejectedValue(new Error('S3 error'))
     const res = await urlGET(makeRequest(RELEASE.key))
     expect(res.status).toBe(502)
   })

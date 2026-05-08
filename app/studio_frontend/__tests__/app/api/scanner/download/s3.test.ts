@@ -9,10 +9,6 @@ jest.mock('@aws-sdk/client-s3', () => ({
   GetObjectCommand: jest.fn(),
 }))
 
-jest.mock('@aws-sdk/s3-request-presigner', () => ({
-  getSignedUrl: jest.fn().mockResolvedValue('https://minio/presigned-url'),
-}))
-
 jest.mock('next/headers', () => ({
   cookies: jest.fn().mockResolvedValue({
     get: jest.fn().mockReturnValue({ value: 'test-token' }),
@@ -21,9 +17,8 @@ jest.mock('next/headers', () => ({
 
 global.fetch = jest.fn()
 
-import { listReleases, presignDownload, requireSession, PREFIX } from '@/app/api/scanner/download/_s3'
+import { listReleases, getObject, requireSession, PREFIX } from '@/app/api/scanner/download/_s3'
 import { S3Client } from '@aws-sdk/client-s3'
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { cookies } from 'next/headers'
 
 const mockSend = jest.fn()
@@ -62,11 +57,16 @@ describe('listReleases', () => {
   })
 })
 
-describe('presignDownload', () => {
-  it('returns a presigned URL', async () => {
-    const url = await presignDownload(`${PREFIX}file.zip`)
-    expect(url).toBe('https://minio/presigned-url')
-    expect(getSignedUrl).toHaveBeenCalled()
+describe('getObject', () => {
+  it('returns body stream and contentLength', async () => {
+    const mockStream = new ReadableStream()
+    mockSend.mockResolvedValue({
+      Body: { transformToWebStream: () => mockStream },
+      ContentLength: 5678,
+    })
+    const result = await getObject(`${PREFIX}file.zip`)
+    expect(result.body).toBe(mockStream)
+    expect(result.contentLength).toBe(5678)
   })
 })
 
