@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       'Content-Type': 'application/zip',
       'Content-Disposition': `attachment; filename="${filename}"`,
     }
-    if (contentLength) headers['Content-Length'] = String(contentLength)
+    if (contentLength != null) headers['Content-Length'] = String(contentLength)
     return new NextResponse(body, { headers })
   } catch {
     return NextResponse.json({ error: 'Failed to download file' }, { status: 502 })

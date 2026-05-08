@@ -90,6 +90,13 @@ describe('GET /api/scanner/download/url', () => {
     expect(res.status).toBe(200)
     expect(res.headers.get('Content-Disposition')).toContain('attachment')
     expect(res.headers.get('Content-Type')).toBe('application/zip')
+    expect(res.headers.get('Content-Length')).toBe('1234')
+  })
+
+  it('sets Content-Length: 0 when contentLength is zero', async () => {
+    getObject.mockResolvedValue({ body: mockStream, contentLength: 0 })
+    const res = await urlGET(makeRequest(RELEASE.key))
+    expect(res.headers.get('Content-Length')).toBe('0')
   })
 
   it('returns 400 for key without plugin-scanner/ prefix', async () => {

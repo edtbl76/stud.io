@@ -8,6 +8,7 @@ INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 usage() {
+  local code=${1:-0}
   cat <<EOF
 Usage: $(basename "$0") [--uninstall] [--help]
 
@@ -20,7 +21,7 @@ Options:
 Environment:
   INSTALL_DIR   Override the install location (default: ~/.local/bin)
 EOF
-  exit 0
+  exit "$code"
 }
 
 check_path() {
@@ -42,7 +43,7 @@ for arg in "$@"; do
   case "$arg" in
     --uninstall) UNINSTALL=true ;;
     --help|-h)   usage ;;
-    *) echo "Unknown option: $arg" >&2; usage ;;
+    *) echo "Unknown option: $arg" >&2; usage 2 ;;
   esac
 done
 
