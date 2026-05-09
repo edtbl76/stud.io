@@ -39,7 +39,7 @@ func TestBuildUnitPipeline(t *testing.T) {
 		tools []string
 		want  []string
 	}{
-		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest", "go-test"}},
+		{"all tools", nil, []string{"npm-install", "tsc", "jest", "ruff", "bandit", "pytest", "go-test", "go-test-scanner"}},
 		{"tsc only", []string{"tsc"}, []string{"npm-install", "tsc"}},
 		{"pytest only", []string{"pytest"}, []string{"pytest"}},
 		{"pip-audit only", []string{"pip-audit"}, []string{"pip-audit"}},
@@ -188,9 +188,10 @@ func TestBuildPBTFlags(t *testing.T) {
 		args []string
 		want pipeline.PBTFlags
 	}{
-		{"empty runs all", nil, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
+		{"empty runs all", nil, pipeline.PBTFlags{FastCheck: true, Hypothesis: true, Rapid: true}},
 		{"fast-check only", []string{"fast-check"}, pipeline.PBTFlags{FastCheck: true}},
 		{"hypothesis only", []string{"hypothesis"}, pipeline.PBTFlags{Hypothesis: true}},
+		{"rapid only", []string{"rapid"}, pipeline.PBTFlags{Rapid: true}},
 		{"both explicit", []string{"fast-check", "hypothesis"}, pipeline.PBTFlags{FastCheck: true, Hypothesis: true}},
 	}
 	for _, tt := range tests {

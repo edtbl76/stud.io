@@ -16,25 +16,26 @@ async def test_stats_returns_200(client, admin_headers):
     assert response.status_code == 200
 
 
-async def test_stats_has_four_groups(client, admin_headers):
+async def test_stats_has_five_groups(client, admin_headers):
     response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     labels = [g["label"] for g in data["groups"]]
-    assert labels == ["Catalog", "Session", "Tools", "Config"]
+    assert labels == ["Catalog", "Session", "Tools", "Config", "GearList"]
 
 
-async def test_stats_has_all_18_tables(client, admin_headers):
+async def test_stats_has_all_tables(client, admin_headers):
     response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
-    all_names = [t["name"] for g in data["groups"] for t in g["tables"]]
+    all_names = {t["name"] for g in data["groups"] for t in g["tables"]}
     expected = {
         "Brands", "Models",
         "Effects", "Instruments", "Libraries", "Workstations",
         "Admin", "Composition", "Measurement", "Reference", "Workflow",
         "Effect Types", "Entity Types", "Instrument Types",
         "Model Types", "Plugin Formats", "Tag Types", "Tool Types",
+        "Gear", "Gear Types",
     }
-    assert set(all_names) == expected
+    assert all_names == expected
 
 
 async def test_stats_total_equals_sum_of_counts(client, admin_headers):

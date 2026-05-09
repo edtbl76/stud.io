@@ -1,9 +1,9 @@
 when:
-  - event: [push, pull_request]
-    branch: main
+  - event: pull_request
     path:
       - roadie/**
       - .woodpecker/roadie.yml
+    evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
   - event: manual
 
 steps:
@@ -20,9 +20,6 @@ steps:
     commands:
       - roadie test scan secrets headers
     when:
-      - event: push
-        branch: main
-        path: roadie/**
       - event: pull_request
         path: roadie/**
       - event: manual

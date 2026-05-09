@@ -232,3 +232,97 @@ export interface SearchResponse {
   results: SearchResult[]
   total: number
 }
+
+// ---------------------------------------------------------------------------
+// Plugin Scanner
+// ---------------------------------------------------------------------------
+
+export interface StatusCounts {
+  matched: number
+  version_mismatch: number
+  unconfirmed: number
+  untracked: number
+  orphaned: number
+  ignored: number
+}
+
+export interface ScannerApiKeyResponse {
+  key_id: string
+  label: string
+  key_hint: string
+  created_at: string
+  revoked_at: string | null
+}
+
+export interface ScannerApiKeyCreated extends ScannerApiKeyResponse {
+  key: string
+}
+
+export interface ScanRun {
+  scan_id: string
+  scanned_at: string
+  source_machine: string
+  total_count: number
+  status?: 'in_progress' | 'completed'
+  status_counts: StatusCounts
+  confirmation_counts: { confirmed: number; rejected: number; ignored: number }
+}
+
+export interface MatchMeta {
+  confidence: string
+  score: number | null
+  record_id: string | null
+  record_table: string | null
+  record_name: string | null
+  record_vendor: string | null
+  record_version: string | null
+}
+
+export interface ScanResult {
+  result_id: string
+  status: 'matched' | 'version_mismatch' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'
+  name: string
+  vendor: string
+  version: string
+  format: string
+  path: string
+  match: MatchMeta | null
+  dismissed_at: string | null
+}
+
+export interface ScanReport {
+  scan_id: string
+  scanned_at: string
+  matched: ScanResult[]
+  version_mismatch: ScanResult[]
+  unconfirmed: ScanResult[]
+  untracked: ScanResult[]
+  orphaned: ScanResult[]
+  ignored: ScanResult[]
+}
+
+export interface ConfirmDecision {
+  result_id: string
+  action: 'confirm' | 'reject' | 'ignore'
+}
+
+export interface Exclusion {
+  exclusion_id: string
+  vendor: string
+  name: string
+  excluded_at: string
+}
+
+export type ScanSection = 'matched' | 'version-mismatches' | 'unconfirmed' | 'untracked' | 'orphaned' | 'exclusions'
+
+export const SCANNER_TABLE_OPTIONS = [
+  { value: 'effects',            label: 'Effects' },
+  { value: 'instruments',        label: 'Instruments' },
+  { value: 'libraries',          label: 'Libraries' },
+  { value: 'workstations',       label: 'Workstations' },
+  { value: 'admin_tools',        label: 'Admin Tools' },
+  { value: 'composition_tools',  label: 'Composition Tools' },
+  { value: 'measurement_tools',  label: 'Measurement Tools' },
+  { value: 'reference_tools',    label: 'Reference Tools' },
+  { value: 'workflow_tools',     label: 'Workflow Tools' },
+] as const

@@ -274,3 +274,28 @@ async def test_unauthenticated_cannot_list_scanner_keys(client):
 async def test_unauthenticated_cannot_get_scan_report(client):
     response = await client.get("/scanner/report")
     assert response.status_code == 401
+
+
+async def test_user_cannot_dismiss_scan_result(client, auth_headers):
+    response = await client.patch(f"/scanner/results/{DUMMY_UUID}/dismiss", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_dismiss_scan_result(client):
+    response = await client.patch(f"/scanner/results/{DUMMY_UUID}/dismiss")
+    assert response.status_code == 401
+
+
+async def test_user_cannot_keep_scanner_result(client, auth_headers):
+    response = await client.patch(f"/scanner/results/{DUMMY_UUID}/keep", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_keep_scanner_result(client):
+    response = await client.patch(f"/scanner/results/{DUMMY_UUID}/keep")
+    assert response.status_code == 401
+
+
+async def test_unauthenticated_cannot_list_exclusions(client):
+    response = await client.get("/scanner/exclusions")
+    assert response.status_code == 401

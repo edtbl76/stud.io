@@ -77,6 +77,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      default:
+        aliases:
+          - studiominio
     restart: unless-stopped
 
   studio_minio_init:
@@ -92,11 +96,13 @@ services:
       MINIO_SVC_SECRET_KEY: studiosvckey1
     entrypoint: >
       /bin/sh -c "
-        mc alias set local http://studio_minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
+        mc alias set local http://studiominio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
         mc mb --ignore-existing local/studio-photos &&
+        mc mb --ignore-existing local/studio-downloads &&
+        mc anonymous set download local/studio-downloads &&
         mc admin user add local $$MINIO_SVC_ACCESS_KEY $$MINIO_SVC_SECRET_KEY &&
         mc admin policy attach local readwrite --user $$MINIO_SVC_ACCESS_KEY &&
-        echo 'MinIO: bucket and service account ready.'
+        echo 'MinIO: buckets and service account ready.'
       "
     restart: on-failure
 
@@ -107,7 +113,7 @@ services:
     environment:
       - BACKEND_URL=http://controlroom_backend:5150
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com
-      - MINIO_ENDPOINT=http://studio_minio:9000
+      - MINIO_ENDPOINT=http://studiominio:9000
       - MINIO_ACCESS_KEY=studio-svc
       - MINIO_SECRET_KEY=studiosvckey1
       - MINIO_BUCKET=studio-photos

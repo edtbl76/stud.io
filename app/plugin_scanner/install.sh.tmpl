@@ -1,0 +1,209 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BINARY="plugin-scanner"
+VERSION="__VERSION__"
+INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
+CA_CERT="rootCA.pem"
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
+
+usage() {
+  local code=${1:-0}
+  cat <<EOF
+Usage: $(basename "$0") [--uninstall] [--help]
+
+Installs plugin-scanner $VERSION to \$INSTALL_DIR (default: ~/.local/bin).
+Also installs the ControlRoom CA certificate and configures shell completion.
+
+Options:
+  --uninstall   Remove plugin-scanner from INSTALL_DIR
+  --help        Show this help message
+
+Environment:
+  INSTALL_DIR   Override the install location (default: ~/.local/bin)
+EOF
+  exit "$code"
+}
+
+detect_shell() {
+  basename "${SHELL:-/bin/sh}"
+}
+
+shell_rc() {
+  case "$(detect_shell)" in
+    zsh)  echo "${HOME}/.zshrc" ;;
+    bash) echo "${HOME}/.bash_profile" ;;
+    fish) echo "fish" ;;
+    *)    echo "" ;;
+  esac
+}
+
+add_to_path() {
+  local rc
+  rc=$(shell_rc)
+  local export_line="export PATH=\"\$PATH:${INSTALL_DIR}\""
+
+  if echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
+    echo "  PATH: $INSTALL_DIR already active."
+    return
+  fi
+
+  if [ "$rc" = "fish" ]; then
+    if fish -c "fish_add_path ${INSTALL_DIR}" 2>/dev/null; then
+      echo "  PATH: added $INSTALL_DIR via fish_add_path."
+    else
+      echo "  PATH: could not update fish — add manually: fish_add_path ${INSTALL_DIR}"
+    fi
+    return
+  fi
+
+  if [ -n "$rc" ]; then
+    if ! grep -qF "$INSTALL_DIR" "$rc" 2>/dev/null; then
+      printf '\n# Added by plugin-scanner installer\n%s\n' "$export_line" >> "$rc"
+      echo "  PATH: added $INSTALL_DIR to $rc — restart shell or: source $rc"
+    else
+      echo "  PATH: $INSTALL_DIR already in $rc."
+    fi
+  else
+    echo "  PATH: unknown shell ($SHELL) — add manually: $export_line"
+  fi
+}
+
+setup_completion() {
+  local shell_name rc line
+  shell_name=$(detect_shell)
+
+  case "$shell_name" in
+    zsh)
+      rc="${HOME}/.zshrc"
+      line='source <(plugin-scanner completion zsh)'
+      if ! grep -qF "plugin-scanner completion" "$rc" 2>/dev/null; then
+        printf '\n# plugin-scanner shell completion\n%s\n' "$line" >> "$rc"
+        echo "  Completion: zsh completion added to $rc."
+      else
+        echo "  Completion: zsh already configured."
+      fi
+      ;;
+    bash)
+      rc="${HOME}/.bash_profile"
+      line='source <(plugin-scanner completion bash)'
+      if ! grep -qF "plugin-scanner completion" "$rc" 2>/dev/null; then
+        printf '\n# plugin-scanner shell completion\n%s\n' "$line" >> "$rc"
+        echo "  Completion: bash completion added to $rc."
+      else
+        echo "  Completion: bash already configured."
+      fi
+      ;;
+    fish)
+      mkdir -p "${HOME}/.config/fish/completions"
+      if "$TARGET" completion fish > "${HOME}/.config/fish/completions/plugin-scanner.fish" 2>/dev/null; then
+        echo "  Completion: fish completion installed."
+      else
+        echo "  Completion: could not install fish completion."
+      fi
+      ;;
+    *)
+      echo "  Completion: unknown shell ($SHELL) — run: plugin-scanner completion <shell>"
+      ;;
+  esac
+}
+
+install_ca() {
+  if [ ! -f "$CA_CERT" ]; then
+    echo "  CA: rootCA.pem not found in archive — skipping."
+    return
+  fi
+  echo "Installing ControlRoom CA certificate (requires sudo)..."
+  if sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CA_CERT"; then
+    echo "  CA: trusted in system keychain."
+  else
+    echo "  CA: install failed — set ca_cert_path in ~/.plugin-scanner.yml manually." >&2
+  fi
+}
+
+# ── Argument parsing ──────────────────────────────────────────────────────────
+
+UNINSTALL=false
+for arg in "$@"; do
+  case "$arg" in
+    --uninstall) UNINSTALL=true ;;
+    --help|-h)   usage 0 ;;
+    *) echo "Unknown option: $arg" >&2; usage 2 ;;
+  esac
+done
+
+# ── Uninstall ─────────────────────────────────────────────────────────────────
+
+if [ "$UNINSTALL" = true ]; then
+  TARGET="$INSTALL_DIR/$BINARY"
+  if [ -f "$TARGET" ]; then
+    rm "$TARGET"
+    echo "plugin-scanner removed from $INSTALL_DIR"
+  else
+    echo "plugin-scanner not found at $TARGET — nothing to remove."
+  fi
+  exit 0
+fi
+
+# ── Install ───────────────────────────────────────────────────────────────────
+
+if [ ! -f "$BINARY" ]; then
+  echo "Error: $BINARY not found in the current directory." >&2
+  echo "Run this script from the extracted zip directory." >&2
+  exit 1
+fi
+
+mkdir -p "$INSTALL_DIR"
+
+if [ ! -w "$INSTALL_DIR" ]; then
+  echo "Error: $INSTALL_DIR is not writable." >&2
+  echo "Set INSTALL_DIR to a writable path, or run with sudo for system-wide install." >&2
+  exit 1
+fi
+
+# Detect existing installation
+TARGET="$INSTALL_DIR/$BINARY"
+if [ -f "$TARGET" ]; then
+  EXISTING=$("$TARGET" version 2>/dev/null || echo "unknown")
+  if [ "$EXISTING" = "$VERSION" ]; then
+    echo "plugin-scanner $VERSION is already installed at $TARGET — nothing to do."
+    install_ca
+    add_to_path
+    setup_completion
+    exit 0
+  else
+    echo "Replacing existing plugin-scanner ($EXISTING) with $VERSION..."
+  fi
+fi
+
+# Remove macOS quarantine flag
+if xattr -d com.apple.quarantine "$BINARY" 2>/dev/null; then
+  echo "Removed macOS quarantine flag."
+fi
+
+chmod +x "$BINARY"
+cp "$BINARY" "$TARGET"
+
+echo ""
+echo "plugin-scanner $VERSION installed to $TARGET"
+
+# Smoke test
+if "$TARGET" version >/dev/null 2>&1; then
+  echo "Smoke test passed: $("$TARGET" version)"
+else
+  echo "Warning: installed binary did not respond to version" >&2
+fi
+
+echo ""
+echo "Configuring environment..."
+install_ca
+add_to_path
+setup_completion
+echo ""
+case "$(detect_shell)" in
+  zsh)  echo "Done. To activate now: source ~/.zshrc  (or restart your shell)" ;;
+  bash) echo "Done. To activate now: source ~/.bash_profile  (or restart your shell)" ;;
+  fish) echo "Done. To activate now: source ~/.config/fish/config.fish  (or restart your shell)" ;;
+  *)    echo "Done. Restart your shell to activate PATH and completion changes." ;;
+esac

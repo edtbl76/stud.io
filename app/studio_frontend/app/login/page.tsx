@@ -7,15 +7,12 @@ import { Loader2 } from 'lucide-react'
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
 
-export default function LoginPage() {
-  const { login, loginGoogle } = useAuth()
-  const [username, setUsername] = React.useState('')
-  const [password, setPassword] = React.useState('')
+function useGoogleSignIn(loginGoogle: (credential: string) => Promise<void>) {
+  const googleButtonRef = React.useRef<HTMLDivElement>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
-  const googleButtonRef = React.useRef<HTMLDivElement>(null)
 
-  function initGoogle() {
+  const initGoogle = React.useCallback(() => {
     const gApi = globalThis.window?.google
     if (!GOOGLE_CLIENT_ID || !gApi || !googleButtonRef.current) return
     gApi.accounts.id.initialize({
@@ -41,18 +38,38 @@ export default function LoginPage() {
       text: 'signin_with',
       width: 352,
     })
-  }
+  }, [loginGoogle])
+
+  // If the GSI script was already loaded from a previous page visit (e.g. after
+  // logout), onLoad won't fire again. Calling initGoogle() on mount covers that case.
+  React.useEffect(() => {
+    initGoogle()
+  }, [initGoogle])
+
+  return { googleButtonRef, initGoogle, error, loading }
+}
+
+export default function LoginPage() {
+  const { login, loginGoogle } = useAuth()
+  const [username, setUsername] = React.useState('')
+  const [password, setPassword] = React.useState('')
+  const [formError, setFormError] = React.useState<string | null>(null)
+  const [formLoading, setFormLoading] = React.useState(false)
+  const { googleButtonRef, initGoogle, error: googleError, loading: googleLoading } = useGoogleSignIn(loginGoogle)
+
+  const error = formError ?? googleError
+  const loading = formLoading || googleLoading
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
-    setError(null)
-    setLoading(true)
+    setFormError(null)
+    setFormLoading(true)
     try {
       await login(username, password)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed')
+      setFormError(err instanceof Error ? err.message : 'Login failed')
     } finally {
-      setLoading(false)
+      setFormLoading(false)
     }
   }
 

@@ -1,4 +1,4 @@
-"""Integration tests for the Plugin Scanner API routes.
+"""Integration tests for the Plugin Scanner API — ingest, confirm, keys, exclusions, history.
 
 Tests run inside a rolled-back transaction so no data persists.
 """
@@ -7,6 +7,8 @@ from __future__ import annotations
 import bcrypt
 import pytest
 import pytest_asyncio
+
+from ._scanner_helpers import insert_scan
 
 
 # ---------------------------------------------------------------------------
@@ -26,32 +28,19 @@ async def scanner_key(conn):
     return key_id, raw
 
 
-async def _insert_scan(conn, status: str = "untracked") -> tuple:
-    scan_id = await conn.fetchval(
-        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1, $2) RETURNING scan_id",
-        "test-machine", 1,
-    )
-    result_id = await conn.fetchval(
-        "INSERT INTO plugin_scan_results "
-        "(scan_id, name, vendor, version, format, path, status) "
-        "VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING result_id",
-        scan_id, "Reverb Pro", "Acme Audio", "1.0.0", "vst3", "/path/reverb.vst3", status,
-    )
-    return scan_id, result_id
-
-
 # ---------------------------------------------------------------------------
 # POST /scanner/scan
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_ingest_scan_returns_summary(client, scanner_key):
+async def test_ingest_scan_returns_summary(client, conn, scanner_key):
     _, raw = scanner_key
     payload = {
         "source_machine": "studio-mac",
         "plugins": [
             {"name": "Reverb Pro", "vendor": "Acme Audio",
-             "version": "1.0.0", "format": "vst3", "path": "/path/reverb.vst3"},
+             "version": "1.0.0", "format": "vst3", "path": "/path/reverb.vst3",
+             "metadata_source": "moduleinfo.json"},
         ],
     }
     response = await client.post(
@@ -63,6 +52,11 @@ async def test_ingest_scan_returns_summary(client, scanner_key):
     data = response.json()
     assert "scan_id" in data
     assert data["untracked"] + data["matched"] + data["unconfirmed"] == 1
+    stored = await conn.fetchval(
+        "SELECT metadata_source FROM plugin_scan_results WHERE scan_id=$1",
+        data["scan_id"],
+    )
+    assert stored == "moduleinfo.json"
 
 
 @pytest.mark.asyncio
@@ -99,38 +93,12 @@ async def test_ingest_scan_revoked_key_returns_401(client, conn, scanner_key):
 
 
 # ---------------------------------------------------------------------------
-# GET /scanner/report
-# ---------------------------------------------------------------------------
-
-@pytest.mark.asyncio
-async def test_get_report_returns_grouped_results(client, conn, auth_headers):
-    await _insert_scan(conn, "untracked")
-    response = await client.get("/scanner/report", headers=auth_headers)
-    assert response.status_code == 200
-    data = response.json()
-    assert "untracked" in data and len(data["untracked"]) == 1
-    assert data["untracked"][0]["name"] == "Reverb Pro"
-
-
-@pytest.mark.asyncio
-async def test_get_report_no_scan_returns_404(client, auth_headers):
-    response = await client.get("/scanner/report", headers=auth_headers)
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_get_report_requires_auth(client):
-    response = await client.get("/scanner/report")
-    assert response.status_code == 401
-
-
-# ---------------------------------------------------------------------------
 # POST /scanner/confirm
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
 async def test_confirm_reject_clears_match(client, conn, admin_headers):
-    _, result_id = await _insert_scan(conn, "unconfirmed")
+    _, result_id = await insert_scan(conn, "unconfirmed")
     response = await client.post(
         "/scanner/confirm",
         json={"confirmations": [{"result_id": str(result_id), "action": "reject"}]},
@@ -138,7 +106,6 @@ async def test_confirm_reject_clears_match(client, conn, admin_headers):
     )
     assert response.status_code == 200
     assert response.json()["applied"] == 1
-
     updated = await conn.fetchval(
         "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id,
     )
@@ -147,7 +114,7 @@ async def test_confirm_reject_clears_match(client, conn, admin_headers):
 
 @pytest.mark.asyncio
 async def test_confirm_ignore_adds_exclusion_and_removes_link(client, conn, admin_headers):
-    _, result_id = await _insert_scan(conn, "untracked")
+    _, result_id = await insert_scan(conn, "untracked")
     fp = "acme audio reverb pro"
     await conn.execute(
         "INSERT INTO scanner_plugin_links "
@@ -189,7 +156,7 @@ async def test_confirm_unknown_result_id_returns_error_entry(client, admin_heade
 
 @pytest.mark.asyncio
 async def test_confirm_requires_admin(client, conn, auth_headers):
-    _, result_id = await _insert_scan(conn, "untracked")
+    _, result_id = await insert_scan(conn, "untracked")
     response = await client.post(
         "/scanner/confirm",
         json={"confirmations": [{"result_id": str(result_id), "action": "reject"}]},
@@ -199,7 +166,7 @@ async def test_confirm_requires_admin(client, conn, auth_headers):
 
 
 # ---------------------------------------------------------------------------
-# POST /scanner/keys
+# API key management
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
@@ -213,6 +180,19 @@ async def test_create_key_returns_plaintext_once(client, admin_headers):
     data = response.json()
     assert data["key"].startswith("psc_")
     assert "hashed_key" not in data
+
+
+@pytest.mark.asyncio
+async def test_create_key_rate_limiter_is_registered(client, admin_headers):
+    """Verifies the limiter is wired to the app — normal requests still return 201."""
+    from main import app
+    assert hasattr(app.state, "limiter"), "SlowAPI limiter must be registered on app.state"
+    response = await client.post(
+        "/scanner/keys",
+        json={"label": "rate-limit-smoke"},
+        headers=admin_headers,
+    )
+    assert response.status_code == 201
 
 
 @pytest.mark.asyncio
@@ -248,7 +228,6 @@ async def test_add_and_remove_exclusion(client, conn, admin_headers):
         "SELECT exclusion_id FROM scanner_exclusions WHERE vendor='Acme Audio' AND name='Reverb Pro'"
     )
     assert excl_id is not None
-
     r_del = await client.delete(f"/scanner/exclude/{excl_id}", headers=admin_headers)
     assert r_del.status_code == 204
 
@@ -259,7 +238,7 @@ async def test_add_and_remove_exclusion(client, conn, admin_headers):
 
 @pytest.mark.asyncio
 async def test_list_scans_returns_history(client, conn, auth_headers):
-    await _insert_scan(conn)
+    await insert_scan(conn)
     response = await client.get("/scanner/scans", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()

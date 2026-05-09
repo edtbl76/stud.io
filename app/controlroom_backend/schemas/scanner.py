@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 def build_match_meta(r: Mapping[str, Any], m: dict[str, Any] | None) -> "MatchMeta":
@@ -28,6 +28,7 @@ def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> 
         name=r["name"], vendor=r["vendor"], version=r["version"],
         format=r["format"], path=r["path"],
         match=build_match_meta(r, m) if r["record_id"] else None,
+        dismissed_at=r.get("dismissed_at"),
     )
 
 
@@ -35,12 +36,24 @@ def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> 
 # Ingest
 # ---------------------------------------------------------------------------
 
+_ALLOWED_FORMATS = {"vst3", "au", "vst2"}
+
+
 class ScannedPlugin(BaseModel):
     name: str
     vendor: str
     version: str
     format: str
     path: str
+    metadata_source: str | None = None
+
+    @field_validator("format", mode="before")
+    @classmethod
+    def normalize_format(cls, v: object) -> str:
+        normalized = str(v).lower()
+        if normalized not in _ALLOWED_FORMATS:
+            raise ValueError(f"format must be one of {sorted(_ALLOWED_FORMATS)}, got {v!r}")
+        return normalized
 
 
 class ScanPayload(BaseModel):
@@ -81,6 +94,7 @@ class ScanResult(BaseModel):
     format: str
     path: str
     match: MatchMeta | None = None
+    dismissed_at: datetime | None = None
 
 
 class ScanReport(BaseModel):
@@ -122,6 +136,13 @@ class CreateExclusionRequest(BaseModel):
     name: str
 
 
+class ExclusionOut(BaseModel):
+    exclusion_id: UUID
+    vendor: str
+    name: str
+    excluded_at: datetime
+
+
 class PurgeResult(BaseModel):
     deleted_count: int
 
@@ -146,6 +167,7 @@ class ScanRun(BaseModel):
     scanned_at: datetime
     source_machine: str
     total_count: int
+    status: str = "completed"
     status_counts: StatusCounts
     confirmation_counts: ConfirmationCounts
 

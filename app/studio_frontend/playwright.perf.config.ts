@@ -24,6 +24,7 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
+  reporter: [['list']],
   workers: 1,   // fixed --remote-debugging-port requires single worker
   retries: 0,
   timeout: 90000,  // Lighthouse audits are slow

@@ -12,6 +12,11 @@ CVE-2024-23342
 # it is present as an indirect OS dependency.
 CVE-2025-69720
 
+# CVE-2026-4878: libcap — privilege escalation via TOCTOU in cap_set_file()
+# Suppressed: no fix available in debian 13.4. libcap is an indirect OS dep;
+# the container runs as non-root (appuser) and does not call cap_set_file().
+CVE-2026-4878
+
 # CVE-2026-29111: systemd — arbitrary code execution via spurious IPC
 # Suppressed: no fix available. systemd is an indirect OS dep in python:3.12-slim;
 # it is not reachable from the application and the container runs as non-root (appuser).

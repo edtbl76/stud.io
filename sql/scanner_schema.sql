@@ -67,6 +67,14 @@ CREATE TABLE IF NOT EXISTS scanner_plugin_links (
     UNIQUE (fingerprint)
 );
 
+-- U-04 additions (idempotent) -----------------------------------------------
+
+-- Orphan dismiss: per-scan-run flag; does not affect future scan results.
+ALTER TABLE plugin_scan_results ADD COLUMN IF NOT EXISTS dismissed_at TIMESTAMPTZ;
+
+-- Permanent keep: suppresses orphan flagging for a confirmed link in all future scans.
+ALTER TABLE scanner_plugin_links ADD COLUMN IF NOT EXISTS keep_permanently BOOLEAN NOT NULL DEFAULT FALSE;
+
 -- Indexes -------------------------------------------------------------------
 
 -- plugin_scan_results: report query by scan run

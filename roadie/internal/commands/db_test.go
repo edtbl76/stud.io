@@ -1,9 +1,217 @@
 package commands
 
 import (
+	"context"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
+
+	"github.com/studiocontrolroom/roadie/internal/config"
+	"github.com/studiocontrolroom/roadie/internal/providers"
 )
+
+// ---------------------------------------------------------------------------
+// fakeDB — in-memory SQLDatabaseProvider for migrate tests
+// ---------------------------------------------------------------------------
+
+type fakeDB struct {
+	applied   map[string]bool
+	execErr   error
+	queryErr  error
+	fileErr   error
+	mu        sync.Mutex
+	execCalls []string
+}
+
+func newFakeDB(applied ...string) *fakeDB {
+	f := &fakeDB{applied: make(map[string]bool)}
+	for _, name := range applied {
+		f.applied[name] = true
+	}
+	return f
+}
+
+func (f *fakeDB) IsReady(_ context.Context, _ providers.DBConfig) (bool, error) { return true, nil }
+func (f *fakeDB) ExecSQL(_ context.Context, _ providers.DBConfig, sql string) error {
+	f.mu.Lock()
+	f.execCalls = append(f.execCalls, sql)
+	f.mu.Unlock()
+	return f.execErr
+}
+func (f *fakeDB) ExecSQLFile(_ context.Context, _ providers.DBConfig, path string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.execCalls = append(f.execCalls, "FILE:"+filepath.Base(path))
+	return f.fileErr
+}
+func (f *fakeDB) QueryRows(_ context.Context, _ providers.DBConfig, _ string) ([]string, error) {
+	if f.queryErr != nil {
+		return nil, f.queryErr
+	}
+	var rows []string
+	for name := range f.applied {
+		rows = append(rows, name)
+	}
+	return rows, nil
+}
+
+func migrateConfig() *config.Config {
+	return &config.Config{
+		Providers: config.ProvidersConfig{
+			Database: config.DatabaseProviderConfig{
+				Service: "studio_db",
+				User:    "studio",
+				DBName:  "masterdb",
+			},
+		},
+	}
+}
+
+// ---------------------------------------------------------------------------
+// migrator tests
+// ---------------------------------------------------------------------------
+
+func writeMigration(t *testing.T, dir, name, content string) {
+	t.Helper()
+	if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func applyToDir(t *testing.T, db *fakeDB, dir string) (string, error) {
+	t.Helper()
+	var out strings.Builder
+	m, err := newMigrator(migrateConfig(), db, &out)
+	if err != nil {
+		return "", err
+	}
+	err = m.apply(context.Background(), dir)
+	return out.String(), err
+}
+
+func TestRunMigrate_NothingCases(t *testing.T) {
+	cases := []struct {
+		name    string
+		setup   func(t *testing.T, dir string)
+		applied []string
+	}{
+		{
+			name:    "empty dir",
+			setup:   func(_ *testing.T, _ string) {},
+			applied: nil,
+		},
+		{
+			name: "all already applied",
+			setup: func(t *testing.T, dir string) {
+				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+			},
+			applied: []string{"001_init.sql"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tc.setup(t, dir)
+			out, err := applyToDir(t, newFakeDB(tc.applied...), dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(out, "Nothing to apply") {
+				t.Errorf("expected nothing-to-apply, got: %s", out)
+			}
+		})
+	}
+}
+
+func TestRunMigrate_AppliesCases(t *testing.T) {
+	cases := []struct {
+		name      string
+		setup     func(t *testing.T, dir string)
+		wantCount int
+	}{
+		{
+			name: "applies all new migrations",
+			setup: func(t *testing.T, dir string) {
+				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+				writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
+			},
+			wantCount: 2,
+		},
+		{
+			name: "ignores non-sql files",
+			setup: func(t *testing.T, dir string) {
+				writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+				os.WriteFile(filepath.Join(dir, "README.md"), []byte("docs"), 0644) //nolint:errcheck
+			},
+			wantCount: 1,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			tc.setup(t, dir)
+			out, err := applyToDir(t, newFakeDB(), dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := fmt.Sprintf("Applied %d migration(s)", tc.wantCount)
+			if !strings.Contains(out, want) {
+				t.Errorf("expected %q, got: %s", want, out)
+			}
+		})
+	}
+}
+
+func TestRunMigrate_SkipsAlreadyApplied(t *testing.T) {
+	dir := t.TempDir()
+	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+	writeMigration(t, dir, "002_add_col.sql", "SELECT 2;")
+
+	out, err := applyToDir(t, newFakeDB("001_init.sql"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "Applied 1 migration(s)") {
+		t.Errorf("expected 1 applied, got: %s", out)
+	}
+	if !strings.Contains(out, "skip  001_init.sql") {
+		t.Errorf("expected skip message for 001_init.sql, got: %s", out)
+	}
+}
+
+func TestRunMigrate_MissingDBName(t *testing.T) {
+	_, err := newMigrator(&config.Config{}, newFakeDB(), &strings.Builder{})
+	if err == nil || !strings.Contains(err.Error(), "db_name") {
+		t.Errorf("expected db_name error, got: %v", err)
+	}
+}
+
+func TestRunMigrate_RecordsEachMigration(t *testing.T) {
+	dir := t.TempDir()
+	writeMigration(t, dir, "001_a.sql", "SELECT 1;")
+	writeMigration(t, dir, "002_b.sql", "SELECT 2;")
+
+	db := newFakeDB()
+	if _, err := applyToDir(t, db, dir); err != nil {
+		t.Fatal(err)
+	}
+	insertCount := 0
+	for _, call := range db.execCalls {
+		if strings.Contains(call, "INSERT INTO schema_migrations") {
+			insertCount++
+		}
+	}
+	if insertCount != 2 {
+		t.Errorf("expected 2 INSERT calls, got %d; calls: %v", insertCount, db.execCalls)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// confirmDBInit tests
+// ---------------------------------------------------------------------------
 
 func TestConfirmDBInit_YesProceeds(t *testing.T) {
 	var out strings.Builder
