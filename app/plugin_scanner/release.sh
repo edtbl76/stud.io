@@ -24,13 +24,6 @@ chmod +x /tmp/install.sh
 mkdir -p "/tmp/${ARTIFACT}"
 cp plugin-scanner "/tmp/${ARTIFACT}/"
 cp /tmp/install.sh "/tmp/${ARTIFACT}/"
-MKCERT_CA="$(mkcert -CAROOT 2>/dev/null)/rootCA.pem"
-if [ -f "$MKCERT_CA" ]; then
-  cp "$MKCERT_CA" "/tmp/${ARTIFACT}/rootCA.pem"
-  echo "Bundled rootCA.pem from $MKCERT_CA"
-else
-  echo "Warning: mkcert rootCA.pem not found — CA cert not bundled" >&2
-fi
 cd /tmp && zip -r "${ARTIFACT}.zip" "${ARTIFACT}/"
 
 echo "Uploading ${ARTIFACT}.zip to ${ENDPOINT}/${BUCKET}/${OBJECT}..."

@@ -27,7 +27,7 @@ EOF
 }
 
 detect_shell() {
-  basename "$SHELL"
+  basename "${SHELL:-/bin/sh}"
 }
 
 shell_rc() {
@@ -168,6 +168,7 @@ if [ -f "$TARGET" ]; then
   EXISTING=$("$TARGET" version 2>/dev/null || echo "unknown")
   if [ "$EXISTING" = "$VERSION" ]; then
     echo "plugin-scanner $VERSION is already installed at $TARGET — nothing to do."
+    install_ca
     add_to_path
     setup_completion
     exit 0
