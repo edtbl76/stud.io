@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const defaultServerURL = "https://localhost:5150"
+const defaultServerURL = "https://192.168.1.230.sslip.io:2112"
 const defaultTimeout = 300
 const configPerms = 0600
 

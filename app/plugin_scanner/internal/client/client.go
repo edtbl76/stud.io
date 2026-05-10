@@ -113,7 +113,7 @@ func (c *APIClient) doPost(ctx context.Context, body []byte, idempotencyKey stri
 
 	base := strings.TrimRight(c.serverURL, "/")
 	req, err := http.NewRequestWithContext(attemptCtx, http.MethodPost,
-		base+"/scanner/scan", bytes.NewReader(body))
+		base+"/api/scanner/scan", bytes.NewReader(body))
 	if err != nil {
 		return nil, err
 	}
