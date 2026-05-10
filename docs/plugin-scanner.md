@@ -4,9 +4,9 @@ The plugin-scanner binary scans macOS plugin directories and uploads your plugin
 
 ## Prerequisites
 
-- A running ControlRoom instance
+- A running ControlRoom instance accessible on your local network
 - An admin account in StudioManagement
-- macOS (Apple Silicon)
+- macOS (Apple Silicon or Intel)
 
 ## 1. Generate an API Key
 
@@ -15,34 +15,60 @@ The plugin-scanner binary scans macOS plugin directories and uploads your plugin
 3. Click **Generate API Key**
 4. Copy the key immediately — it is shown once and cannot be retrieved again
 
-## 2. Download the Binary
+## 2. Download and Install
 
-From the same page, click **Download (macOS Apple Silicon)** to get the latest release.
+From the same page, click **Download** to get the latest release zip.
 
-Move the binary to a directory on your PATH:
+Extract the zip and run the installer from the extracted directory:
 
 ```bash
-mv plugin-scanner /usr/local/bin/plugin-scanner
-chmod +x /usr/local/bin/plugin-scanner
-plugin-scanner --version
+unzip plugin-scanner-*.zip
+cd plugin-scanner-*/
+bash install.sh
+```
+
+The installer will:
+- Detect your Mac architecture (Apple Silicon or Intel) and install the correct binary
+- Add the install directory to your PATH
+- Configure shell completion (zsh, bash, or fish)
+- Print a `source` command to activate changes without restarting your shell
+
+To remove the binary:
+
+```bash
+bash install.sh --uninstall
 ```
 
 ## 3. Configure the Binary
+
+Set your API key:
 
 ```bash
 plugin-scanner auth set-key <your-api-key>
 ```
 
-This stores the key in `~/.plugin-scanner.yml`. To configure the ControlRoom server URL:
+If ControlRoom is not running on the same machine, set the server URL:
 
 ```bash
-plugin-scanner config set server_url https://your-controlroom-host
+plugin-scanner config set server_url https://<controlroom-host>:5150
+```
+
+Verify your configuration:
+
+```bash
+plugin-scanner config show
 ```
 
 ## 4. Run Your First Scan
 
 ```bash
 plugin-scanner scan
+```
+
+To preview what will be scanned without uploading:
+
+```bash
+plugin-scanner scan --dry-run
 ```
 
 The scanner walks all default macOS plugin paths (VST3, AU, VST2 — user and system) and uploads results to ControlRoom. A progress indicator updates in place during the upload.
@@ -58,7 +84,7 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | Unconfirmed | Fuzzy matches awaiting review |
 | Untracked | No match found — create a record or ignore |
 | Orphaned | In ControlRoom but no longer on disk |
-| Exclusions | Plugins intentionally excluded from triage — ignored via scan confirm or user policy. Review here to restore a plugin to active scanning by removing its exclusion. |
+| Exclusions | Plugins intentionally excluded from triage. Remove here to restore a plugin to active scanning. |
 
 ## Custom Scan Paths
 
@@ -73,10 +99,22 @@ scan_paths:
 
 If `scan_paths` is set, defaults are not auto-appended.
 
+## Shell Completion
+
+The installer configures completion automatically. To set it up manually:
+
+```bash
+plugin-scanner completion zsh   # zsh
+plugin-scanner completion bash  # bash
+plugin-scanner completion fish  # fish
+```
+
 ## Troubleshooting
 
 **401 Unauthorized** — API key is invalid or revoked. Generate a new key in StudioManagement.
 
 **Missing path warning** — A configured path does not exist on disk. Check your `scan_paths` config.
+
+**TLS errors connecting to ControlRoom** — Your Mac may not trust the ControlRoom TLS certificate. Set `ca_cert_path` in `~/.plugin-scanner.yml` to point to the server's root CA certificate.
 
 **Scan in progress indicator** — The ControlRoom report page polls every 5 seconds and refreshes automatically when the scan completes.

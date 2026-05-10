@@ -7,7 +7,7 @@ set -euo pipefail
 
 VERSION="${1:-$(git describe --tags --always)}"
 TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
-ARTIFACT="plugin-scanner-${VERSION}-${TIMESTAMP}-darwin-arm64"
+ARTIFACT="plugin-scanner-${VERSION}-${TIMESTAMP}-darwin"
 ENDPOINT="${MINIO_ENDPOINT:-http://localhost:1983}"
 BUCKET="studio-downloads"
 OBJECT="plugin-scanner/${ARTIFACT}.zip"
@@ -15,14 +15,21 @@ OBJECT="plugin-scanner/${ARTIFACT}.zip"
 echo "Building plugin-scanner ${VERSION} for darwin/arm64..."
 GOOS=darwin GOARCH=arm64 go build \
   -ldflags "-X main.version=${VERSION}" \
-  -o plugin-scanner \
+  -o plugin-scanner-arm64 \
+  ./cmd/plugin-scanner
+
+echo "Building plugin-scanner ${VERSION} for darwin/amd64..."
+GOOS=darwin GOARCH=amd64 go build \
+  -ldflags "-X main.version=${VERSION}" \
+  -o plugin-scanner-amd64 \
   ./cmd/plugin-scanner
 
 echo "Preparing release archive..."
 sed "s|__VERSION__|${VERSION}|g" install.sh.tmpl > /tmp/install.sh
 chmod +x /tmp/install.sh
 mkdir -p "/tmp/${ARTIFACT}"
-cp plugin-scanner "/tmp/${ARTIFACT}/"
+cp plugin-scanner-arm64 "/tmp/${ARTIFACT}/"
+cp plugin-scanner-amd64 "/tmp/${ARTIFACT}/"
 cp /tmp/install.sh "/tmp/${ARTIFACT}/"
 cd /tmp && zip -r "${ARTIFACT}.zip" "${ARTIFACT}/"
 

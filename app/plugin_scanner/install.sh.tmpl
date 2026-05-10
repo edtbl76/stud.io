@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-BINARY="plugin-scanner"
 VERSION="__VERSION__"
 INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
 CA_CERT="rootCA.pem"
+
+case "$(uname -m)" in
+  arm64|aarch64) BINARY="plugin-scanner-arm64" ;;
+  x86_64)        BINARY="plugin-scanner-amd64" ;;
+  *) echo "Error: unsupported architecture $(uname -m)" >&2; exit 1 ;;
+esac
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -136,7 +141,7 @@ done
 # ── Uninstall ─────────────────────────────────────────────────────────────────
 
 if [ "$UNINSTALL" = true ]; then
-  TARGET="$INSTALL_DIR/$BINARY"
+  TARGET="$INSTALL_DIR/plugin-scanner"
   if [ -f "$TARGET" ]; then
     rm "$TARGET"
     echo "plugin-scanner removed from $INSTALL_DIR"
@@ -163,7 +168,7 @@ if [ ! -w "$INSTALL_DIR" ]; then
 fi
 
 # Detect existing installation
-TARGET="$INSTALL_DIR/$BINARY"
+TARGET="$INSTALL_DIR/plugin-scanner"
 if [ -f "$TARGET" ]; then
   EXISTING=$("$TARGET" version 2>/dev/null || echo "unknown")
   if [ "$EXISTING" = "$VERSION" ]; then
