@@ -26,6 +26,7 @@ steps:
         from_secret: minio_svc_access_key
       MINIO_SECRET_KEY:
         from_secret: minio_svc_secret_key
+      BUILD_INCLUDE_MKCERT_CA: "1"
     when:
       - event: push
         branch: main
