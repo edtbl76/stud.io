@@ -31,6 +31,7 @@ mkdir -p "/tmp/${ARTIFACT}"
 cp plugin-scanner-arm64 "/tmp/${ARTIFACT}/"
 cp plugin-scanner-amd64 "/tmp/${ARTIFACT}/"
 cp /tmp/install.sh "/tmp/${ARTIFACT}/"
+cp "$(mkcert -CAROOT)/rootCA.pem" "/tmp/${ARTIFACT}/"
 cd /tmp && zip -r "${ARTIFACT}.zip" "${ARTIFACT}/"
 
 echo "Uploading ${ARTIFACT}.zip to ${ENDPOINT}/${BUCKET}/${OBJECT}..."
