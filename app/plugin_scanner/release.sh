@@ -3,6 +3,11 @@
 # uploads the versioned artifact to MinIO.
 # Required env: MINIO_ACCESS_KEY, MINIO_SECRET_KEY
 # Optional env: MINIO_ENDPOINT (default: http://localhost:1983)
+# Optional env: BUILD_INCLUDE_MKCERT_CA=1 — bundle the build machine's mkcert
+#   root CA (rootCA.pem) into the archive so install.sh can trust it on the
+#   client. Only set this when building for a LAN deployment that uses a
+#   self-signed mkcert certificate. The binary's ResolveCA() will auto-detect
+#   mkcert on the client if this is omitted.
 set -euo pipefail
 
 VERSION="${1:-$(git describe --tags --always)}"
@@ -31,7 +36,10 @@ mkdir -p "/tmp/${ARTIFACT}"
 cp plugin-scanner-arm64 "/tmp/${ARTIFACT}/"
 cp plugin-scanner-amd64 "/tmp/${ARTIFACT}/"
 cp /tmp/install.sh "/tmp/${ARTIFACT}/"
-cp "$(mkcert -CAROOT)/rootCA.pem" "/tmp/${ARTIFACT}/"
+if [ "${BUILD_INCLUDE_MKCERT_CA:-0}" = "1" ]; then
+  cp "$(mkcert -CAROOT)/rootCA.pem" "/tmp/${ARTIFACT}/"
+  echo "Bundling mkcert CA into archive."
+fi
 cd /tmp && zip -r "${ARTIFACT}.zip" "${ARTIFACT}/"
 
 echo "Uploading ${ARTIFACT}.zip to ${ENDPOINT}/${BUCKET}/${OBJECT}..."
