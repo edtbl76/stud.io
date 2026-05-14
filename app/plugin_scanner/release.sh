@@ -37,8 +37,9 @@ cp plugin-scanner-arm64 "/tmp/${ARTIFACT}/"
 cp plugin-scanner-amd64 "/tmp/${ARTIFACT}/"
 cp /tmp/install.sh "/tmp/${ARTIFACT}/"
 if [ "${BUILD_INCLUDE_MKCERT_CA:-0}" = "1" ]; then
-  cp "$(mkcert -CAROOT)/rootCA.pem" "/tmp/${ARTIFACT}/"
-  echo "Bundling mkcert CA into archive."
+  CA_ROOT="${MKCERT_CAROOT:-$(mkcert -CAROOT)}"
+  cp "${CA_ROOT}/rootCA.pem" "/tmp/${ARTIFACT}/"
+  echo "Bundling mkcert CA from ${CA_ROOT} into archive."
 fi
 cd /tmp && zip -r "${ARTIFACT}.zip" "${ARTIFACT}/"
 
