@@ -44,7 +44,7 @@ services:
   # Agents run externally as systemd services (woodpecker-agent-1..4) using
   # WOODPECKER_BACKEND=local. They connect to this server on port 9000.
   woodpecker-server:
-    image: woodpeckerci/woodpecker-server:v3
+    image: woodpeckerci/woodpecker-server:v3.14.1
     container_name: woodpecker_server
     ports:
       - "1984:8000"
