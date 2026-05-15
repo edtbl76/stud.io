@@ -233,12 +233,9 @@ func applyAllToDir(t *testing.T, db *fakeDB, cfg *config.Config, dir string) (st
 func TestMigrateAllDatabases_NoDatabasesConfigured(t *testing.T) {
 	dir := t.TempDir()
 	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
-	out, err := applyAllToDir(t, newFakeDB(), testCfgWithDatabases(), dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(out, "No test databases") {
-		t.Errorf("expected no-databases message, got: %s", out)
+	_, err := applyAllToDir(t, newFakeDB(), testCfgWithDatabases(), dir)
+	if err == nil || !strings.Contains(err.Error(), "no test databases") {
+		t.Errorf("expected no-test-databases error, got: %v", err)
 	}
 }
 

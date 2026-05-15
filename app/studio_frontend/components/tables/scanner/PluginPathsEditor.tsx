@@ -13,22 +13,39 @@ interface PluginPathsEditorProps {
 }
 
 export function PluginPathsEditor({ value, onChange, readOnly = false }: Readonly<PluginPathsEditorProps>) {
+  const nextKey = React.useRef(0)
+  const [keys, setKeys] = React.useState<readonly number[]>(() =>
+    Array.from({ length: value.length }, () => nextKey.current++)
+  )
+
+  // Sync keys when value length changes externally (e.g. form reset)
+  React.useEffect(() => {
+    setKeys(prev => {
+      if (prev.length === value.length) return prev
+      return Array.from({ length: value.length }, (_, i) =>
+        i < prev.length ? prev[i] : nextKey.current++
+      )
+    })
+  }, [value.length])
+
   function update(index: number, field: keyof PluginPathEntry, next: string) {
     onChange(value.map((e, i) => i === index ? { ...e, [field]: next } : e))
   }
 
   function remove(index: number) {
+    setKeys(k => k.filter((_, i) => i !== index))
     onChange(value.filter((_, i) => i !== index))
   }
 
   function add() {
+    setKeys(k => [...k, nextKey.current++])
     onChange([...value, { ...BLANK }])
   }
 
   return (
     <div className="space-y-2">
       {value.map((entry, i) => (
-        <div key={`${entry.path}-${entry.format}-${i}`} className="flex gap-2 items-center" data-testid={`plugin-paths-entry-${i}`}>
+        <div key={keys[i]} className="flex gap-2 items-center" data-testid={`plugin-paths-entry-${i}`}>
           <input
             type="text"
             value={entry.path}

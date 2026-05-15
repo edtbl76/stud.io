@@ -29,10 +29,13 @@ describe('PluginPathsEditor', () => {
     expect(updated[1]).toEqual({ path: '', format: 'vst3', version: '' })
   })
 
-  it('editing path field calls onChange with updated entry', () => {
+  it('editing path field keeps focus and calls onChange with updated entry', () => {
     const onChange = jest.fn()
     render(<PluginPathsEditor value={[ENTRY]} onChange={onChange} />)
-    fireEvent.change(screen.getByTestId('plugin-paths-path-0'), { target: { value: '/new/path' } })
+    const input = screen.getByTestId('plugin-paths-path-0')
+    input.focus()
+    fireEvent.change(input, { target: { value: '/new/path' } })
+    expect(document.activeElement).toBe(input)
     expect(onChange).toHaveBeenCalledWith([{ ...ENTRY, path: '/new/path' }])
   })
 

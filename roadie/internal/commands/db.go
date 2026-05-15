@@ -150,8 +150,7 @@ type migrateAllOpts struct {
 // without touching the hardcoded migrationsDir constant.
 func migrateAllDatabases(ctx context.Context, cfg *config.Config, opts migrateAllOpts) error {
 	if len(cfg.Build.Databases) == 0 {
-		fmt.Fprintln(opts.out, "[migrate] No test databases configured in build.databases.")
-		return nil
+		return fmt.Errorf("no test databases configured in build.databases")
 	}
 	if err := guardNoProdDB(cfg.Providers.Database.DBName, cfg.Build.Databases); err != nil {
 		return err
