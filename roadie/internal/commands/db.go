@@ -109,7 +109,7 @@ With --test: targets each database in build.databases (the test databases).`,
 			}
 			db := providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil)
 			if test {
-				return migrateAllDatabases(cmd.Context(), cfg, db, os.Stdout, migrationsDir)
+				return migrateAllDatabases(cmd.Context(), cfg, migrateAllOpts{db: db, out: os.Stdout, dir: migrationsDir})
 			}
 			return runMigrate(cmd.Context(), cfg, db, os.Stdout)
 		},
@@ -128,15 +128,7 @@ func newMigrator(cfg *config.Config, db providers.SQLDatabaseProvider, out io.Wr
 	if cfg.Providers.Database.DBName == "" {
 		return nil, fmt.Errorf("providers.database.db_name is not set in roadie.yml")
 	}
-	return &migrator{
-		db:  db,
-		out: out,
-		dbCfg: providers.DBConfig{
-			Service: cfg.Providers.Database.Service,
-			User:    cfg.Providers.Database.User,
-			DBName:  cfg.Providers.Database.DBName,
-		},
-	}, nil
+	return newMigratorForDB(cfg, cfg.Providers.Database.DBName, db, out)
 }
 
 func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer) error {
@@ -147,24 +139,30 @@ func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabas
 	return m.apply(ctx, migrationsDir)
 }
 
+type migrateAllOpts struct {
+	db  providers.SQLDatabaseProvider
+	out io.Writer
+	dir string
+}
+
 // migrateAllDatabases applies unapplied migrations to every database in
-// cfg.Build.Databases. Exposed as a named function so tests can pass a
-// custom dir without touching the hardcoded migrationsDir constant.
-func migrateAllDatabases(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer, dir string) error {
+// cfg.Build.Databases. opts.dir is exposed so tests can supply a temp dir
+// without touching the hardcoded migrationsDir constant.
+func migrateAllDatabases(ctx context.Context, cfg *config.Config, opts migrateAllOpts) error {
 	if len(cfg.Build.Databases) == 0 {
-		fmt.Fprintln(out, "[migrate] No test databases configured in build.databases.")
+		fmt.Fprintln(opts.out, "[migrate] No test databases configured in build.databases.")
 		return nil
 	}
 	if err := guardNoProdDB(cfg.Providers.Database.DBName, cfg.Build.Databases); err != nil {
 		return err
 	}
 	for _, dbName := range cfg.Build.Databases {
-		fmt.Fprintf(out, "[migrate] Migrating test database: %s\n", dbName)
-		m, err := newMigratorForDB(cfg, dbName, db, out)
+		fmt.Fprintf(opts.out, "[migrate] Migrating test database: %s\n", dbName)
+		m, err := newMigratorForDB(cfg, dbName, opts.db, opts.out)
 		if err != nil {
 			return err
 		}
-		if err := m.apply(ctx, dir); err != nil {
+		if err := m.apply(ctx, opts.dir); err != nil {
 			return fmt.Errorf("migrating %s: %w", dbName, err)
 		}
 	}

@@ -57,6 +57,9 @@ def test_list_of_valid_entries_round_trips(entries):
     )
 
 
-def test_empty_list_is_valid():
-    entries: list[PluginPathEntry] = []
-    assert entries == []
+def test_empty_disk_paths_accepted_by_effect_schema():
+    """Empty disk_paths is accepted and serializes as [] (not None) in EffectCreate."""
+    from schemas.effects import EffectCreate
+    model = EffectCreate(effect_name="Test Effect", disk_paths=[])
+    assert model.disk_paths == []
+    assert model.model_dump()["disk_paths"] == []

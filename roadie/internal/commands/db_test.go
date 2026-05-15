@@ -226,7 +226,7 @@ func testCfgWithDatabases(dbs ...string) *config.Config {
 func applyAllToDir(t *testing.T, db *fakeDB, cfg *config.Config, dir string) (string, error) {
 	t.Helper()
 	var out strings.Builder
-	err := migrateAllDatabases(context.Background(), cfg, db, &out, dir)
+	err := migrateAllDatabases(context.Background(), cfg, migrateAllOpts{db: db, out: &out, dir: dir})
 	return out.String(), err
 }
 

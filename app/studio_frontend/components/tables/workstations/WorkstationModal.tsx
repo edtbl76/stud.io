@@ -35,6 +35,8 @@ interface FormState {
   disk_paths: PluginPathEntry[]
 }
 
+type SetFn = <K extends keyof FormState>(key: K, value: FormState[K]) => void
+
 function getWorkstationTitle(mode: 'view' | 'edit' | 'history', record: Workstation | null): string {
   if (mode === 'history') return `${record?.full_tool_name ?? ''} — History`
   if (!record) return 'New Workstation'
@@ -78,6 +80,70 @@ function toForm(record: Workstation | null): FormState {
   }
 }
 
+function WorkstationEditForm({ form, set }: Readonly<{ form: FormState; set: SetFn }>) {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label htmlFor="tool_name">Workstation Name *</Label>
+        <Input id="tool_name" value={form.tool_name} onChange={(e) => set('tool_name', e.target.value)} placeholder="Workstation Name" />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Brand</Label>
+        <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="version">Version</Label>
+        <Input id="version" value={form.version} onChange={(e) => set('version', e.target.value)} placeholder="Version" />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Tool Types</Label>
+        <MultiSelect configSlug="tool-types" value={form.tool_type_ids} onChange={(v) => set('tool_type_ids', v)} placeholder="Select tool types..." />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Formats</Label>
+        <MultiSelect configSlug="plugin-formats" value={form.plugin_format_ids} onChange={(v) => set('plugin_format_ids', v)} placeholder="Select formats..." />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Tags</Label>
+        <MultiSelect configSlug="tag-types" value={form.tag_ids} onChange={(v) => set('tag_ids', v)} placeholder="Select tags..." />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label htmlFor="description">Description</Label>
+        <Textarea id="description" value={form.description} onChange={(e) => set('description', e.target.value)} rows={3} />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label htmlFor="workflow_notes">Workflow Notes</Label>
+        <Textarea id="workflow_notes" value={form.workflow_notes} onChange={(e) => set('workflow_notes', e.target.value)} rows={3} />
+      </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Paths</Label>
+        <PluginPathsEditor value={form.disk_paths} onChange={(v) => set('disk_paths', v)} />
+      </div>
+    </div>
+  )
+}
+
+function WorkstationViewFields({ record }: Readonly<{ record: Workstation | null }>) {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <FieldRow label="Tool Name" value={record?.tool_name} />
+      <FieldRow label="Brand" value={record?.brand_name} />
+      <FieldRow label="Version" value={record?.version} />
+      <div className="col-span-2"><FieldRow label="Tool Types" value={<TypeBadges types={record?.tool_types} />} /></div>
+      <div className="col-span-2"><FieldRow label="Plugin Formats" value={<TypeBadges types={record?.plugin_formats} />} /></div>
+      <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record?.tags} />} /></div>
+      <div className="col-span-2"><FieldRow label="Description" value={record?.description} /></div>
+      <div className="col-span-2"><FieldRow label="Workflow Notes" value={record?.workflow_notes} /></div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Paths</Label>
+        <PluginPathsEditor value={record?.disk_paths ?? []} onChange={() => {}} readOnly />
+      </div>
+      <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
+      <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
+    </div>
+  )
+}
+
 export function WorkstationModal({ record, onClose, onMutate }: Readonly<WorkstationModalProps>) {
   const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
     useRecordModal<Workstation, FormState>({
@@ -95,75 +161,15 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
   return (
     <RecordModal {...recordModalProps}>
       {mode === 'history' ? (
-        <RecordHistoryView
-          historyUrl={historyUrl}
-          isAdmin={isAdmin}
-          onUndo={() => { onMutate(); onClose() }}
-        />
+        <RecordHistoryView historyUrl={historyUrl} isAdmin={isAdmin} onUndo={() => { onMutate(); onClose() }} />
       ) : (
-      <>
-      {error && (
-        <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>
-      )}
-
-      {mode === 'edit' ? (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="tool_name">Workstation Name *</Label>
-            <Input id="tool_name" value={form.tool_name} onChange={(e) => set('tool_name', e.target.value)} placeholder="Workstation Name" />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Brand</Label>
-            <BrandSelect value={form.brand_id} displayName={form.brand_name} onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="version">Version</Label>
-            <Input id="version" value={form.version} onChange={(e) => set('version', e.target.value)} placeholder="Version" />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Tool Types</Label>
-            <MultiSelect configSlug="tool-types" value={form.tool_type_ids} onChange={(v) => set('tool_type_ids', v)} placeholder="Select tool types..." />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Plugin Formats</Label>
-            <MultiSelect configSlug="plugin-formats" value={form.plugin_format_ids} onChange={(v) => set('plugin_format_ids', v)} placeholder="Select formats..." />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Tags</Label>
-            <MultiSelect configSlug="tag-types" value={form.tag_ids} onChange={(v) => set('tag_ids', v)} placeholder="Select tags..." />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" value={form.description} onChange={(e) => set('description', e.target.value)} rows={3} />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label htmlFor="workflow_notes">Workflow Notes</Label>
-            <Textarea id="workflow_notes" value={form.workflow_notes} onChange={(e) => set('workflow_notes', e.target.value)} rows={3} />
-          </div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Plugin Paths</Label>
-            <PluginPathsEditor value={form.disk_paths} onChange={(v) => set('disk_paths', v)} />
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          <FieldRow label="Tool Name" value={record?.tool_name} />
-          <FieldRow label="Brand" value={record?.brand_name} />
-          <FieldRow label="Version" value={record?.version} />
-          <div className="col-span-2"><FieldRow label="Tool Types" value={<TypeBadges types={record?.tool_types} />} /></div>
-          <div className="col-span-2"><FieldRow label="Plugin Formats" value={<TypeBadges types={record?.plugin_formats} />} /></div>
-          <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record?.tags} />} /></div>
-          <div className="col-span-2"><FieldRow label="Description" value={record?.description} /></div>
-          <div className="col-span-2"><FieldRow label="Workflow Notes" value={record?.workflow_notes} /></div>
-          <div className="col-span-2 flex flex-col gap-1.5">
-            <Label>Plugin Paths</Label>
-            <PluginPathsEditor value={record?.disk_paths ?? []} onChange={() => {}} readOnly />
-          </div>
-          <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
-          <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
-        </div>
-      )}
-      </>
+        <>
+          {error && <div className="text-sm text-destructive bg-destructive/10 rounded px-3 py-2">{error}</div>}
+          {mode === 'edit'
+            ? <WorkstationEditForm form={form} set={set} />
+            : <WorkstationViewFields record={record} />
+          }
+        </>
       )}
     </RecordModal>
   )
