@@ -124,14 +124,16 @@ async def test_patch_effect_disk_paths_audited(client, conn, admin_headers):
         "INSERT INTO effects (effect_name) VALUES ('DPTest Audit') RETURNING effect_id"
     )
     effect_id = row["effect_id"]
-    await client.patch(
+    resp = await client.patch(
         f"/studio/session/effects/{effect_id}",
         json={"disk_paths": [_VALID_ENTRY]},
         headers=admin_headers,
     )
+    assert resp.status_code == 200
     audit = await conn.fetchrow(
         "SELECT new_data FROM audit_log WHERE table_name='effects' AND record_id=$1 "
         "ORDER BY performed_at DESC LIMIT 1",
         effect_id,
     )
+    assert audit is not None
     assert "disk_paths" in audit["new_data"]
