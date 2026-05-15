@@ -4,6 +4,7 @@ Tests cover: effects, instruments, workflow_tools, libraries, workstations.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 import pytest
 
 _VALID_ENTRY = {"path": "/Library/Audio/Plug-Ins/VST3/Reverb.vst3", "format": "vst3", "version": "2.1.0"}
@@ -27,77 +28,67 @@ async def test_response_includes_disk_paths(client, list_url):
     assert "disk_paths" in data["items"][0]
 
 
-@pytest.mark.parametrize("insert_sql,id_col,patch_url", [
-    (
-        "INSERT INTO instruments (instrument_name) VALUES ('DPTest Inst') RETURNING instrument_id",
-        "instrument_id",
-        "/studio/session/instruments/{id}",
+@dataclass
+class _PatchCase:
+    insert_sql: str
+    id_col: str
+    patch_url: str
+    disk_paths: list
+    expected_status: int
+
+
+_PATCH_CASES = [
+    _PatchCase(
+        "INSERT INTO effects (effect_name) VALUES ('DPTest E') RETURNING effect_id",
+        "effect_id", "/studio/session/effects/{id}", [_VALID_ENTRY], 200,
     ),
-    (
+    _PatchCase(
+        "INSERT INTO instruments (instrument_name) VALUES ('DPTest I') RETURNING instrument_id",
+        "instrument_id", "/studio/session/instruments/{id}", [_VALID_ENTRY], 200,
+    ),
+    _PatchCase(
         "INSERT INTO workflow_tools (tool_name) VALUES ('DPTest WF') RETURNING workflow_tool_id",
-        "workflow_tool_id",
-        "/studio/tools/workflow/{id}",
+        "workflow_tool_id", "/studio/tools/workflow/{id}", [_VALID_ENTRY], 200,
     ),
-    (
-        "INSERT INTO libraries (library_name) VALUES ('DPTest Lib') RETURNING library_id",
-        "library_id",
-        "/studio/session/libraries/{id}",
+    _PatchCase(
+        "INSERT INTO libraries (library_name) VALUES ('DPTest L') RETURNING library_id",
+        "library_id", "/studio/session/libraries/{id}", [_VALID_ENTRY], 200,
     ),
-    (
+    _PatchCase(
         "INSERT INTO workstations (tool_name) VALUES ('DPTest WS') RETURNING workstation_id",
-        "workstation_id",
-        "/studio/session/workstations/{id}",
+        "workstation_id", "/studio/session/workstations/{id}", [_VALID_ENTRY], 200,
     ),
-])
-async def test_patch_catalog_disk_paths(client, conn, admin_headers, insert_sql, id_col, patch_url):
-    row = await conn.fetchrow(insert_sql)
-    resp = await client.patch(
-        patch_url.format(id=row[id_col]),
-        json={"disk_paths": [_VALID_ENTRY]},
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-    assert resp.json()["disk_paths"] == [_VALID_ENTRY]
+    _PatchCase(
+        "INSERT INTO effects (effect_name) VALUES ('DPTest E Bad') RETURNING effect_id",
+        "effect_id", "/studio/session/effects/{id}", [_INVALID_FMT], 422,
+    ),
+    _PatchCase(
+        "INSERT INTO instruments (instrument_name) VALUES ('DPTest I Bad') RETURNING instrument_id",
+        "instrument_id", "/studio/session/instruments/{id}", [_INVALID_FMT], 422,
+    ),
+    _PatchCase(
+        "INSERT INTO libraries (library_name) VALUES ('DPTest L Bad') RETURNING library_id",
+        "library_id", "/studio/session/libraries/{id}", [_INVALID_FMT], 422,
+    ),
+]
 
 
-@pytest.mark.parametrize("insert_sql,id_col,patch_url", [
-    (
-        "INSERT INTO instruments (instrument_name) VALUES ('DPTest Inst Bad') RETURNING instrument_id",
-        "instrument_id",
-        "/studio/session/instruments/{id}",
-    ),
-    (
-        "INSERT INTO libraries (library_name) VALUES ('DPTest Lib Bad') RETURNING library_id",
-        "library_id",
-        "/studio/session/libraries/{id}",
-    ),
-])
-async def test_patch_catalog_disk_paths_invalid_format(client, conn, admin_headers, insert_sql, id_col, patch_url):
-    row = await conn.fetchrow(insert_sql)
+@pytest.mark.parametrize("case", _PATCH_CASES)
+async def test_patch_catalog_disk_paths(client, conn, admin_headers, case):
+    row = await conn.fetchrow(case.insert_sql)
     resp = await client.patch(
-        patch_url.format(id=row[id_col]),
-        json={"disk_paths": [_INVALID_FMT]},
+        case.patch_url.format(id=row[case.id_col]),
+        json={"disk_paths": case.disk_paths},
         headers=admin_headers,
     )
-    assert resp.status_code == 422
+    assert resp.status_code == case.expected_status
+    if case.expected_status == 200:
+        assert resp.json()["disk_paths"] == case.disk_paths
 
 
 # ---------------------------------------------------------------------------
-# Effects — full coverage (create, multi-entry, clear, audit, invalid format)
+# Effects — unique behaviours not covered by the parametrized suite
 # ---------------------------------------------------------------------------
-
-async def test_patch_effect_disk_paths_single_entry(client, conn, admin_headers):
-    row = await conn.fetchrow(
-        "INSERT INTO effects (effect_name) VALUES ('DPTest Single') RETURNING effect_id"
-    )
-    resp = await client.patch(
-        f"/studio/session/effects/{row['effect_id']}",
-        json={"disk_paths": [_VALID_ENTRY]},
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-    assert resp.json()["disk_paths"] == [_VALID_ENTRY]
-
 
 async def test_patch_effect_disk_paths_multiple_entries(client, conn, admin_headers):
     row = await conn.fetchrow(
@@ -125,18 +116,6 @@ async def test_patch_effect_disk_paths_empty_list(client, conn, admin_headers):
     )
     assert resp.status_code == 200
     assert resp.json()["disk_paths"] == []
-
-
-async def test_patch_effect_disk_paths_invalid_format(client, conn, admin_headers):
-    row = await conn.fetchrow(
-        "INSERT INTO effects (effect_name) VALUES ('DPTest BadFmt') RETURNING effect_id"
-    )
-    resp = await client.patch(
-        f"/studio/session/effects/{row['effect_id']}",
-        json={"disk_paths": [_INVALID_FMT]},
-        headers=admin_headers,
-    )
-    assert resp.status_code == 422
 
 
 async def test_effect_disk_paths_defaults_to_empty(client, conn):
