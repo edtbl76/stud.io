@@ -161,4 +161,14 @@ The Go service uploads photos directly to MinIO using the `minio-go` client. If 
 
 The schema lives in three files applied idempotently by `roadie build` in order: `schema.sql` (FastAPI catalog tables) → `gearlist_schema.sql` (GearList Go service tables) → `scanner_schema.sql` (Plugin Scanner tables) → `views.sql` (semantic read views).
 
-There is no migration framework. Schema changes are made directly to the SQL files and applied by restarting the stack. For destructive changes (column renames, type changes), the database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data.
+### Additive schema changes (new columns, new tables)
+
+1. Edit the relevant base file (`schema.sql`, `gearlist_schema.sql`, `scanner_schema.sql`, or `views.sql`) to add the new definition.
+2. Create a migration file in `sql/migrations/` using `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (or equivalent idempotent DDL).
+3. Add the migration file to `build.schema_files` in `roadie.yml` so fresh CI databases and new dev setups pick it up.
+4. Apply to the running production database: `roadie db migrate`
+5. Apply to the running test databases: `roadie db migrate --test`
+
+### Destructive schema changes (column renames, type changes)
+
+The database must be dropped and recreated — use the Backup & Restore feature in the Admin UI to preserve data before doing so.

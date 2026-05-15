@@ -142,7 +142,8 @@ SELECT
     e.artist_reference,
     e.attributes,
     e.created_at,
-    e.updated_at
+    e.updated_at,
+    e.disk_paths
 FROM  effects e
 LEFT JOIN brands b ON b.brand_id = e.brand_id
 LEFT JOIN LATERAL (
@@ -232,7 +233,8 @@ SELECT
     i.artist_reference,
     i.attributes,
     i.created_at,
-    i.updated_at
+    i.updated_at,
+    i.disk_paths
 FROM  instruments i
 LEFT JOIN brands b ON b.brand_id = i.brand_id
 LEFT JOIN LATERAL (
@@ -295,7 +297,8 @@ SELECT
     l.workflow_notes,
     l.attributes,
     l.created_at,
-    l.updated_at
+    l.updated_at,
+    l.disk_paths
 FROM  libraries l
 LEFT JOIN brands b ON b.brand_id = l.brand_id
 LEFT JOIN LATERAL (
@@ -349,7 +352,8 @@ SELECT
     w.description,
     w.workflow_notes,
     w.created_at,
-    w.updated_at
+    w.updated_at,
+    w.disk_paths
 FROM  workstations w
 LEFT JOIN brands b ON b.brand_id = w.brand_id
 WHERE w.deleted_at IS NULL;
@@ -394,7 +398,8 @@ SELECT
     wt.description,
     wt.workflow_notes,
     wt.created_at,
-    wt.updated_at
+    wt.updated_at,
+    wt.disk_paths
 FROM  workflow_tools wt
 LEFT JOIN brands b ON b.brand_id = wt.brand_id
 WHERE wt.deleted_at IS NULL;
@@ -448,7 +453,8 @@ SELECT
     mt.description,
     mt.workflow_notes,
     mt.created_at,
-    mt.updated_at
+    mt.updated_at,
+    mt.disk_paths
 FROM  measurement_tools mt
 LEFT JOIN brands b ON b.brand_id = mt.brand_id
 WHERE mt.deleted_at IS NULL;
@@ -502,7 +508,8 @@ SELECT
     rt.description,
     rt.workflow_notes,
     rt.created_at,
-    rt.updated_at
+    rt.updated_at,
+    rt.disk_paths
 FROM  reference_tools rt
 LEFT JOIN brands b ON b.brand_id = rt.brand_id
 WHERE rt.deleted_at IS NULL;
@@ -547,7 +554,8 @@ SELECT
     ct.description,
     ct.workflow_notes,
     ct.created_at,
-    ct.updated_at
+    ct.updated_at,
+    ct.disk_paths
 FROM  composition_tools ct
 LEFT JOIN brands b ON b.brand_id = ct.brand_id
 WHERE ct.deleted_at IS NULL;
@@ -592,7 +600,8 @@ SELECT
     at.description,
     at.workflow_notes,
     at.created_at,
-    at.updated_at
+    at.updated_at,
+    at.disk_paths
 FROM  admin_tools at
 LEFT JOIN brands b ON b.brand_id = at.brand_id
 WHERE at.deleted_at IS NULL;

@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Instrument, ModelRef, ParentRef } from '@/lib/types'
+import { Instrument, ModelRef, ParentRef, PluginPathEntry } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -16,6 +16,7 @@ import { BrandSelect } from '@/components/ui/BrandSelect'
 import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
+import { PluginPathsEditor } from '@/components/tables/scanner/PluginPathsEditor'
 
 const ENDPOINT = '/studio/session/instruments'
 
@@ -43,6 +44,7 @@ interface FormState {
   recording_notes: string
   artist_reference: string
   attributes: string
+  disk_paths: PluginPathEntry[]
 }
 
 function getInstrumentTitle(mode: 'view' | 'edit' | 'history', record: Instrument | null): string {
@@ -68,6 +70,7 @@ function buildInstrumentPayload(form: FormState): Record<string, unknown> {
   body.recording_notes = form.recording_notes
   body.artist_reference = form.artist_reference || null
   if (form.attributes) { try { body.attributes = JSON.parse(form.attributes) } catch {} }
+  body.disk_paths = form.disk_paths
   return body
 }
 
@@ -77,7 +80,7 @@ function toForm(record: Instrument | null): FormState {
       instrument_name: '', brand_id: '', brand_name: '', version: '',
       model_ids: [], model_refs: [], parent_ids: [], parent_refs: [],
       instrument_type_ids: [], tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
-      description: '', instrument_notes: '', recording_notes: '', artist_reference: '', attributes: '',
+      description: '', instrument_notes: '', recording_notes: '', artist_reference: '', attributes: '', disk_paths: [],
     }
   }
   return {
@@ -98,6 +101,7 @@ function toForm(record: Instrument | null): FormState {
     recording_notes: record.recording_notes ?? '',
     artist_reference: record.artist_reference ?? '',
     attributes: record.attributes ? JSON.stringify(record.attributes, null, 2) : '',
+    disk_paths: record.disk_paths ?? [],
   }
 }
 
@@ -194,6 +198,10 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
               onChange={(ids, p) => { set('parent_ids', ids); set('parent_refs', p) }}
               {...excludeProps} />
           </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Plugin Paths</Label>
+            <PluginPathsEditor value={form.disk_paths} onChange={(v) => set('disk_paths', v)} />
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
@@ -219,6 +227,10 @@ export function InstrumentModal({ record, onClose, onMutate }: Readonly<Instrume
               } />
             </div>
           )}
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Plugin Paths</Label>
+            <PluginPathsEditor value={record?.disk_paths ?? []} onChange={() => {}} readOnly />
+          </div>
           <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
           <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
         </div>

@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Workstation } from '@/lib/types'
+import { Workstation, PluginPathEntry } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { MultiSelect } from '@/components/ui/MultiSelect'
 import { BrandSelect } from '@/components/ui/BrandSelect'
+import { PluginPathsEditor } from '@/components/tables/scanner/PluginPathsEditor'
 
 const ENDPOINT = '/studio/session/workstations'
 
@@ -31,6 +32,7 @@ interface FormState {
   tag_ids: string[]
   description: string
   workflow_notes: string
+  disk_paths: PluginPathEntry[]
 }
 
 function getWorkstationTitle(mode: 'view' | 'edit' | 'history', record: Workstation | null): string {
@@ -50,6 +52,7 @@ function buildWorkstationPayload(form: FormState): Record<string, unknown> {
   if (form.tag_ids.length) body.tag_ids = form.tag_ids
   body.description = form.description
   body.workflow_notes = form.workflow_notes
+  body.disk_paths = form.disk_paths
   return body
 }
 
@@ -58,7 +61,7 @@ function toForm(record: Workstation | null): FormState {
     return {
       tool_name: '', brand_id: '', brand_name: '', version: '',
       tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
-      description: '', workflow_notes: '',
+      description: '', workflow_notes: '', disk_paths: [],
     }
   }
   return {
@@ -71,6 +74,7 @@ function toForm(record: Workstation | null): FormState {
     tag_ids: record.tag_ids ?? [],
     description: record.description ?? '',
     workflow_notes: record.workflow_notes ?? '',
+    disk_paths: record.disk_paths ?? [],
   }
 }
 
@@ -136,6 +140,10 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
             <Label htmlFor="workflow_notes">Workflow Notes</Label>
             <Textarea id="workflow_notes" value={form.workflow_notes} onChange={(e) => set('workflow_notes', e.target.value)} rows={3} />
           </div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Plugin Paths</Label>
+            <PluginPathsEditor value={form.disk_paths} onChange={(v) => set('disk_paths', v)} />
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4">
@@ -147,6 +155,10 @@ export function WorkstationModal({ record, onClose, onMutate }: Readonly<Worksta
           <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record?.tags} />} /></div>
           <div className="col-span-2"><FieldRow label="Description" value={record?.description} /></div>
           <div className="col-span-2"><FieldRow label="Workflow Notes" value={record?.workflow_notes} /></div>
+          <div className="col-span-2 flex flex-col gap-1.5">
+            <Label>Plugin Paths</Label>
+            <PluginPathsEditor value={record?.disk_paths ?? []} onChange={() => {}} readOnly />
+          </div>
           <FieldRow label="Created" value={record?.created_at ? new Date(record.created_at).toLocaleString() : null} />
           <FieldRow label="Updated" value={record?.updated_at ? new Date(record.updated_at).toLocaleString() : null} />
         </div>

@@ -1,4 +1,4 @@
-from typing import TypeVar, Annotated
+from typing import Literal, TypeVar, Annotated
 from fastapi import Query
 from pydantic import BaseModel
 from uuid import UUID
@@ -32,6 +32,13 @@ class ParentRef(ParentRefBase):
 
 class ParentRefInput(ParentRefBase):
     """Input shape for writing parent_ids — name not required."""
+
+class PluginPathEntry(BaseModel):
+    """One disk installation entry for a catalog plugin record."""
+    path: str
+    format: Literal['vst3', 'au', 'vst2']
+    version: str
+
 
 class ListParams:
     """Request-time parameters for list endpoints.

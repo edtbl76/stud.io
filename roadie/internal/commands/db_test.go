@@ -213,6 +213,94 @@ func TestRunMigrate_RecordsEachMigration(t *testing.T) {
 // confirmDBInit tests
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// migrateAllDatabases tests
+// ---------------------------------------------------------------------------
+
+func testCfgWithDatabases(dbs ...string) *config.Config {
+	cfg := migrateConfig()
+	cfg.Build.Databases = dbs
+	return cfg
+}
+
+func applyAllToDir(t *testing.T, db *fakeDB, cfg *config.Config, dir string) (string, error) {
+	t.Helper()
+	var out strings.Builder
+	err := migrateAllDatabases(context.Background(), cfg, db, &out, dir)
+	return out.String(), err
+}
+
+func TestMigrateAllDatabases_NoDatabasesConfigured(t *testing.T) {
+	dir := t.TempDir()
+	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+	out, err := applyAllToDir(t, newFakeDB(), testCfgWithDatabases(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "No test databases") {
+		t.Errorf("expected no-databases message, got: %s", out)
+	}
+}
+
+func TestMigrateAllDatabases_AppliesEachDatabase(t *testing.T) {
+	dir := t.TempDir()
+	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+	out, err := applyAllToDir(t, newFakeDB(), testCfgWithDatabases("testdb1", "testdb2"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "testdb1") {
+		t.Errorf("expected testdb1 in output, got: %s", out)
+	}
+	if !strings.Contains(out, "testdb2") {
+		t.Errorf("expected testdb2 in output, got: %s", out)
+	}
+	// Both databases receive the migration — "Applied 1" appears twice
+	if count := strings.Count(out, "Applied 1 migration(s)"); count != 2 {
+		t.Errorf("expected 2 'Applied 1' lines, got %d; output: %s", count, out)
+	}
+}
+
+func TestMigrateAllDatabases_SkipsAlreadyApplied(t *testing.T) {
+	dir := t.TempDir()
+	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+	db := newFakeDB("001_init.sql")
+	out, err := applyAllToDir(t, db, testCfgWithDatabases("testdb1"), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out, "Nothing to apply") {
+		t.Errorf("expected nothing-to-apply, got: %s", out)
+	}
+}
+
+func TestMigrateAllDatabases_RejectsProdDB(t *testing.T) {
+	dir := t.TempDir()
+	cfg := testCfgWithDatabases("masterdb") // same as providers.database.db_name
+	_, err := applyAllToDir(t, newFakeDB(), cfg, dir)
+	if err == nil || !strings.Contains(err.Error(), "production database") {
+		t.Errorf("expected production-database guard error, got: %v", err)
+	}
+}
+
+func TestMigrateAllDatabases_StopsOnFirstError(t *testing.T) {
+	dir := t.TempDir()
+	writeMigration(t, dir, "001_init.sql", "SELECT 1;")
+	db := newFakeDB()
+	db.fileErr = fmt.Errorf("psql connection refused")
+	out, err := applyAllToDir(t, db, testCfgWithDatabases("testdb1", "testdb2"), dir)
+	if err == nil {
+		t.Errorf("expected error from fileErr, got nil; output: %s", out)
+	}
+	if strings.Contains(out, "testdb2") {
+		t.Errorf("should stop after testdb1 failure, but testdb2 appeared in output: %s", out)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// confirmDBInit tests
+// ---------------------------------------------------------------------------
+
 func TestConfirmDBInit_YesProceeds(t *testing.T) {
 	var out strings.Builder
 	ok := confirmDBInit(strings.NewReader("yes\n"), &out)

@@ -81,9 +81,9 @@ async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Dep
             INSERT INTO libraries
                 (library_name, brand_id, model_ids, description,
                  instrument_notes, recording_notes, workflow_notes,
-                 tag_ids, attributes, parent_ids)
+                 tag_ids, attributes, parent_ids, disk_paths)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,
-                    {parent_ref_sql('$10')})
+                    {parent_ref_sql('$10')}, $11)
             RETURNING library_id
             """,
             payload.library_name, payload.brand_id, payload.model_ids,
@@ -92,6 +92,7 @@ async def create_library(payload: LibraryCreate, conn: Annotated[Connection, Dep
             payload.tag_ids,
             json.dumps(payload.attributes) if payload.attributes is not None else None,
             encode_parent_refs(payload.parent_ids),
+            [e.model_dump() for e in payload.disk_paths],
         )
         new_row = await conn.fetchrow(_SELECT_ONE, row["library_id"])
         await log_audit(conn, "libraries", row["library_id"], "CREATE",

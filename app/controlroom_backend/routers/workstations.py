@@ -10,7 +10,7 @@ from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.workstations import WorkstationCreate, WorkstationUpdate, WorkstationOut
 from schemas.common import PagedResponse, ListParams
-from routers._helpers import _serializable, log_audit, AuditEntryWithData
+from routers._helpers import build_update_parts, _serializable, log_audit, AuditEntryWithData
 
 router = APIRouter()
 
@@ -74,13 +74,14 @@ async def create_workstation(payload: WorkstationCreate, conn: Annotated[Connect
             """
             INSERT INTO workstations
                 (tool_name, brand_id, version, tool_type_ids,
-                 plugin_format_ids, description, workflow_notes, tag_ids)
-            VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+                 plugin_format_ids, description, workflow_notes, tag_ids, disk_paths)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
             RETURNING workstation_id
             """,
             payload.tool_name, payload.brand_id, payload.version,
             payload.tool_type_ids, payload.plugin_format_ids,
             payload.description, payload.workflow_notes, payload.tag_ids,
+            [e.model_dump() for e in payload.disk_paths],
         )
         new_row = await conn.fetchrow(_SELECT_ONE, row["workstation_id"])
         await log_audit(conn, "workstations", row["workstation_id"], "CREATE",
@@ -100,11 +101,13 @@ async def update_workstation(workstation_id: UUID, payload: WorkstationUpdate, c
     if not updates:
         return await get_workstation(workstation_id, conn)
 
-    set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates))
+    set_parts, values = build_update_parts(updates, None)
+    set_parts.append("updated_at = NOW()")
+    # col is a Pydantic field name from model_dump(), not user input — not a SQL injection risk
     async with conn.transaction():
         await conn.execute(
-            f"UPDATE workstations SET {set_clauses}, updated_at = NOW() WHERE workstation_id = $1",
-            workstation_id, *updates.values(),
+            f"UPDATE workstations SET {', '.join(set_parts)} WHERE workstation_id = $1",
+            workstation_id, *values,
         )
         new_row = await conn.fetchrow(_SELECT_ONE, workstation_id)
         await log_audit(conn, "workstations", workstation_id, "UPDATE",

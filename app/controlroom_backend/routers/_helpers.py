@@ -134,9 +134,9 @@ def encode_parent_refs(parents) -> list:
 def build_update_parts(updates: Mapping[str, Any], parent_ids: Optional[Sequence[Any]]) -> tuple[list[str], list[Any]]:
     """Build (set_parts, values) for a PATCH update, with positional params starting at $2.
 
-    Handles the parent_ids and attributes fields specially; all other fields are
-    passed through as-is. Callers must append 'updated_at = NOW()' and the record
-    ID ($1) separately.
+    Handles parent_ids specially; all other fields are passed through as-is.
+    asyncpg's registered type codecs handle JSONB serialization automatically.
+    Callers must append 'updated_at = NOW()' and the record ID ($1) separately.
     """
     set_parts: list[str] = []
     values: list = []
@@ -145,9 +145,6 @@ def build_update_parts(updates: Mapping[str, Any], parent_ids: Optional[Sequence
         if col == "parent_ids":
             set_parts.append(f"{col} = {parent_ref_sql(f'${i}')}")
             values.append(encode_parent_refs(parent_ids))
-        elif col == "attributes" and val is not None:
-            set_parts.append(f"{col} = ${i}")
-            values.append(json.dumps(val))
         else:
             set_parts.append(f"{col} = ${i}")
             values.append(val)

@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.common import TypeRef, ModelRef
+from schemas.common import TypeRef, ModelRef, PluginPathEntry
 
 
 class ToolCreate(BaseModel):
@@ -15,6 +15,7 @@ class ToolCreate(BaseModel):
     description: Optional[str] = None
     workflow_notes: Optional[str] = None
     tag_ids: Optional[list[UUID]] = None
+    disk_paths: list[PluginPathEntry] = []
 
 
 class ToolUpdate(BaseModel):
@@ -27,6 +28,7 @@ class ToolUpdate(BaseModel):
     description: Optional[str] = None
     workflow_notes: Optional[str] = None
     tag_ids: Optional[list[UUID]] = None
+    disk_paths: Optional[list[PluginPathEntry]] = None
 
 
 class ToolOut(BaseModel):
@@ -47,5 +49,6 @@ class ToolOut(BaseModel):
     tags: list[TypeRef] = []
     description: Optional[str] = None
     workflow_notes: Optional[str] = None
+    disk_paths: list[PluginPathEntry] = []
     created_at: datetime
     updated_at: datetime

@@ -2,6 +2,12 @@ export interface TypeRef { id: string; name: string }
 export interface ModelRef { id: string; name: string }
 export interface ParentRef { table_name: string; id: string; name: string | null }
 
+export interface PluginPathEntry {
+  path: string
+  format: 'vst3' | 'au' | 'vst2'
+  version: string
+}
+
 export interface LookupOut {
   type_id: string
   type_name: string
@@ -65,6 +71,7 @@ export interface Effect {
   recording_notes: string | null
   artist_reference: string | null
   attributes: Record<string, unknown> | null
+  disk_paths: PluginPathEntry[]
   created_at: string
   updated_at: string
 }
@@ -92,6 +99,7 @@ export interface Instrument {
   recording_notes: string | null
   artist_reference: string | null
   attributes: Record<string, unknown> | null
+  disk_paths: PluginPathEntry[]
   created_at: string
   updated_at: string
 }
@@ -112,6 +120,7 @@ export interface Library {
   recording_notes: string | null
   workflow_notes: string | null
   attributes: Record<string, unknown> | null
+  disk_paths: PluginPathEntry[]
   created_at: string
   updated_at: string
 }
@@ -131,6 +140,7 @@ export interface Workstation {
   tags: TypeRef[]
   description: string | null
   workflow_notes: string | null
+  disk_paths: PluginPathEntry[]
   created_at: string
   updated_at: string
 }
@@ -152,6 +162,7 @@ export interface Tool {
   tags: TypeRef[]
   description: string | null
   workflow_notes: string | null
+  disk_paths: PluginPathEntry[]
   created_at: string
   updated_at: string
 }

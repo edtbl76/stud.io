@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Library, ModelRef, ParentRef } from '@/lib/types'
+import { Library, ModelRef, ParentRef, PluginPathEntry } from '@/lib/types'
 import { useRecordModal } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -16,6 +16,7 @@ import { BrandSelect } from '@/components/ui/BrandSelect'
 import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ParentSelect, ParentId } from '@/components/ui/ParentSelect'
 import { ModelLinks } from '@/components/ModelLinks'
+import { PluginPathsEditor } from '@/components/tables/scanner/PluginPathsEditor'
 
 const ENDPOINT = '/studio/session/libraries'
 
@@ -39,6 +40,7 @@ interface FormState {
   recording_notes: string
   workflow_notes: string
   attributes: string
+  disk_paths: PluginPathEntry[]
 }
 
 function getLibraryTitle(mode: 'view' | 'edit' | 'history', record: Library | null): string {
@@ -66,6 +68,7 @@ function buildLibraryPayload(form: FormState): Record<string, unknown> {
       throw new Error('Attributes field contains invalid JSON. Please correct it before saving.')
     }
   }
+  body.disk_paths = form.disk_paths
   return body
 }
 
@@ -74,7 +77,7 @@ function toForm(record: Library | null): FormState {
     return {
       library_name: '', brand_id: '', brand_name: '',
       model_ids: [], model_refs: [], parent_ids: [], parent_refs: [], tag_ids: [],
-      description: '', instrument_notes: '', recording_notes: '', workflow_notes: '', attributes: '',
+      description: '', instrument_notes: '', recording_notes: '', workflow_notes: '', attributes: '', disk_paths: [],
     }
   }
   return {
@@ -91,6 +94,7 @@ function toForm(record: Library | null): FormState {
     recording_notes: record.recording_notes ?? '',
     workflow_notes: record.workflow_notes ?? '',
     attributes: record.attributes ? JSON.stringify(record.attributes, null, 2) : '',
+    disk_paths: record.disk_paths ?? [],
   }
 }
 
@@ -156,6 +160,10 @@ function LibraryEditForm({ form, set, excludeProps }: Readonly<LibraryEditFormPr
           {...excludeProps}
         />
       </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Paths</Label>
+        <PluginPathsEditor value={form.disk_paths} onChange={(v) => set('disk_paths', v)} />
+      </div>
     </div>
   )
 }
@@ -181,6 +189,10 @@ function LibraryViewForm({ record }: Readonly<{ record: Library }>) {
           } />
         </div>
       )}
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Paths</Label>
+        <PluginPathsEditor value={record.disk_paths ?? []} onChange={() => {}} readOnly />
+      </div>
       <FieldRow label="Created" value={new Date(record.created_at).toLocaleString()} />
       <FieldRow label="Updated" value={new Date(record.updated_at).toLocaleString()} />
     </div>
