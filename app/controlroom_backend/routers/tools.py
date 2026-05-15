@@ -18,7 +18,7 @@ from routers.filter_operators import FilterableField, FilterEntry
 from routers.auth import require_admin, get_current_user, UserOut
 from schemas.tools import ToolCreate, ToolUpdate, ToolOut
 from schemas.common import PagedResponse, ListParams
-from routers._helpers import _serializable, log_audit, get_record_history, AuditEntryWithData
+from routers._helpers import build_update_parts, _serializable, log_audit, get_record_history, AuditEntryWithData
 
 router = APIRouter()
 
@@ -135,10 +135,11 @@ async def get_tool(category: str, tool_id: UUID, conn: Annotated[Connection, Dep
 async def create_tool(category: str, payload: ToolCreate, conn: Annotated[Connection, Depends(get_conn)], user: Annotated[UserOut, Depends(require_admin)]):
     cfg = _cfg(category)
     cols = ["tool_name", "brand_id", "version", "tool_type_ids",
-            "plugin_format_ids", "description", "workflow_notes", "tag_ids"]
+            "plugin_format_ids", "description", "workflow_notes", "tag_ids", "disk_paths"]
     vals = [payload.tool_name, payload.brand_id, payload.version,
             payload.tool_type_ids, payload.plugin_format_ids,
-            payload.description, payload.workflow_notes, payload.tag_ids]
+            payload.description, payload.workflow_notes, payload.tag_ids,
+            [e.model_dump() for e in payload.disk_paths]]
 
     if cfg["has_model_ids"]:
         cols.insert(1, "model_ids")
@@ -176,12 +177,13 @@ async def update_tool(category: str, tool_id: UUID, payload: ToolUpdate, conn: A
     if not updates:
         return await get_tool(category, tool_id, conn)
 
-    set_clauses = ", ".join(f"{col} = ${i+2}" for i, col in enumerate(updates))
+    set_parts, values = build_update_parts(updates, None)
+    set_parts.append("updated_at = NOW()")
+    # col is a Pydantic field name from model_dump(), not user input — not a SQL injection risk
     async with conn.transaction():
         await conn.execute(
-            f"UPDATE {cfg['table']} SET {set_clauses}, updated_at = NOW() "
-            f"WHERE {cfg['id_col']} = $1",
-            tool_id, *updates.values(),
+            f"UPDATE {cfg['table']} SET {', '.join(set_parts)} WHERE {cfg['id_col']} = $1",
+            tool_id, *values,
         )
         new_row = await conn.fetchrow(
             f"SELECT * FROM {cfg['table']} WHERE {cfg['id_col']} = $1", tool_id

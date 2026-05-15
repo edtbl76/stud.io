@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.common import TypeRef, ModelRef, ParentRef, ParentRefInput
+from schemas.common import TypeRef, ModelRef, ParentRef, ParentRefInput, PluginPathEntry
 
 
 class LibraryCreate(BaseModel):
@@ -16,6 +16,7 @@ class LibraryCreate(BaseModel):
     tag_ids: Optional[list[UUID]] = None
     attributes: Optional[dict] = None
     parent_ids: Optional[list[ParentRefInput]] = None
+    disk_paths: list[PluginPathEntry] = []
 
 
 class LibraryUpdate(BaseModel):
@@ -29,6 +30,7 @@ class LibraryUpdate(BaseModel):
     tag_ids: Optional[list[UUID]] = None
     attributes: Optional[dict] = None
     parent_ids: Optional[list[ParentRefInput]] = None
+    disk_paths: Optional[list[PluginPathEntry]] = None
 
 
 class LibraryOut(BaseModel):
@@ -47,5 +49,6 @@ class LibraryOut(BaseModel):
     recording_notes: Optional[str] = None
     workflow_notes: Optional[str] = None
     attributes: Optional[dict] = None
+    disk_paths: list[PluginPathEntry] = []
     created_at: datetime
     updated_at: datetime

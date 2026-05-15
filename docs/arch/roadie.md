@@ -116,10 +116,14 @@ Frontend PBT tests live in `app/studio_frontend/__tests__/pbt/`. Backend PBT tes
 | Command | Description |
 |---|---|
 | `roadie db init [--yes]` | Apply schema files to the production database (first-time setup only) |
+| `roadie db migrate` | Apply unapplied migrations from `sql/migrations/` to the production database |
+| `roadie db migrate --test` | Apply unapplied migrations to each test database in `build.databases` |
 
-`roadie db init` includes an interactive confirmation gate. The user must type exactly `"yes"` to proceed. Use `--yes` to bypass the gate for scripted or CI use.
+`roadie db init` includes an interactive confirmation gate. The user must type exactly `"yes"` to proceed. Use `--yes` to bypass the gate for scripted or CI use. It targets `providers.database.db_name` and will fail if tables already exist — for first-time setup only.
 
-This command targets the database named in `providers.database.db_name`. It will fail if the tables already exist. It is intended for first-time setup — use `roadie build` for ongoing schema application to test databases.
+`roadie db migrate` applies any `.sql` files in `sql/migrations/` not yet recorded in the `schema_migrations` tracking table, in alphabetical order. It is idempotent — already-applied migrations are skipped. Use this to apply additive migrations (new columns, new tables) to the production database without a full stack restart.
+
+`roadie db migrate --test` does the same but targets each database listed in `build.databases` (the test databases). Use this after adding a new migration to bring the test databases in sync with the production database without running `roadie build`.
 
 #### Other
 

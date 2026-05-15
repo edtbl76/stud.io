@@ -48,3 +48,43 @@ for (const table of ALL_TABLES) {
     await expect(page.getByRole('dialog')).not.toBeVisible({ timeout: 10_000 })
   })
 }
+
+// ---------------------------------------------------------------------------
+// Plugin Paths section (U-07: disk_paths on catalog records)
+// ---------------------------------------------------------------------------
+
+test('effect modal shows Plugin Paths section', async ({ page }) => {
+  await page.goto('/controlroom/session/effects')
+  await waitForRows(page)
+  await page.locator('table tbody tr').first().locator('td').last().click()
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByText('Plugin Paths')).toBeVisible({ timeout: 10_000 })
+})
+
+test('effect modal: disk_paths entry persists after save and reload', async ({ page }) => {
+  const TEST_PATH = '/tmp/e2e-test-plugin.vst3'
+
+  await page.goto('/controlroom/session/effects')
+  await waitForRows(page)
+
+  const firstRow = page.locator('table tbody tr').first()
+  const dialog = page.getByRole('dialog')
+
+  await firstRow.locator('td').last().click()
+  await expect(dialog).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('button', { name: /edit/i }).click()
+
+  // Add entry — use last() to append after any pre-existing entries
+  await page.getByTestId('plugin-paths-add').click()
+  await page.locator('[data-testid^="plugin-paths-path-"]').last().fill(TEST_PATH)
+
+  await page.getByRole('button', { name: /^save$/i }).click()
+  await expect(dialog).not.toBeVisible({ timeout: 10_000 })
+
+  // Reopen the same record and verify the path survived the round-trip
+  await waitForRows(page)
+  await firstRow.locator('td').last().click()
+  await expect(dialog).toBeVisible({ timeout: 10_000 })
+  // Path is stored in a readonly <input> — use toHaveValue, not getByText
+  await expect(page.locator('[data-testid^="plugin-paths-path-"]').last()).toHaveValue(TEST_PATH, { timeout: 10_000 })
+})

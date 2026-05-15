@@ -88,9 +88,9 @@ async def create_instrument(payload: InstrumentCreate, conn: Annotated[Connectio
                 (instrument_name, brand_id, model_ids, version,
                  instrument_type_ids, tool_type_ids, plugin_format_ids,
                  description, instrument_notes, recording_notes, artist_reference,
-                 attributes, tag_ids, parent_ids)
+                 attributes, tag_ids, parent_ids, disk_paths)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,
-                    {parent_ref_sql('$14')})
+                    {parent_ref_sql('$14')}, $15)
             RETURNING instrument_id
             """,
             payload.instrument_name, payload.brand_id, payload.model_ids,
@@ -101,6 +101,7 @@ async def create_instrument(payload: InstrumentCreate, conn: Annotated[Connectio
             json.dumps(payload.attributes) if payload.attributes is not None else None,
             payload.tag_ids,
             encode_parent_refs(payload.parent_ids),
+            [e.model_dump() for e in payload.disk_paths],
         )
         new_row = await conn.fetchrow(_SELECT_ONE, row["instrument_id"])
         await log_audit(conn, "instruments", row["instrument_id"], "CREATE",

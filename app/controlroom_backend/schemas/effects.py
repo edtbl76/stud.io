@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.common import TypeRef, ModelRef, ParentRef, ParentRefInput
+from schemas.common import TypeRef, ModelRef, ParentRef, ParentRefInput, PluginPathEntry
 
 
 class EffectCreate(BaseModel):
@@ -21,6 +21,7 @@ class EffectCreate(BaseModel):
     attributes: Optional[dict] = None
     tag_ids: Optional[list[UUID]] = None
     parent_ids: Optional[list[ParentRefInput]] = None
+    disk_paths: list[PluginPathEntry] = []
 
 
 class EffectUpdate(BaseModel):
@@ -39,6 +40,7 @@ class EffectUpdate(BaseModel):
     attributes: Optional[dict] = None
     tag_ids: Optional[list[UUID]] = None
     parent_ids: Optional[list[ParentRefInput]] = None
+    disk_paths: Optional[list[PluginPathEntry]] = None
 
 
 class EffectOut(BaseModel):
@@ -65,5 +67,6 @@ class EffectOut(BaseModel):
     recording_notes: Optional[str] = None
     artist_reference: Optional[str] = None
     attributes: Optional[dict] = None
+    disk_paths: list[PluginPathEntry] = []
     created_at: datetime
     updated_at: datetime

@@ -28,6 +28,12 @@ jest.mock('@/components/ui/BrandSelect', () => ({
   BrandSelect: () => null,
 }))
 
+jest.mock('@/components/tables/scanner/PluginPathsEditor', () => ({
+  PluginPathsEditor: ({ value }: { value: unknown[] }) => (
+    <div data-testid="plugin-paths-editor">{value.length} paths</div>
+  ),
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -50,6 +56,7 @@ const mockWorkstation: Workstation = {
   tags: [],
   description: 'Primary recording setup',
   workflow_notes: 'Use for all tracking',
+  disk_paths: [],
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }
@@ -152,5 +159,33 @@ describe('WorkstationModal — edit mode', () => {
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
 
     await waitFor(() => expect(screen.getByText('Update failed')).toBeInTheDocument())
+  })
+})
+
+describe('WorkstationModal — disk_paths', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders PluginPathsEditor in view mode', () => {
+    renderWithClient(<WorkstationModal record={mockWorkstation} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.getByTestId('plugin-paths-editor')).toBeInTheDocument()
+  })
+
+  it('renders PluginPathsEditor in edit mode', () => {
+    renderWithClient(<WorkstationModal record={mockWorkstation} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    expect(screen.getByTestId('plugin-paths-editor')).toBeInTheDocument()
+  })
+
+  it('includes disk_paths in update payload', async () => {
+    mockUpdate.mockResolvedValue(mockWorkstation)
+    renderWithClient(<WorkstationModal record={mockWorkstation} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/studio/session/workstations', 'ws-1',
+      expect.objectContaining({ disk_paths: [] }),
+    ))
   })
 })

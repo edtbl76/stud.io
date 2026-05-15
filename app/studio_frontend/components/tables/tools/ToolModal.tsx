@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Tool, ModelRef } from '@/lib/types'
+import { Tool, ModelRef, PluginPathEntry } from '@/lib/types'
 import { useRecordModal, ModalMode } from '@/lib/useRecordModal'
 import { RecordModal } from '@/components/RecordModal'
 import { RecordHistoryView } from '@/components/RecordHistoryView'
@@ -15,6 +15,7 @@ import { BrandSelect } from '@/components/ui/BrandSelect'
 import { formatDate } from '@/lib/utils'
 import { ModelSelect } from '@/components/ui/ModelSelect'
 import { ModelLinks } from '@/components/ModelLinks'
+import { PluginPathsEditor } from '@/components/tables/scanner/PluginPathsEditor'
 
 interface ToolModalProps {
   record: Tool | null
@@ -35,6 +36,7 @@ interface FormState {
   tag_ids: string[]
   description: string
   workflow_notes: string
+  disk_paths: PluginPathEntry[]
 }
 
 function getToolTitle(mode: 'view' | 'edit' | 'history', record: Tool | null, categoryLabel: string): string {
@@ -59,6 +61,7 @@ function buildToolPayload(form: FormState): Record<string, unknown> {
     ...Object.fromEntries(Object.entries(arrays).filter(([, v]) => v.length)),
   }
   if (form.model_ids !== null) body.model_ids = form.model_ids
+  body.disk_paths = form.disk_paths
   return body
 }
 
@@ -68,7 +71,7 @@ function toForm(record: Tool | null): FormState {
       tool_name: '', brand_id: '', brand_name: '', version: '',
       model_ids: [], model_refs: [],
       tool_type_ids: [], plugin_format_ids: [], tag_ids: [],
-      description: '', workflow_notes: '',
+      description: '', workflow_notes: '', disk_paths: [],
     }
   }
   return {
@@ -83,6 +86,7 @@ function toForm(record: Tool | null): FormState {
     tag_ids: record.tag_ids ?? [],
     description: record.description ?? '',
     workflow_notes: record.workflow_notes ?? '',
+    disk_paths: record.disk_paths ?? [],
   }
 }
 
@@ -134,6 +138,10 @@ function ToolEditForm({ form, set }: Readonly<ToolEditFormProps>) {
         <Label htmlFor="workflow_notes">Workflow Notes</Label>
         <Textarea id="workflow_notes" value={form.workflow_notes} onChange={(e) => set('workflow_notes', e.target.value)} rows={3} />
       </div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Paths</Label>
+        <PluginPathsEditor value={form.disk_paths} onChange={(v) => set('disk_paths', v)} />
+      </div>
     </div>
   )
 }
@@ -150,6 +158,10 @@ function ToolViewForm({ record }: Readonly<{ record: Tool }>) {
       <div className="col-span-2"><FieldRow label="Tags" value={<TypeBadges types={record.tags} />} /></div>
       <div className="col-span-2"><FieldRow label="Description" value={record.description} /></div>
       <div className="col-span-2"><FieldRow label="Workflow Notes" value={record.workflow_notes} /></div>
+      <div className="col-span-2 flex flex-col gap-1.5">
+        <Label>Plugin Paths</Label>
+        <PluginPathsEditor value={record.disk_paths ?? []} onChange={() => {}} readOnly />
+      </div>
       <FieldRow label="Created" value={formatDate(record.created_at)} />
       <FieldRow label="Updated" value={formatDate(record.updated_at)} />
     </div>

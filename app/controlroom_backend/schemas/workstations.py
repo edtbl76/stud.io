@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
 from typing import Optional
-from schemas.common import TypeRef
+from schemas.common import TypeRef, PluginPathEntry
 
 
 class WorkstationCreate(BaseModel):
@@ -14,6 +14,7 @@ class WorkstationCreate(BaseModel):
     description: Optional[str] = None
     workflow_notes: Optional[str] = None
     tag_ids: Optional[list[UUID]] = None
+    disk_paths: list[PluginPathEntry] = []
 
 
 class WorkstationUpdate(BaseModel):
@@ -25,6 +26,7 @@ class WorkstationUpdate(BaseModel):
     description: Optional[str] = None
     workflow_notes: Optional[str] = None
     tag_ids: Optional[list[UUID]] = None
+    disk_paths: Optional[list[PluginPathEntry]] = None
 
 
 class WorkstationOut(BaseModel):
@@ -42,5 +44,6 @@ class WorkstationOut(BaseModel):
     tags: list[TypeRef] = []
     description: Optional[str] = None
     workflow_notes: Optional[str] = None
+    disk_paths: list[PluginPathEntry] = []
     created_at: datetime
     updated_at: datetime

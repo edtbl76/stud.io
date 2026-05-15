@@ -59,6 +59,7 @@ CREATE TABLE workstations (
     description       TEXT,
     workflow_notes    TEXT,
     tag_ids           UUID[],
+    disk_paths        JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );
@@ -78,6 +79,7 @@ CREATE TABLE measurement_tools (
     description          TEXT,
     workflow_notes       TEXT,
     tag_ids              UUID[],
+    disk_paths           JSONB NOT NULL DEFAULT '[]',
     created_at           TIMESTAMP DEFAULT NOW(),
     updated_at           TIMESTAMP DEFAULT NOW()
 );
@@ -97,6 +99,7 @@ CREATE TABLE reference_tools (
     description        TEXT,
     workflow_notes     TEXT,
     tag_ids            UUID[],
+    disk_paths         JSONB NOT NULL DEFAULT '[]',
     created_at         TIMESTAMP DEFAULT NOW(),
     updated_at         TIMESTAMP DEFAULT NOW()
 );
@@ -115,6 +118,7 @@ CREATE TABLE workflow_tools (
     description       TEXT,
     workflow_notes    TEXT,
     tag_ids           UUID[],
+    disk_paths        JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );
@@ -133,6 +137,7 @@ CREATE TABLE composition_tools (
     description          TEXT,
     workflow_notes       TEXT,
     tag_ids              UUID[],
+    disk_paths           JSONB NOT NULL DEFAULT '[]',
     created_at           TIMESTAMP DEFAULT NOW(),
     updated_at           TIMESTAMP DEFAULT NOW()
 );
@@ -201,12 +206,14 @@ CREATE TABLE effects (
     attributes        JSONB,
     tag_ids           UUID[],
     parent_ids        parent_ref[],
+    disk_paths        JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_effects_name ON effects (effect_name);
+CREATE INDEX IF NOT EXISTS idx_effects_disk_paths ON effects USING GIN (disk_paths);
 
 
 -- =============================================================================
@@ -234,12 +241,14 @@ CREATE TABLE instruments (
     tag_ids            UUID[],
     attributes         JSONB,
     parent_ids         parent_ref[],
+    disk_paths         JSONB NOT NULL DEFAULT '[]',
     created_at         TIMESTAMP DEFAULT NOW(),
     updated_at         TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_instruments_name ON instruments (instrument_name);
+CREATE INDEX IF NOT EXISTS idx_instruments_disk_paths ON instruments USING GIN (disk_paths);
 
 
 -- =============================================================================
@@ -258,12 +267,14 @@ CREATE TABLE libraries (
     tag_ids           UUID[],
     attributes        JSONB,
     parent_ids        parent_ref[],
+    disk_paths        JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_libraries_attributes ON libraries USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_libraries_name ON libraries (library_name);
+CREATE INDEX IF NOT EXISTS idx_libraries_disk_paths ON libraries USING GIN (disk_paths);
 
 
 -- =============================================================================
@@ -280,6 +291,7 @@ CREATE TABLE admin_tools (
     description       TEXT,
     workflow_notes    TEXT,
     tag_ids           UUID[],
+    disk_paths        JSONB NOT NULL DEFAULT '[]',
     created_at        TIMESTAMP DEFAULT NOW(),
     updated_at        TIMESTAMP DEFAULT NOW()
 );

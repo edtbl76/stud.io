@@ -92,20 +92,30 @@ func validateDBInitConfig(cfg *config.Config) error {
 }
 
 func dbMigrateCmd() *cobra.Command {
-	return &cobra.Command{
+	var test bool
+	cmd := &cobra.Command{
 		Use:   "migrate",
-		Short: "Apply unapplied migrations from sql/migrations/ to the production database",
+		Short: "Apply unapplied migrations from sql/migrations/ to the database",
 		Long: `Applies any SQL files in sql/migrations/ that have not yet been recorded in
 the schema_migrations tracking table. Safe to run multiple times — already-applied
-migrations are skipped. Files are applied in alphabetical order.`,
+migrations are skipped. Files are applied in alphabetical order.
+
+Without --test: targets the production database (providers.database.db_name).
+With --test: targets each database in build.databases (the test databases).`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			cfg, err := loadConfig()
 			if err != nil {
 				return err
 			}
-			return runMigrate(cmd.Context(), cfg, providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil), os.Stdout)
+			db := providers.NewPostgresProvider(cfg.Providers.Container.ComposeFile, nil)
+			if test {
+				return migrateAllDatabases(cmd.Context(), cfg, migrateAllOpts{db: db, out: os.Stdout, dir: migrationsDir})
+			}
+			return runMigrate(cmd.Context(), cfg, db, os.Stdout)
 		},
 	}
+	cmd.Flags().BoolVar(&test, "test", false, "migrate test databases (build.databases) instead of production")
+	return cmd
 }
 
 type migrator struct {
@@ -118,15 +128,7 @@ func newMigrator(cfg *config.Config, db providers.SQLDatabaseProvider, out io.Wr
 	if cfg.Providers.Database.DBName == "" {
 		return nil, fmt.Errorf("providers.database.db_name is not set in roadie.yml")
 	}
-	return &migrator{
-		db:  db,
-		out: out,
-		dbCfg: providers.DBConfig{
-			Service: cfg.Providers.Database.Service,
-			User:    cfg.Providers.Database.User,
-			DBName:  cfg.Providers.Database.DBName,
-		},
-	}, nil
+	return newMigratorForDB(cfg, cfg.Providers.Database.DBName, db, out)
 }
 
 func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabaseProvider, out io.Writer) error {
@@ -135,6 +137,50 @@ func runMigrate(ctx context.Context, cfg *config.Config, db providers.SQLDatabas
 		return err
 	}
 	return m.apply(ctx, migrationsDir)
+}
+
+type migrateAllOpts struct {
+	db  providers.SQLDatabaseProvider
+	out io.Writer
+	dir string
+}
+
+// migrateAllDatabases applies unapplied migrations to every database in
+// cfg.Build.Databases. opts.dir is exposed so tests can supply a temp dir
+// without touching the hardcoded migrationsDir constant.
+func migrateAllDatabases(ctx context.Context, cfg *config.Config, opts migrateAllOpts) error {
+	if len(cfg.Build.Databases) == 0 {
+		return fmt.Errorf("no test databases configured in build.databases")
+	}
+	if err := guardNoProdDB(cfg.Providers.Database.DBName, cfg.Build.Databases); err != nil {
+		return err
+	}
+	for _, dbName := range cfg.Build.Databases {
+		fmt.Fprintf(opts.out, "[migrate] Migrating test database: %s\n", dbName)
+		m, err := newMigratorForDB(cfg, dbName, opts.db, opts.out)
+		if err != nil {
+			return err
+		}
+		if err := m.apply(ctx, opts.dir); err != nil {
+			return fmt.Errorf("migrating %s: %w", dbName, err)
+		}
+	}
+	return nil
+}
+
+func newMigratorForDB(cfg *config.Config, dbName string, db providers.SQLDatabaseProvider, out io.Writer) (*migrator, error) {
+	if dbName == "" {
+		return nil, fmt.Errorf("database name must not be empty")
+	}
+	return &migrator{
+		db:  db,
+		out: out,
+		dbCfg: providers.DBConfig{
+			Service: cfg.Providers.Database.Service,
+			User:    cfg.Providers.Database.User,
+			DBName:  dbName,
+		},
+	}, nil
 }
 
 func (m *migrator) apply(ctx context.Context, dir string) error {

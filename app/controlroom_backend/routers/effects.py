@@ -89,9 +89,9 @@ async def create_effect(payload: EffectCreate, conn: Annotated[Connection, Depen
                 (effect_name, brand_id, model_ids, version, collection,
                  effect_type_ids, tool_type_ids, plugin_format_ids,
                  description, workflow_notes, recording_notes, artist_reference,
-                 attributes, tag_ids, parent_ids)
+                 attributes, tag_ids, parent_ids, disk_paths)
             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,
-                    {parent_ref_sql('$15')})
+                    {parent_ref_sql('$15')}, $16)
             RETURNING effect_id
             """,
             payload.effect_name, payload.brand_id, payload.model_ids,
@@ -102,6 +102,7 @@ async def create_effect(payload: EffectCreate, conn: Annotated[Connection, Depen
             json.dumps(payload.attributes) if payload.attributes is not None else None,
             payload.tag_ids,
             encode_parent_refs(payload.parent_ids),
+            [e.model_dump() for e in payload.disk_paths],
         )
         new_row = await conn.fetchrow(_SELECT_ONE, row["effect_id"])
         await log_audit(conn, "effects", row["effect_id"], "CREATE",

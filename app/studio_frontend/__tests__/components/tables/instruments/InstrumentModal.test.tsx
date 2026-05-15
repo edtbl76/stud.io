@@ -40,6 +40,12 @@ jest.mock('@/components/ui/ParentSelect', () => ({
   ParentSelect: () => null,
 }))
 
+jest.mock('@/components/tables/scanner/PluginPathsEditor', () => ({
+  PluginPathsEditor: ({ value }: { value: unknown[] }) => (
+    <div data-testid="plugin-paths-editor">{value.length} paths</div>
+  ),
+}))
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -70,6 +76,7 @@ const mockInstrument: Instrument = {
   recording_notes: null,
   artist_reference: null,
   attributes: null,
+  disk_paths: [],
   created_at: '2024-01-01T00:00:00Z',
   updated_at: '2024-01-01T00:00:00Z',
 }
@@ -242,6 +249,34 @@ describe('InstrumentModal — edit mode', () => {
     await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
       '/studio/session/instruments', 'inst-1',
       expect.objectContaining({ artist_reference: null }),
+    ))
+  })
+})
+
+describe('InstrumentModal — disk_paths', () => {
+  beforeEach(() => jest.clearAllMocks())
+
+  it('renders PluginPathsEditor in view mode', () => {
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.getByTestId('plugin-paths-editor')).toBeInTheDocument()
+  })
+
+  it('renders PluginPathsEditor in edit mode', () => {
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    expect(screen.getByTestId('plugin-paths-editor')).toBeInTheDocument()
+  })
+
+  it('includes disk_paths in update payload', async () => {
+    mockUpdate.mockResolvedValue(mockInstrument)
+    renderWithClient(<InstrumentModal record={mockInstrument} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /edit/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+
+    await waitFor(() => expect(mockUpdate).toHaveBeenCalledWith(
+      '/studio/session/instruments', 'inst-1',
+      expect.objectContaining({ disk_paths: [] }),
     ))
   })
 })
