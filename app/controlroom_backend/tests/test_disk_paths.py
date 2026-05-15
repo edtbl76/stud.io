@@ -4,7 +4,7 @@ Tests cover: effects, instruments, workflow_tools, libraries, workstations.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import pytest
 
 _VALID_ENTRY = {"path": "/Library/Audio/Plug-Ins/VST3/Reverb.vst3", "format": "vst3", "version": "2.1.0"}
@@ -35,12 +35,22 @@ class _PatchCase:
     patch_url: str
     disk_paths: list
     expected_status: int
+    insert_args: tuple = field(default_factory=tuple)
 
 
 _PATCH_CASES = [
     _PatchCase(
         "INSERT INTO effects (effect_name) VALUES ('DPTest E') RETURNING effect_id",
         "effect_id", "/studio/session/effects/{id}", [_VALID_ENTRY], 200,
+    ),
+    _PatchCase(
+        "INSERT INTO effects (effect_name) VALUES ('DPTest Multi') RETURNING effect_id",
+        "effect_id", "/studio/session/effects/{id}", [_VALID_ENTRY, _VALID_AU], 200,
+    ),
+    _PatchCase(
+        "INSERT INTO effects (effect_name, disk_paths) VALUES ('DPTest Clear', $1) RETURNING effect_id",
+        "effect_id", "/studio/session/effects/{id}", [],  200,
+        insert_args=('[{"path":"/x","format":"vst3","version":"1.0"}]',),
     ),
     _PatchCase(
         "INSERT INTO instruments (instrument_name) VALUES ('DPTest I') RETURNING instrument_id",
@@ -75,7 +85,7 @@ _PATCH_CASES = [
 
 @pytest.mark.parametrize("case", _PATCH_CASES)
 async def test_patch_catalog_disk_paths(client, conn, admin_headers, case):
-    row = await conn.fetchrow(case.insert_sql)
+    row = await conn.fetchrow(case.insert_sql, *case.insert_args)
     resp = await client.patch(
         case.patch_url.format(id=row[case.id_col]),
         json={"disk_paths": case.disk_paths},
@@ -87,36 +97,8 @@ async def test_patch_catalog_disk_paths(client, conn, admin_headers, case):
 
 
 # ---------------------------------------------------------------------------
-# Effects — unique behaviours not covered by the parametrized suite
+# Effects — behaviours not expressible via _PATCH_CASES
 # ---------------------------------------------------------------------------
-
-async def test_patch_effect_disk_paths_multiple_entries(client, conn, admin_headers):
-    row = await conn.fetchrow(
-        "INSERT INTO effects (effect_name) VALUES ('DPTest Multi') RETURNING effect_id"
-    )
-    entries = [_VALID_ENTRY, _VALID_AU]
-    resp = await client.patch(
-        f"/studio/session/effects/{row['effect_id']}",
-        json={"disk_paths": entries},
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-    assert resp.json()["disk_paths"] == entries
-
-
-async def test_patch_effect_disk_paths_empty_list(client, conn, admin_headers):
-    row = await conn.fetchrow(
-        "INSERT INTO effects (effect_name, disk_paths) VALUES ('DPTest Clear', $1) RETURNING effect_id",
-        '[{"path":"/x","format":"vst3","version":"1.0"}]',
-    )
-    resp = await client.patch(
-        f"/studio/session/effects/{row['effect_id']}",
-        json={"disk_paths": []},
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-    assert resp.json()["disk_paths"] == []
-
 
 async def test_effect_disk_paths_defaults_to_empty(client, conn):
     row = await conn.fetchrow(
