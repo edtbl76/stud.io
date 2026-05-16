@@ -4,7 +4,7 @@ import * as React from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
-import type { ConfirmDecision, ScanReport, ScanResult, ScanSection } from '@/lib/types'
+import type { AbsentRecord, ConfirmDecision, ScanReport, ScanResult, ScanSection } from '@/lib/types'
 import { ScanRunPicker } from './ScanRunPicker'
 import { ScanInProgressBanner } from './ScanInProgressBanner'
 import { ScanSectionHeader } from './ScanSectionHeader'
@@ -17,6 +17,7 @@ import { ConflictedRow } from './rows/ConflictedRow'
 import { UnconfirmedRow } from './rows/UnconfirmedRow'
 import { UntrackedRow } from './rows/UntrackedRow'
 import { OrphanedRow } from './rows/OrphanedRow'
+import { AbsentRow } from './rows/AbsentRow'
 import { CreateRecordModal } from './CreateRecordModal'
 import { ViewRecordModal } from './ViewRecordModal'
 import { ManualMappingModal } from './ManualMappingModal'
@@ -35,11 +36,12 @@ const SECTION_TITLES: Record<Exclude<ScanSection, 'exclusions'>, string> = {
   unconfirmed: 'Unconfirmed',
   untracked:   'Untracked',
   orphaned:    'Orphaned',
+  absent:      'Absent',
 }
 
 type ScanArrayKey = keyof Pick<ScanReport, 'known' | 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'>
 
-const REPORT_KEY_MAP: Record<Exclude<ScanSection, 'exclusions'>, ScanArrayKey> = {
+const REPORT_KEY_MAP: Record<Exclude<ScanSection, 'exclusions' | 'absent'>, ScanArrayKey> = {
   known:       'known',
   matched:     'matched',
   conflicted:  'conflicted',
@@ -54,9 +56,13 @@ function isScanInProgress(latestRun: import('@/lib/types').ScanRun | undefined):
 }
 
 function getSectionResults(section: ScanSection, report: ScanReport | undefined): ScanResult[] {
-  if (section === 'exclusions') return []
+  if (section === 'exclusions' || section === 'absent') return []
   const key = REPORT_KEY_MAP[section]
   return report?.[key] ?? []
+}
+
+function getAbsentResults(report: ScanReport | undefined): AbsentRecord[] {
+  return report?.absent ?? []
 }
 
 interface CreateModalState { result: ScanResult }
@@ -128,7 +134,8 @@ function useScannerData(section: ScanSection, selectedScanId: string | null) {
     enabled: !!effectiveScanId,
   })
   const sectionResults = getSectionResults(section, report)
-  return { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults }
+  const absentResults = getAbsentResults(report)
+  return { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults, absentResults }
 }
 
 function useScannerPageHandlers(
@@ -168,7 +175,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   const [manualMapping, setManualMapping] = React.useState<ManualMappingState | null>(null)
   const [viewRecord, setViewRecord] = React.useState<ScanResult | null>(null)
   const [selectedConflicted, setSelectedConflicted] = React.useState<Set<string>>(new Set())
-  const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
+  const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults, absentResults } = useScannerData(section, selectedScanId)
   const actions = useScannerActions(effectiveScanId)
   React.useEffect(() => { setSelectedConflicted(new Set()) }, [effectiveScanId])
   const { handlePurge, handleCreateRecordSubmit } = useScannerPageHandlers(effectiveScanId, setSelectedScanId, setCreateModal)
@@ -226,6 +233,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           effectiveScanId={effectiveScanId}
           section={section}
           sectionResults={sectionResults}
+          absentResults={absentResults}
           isScanning={isScanning}
           latestRunScanId={latestRun?.scan_id}
           reportError={reportError}
@@ -280,6 +288,7 @@ interface ScannerSectionContentProps {
   effectiveScanId: string | null
   section: Exclude<ScanSection, 'exclusions'>
   sectionResults: ScanResult[]
+  absentResults: AbsentRecord[]
   isScanning: boolean
   latestRunScanId: string | undefined
   reportError: boolean
@@ -296,11 +305,13 @@ interface ScannerSectionContentProps {
 }
 
 function ScannerSectionContent({
-  runs, effectiveScanId, section, sectionResults, isScanning, latestRunScanId,
+  runs, effectiveScanId, section, sectionResults, absentResults, isScanning, latestRunScanId,
   reportError, actions, selectedConflicted, onScanIdChange, onPurge, onCreateRecord,
   onViewRecord, onRefetch, onOverride, onConflictedSelect, onBulkConflictedUpdate,
 }: Readonly<ScannerSectionContentProps>) {
   const sectionTitle = SECTION_TITLES[section]
+  const isAbsent = section === 'absent'
+  const displayCount = isAbsent ? absentResults.length : sectionResults.length
 
   return (
     <>
@@ -315,7 +326,7 @@ function ScannerSectionContent({
           onBulkUpdate={onBulkConflictedUpdate}
         />
       ) : (
-        <ScanSectionHeader title={sectionTitle} count={sectionResults.length} />
+        <ScanSectionHeader title={sectionTitle} count={displayCount} />
       )}
       {section === 'unconfirmed' && (
         <BulkActionBar
@@ -330,21 +341,30 @@ function ScannerSectionContent({
         </div>
       ) : (
         <div className="flex-1 overflow-hidden">
-          <VirtualSectionList
-            items={buildListItems(section, sectionResults)}
-            estimatedItemHeight={estimatedHeight(section)}
-            renderItem={(item) => renderRow(item, section, {
-              onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
-              onAcknowledge: actions.handleAcknowledge,
-              onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
-              onCreateRecord,
-              onViewRecord,
-              onOverride,
-              onConflictedSelect,
-              selectedConflicted,
-            })}
-            emptyState={<SectionEmptyState section={section} />}
-          />
+          {isAbsent ? (
+            <VirtualSectionList
+              items={absentResults}
+              estimatedItemHeight={ROW_HEIGHT_WITH_SUBTITLE}
+              renderItem={(r) => <AbsentRow record={r} />}
+              emptyState={<SectionEmptyState section={section} />}
+            />
+          ) : (
+            <VirtualSectionList
+              items={buildListItems(section, sectionResults)}
+              estimatedItemHeight={estimatedHeight(section)}
+              renderItem={(item) => renderRow(item, section, {
+                onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
+                onAcknowledge: actions.handleAcknowledge,
+                onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
+                onCreateRecord,
+                onViewRecord,
+                onOverride,
+                onConflictedSelect,
+                selectedConflicted,
+              })}
+              emptyState={<SectionEmptyState section={section} />}
+            />
+          )}
         </div>
       )}
     </>
@@ -374,6 +394,7 @@ function estimatedHeight(section: ScanSection): number {
     unconfirmed: ROW_HEIGHT_WITH_ACTIONS,
     untracked:   ROW_HEIGHT_DEFAULT,
     orphaned:    ROW_HEIGHT_WITH_SUBTITLE,
+    absent:      ROW_HEIGHT_WITH_SUBTITLE,
     exclusions:  ROW_HEIGHT_DEFAULT,
   }
   return heights[section]
@@ -429,6 +450,7 @@ function SectionEmptyState({ section }: Readonly<{ section: ScanSection }>) {
     unconfirmed: 'No unconfirmed matches.',
     untracked:   'No untracked plugins.',
     orphaned:    'No orphaned plugins.',
+    absent:      'All catalog records with known disk paths were found in this scan.',
     exclusions:  'No plugins excluded.',
   }
   return (

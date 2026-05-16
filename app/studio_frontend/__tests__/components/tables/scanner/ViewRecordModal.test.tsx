@@ -26,6 +26,7 @@ const RESULT: ScanResult = {
 }
 
 const MATCHED_RESULT: ScanResult = { ...RESULT, status: 'matched' }
+const KNOWN_RESULT: ScanResult = { ...RESULT, status: 'known' }
 const CONFLICTED_RESULT: ScanResult = { ...RESULT, status: 'conflicted', match: { ...RESULT.match!, record_version: '2.0.0' } }
 
 describe('ViewRecordModal', () => {
@@ -54,6 +55,11 @@ describe('ViewRecordModal', () => {
 
   it('shows Acknowledge button for matched-status results', () => {
     render(<ViewRecordModal result={MATCHED_RESULT} onClose={jest.fn()} onAcknowledge={jest.fn()} />)
+    expect(screen.getByTestId('view-record-acknowledge-button')).toBeInTheDocument()
+  })
+
+  it('shows Acknowledge button for known-status results', () => {
+    render(<ViewRecordModal result={KNOWN_RESULT} onClose={jest.fn()} onAcknowledge={jest.fn()} />)
     expect(screen.getByTestId('view-record-acknowledge-button')).toBeInTheDocument()
   })
 

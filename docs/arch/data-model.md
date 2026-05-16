@@ -37,15 +37,15 @@ Array columns (e.g. `tag_ids UUID[]`) store references to these lookup tables di
 |---|---|
 | `brands` | Companies, recording studios, and individual builders. `brand_name` is NOT NULL — required on create. `legal_name` is nullable and optional. |
 | `models` | Physical/hardware gear — amps, microphones, synths, keyboards |
-| `effects` | Software and hardware effects, optionally linked to a model |
-| `instruments` | Software instruments — synths, samplers, keyboards, drums |
-| `libraries` | Sample libraries and content packs |
-| `workstations` | DAWs and mastering suites |
-| `measurement_tools` | Meters, analyzers, and diagnostic applications |
-| `reference_tools` | Room correction, headphone reference, and monitoring plugins |
-| `workflow_tools` | Standalone studio utilities (routing, browsing, editing) |
-| `composition_tools` | Scoring, notation, and composition applications |
-| `admin_tools` | License managers, downloaders, product portals |
+| `effects` | Software and hardware effects, optionally linked to a model. Includes `disk_paths JSONB` (array of `{path, format, version}` entries) populated manually to record known installation locations used by the plugin scanner. |
+| `instruments` | Software instruments — synths, samplers, keyboards, drums. Includes `disk_paths JSONB`. |
+| `libraries` | Sample libraries and content packs. Includes `disk_paths JSONB`. |
+| `workstations` | DAWs and mastering suites. Includes `disk_paths JSONB`. |
+| `measurement_tools` | Meters, analyzers, and diagnostic applications. Includes `disk_paths JSONB`. |
+| `reference_tools` | Room correction, headphone reference, and monitoring plugins. Includes `disk_paths JSONB`. |
+| `workflow_tools` | Standalone studio utilities (routing, browsing, editing). Includes `disk_paths JSONB`. |
+| `composition_tools` | Scoring, notation, and composition applications. Includes `disk_paths JSONB`. |
+| `admin_tools` | License managers, downloaders, product portals. Includes `disk_paths JSONB`. |
 | `users` | Application user accounts |
 
 ### GearList tables (Go service — `gearlist_backend`)
@@ -69,10 +69,10 @@ Defined in `sql/scanner_schema.sql`. Used by the FastAPI scanner routes and the 
 | Table | Description |
 |---|---|
 | `plugin_scans` | One row per scan run uploaded by the plugin-scanner binary. Fields: `scan_id UUID PK`, `scanned_at TIMESTAMPTZ`, `source_machine TEXT`, `total_count INT`. No soft delete — hard-deleted when purged. |
-| `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), and confirmation state (`confirmed_at`, `confirmed_by`). No soft delete. |
+| `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), confirmation state (`confirmed_at`, `confirmed_by`), and soft-hide flag (`dismissed_at`). Status values: `known` (matched, catalog has disk_paths), `matched` (matched, no disk_paths), `conflicted` (version mismatch), `unconfirmed` (fuzzy match), `untracked` (no match), `orphaned` (confirmed link but record absent from disk), `ignored`. No soft delete. |
 | `scanner_api_keys` | API keys for plugin-scanner binary authentication. Stores `label TEXT`, `key_hint TEXT` (last 4 chars of plaintext), `hashed_key TEXT UNIQUE` (bcrypt), `created_at`, `revoked_at`. Plaintext key never stored. |
 | `scanner_exclusions` | Plugins excluded from all future scan reports. Fields: `exclusion_id UUID PK`, `vendor TEXT`, `name TEXT`, `excluded_at TIMESTAMPTZ`. UNIQUE constraint on `(vendor, name)`. |
-| `scanner_plugin_links` | Persistent confirmed match links — survives scan history purges. Maps a scanned plugin fingerprint (`"{vendor} {name}".lower().strip()`) to a confirmed ControlRoom catalog record. Created on confirm, deleted on reject. UNIQUE on `fingerprint`. |
+| `scanner_plugin_links` | Persistent confirmed match links — survives scan history purges. Maps a scanned plugin fingerprint (`"{vendor} {name}".lower().strip()`) to a confirmed ControlRoom catalog record. Written on `confirm`, `create`, `acknowledge`, and `force` actions; deleted on `reject`. UNIQUE on `fingerprint`. |
 
 ### Soft delete
 

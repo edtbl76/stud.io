@@ -70,6 +70,7 @@ class ScanPayload(BaseModel):
 
 class ScanSummary(BaseModel):
     scan_id: UUID
+    known: int
     matched: int
     conflicted: int
     unconfirmed: int
@@ -120,6 +121,15 @@ class ScanResult(BaseModel):
     confirmed_at: datetime | None = None
 
 
+class AbsentRecord(BaseModel):
+    record_id: str
+    record_table: str
+    name: str
+    vendor: str | None = None
+    version: str | None = None
+    disk_paths: list[PluginPathEntry]
+
+
 class ScanReport(BaseModel):
     scan_id: UUID
     scanned_at: datetime
@@ -130,6 +140,7 @@ class ScanReport(BaseModel):
     untracked: list[ScanResult]
     orphaned: list[ScanResult]
     ignored: list[ScanResult] = []
+    absent: list[AbsentRecord] = []
 
 
 # ---------------------------------------------------------------------------
@@ -173,6 +184,7 @@ class PurgeResult(BaseModel):
 
 
 class StatusCounts(BaseModel):
+    known: int = 0
     matched: int = 0
     conflicted: int = 0
     unconfirmed: int = 0

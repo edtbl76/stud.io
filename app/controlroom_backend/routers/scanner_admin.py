@@ -36,12 +36,13 @@ _HINT_LEN  = 4
 
 _SCAN_HISTORY_SQL = (
     "SELECT ps.scan_id, ps.scanned_at, ps.source_machine, ps.total_count, "
+    "COUNT(*) FILTER (WHERE r.status='known') AS known, "
     "COUNT(*) FILTER (WHERE r.status='matched') AS matched, "
     "COUNT(*) FILTER (WHERE r.status='conflicted') AS conflicted, "
     "COUNT(*) FILTER (WHERE r.status='unconfirmed') AS unconfirmed, "
     "COUNT(*) FILTER (WHERE r.status='untracked') AS untracked, "
     "COUNT(*) FILTER (WHERE r.status='orphaned') AS orphaned, "
-    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='matched') AS confirmed, "
+    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status IN ('known','matched')) AS confirmed, "
     "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='untracked') AS rejected, "
     "COUNT(*) FILTER (WHERE r.status='ignored') AS ignored "
     "FROM plugin_scans ps "
@@ -167,6 +168,7 @@ async def list_scans(
             source_machine=r["source_machine"],
             total_count=r["total_count"],
             status_counts=StatusCounts(
+                known=r["known"],
                 matched=r["matched"],
                 conflicted=r["conflicted"],
                 unconfirmed=r["unconfirmed"],

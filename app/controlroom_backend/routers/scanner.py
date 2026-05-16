@@ -28,7 +28,7 @@ from routers.scanner_match import (
     match_plugin,
 )
 from schemas.scanner import (
-    CatalogSearchResult, ConfirmPayload, ConfirmResult,
+    AbsentRecord, CatalogSearchResult, ConfirmPayload, ConfirmResult,
     ScanPayload, ScanReport, ScanResult, ScanSummary,
     ScannedPlugin, build_scan_result,
 )
@@ -64,11 +64,13 @@ async def get_scanner_auth(
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _assign_status(confidence: str, disk_ver: str, record_ver: str | None) -> str:
+def _assign_status(confidence: str, disk_ver: str, record_ver: str | None, disk_paths: list | None = None) -> str:
     if confidence == "none":
         return "untracked"
     if confidence == "exact":
-        return "matched" if disk_ver == (record_ver or "") else "conflicted"
+        if disk_ver != (record_ver or ""):
+            return "conflicted"
+        return "known" if disk_paths else "matched"
     return "unconfirmed"
 
 
@@ -79,10 +81,10 @@ async def _linked_plugin_row(
     if table not in CATALOG_TABLES:
         raise ValueError(f"persistent link has unknown record_table: {table!r}")
     pk, _ = CATALOG_TABLES[table]
-    rec = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", UUID(record_id))
+    rec = await conn.fetchrow(f"SELECT version, disk_paths FROM {table} WHERE {pk}=$1", UUID(record_id))
     if rec is None:
         return None
-    st = "matched" if p.version == rec["version"] else "conflicted"
+    st = _assign_status("exact", p.version, rec["version"], rec["disk_paths"])
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
             st, "exact", None, UUID(record_id), table, p.metadata_source)
 
@@ -93,7 +95,8 @@ def _unlinked_plugin_row(
 ) -> tuple:
     _, result = match_plugin(p.name, p.vendor, index, exclusions)
     st = _assign_status(result.confidence, p.version,
-                        result.record.version if result.record else None)
+                        result.record.version if result.record else None,
+                        result.record.disk_paths if result.record else None)
     rec_id = UUID(result.record.record_id) if result.record else None
     rec_table = result.record.record_table if result.record else None
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
@@ -140,11 +143,12 @@ async def ingest_scan(
 
     counts = await conn.fetchrow(
         "SELECT "
-        "COUNT(*) FILTER (WHERE status='matched')          AS matched,"
-        "COUNT(*) FILTER (WHERE status='conflicted') AS conflicted,"
-        "COUNT(*) FILTER (WHERE status='unconfirmed')      AS unconfirmed,"
-        "COUNT(*) FILTER (WHERE status='untracked')        AS untracked,"
-        "COUNT(*) FILTER (WHERE status='orphaned')         AS orphaned "
+        "COUNT(*) FILTER (WHERE status='known')        AS known,"
+        "COUNT(*) FILTER (WHERE status='matched')      AS matched,"
+        "COUNT(*) FILTER (WHERE status='conflicted')   AS conflicted,"
+        "COUNT(*) FILTER (WHERE status='unconfirmed')  AS unconfirmed,"
+        "COUNT(*) FILTER (WHERE status='untracked')    AS untracked,"
+        "COUNT(*) FILTER (WHERE status='orphaned')     AS orphaned "
         "FROM plugin_scan_results WHERE scan_id=$1", scan_id,
     )
     return ScanSummary(scan_id=scan_id, **dict(counts))
@@ -164,18 +168,33 @@ async def _fetch_scan(conn: Connection, scan_id: UUID | None) -> Mapping[str, An
     )
 
 
-def _has_disk_paths(rid: str, meta: dict[str, dict[str, Any]]) -> bool:
-    m = meta.get(rid)
-    return bool(m and m.get("disk_paths"))
+async def _fetch_absent_records(conn: Connection, scan_id: UUID) -> list[AbsentRecord]:
+    rows = await conn.fetch(
+        f"SELECT * FROM ({_ABSENT_UNION}) c "
+        f"WHERE c.record_id::uuid NOT IN ("
+        f"  SELECT record_id FROM plugin_scan_results "
+        f"  WHERE scan_id=$1 AND record_id IS NOT NULL "
+        f"  AND status IN ('known','matched','conflicted')"
+        f")",
+        scan_id,
+    )
+    return [
+        AbsentRecord(
+            record_id=r["record_id"], record_table=r["record_table"],
+            name=r["name"], vendor=r["vendor"], version=r["version"],
+            disk_paths=r["disk_paths"] or [],
+        )
+        for r in rows
+    ]
 
 
-def _classify_section(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> str:
-    if r["status"] != "matched":
-        return r["status"]
-    record_id = r["record_id"]
-    if not record_id:
-        return "matched"
-    return "known" if _has_disk_paths(str(record_id), meta) else "matched"
+_ABSENT_UNION = " UNION ALL ".join(
+    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
+    f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
+    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
+    f"WHERE t.deleted_at IS NULL AND t.disk_paths != '[]'::jsonb"
+    for tbl, (pk, name) in CATALOG_TABLES.items()
+)
 
 
 @router.get("/report", responses={404: {"description": "No scans found"}})
@@ -199,10 +218,11 @@ async def get_report(
         s: [] for s in ("known", "matched", "conflicted", "unconfirmed", "untracked", "orphaned", "ignored")
     }
     for r in results:
-        section = _classify_section(r, meta)
-        if section in grouped:
-            grouped[section].append(build_scan_result(r, meta))
-    return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], **grouped)
+        if r["status"] in grouped:
+            grouped[r["status"]].append(build_scan_result(r, meta))
+
+    absent = await _fetch_absent_records(conn, scan["scan_id"])
+    return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], absent=absent, **grouped)
 
 
 # ---------------------------------------------------------------------------

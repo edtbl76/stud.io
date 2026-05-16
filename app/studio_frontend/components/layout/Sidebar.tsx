@@ -33,6 +33,7 @@ const navGroups: NavGroup[] = [
       { label: 'Unconfirmed', href: '/controlroom/scanner/unconfirmed' },
       { label: 'Untracked',   href: '/controlroom/scanner/untracked' },
       { label: 'Orphaned',    href: '/controlroom/scanner/orphaned' },
+      { label: 'Absent',      href: '/controlroom/scanner/absent' },
       { label: 'Exclusions',  href: '/controlroom/scanner/exclusions' },
     ],
   },

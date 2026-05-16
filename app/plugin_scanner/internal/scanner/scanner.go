@@ -35,13 +35,14 @@ type ScanRun struct {
 
 // ServerSummary mirrors the ScanSummary returned by the API.
 type ServerSummary struct {
-	ScanID          string `json:"scan_id"`
-	Matched         int    `json:"matched"`
-	VersionMismatch int    `json:"version_mismatch"`
-	Unconfirmed     int    `json:"unconfirmed"`
-	Untracked       int    `json:"untracked"`
-	Orphaned        int    `json:"orphaned"`
-	Ignored         int    `json:"ignored"`
+	ScanID      string `json:"scan_id"`
+	Known       int    `json:"known"`
+	Matched     int    `json:"matched"`
+	Conflicted  int    `json:"conflicted"`
+	Unconfirmed int    `json:"unconfirmed"`
+	Untracked   int    `json:"untracked"`
+	Orphaned    int    `json:"orphaned"`
+	Ignored     int    `json:"ignored"`
 }
 
 // Scanner discovers plugins across configured scan paths.
@@ -213,8 +214,9 @@ func (r *Renderer) renderTerminal(run ScanRun, dryRun bool) error {
 
 	if run.Summary != nil {
 		s := run.Summary
+		fmt.Fprintf(r.out, "  %-25s %d\n", "Known", s.Known)
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Matched", s.Matched)
-		fmt.Fprintf(r.out, "  %-25s %d\n", "Version mismatch", s.VersionMismatch)
+		fmt.Fprintf(r.out, "  %-25s %d\n", "Conflicted", s.Conflicted)
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Unconfirmed (fuzzy)", s.Unconfirmed)
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Untracked", s.Untracked)
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Orphaned", s.Orphaned)

@@ -101,7 +101,7 @@ func TestRenderer_TerminalOutput(t *testing.T) {
 		ScanID:     "abc12345-0000-0000-0000-000000000000",
 		Discovered: []metadata.DiscoveredPlugin{{Name: "Reverb", Format: "vst3"}},
 		Summary: &ServerSummary{
-			Matched: 1, VersionMismatch: 0, Unconfirmed: 0,
+			Known: 0, Matched: 1, Conflicted: 0, Unconfirmed: 0,
 			Untracked: 0, Orphaned: 0, Ignored: 0,
 		},
 	}
