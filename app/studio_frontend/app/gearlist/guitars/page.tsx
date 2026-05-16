@@ -16,7 +16,7 @@ export default function GuitarsPage() {
       sortFields={guitarSortFields}
       getRowId={(row) => row.gear_id}
       renderModal={(record, onClose, onMutate) => (
-        <GearModal record={record} onClose={onClose} onMutate={onMutate} />
+        <GearModal record={record} onClose={onClose} onMutate={onMutate} initialTypeId={record ? undefined : GUITAR_TYPE_ID} />
       )}
       paginated
     />

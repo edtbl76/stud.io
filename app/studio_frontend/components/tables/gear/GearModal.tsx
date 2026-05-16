@@ -33,6 +33,7 @@ interface GearModalProps {
   record: Gear | null
   onClose: () => void
   onMutate: () => void
+  initialTypeId?: string
 }
 
 interface FormState {
@@ -49,10 +50,10 @@ interface FormState {
   pickup_bridge_model_id: string
 }
 
-function toForm(record: Gear | null): FormState {
+function toForm(record: Gear | null, initialTypeId = ''): FormState {
   if (!record) {
     return {
-      gear_name: '', gear_type_id: '', serial_number: '', year: '', notes: '',
+      gear_name: '', gear_type_id: initialTypeId, serial_number: '', year: '', notes: '',
       num_strings: '', tuning: '', pickup_config: '',
       pickup_neck_model_id: '', pickup_middle_model_id: '', pickup_bridge_model_id: '',
     }
@@ -300,11 +301,16 @@ function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
 
 // ── main component ────────────────────────────────────────────────────────────
 
-export function GearModal({ record, onClose, onMutate }: Readonly<GearModalProps>) {
+export function GearModal({ record, onClose, onMutate, initialTypeId }: Readonly<GearModalProps>) {
   const { data: gearTypes = [] } = useQuery({
     queryKey: ['/gearlist/gear-types'],
     queryFn: () => api.list<GearType>(GEAR_TYPES_ENDPOINT),
   })
+
+  const toFormWithDefault = React.useCallback(
+    (r: Gear | null) => toForm(r, initialTypeId),
+    [initialTypeId],
+  )
 
   const { mode, form, set, error, isAdmin, historyUrl, recordModalProps } =
     useRecordModal<Gear, FormState>({
@@ -313,7 +319,7 @@ export function GearModal({ record, onClose, onMutate }: Readonly<GearModalProps
       getRecordId: (r) => r.gear_id,
       getHistoryUrl: (r) => `${ENDPOINT}/${r.gear_id}/history`,
       getTitle: getGearTitle,
-      toForm,
+      toForm: toFormWithDefault,
       buildPayload: buildGearPayload,
       onClose,
       onMutate,
