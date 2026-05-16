@@ -6,23 +6,23 @@
 -- =============================================================================
 -- ENUMS
 -- =============================================================================
-CREATE TABLE entity_types (
+CREATE TABLE IF NOT EXISTS entity_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
-CREATE TYPE parent_ref AS (table_name TEXT, id UUID);
-CREATE TABLE tool_types (
+DO $$ BEGIN CREATE TYPE parent_ref AS (table_name TEXT, id UUID); EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+CREATE TABLE IF NOT EXISTS tool_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
-CREATE TABLE plugin_formats (
+CREATE TABLE IF NOT EXISTS plugin_formats (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
-CREATE TABLE tag_types (
+CREATE TABLE IF NOT EXISTS tag_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
@@ -32,7 +32,7 @@ CREATE TABLE tag_types (
 -- BRANDS
 -- Companies, recording studios, and individual builders associated with gear
 -- =============================================================================
-CREATE TABLE brands (
+CREATE TABLE IF NOT EXISTS brands (
     brand_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     legal_name       TEXT,
     brand_name       TEXT NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE brands (
 -- WORKSTATIONS
 -- DAWs and mastering suites — the primary hosts for production
 -- =============================================================================
-CREATE TABLE workstations (
+CREATE TABLE IF NOT EXISTS workstations (
     workstation_id    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id          UUID REFERENCES brands(brand_id),
     tool_name         TEXT NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE workstations (
 -- MEASUREMENT TOOLS
 -- Meters, analyzers, and diagnostic applications
 -- =============================================================================
-CREATE TABLE measurement_tools (
+CREATE TABLE IF NOT EXISTS measurement_tools (
     measurement_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id             UUID REFERENCES brands(brand_id),
     model_ids            UUID[],
@@ -88,7 +88,7 @@ CREATE TABLE measurement_tools (
 -- REFERENCE TOOLS
 -- Room correction, headphone reference, and monitoring plugins
 -- =============================================================================
-CREATE TABLE reference_tools (
+CREATE TABLE IF NOT EXISTS reference_tools (
     reference_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id           UUID REFERENCES brands(brand_id),
     model_ids          UUID[],
@@ -108,7 +108,7 @@ CREATE TABLE reference_tools (
 -- WORKFLOW TOOLS
 -- Recommendable standalone studio utilities (routing, browsing, editing)
 -- =============================================================================
-CREATE TABLE workflow_tools (
+CREATE TABLE IF NOT EXISTS workflow_tools (
     workflow_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id          UUID REFERENCES brands(brand_id),
     tool_name         TEXT NOT NULL,
@@ -127,7 +127,7 @@ CREATE TABLE workflow_tools (
 -- COMPOSITION TOOLS
 -- Scoring, notation, and composition applications
 -- =============================================================================
-CREATE TABLE composition_tools (
+CREATE TABLE IF NOT EXISTS composition_tools (
     composition_tool_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id             UUID REFERENCES brands(brand_id),
     tool_name            TEXT NOT NULL,
@@ -146,13 +146,13 @@ CREATE TABLE composition_tools (
 -- MODELS
 -- Physical/hardware gear: amps, microphones, synths, keyboards, etc.
 -- =============================================================================
-CREATE TABLE model_types (
+CREATE TABLE IF NOT EXISTS model_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
 
-CREATE TABLE models (
+CREATE TABLE IF NOT EXISTS models (
     model_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     model_name       TEXT NOT NULL,
     brand_id         UUID REFERENCES brands(brand_id),
@@ -168,28 +168,20 @@ CREATE TABLE models (
     updated_at       TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_models_attributes ON models USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_models_attributes ON models USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_models_name ON models (model_name);
-
-CREATE VIEW models_view AS
-    SELECT
-        models.*,
-        brands.brand_name || ' ' || models.model_name AS full_model_name
-    FROM models
-LEFT JOIN brands ON brands.brand_id = models.brand_id;
-
 
 -- =============================================================================
 -- EFFECTS
 -- Software and hardware effects, optionally linked to a hardware model
 -- =============================================================================
-CREATE TABLE effect_types (
+CREATE TABLE IF NOT EXISTS effect_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
 
-CREATE TABLE effects (
+CREATE TABLE IF NOT EXISTS effects (
     effect_id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id          UUID REFERENCES brands(brand_id),
     model_ids         UUID[],
@@ -211,7 +203,7 @@ CREATE TABLE effects (
     updated_at        TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_effects_attributes ON effects USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_effects_attributes ON effects USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_effects_name ON effects (effect_name);
 CREATE INDEX IF NOT EXISTS idx_effects_disk_paths ON effects USING GIN (disk_paths);
 
@@ -220,13 +212,13 @@ CREATE INDEX IF NOT EXISTS idx_effects_disk_paths ON effects USING GIN (disk_pat
 -- INSTRUMENTS
 -- Software instruments: synths, samplers, keyboards, drums, etc.
 -- =============================================================================
-CREATE TABLE instrument_types (
+CREATE TABLE IF NOT EXISTS instrument_types (
     type_id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type_name        TEXT NOT NULL UNIQUE,
     type_description TEXT
 );
 
-CREATE TABLE instruments (
+CREATE TABLE IF NOT EXISTS instruments (
     instrument_id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id           UUID REFERENCES brands(brand_id),
     model_ids          UUID[],
@@ -246,7 +238,7 @@ CREATE TABLE instruments (
     updated_at         TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_instruments_attributes ON instruments USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_instruments_attributes ON instruments USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_instruments_name ON instruments (instrument_name);
 CREATE INDEX IF NOT EXISTS idx_instruments_disk_paths ON instruments USING GIN (disk_paths);
 
@@ -255,7 +247,7 @@ CREATE INDEX IF NOT EXISTS idx_instruments_disk_paths ON instruments USING GIN (
 -- LIBRARIES
 -- Sample libraries and content packs linked to a host instrument or platform
 -- =============================================================================
-CREATE TABLE libraries (
+CREATE TABLE IF NOT EXISTS libraries (
     library_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id          UUID REFERENCES brands(brand_id),
     model_ids         UUID[],
@@ -272,7 +264,7 @@ CREATE TABLE libraries (
     updated_at        TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX idx_libraries_attributes ON libraries USING GIN (attributes);
+CREATE INDEX IF NOT EXISTS idx_libraries_attributes ON libraries USING GIN (attributes);
 CREATE INDEX IF NOT EXISTS idx_libraries_name ON libraries (library_name);
 CREATE INDEX IF NOT EXISTS idx_libraries_disk_paths ON libraries USING GIN (disk_paths);
 
@@ -281,7 +273,7 @@ CREATE INDEX IF NOT EXISTS idx_libraries_disk_paths ON libraries USING GIN (disk
 -- ADMIN TOOLS
 -- License managers, downloaders, product portals — never recommended
 -- =============================================================================
-CREATE TABLE admin_tools (
+CREATE TABLE IF NOT EXISTS admin_tools (
     admin_tool_id     UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     brand_id          UUID REFERENCES brands(brand_id),
     tool_name         TEXT NOT NULL,

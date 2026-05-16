@@ -253,7 +253,7 @@ WHERE i.deleted_at IS NULL;
 -- LIBRARIES
 -- ---------------------------------------------------------------------------
 DROP VIEW IF EXISTS libraries_view;
-CREATE VIEW libraries_view AS
+CREATE OR REPLACE VIEW libraries_view AS
 SELECT
     l.library_id,
     l.library_name,
