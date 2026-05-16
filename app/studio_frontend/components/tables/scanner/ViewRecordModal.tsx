@@ -39,7 +39,7 @@ function ModalActions({ result, onAcknowledge, onClose }: Readonly<{
   return (
     <div className="flex justify-between items-center pt-4">
       <div>
-        {result.status === 'matched' && !result.confirmed_at && onAcknowledge && (
+        {(result.status === 'known' || result.status === 'matched') && !result.confirmed_at && onAcknowledge && (
           <button
             onClick={() => onAcknowledge(result.result_id)}
             className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"

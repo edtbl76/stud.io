@@ -301,7 +301,7 @@ export interface CatalogSearchResult {
 
 export interface ScanResult {
   result_id: string
-  status: 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'
+  status: 'known' | 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'
   name: string
   vendor: string
   version: string

@@ -14,4 +14,5 @@ WHERE r.status = 'matched' AND r.record_id IS NOT NULL AND (
     OR (r.record_table = 'reference_tools' AND EXISTS (SELECT 1 FROM reference_tools   WHERE reference_tool_id = r.record_id   AND disk_paths != '[]'::jsonb AND deleted_at IS NULL))
     OR (r.record_table = 'composition_tools' AND EXISTS (SELECT 1 FROM composition_tools WHERE composition_tool_id = r.record_id AND disk_paths != '[]'::jsonb AND deleted_at IS NULL))
     OR (r.record_table = 'admin_tools'     AND EXISTS (SELECT 1 FROM admin_tools        WHERE admin_tool_id = r.record_id        AND disk_paths != '[]'::jsonb AND deleted_at IS NULL))
+    OR (r.record_table = 'libraries'       AND EXISTS (SELECT 1 FROM libraries          WHERE library_id = r.record_id           AND disk_paths != '[]'::jsonb AND deleted_at IS NULL))
 );

@@ -75,7 +75,7 @@ The scanner walks all default macOS plugin paths (VST3, AU, VST2 — user and sy
 
 ## 5. Review Results
 
-Open **ControlRoom → Plugin Scanner** to review the scan report. Results are grouped into seven sections:
+Open **ControlRoom → Plugin Scanner** to review the scan report. Results are grouped into eight sections:
 
 | Section | Description |
 |---|---|
@@ -85,6 +85,7 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | Unconfirmed | Fuzzy match found — review and confirm, reject, or ignore |
 | Untracked | No catalog match found — create a new record or ignore |
 | Orphaned | Previously confirmed but no longer found on disk |
+| Absent | Catalog records with known disk paths that were not found in this scan — the plugin may have been uninstalled or moved |
 | Exclusions | Plugins intentionally excluded from triage — remove here to restore a plugin to active scanning |
 
 ## Triage Actions

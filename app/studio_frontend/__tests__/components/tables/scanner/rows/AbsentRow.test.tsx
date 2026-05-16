@@ -29,6 +29,24 @@ describe('AbsentRow', () => {
     expect(screen.getByText(/effects/)).toBeInTheDocument()
   })
 
+  it('renders the version string in the subtitle', () => {
+    render(<AbsentRow record={baseRecord} />)
+    expect(screen.getByText(/2\.0\.0/)).toBeInTheDocument()
+  })
+
+  it('renders all disk paths when multiple are present', () => {
+    const multiPath: AbsentRecord = {
+      ...baseRecord,
+      disk_paths: [
+        { path: '/Library/VST3/Reverb.vst3', format: 'vst3', version: '2.0.0' },
+        { path: '/Volumes/External/Plugins/Reverb.vst3', format: 'vst3', version: '2.0.0' },
+      ],
+    }
+    render(<AbsentRow record={multiPath} />)
+    expect(screen.getByText(/Library\/VST3\/Reverb\.vst3/)).toBeInTheDocument()
+    expect(screen.getByText(/Volumes\/External\/Plugins/)).toBeInTheDocument()
+  })
+
   it('renders without disk paths gracefully', () => {
     render(<AbsentRow record={{ ...baseRecord, disk_paths: [] }} />)
     expect(screen.getByTestId(`absent-row-${baseRecord.record_id}`)).toBeInTheDocument()

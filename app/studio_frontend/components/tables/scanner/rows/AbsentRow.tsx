@@ -1,4 +1,14 @@
-import type { AbsentRecord } from '@/lib/types'
+import type { AbsentRecord, PluginPathEntry } from '@/lib/types'
+
+function DiskPathList({ disk_paths }: Readonly<{ disk_paths: PluginPathEntry[] }>) {
+  return (
+    <div className="text-xs text-right shrink-0 space-y-0.5">
+      {disk_paths.map(p => (
+        <p key={p.path} className="text-muted-foreground font-mono truncate max-w-[240px]">{p.path}</p>
+      ))}
+    </div>
+  )
+}
 
 interface AbsentRowProps {
   record: AbsentRecord
@@ -16,13 +26,7 @@ export function AbsentRow({ record }: Readonly<AbsentRowProps>) {
           {record.vendor} · {record.record_table} {record.version ? `· ${record.version}` : ''}
         </p>
       </div>
-      {record.disk_paths.length > 0 && (
-        <div className="text-xs text-right shrink-0 space-y-0.5">
-          {record.disk_paths.map(p => (
-            <p key={p.path} className="text-muted-foreground font-mono truncate max-w-[240px]">{p.path}</p>
-          ))}
-        </div>
-      )}
+      {record.disk_paths.length > 0 && <DiskPathList disk_paths={record.disk_paths} />}
     </div>
   )
 }
