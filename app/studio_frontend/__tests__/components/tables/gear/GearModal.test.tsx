@@ -72,6 +72,20 @@ describe('GearModal — create mode', () => {
   })
 })
 
+describe('GearModal — initialTypeId (Guitars page)', () => {
+  it('pre-fills type and shows guitar fields when initialTypeId is GUITAR_TYPE_ID', async () => {
+    mockList.mockResolvedValue([{ type_id: GUITAR_TYPE_ID, type_name: 'Guitar' }])
+    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} initialTypeId={GUITAR_TYPE_ID} />)
+    await waitFor(() => expect(screen.getByLabelText(/strings/i)).toBeInTheDocument())
+    expect(screen.getByLabelText(/tuning/i)).toBeInTheDocument()
+  })
+
+  it('does not show guitar fields when no initialTypeId is provided', async () => {
+    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.queryByLabelText(/tuning/i)).not.toBeInTheDocument()
+  })
+})
+
 describe('GearModal — view mode', () => {
   it('shows gear name as title', () => {
     renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)

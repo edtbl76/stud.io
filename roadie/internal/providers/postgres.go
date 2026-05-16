@@ -101,6 +101,6 @@ func (p *PostgresProvider) ExecSQLFile(ctx context.Context, cfg DBConfig, path s
 	if cfg.DBName != "" {
 		args = append(args, "-d", cfg.DBName)
 	}
-	args = append(args, "--single-transaction", "-f", "-")
+	args = append(args, "--single-transaction", "--set", "ON_ERROR_STOP=on", "-f", "-")
 	return p.run.RunWithStdin(ctx, IOStreams{Stdin: f, Out: io.Discard}, "docker", args...)
 }

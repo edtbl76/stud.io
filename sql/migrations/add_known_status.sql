@@ -1,8 +1,9 @@
 -- Migration: add 'known' status value and backfill matched results with catalog disk_paths
 
 ALTER TABLE plugin_scan_results DROP CONSTRAINT IF EXISTS plugin_scan_results_status_check;
-ALTER TABLE plugin_scan_results ADD CONSTRAINT plugin_scan_results_status_check
-    CHECK (status IN ('known', 'matched', 'conflicted', 'unconfirmed', 'untracked', 'orphaned', 'ignored'));
+
+-- Rename version_mismatch → conflicted (no-op if rename migration already ran)
+UPDATE plugin_scan_results SET status = 'conflicted' WHERE status = 'version_mismatch';
 
 UPDATE plugin_scan_results r SET status = 'known'
 WHERE r.status = 'matched' AND r.record_id IS NOT NULL AND (
