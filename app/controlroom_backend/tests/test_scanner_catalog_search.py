@@ -3,6 +3,9 @@ from __future__ import annotations
 
 import pytest
 
+NUM_INSERTS = 25
+RESULT_LIMIT = 20
+
 
 async def _insert_effect(conn, name: str) -> str:
     return str(await conn.fetchval(
@@ -56,7 +59,7 @@ async def test_catalog_search_requires_auth(client):
 
 @pytest.mark.asyncio
 async def test_catalog_search_limits_to_20_results(client, conn, auth_headers):
-    for i in range(25):
+    for i in range(NUM_INSERTS):
         await conn.execute(
             "INSERT INTO effects (effect_name) VALUES ($1)",
             f"ZZZ_LimitTest {i:02d}",
@@ -64,4 +67,4 @@ async def test_catalog_search_limits_to_20_results(client, conn, auth_headers):
 
     resp = await client.get("/scanner/catalog/search?q=ZZZ_LimitTest", headers=auth_headers)
     assert resp.status_code == 200
-    assert len(resp.json()) <= 20
+    assert len(resp.json()) == RESULT_LIMIT

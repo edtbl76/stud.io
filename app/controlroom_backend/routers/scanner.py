@@ -68,7 +68,7 @@ def _assign_status(confidence: str, disk_ver: str, record_ver: str | None) -> st
     if confidence == "none":
         return "untracked"
     if confidence == "exact":
-        return "matched" if disk_ver == (record_ver or "") else "version_mismatch"
+        return "matched" if disk_ver == (record_ver or "") else "conflicted"
     return "unconfirmed"
 
 
@@ -82,7 +82,7 @@ async def _linked_plugin_row(
     rec = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", UUID(record_id))
     if rec is None:
         return None
-    st = "matched" if p.version == rec["version"] else "version_mismatch"
+    st = "matched" if p.version == rec["version"] else "conflicted"
     return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
             st, "exact", None, UUID(record_id), table, p.metadata_source)
 
@@ -141,7 +141,7 @@ async def ingest_scan(
     counts = await conn.fetchrow(
         "SELECT "
         "COUNT(*) FILTER (WHERE status='matched')          AS matched,"
-        "COUNT(*) FILTER (WHERE status='version_mismatch') AS conflicted,"
+        "COUNT(*) FILTER (WHERE status='conflicted') AS conflicted,"
         "COUNT(*) FILTER (WHERE status='unconfirmed')      AS unconfirmed,"
         "COUNT(*) FILTER (WHERE status='untracked')        AS untracked,"
         "COUNT(*) FILTER (WHERE status='orphaned')         AS orphaned "
@@ -170,8 +170,6 @@ def _has_disk_paths(rid: str, meta: dict[str, dict[str, Any]]) -> bool:
 
 
 def _classify_section(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> str:
-    if r["status"] == "version_mismatch":
-        return "conflicted"
     if r["status"] != "matched":
         return r["status"]
     record_id = r["record_id"]
@@ -220,7 +218,7 @@ _CATALOG_SEARCH_UNION = " UNION ALL ".join(
 )
 
 
-@router.get("/catalog/search")
+@router.get("/catalog/search", responses={400: {"description": "Unknown table"}})
 async def catalog_search(
     q: str,
     _user: Annotated[UserOut, Depends(get_current_user)],
@@ -228,7 +226,9 @@ async def catalog_search(
     table: str | None = None,
 ) -> list[CatalogSearchResult]:
     pattern = f"%{q}%"
-    if table and table in CATALOG_TABLES:
+    if table and table not in CATALOG_TABLES:
+        raise HTTPException(status_code=400, detail=f"Unknown table: {table!r}")
+    if table:
         pk, name_col = CATALOG_TABLES[table]
         sql = (
             f"SELECT {pk}::text AS record_id, '{table}' AS record_table, "
@@ -238,14 +238,13 @@ async def catalog_search(
             f"AND ({name_col} ILIKE $1 OR b.brand_name ILIKE $1) "
             f"ORDER BY {name_col} LIMIT 20"
         )
-        rows = await conn.fetch(sql, pattern)
     else:
         sql = (
             f"SELECT * FROM ({_CATALOG_SEARCH_UNION}) u "
             f"WHERE (name ILIKE $1 OR vendor ILIKE $1) "
             f"ORDER BY name LIMIT 20"
         )
-        rows = await conn.fetch(sql, pattern)
+    rows = await conn.fetch(sql, pattern)
     return [CatalogSearchResult(**dict(r)) for r in rows]
 
 

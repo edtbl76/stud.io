@@ -2,7 +2,7 @@
 
 known    = matched DB status + catalog record has disk_paths
 matched  = matched DB status + catalog record has no disk_paths
-conflicted = version_mismatch DB status
+conflicted = conflicted DB status
 """
 from __future__ import annotations
 
@@ -72,7 +72,7 @@ async def test_matched_without_disk_paths_goes_to_matched(client, conn, auth_hea
 @pytest.mark.asyncio
 async def test_version_mismatch_goes_to_conflicted(client, conn, auth_headers, scan_id):
     effect_id = await _insert_effect(conn)
-    await _insert_matched_result(conn, scan_id, effect_id, status="version_mismatch")
+    await _insert_matched_result(conn, scan_id, effect_id, status="conflicted")
 
     resp = await client.get("/scanner/report", headers=auth_headers)
     assert resp.status_code == 200

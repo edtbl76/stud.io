@@ -37,7 +37,7 @@ _HINT_LEN  = 4
 _SCAN_HISTORY_SQL = (
     "SELECT ps.scan_id, ps.scanned_at, ps.source_machine, ps.total_count, "
     "COUNT(*) FILTER (WHERE r.status='matched') AS matched, "
-    "COUNT(*) FILTER (WHERE r.status='version_mismatch') AS version_mismatch, "
+    "COUNT(*) FILTER (WHERE r.status='conflicted') AS conflicted, "
     "COUNT(*) FILTER (WHERE r.status='unconfirmed') AS unconfirmed, "
     "COUNT(*) FILTER (WHERE r.status='untracked') AS untracked, "
     "COUNT(*) FILTER (WHERE r.status='orphaned') AS orphaned, "
@@ -168,7 +168,7 @@ async def list_scans(
             total_count=r["total_count"],
             status_counts=StatusCounts(
                 matched=r["matched"],
-                version_mismatch=r["version_mismatch"],
+                conflicted=r["conflicted"],
                 unconfirmed=r["unconfirmed"],
                 untracked=r["untracked"],
                 orphaned=r["orphaned"],

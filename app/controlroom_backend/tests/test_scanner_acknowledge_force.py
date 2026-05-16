@@ -69,7 +69,8 @@ async def test_acknowledge_does_not_change_status(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     _, result_id = await _insert_matched_result(conn, effect_id)
 
-    await _post_acknowledge(client, result_id, admin_headers)
+    resp = await _post_acknowledge(client, result_id, admin_headers)
+    assert resp.status_code == 200
     row = await conn.fetchrow(
         "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id
     )
