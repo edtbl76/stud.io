@@ -24,7 +24,7 @@ function useCatalogSearch(query: string, table: string) {
     let active = true
     const t = setTimeout(async () => {
       try {
-        const res = await api.scanner.catalogSearch(query, table || undefined)
+        const res = await api.scanner.catalogSearch({ q: query, table: table || undefined })
         if (active) setResults(res)
       } catch {
         if (active) setResults([])

@@ -84,7 +84,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ confirmations: [decision] }),
       })
     },
-    catalogSearch: (q: string, table?: string) => {
+    catalogSearch: ({ q, table }: { q: string; table?: string }) => {
       const params = new URLSearchParams({ q })
       if (table) params.set('table', table)
       return req<CatalogSearchResult[]>(`/scanner/catalog/search?${params}`)
