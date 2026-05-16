@@ -11,13 +11,15 @@ import { ScanSectionHeader } from './ScanSectionHeader'
 import { BulkActionBar } from './BulkActionBar'
 import { VirtualSectionList } from './VirtualSectionList'
 import { ExclusionsSection } from './ExclusionsSection'
+import { ConflictedSectionHeader } from './ConflictedSectionHeader'
 import { MatchedRow } from './rows/MatchedRow'
-import { VersionMismatchRow } from './rows/VersionMismatchRow'
+import { ConflictedRow } from './rows/ConflictedRow'
 import { UnconfirmedRow } from './rows/UnconfirmedRow'
 import { UntrackedRow } from './rows/UntrackedRow'
 import { OrphanedRow } from './rows/OrphanedRow'
 import { CreateRecordModal } from './CreateRecordModal'
 import { ViewRecordModal } from './ViewRecordModal'
+import { ManualMappingModal } from './ManualMappingModal'
 
 const HIGH_CONFIDENCE = new Set(['exact', 'high'])
 
@@ -26,23 +28,24 @@ const isHighConfidence = (r: ScanResult) =>
 
 const isLowConfidence = (r: ScanResult) => !isHighConfidence(r)
 
-const SECTION_TITLES: Record<ScanSection, string> = {
-  'matched':            'Matched',
-  'version-mismatches': 'Version Mismatches',
-  'unconfirmed':        'Unconfirmed',
-  'untracked':          'Untracked',
-  'orphaned':           'Orphaned',
-  'exclusions':         'Exclusions',
+const SECTION_TITLES: Record<Exclude<ScanSection, 'exclusions'>, string> = {
+  known:       'Known',
+  matched:     'Matched',
+  conflicted:  'Conflicted',
+  unconfirmed: 'Unconfirmed',
+  untracked:   'Untracked',
+  orphaned:    'Orphaned',
 }
 
-type ScanArrayKey = keyof Pick<ScanReport, 'matched' | 'version_mismatch' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'>
+type ScanArrayKey = keyof Pick<ScanReport, 'known' | 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'>
 
 const REPORT_KEY_MAP: Record<Exclude<ScanSection, 'exclusions'>, ScanArrayKey> = {
-  'matched':            'matched',
-  'version-mismatches': 'version_mismatch',
-  'unconfirmed':        'unconfirmed',
-  'untracked':          'untracked',
-  'orphaned':           'orphaned',
+  known:       'known',
+  matched:     'matched',
+  conflicted:  'conflicted',
+  unconfirmed: 'unconfirmed',
+  untracked:   'untracked',
+  orphaned:    'orphaned',
 }
 
 function isScanInProgress(latestRun: import('@/lib/types').ScanRun | undefined): boolean {
@@ -57,6 +60,7 @@ function getSectionResults(section: ScanSection, report: ScanReport | undefined)
 }
 
 interface CreateModalState { result: ScanResult }
+interface ManualMappingState { result: ScanResult }
 
 function useScannerActions(effectiveScanId: string | null) {
   const queryClient = useQueryClient()
@@ -65,6 +69,17 @@ function useScannerActions(effectiveScanId: string | null) {
   const confirmMutation = useMutation({
     mutationFn: (decisions: ConfirmDecision[]) => api.scanner.confirm(decisions),
     onError: () => toast.error('Failed to apply decisions. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+  const acknowledgeMutation = useMutation({
+    mutationFn: (resultId: string) => api.scanner.acknowledge(resultId),
+    onError: () => toast.error('Failed to acknowledge. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+  const forceMutation = useMutation({
+    mutationFn: ({ resultId, targetId, targetTable }: { resultId: string; targetId: string; targetTable: string }) =>
+      api.scanner.force(resultId, targetId, targetTable),
+    onError: () => toast.error('Failed to override mapping. Please try again.'),
     onSuccess: invalidateReport,
   })
   const dismissMutation = useMutation({
@@ -86,6 +101,12 @@ function useScannerActions(effectiveScanId: string | null) {
       const high = results.filter(isHighConfidence)
       if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
     },
+    handleAcknowledge: (resultId: string) => acknowledgeMutation.mutate(resultId),
+    handleBulkAcknowledge: (results: ScanResult[]) => {
+      results.forEach(r => acknowledgeMutation.mutate(r.result_id))
+    },
+    handleForce: (resultId: string, targetId: string, targetTable: string) =>
+      forceMutation.mutate({ resultId, targetId, targetTable }),
     handleDismiss: (id: string) => dismissMutation.mutate(id),
     handleKeep:    (id: string) => keepMutation.mutate(id),
     handleRemove:  (result: ScanResult) => confirmMutation.mutate([{ result_id: result.result_id, action: 'ignore' }]),
@@ -145,7 +166,9 @@ function useScannerPageHandlers(
 export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>) {
   const [selectedScanId, setSelectedScanId] = React.useState<string | null>(null)
   const [createModal, setCreateModal] = React.useState<CreateModalState | null>(null)
+  const [manualMapping, setManualMapping] = React.useState<ManualMappingState | null>(null)
   const [viewRecord, setViewRecord] = React.useState<ScanResult | null>(null)
+  const [selectedConflicted, setSelectedConflicted] = React.useState<Set<string>>(new Set())
   const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
   const actions = useScannerActions(effectiveScanId)
   const { handlePurge, handleCreateRecordSubmit } = useScannerPageHandlers(effectiveScanId, setSelectedScanId, setCreateModal)
@@ -163,6 +186,32 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
     setCreateModal({ result })
   }
 
+  function handleOverride(result: ScanResult) {
+    setManualMapping({ result })
+  }
+
+  function handleManualMappingConfirm(targetId: string, targetTable: string) {
+    if (manualMapping) {
+      actions.handleForce(manualMapping.result.result_id, targetId, targetTable)
+      setManualMapping(null)
+    }
+  }
+
+  function handleConflictedSelect(resultId: string) {
+    setSelectedConflicted(prev => {
+      const next = new Set(prev)
+      if (next.has(resultId)) next.delete(resultId)
+      else next.add(resultId)
+      return next
+    })
+  }
+
+  function handleBulkConflictedUpdate() {
+    const selected = sectionResults.filter(r => selectedConflicted.has(r.result_id))
+    actions.handleBulkAcknowledge(selected)
+    setSelectedConflicted(new Set())
+  }
+
   return (
     <div className="flex flex-col h-full">
       {runs.length === 0 ? (
@@ -177,11 +226,15 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           latestRunScanId={latestRun?.scan_id}
           reportError={reportError}
           actions={actions}
+          selectedConflicted={selectedConflicted}
           onScanIdChange={setSelectedScanId}
           onPurge={handlePurge}
           onCreateRecord={handleCreateRecord}
           onViewRecord={(result) => setViewRecord(result)}
           onRefetch={refetchReport}
+          onOverride={handleOverride}
+          onConflictedSelect={handleConflictedSelect}
+          onBulkConflictedUpdate={handleBulkConflictedUpdate}
         />
       )}
 
@@ -189,6 +242,8 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
         <ViewRecordModal
           result={viewRecord}
           onClose={() => setViewRecord(null)}
+          onAcknowledge={actions.handleAcknowledge}
+          onSaved={() => refetchReport()}
         />
       )}
 
@@ -204,6 +259,14 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           onClose={() => setCreateModal(null)}
         />
       )}
+
+      {manualMapping && (
+        <ManualMappingModal
+          initialName={manualMapping.result.name}
+          onConfirm={handleManualMappingConfirm}
+          onClose={() => setManualMapping(null)}
+        />
+      )}
     </div>
   )
 }
@@ -217,24 +280,39 @@ interface ScannerSectionContentProps {
   latestRunScanId: string | undefined
   reportError: boolean
   actions: ReturnType<typeof useScannerActions>
+  selectedConflicted: Set<string>
   onScanIdChange: (id: string) => void
   onPurge: (days: Parameters<typeof api.scanner.purge>[0]) => Promise<void>
   onCreateRecord: (result: ScanResult) => void
   onViewRecord: (result: ScanResult) => void
   onRefetch: () => void
+  onOverride: (result: ScanResult) => void
+  onConflictedSelect: (resultId: string) => void
+  onBulkConflictedUpdate: () => void
 }
 
 function ScannerSectionContent({
   runs, effectiveScanId, section, sectionResults, isScanning, latestRunScanId,
-  reportError, actions, onScanIdChange, onPurge, onCreateRecord, onViewRecord, onRefetch,
+  reportError, actions, selectedConflicted, onScanIdChange, onPurge, onCreateRecord,
+  onViewRecord, onRefetch, onOverride, onConflictedSelect, onBulkConflictedUpdate,
 }: Readonly<ScannerSectionContentProps>) {
+  const sectionTitle = SECTION_TITLES[section]
+
   return (
     <>
       <div className="px-4 pt-4 pb-2">
         <ScanRunPicker runs={runs} selectedId={effectiveScanId} onChange={onScanIdChange} onPurge={onPurge} />
       </div>
       {isScanning && latestRunScanId && <ScanInProgressBanner scannedAt={latestRunScanId} />}
-      <ScanSectionHeader title={SECTION_TITLES[section]} count={sectionResults.length} />
+      {section === 'conflicted' ? (
+        <ConflictedSectionHeader
+          count={sectionResults.length}
+          selectedCount={selectedConflicted.size}
+          onBulkUpdate={onBulkConflictedUpdate}
+        />
+      ) : (
+        <ScanSectionHeader title={sectionTitle} count={sectionResults.length} />
+      )}
       {section === 'unconfirmed' && (
         <BulkActionBar
           highConfidenceCount={sectionResults.filter(isHighConfidence).length}
@@ -253,9 +331,13 @@ function ScannerSectionContent({
             estimatedItemHeight={estimatedHeight(section)}
             renderItem={(item) => renderRow(item, section, {
               onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
+              onAcknowledge: actions.handleAcknowledge,
               onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
               onCreateRecord,
               onViewRecord,
+              onOverride,
+              onConflictedSelect,
+              selectedConflicted,
             })}
             emptyState={<SectionEmptyState section={section} />}
           />
@@ -282,12 +364,13 @@ const ROW_HEIGHT_WITH_ACTIONS = 72
 
 function estimatedHeight(section: ScanSection): number {
   const heights: Record<ScanSection, number> = {
-    matched: ROW_HEIGHT_DEFAULT,
-    'version-mismatches': ROW_HEIGHT_WITH_SUBTITLE,
+    known:       ROW_HEIGHT_DEFAULT,
+    matched:     ROW_HEIGHT_DEFAULT,
+    conflicted:  ROW_HEIGHT_WITH_SUBTITLE,
     unconfirmed: ROW_HEIGHT_WITH_ACTIONS,
-    untracked: ROW_HEIGHT_DEFAULT,
-    orphaned: ROW_HEIGHT_WITH_SUBTITLE,
-    exclusions: ROW_HEIGHT_DEFAULT,
+    untracked:   ROW_HEIGHT_DEFAULT,
+    orphaned:    ROW_HEIGHT_WITH_SUBTITLE,
+    exclusions:  ROW_HEIGHT_DEFAULT,
   }
   return heights[section]
 }
@@ -296,11 +379,15 @@ interface RowHandlers {
   onConfirm: (id: string) => void
   onReject: (id: string) => void
   onIgnore: (id: string) => void
+  onAcknowledge: (id: string) => void
   onDismiss: (id: string) => void
   onKeep: (id: string) => void
   onRemove: (result: ScanResult) => void
   onCreateRecord: (result: ScanResult) => void
   onViewRecord: (result: ScanResult) => void
+  onOverride: (result: ScanResult) => void
+  onConflictedSelect: (resultId: string) => void
+  selectedConflicted: Set<string>
 }
 
 function ConfidenceDivider() {
@@ -316,27 +403,29 @@ function ConfidenceDivider() {
 type RowRenderer = (result: ScanResult, h: RowHandlers) => React.ReactNode
 
 const ROW_RENDERERS: Partial<Record<ScanSection, RowRenderer>> = {
-  matched:              (r) => <MatchedRow result={r} />,
-  'version-mismatches': (r) => <VersionMismatchRow result={r} />,
-  unconfirmed:          (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} />,
-  untracked:            (r, h) => <UntrackedRow result={r} onCreateRecord={h.onCreateRecord} onIgnore={h.onIgnore} />,
-  orphaned:             (r, h) => <OrphanedRow result={r} onDismiss={h.onDismiss} onKeepPermanently={h.onKeep} onRemoveFromCatalog={h.onRemove} onViewRecord={h.onViewRecord} />,
+  known:       (r, h) => <MatchedRow result={r} onViewRecord={h.onViewRecord} onAcknowledge={h.onAcknowledge} />,
+  matched:     (r, h) => <MatchedRow result={r} onViewRecord={h.onViewRecord} onAcknowledge={h.onAcknowledge} />,
+  conflicted:  (r, h) => <ConflictedRow result={r} selected={h.selectedConflicted.has(r.result_id)} onSelect={h.onConflictedSelect} onViewRecord={h.onViewRecord} />,
+  unconfirmed: (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} onOverride={h.onOverride} />,
+  untracked:   (r, h) => <UntrackedRow result={r} onCreateRecord={h.onCreateRecord} onIgnore={h.onIgnore} onOverride={h.onOverride} />,
+  orphaned:    (r, h) => <OrphanedRow result={r} onDismiss={h.onDismiss} onKeepPermanently={h.onKeep} onRemoveFromCatalog={h.onRemove} onViewRecord={h.onViewRecord} />,
 }
 
 function renderRow(item: ListItem, section: ScanSection, h: RowHandlers): React.ReactNode {
   if ('type' in item && item.type === 'divider') return <ConfidenceDivider />
-  const render = ROW_RENDERERS[section]
-  return render ? render(item as ScanResult, h) : null
+  const renderer = ROW_RENDERERS[section]
+  return renderer ? renderer(item as ScanResult, h) : null
 }
 
 function SectionEmptyState({ section }: Readonly<{ section: ScanSection }>) {
   const messages: Record<ScanSection, string> = {
-    matched: 'No matched plugins.',
-    'version-mismatches': 'No version mismatches.',
+    known:       'No known plugins.',
+    matched:     'No matched plugins.',
+    conflicted:  'No conflicted plugins.',
     unconfirmed: 'No unconfirmed matches.',
-    untracked: 'No untracked plugins.',
-    orphaned: 'No orphaned plugins.',
-    exclusions: 'No plugins excluded.',
+    untracked:   'No untracked plugins.',
+    orphaned:    'No orphaned plugins.',
+    exclusions:  'No plugins excluded.',
   }
   return (
     <div className="flex items-center justify-center h-32 text-sm text-muted-foreground" data-testid="scanner-empty-state">

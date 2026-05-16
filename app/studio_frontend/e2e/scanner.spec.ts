@@ -6,12 +6,21 @@ const BASE = '/controlroom/scanner'
 // Empty state
 // ---------------------------------------------------------------------------
 
+const SECTION_LOCATOR = '[data-testid="scanner-no-scans-state"], [data-testid="section-count"], [data-testid="scanner-empty-state"]'
+
 test('scanner matched page loads without error', async ({ page }) => {
   await page.goto(`${BASE}/matched`)
-  // Accepts either empty state (no scans) or populated state (scans exist)
-  await expect(
-    page.locator('[data-testid="scanner-no-scans-state"], [data-testid="section-count"], [data-testid="scanner-empty-state"]')
-  ).toBeVisible({ timeout: 10000 })
+  await expect(page.locator(SECTION_LOCATOR)).toBeVisible({ timeout: 10000 })
+})
+
+test('scanner known page loads without error', async ({ page }) => {
+  await page.goto(`${BASE}/known`)
+  await expect(page.locator(SECTION_LOCATOR)).toBeVisible({ timeout: 10000 })
+})
+
+test('scanner conflicted page loads without error', async ({ page }) => {
+  await page.goto(`${BASE}/conflicted`)
+  await expect(page.locator(SECTION_LOCATOR)).toBeVisible({ timeout: 10000 })
 })
 
 // ---------------------------------------------------------------------------
@@ -23,14 +32,15 @@ test('Plugin Scanner nav group appears in sidebar', async ({ page }) => {
   await expect(page.getByText('PLUGIN SCANNER')).toBeVisible({ timeout: 10000 })
 })
 
-test('all six scanner nav items link to correct routes', async ({ page }) => {
+test('all scanner nav items link to correct routes', async ({ page }) => {
   const sections = [
-    ['Matched',            `${BASE}/matched`],
-    ['Version Mismatches', `${BASE}/version-mismatches`],
-    ['Unconfirmed',        `${BASE}/unconfirmed`],
-    ['Untracked',          `${BASE}/untracked`],
-    ['Orphaned',           `${BASE}/orphaned`],
-    ['Exclusions',         `${BASE}/exclusions`],
+    ['Known',       `${BASE}/known`],
+    ['Matched',     `${BASE}/matched`],
+    ['Conflicted',  `${BASE}/conflicted`],
+    ['Unconfirmed', `${BASE}/unconfirmed`],
+    ['Untracked',   `${BASE}/untracked`],
+    ['Orphaned',    `${BASE}/orphaned`],
+    ['Exclusions',  `${BASE}/exclusions`],
   ] as const
 
   for (const [label, href] of sections) {

@@ -9,7 +9,11 @@ from uuid import UUID
 from pydantic import BaseModel, field_validator
 
 
-def build_match_meta(r: Mapping[str, Any], m: dict[str, Any] | None) -> "MatchMeta":
+def build_match_meta(
+    r: Mapping[str, Any],
+    m: dict[str, Any] | None,
+    catalog_disk_paths: list[dict[str, Any]] | None = None,
+) -> "MatchMeta":
     return MatchMeta(
         confidence=r["confidence"] or "none",
         score=float(r["score"]) if r["score"] is not None else None,
@@ -17,18 +21,21 @@ def build_match_meta(r: Mapping[str, Any], m: dict[str, Any] | None) -> "MatchMe
         record_name=m["name"] if m else None,
         record_vendor=m["vendor"] if m else None,
         record_version=m["version"] if m else None,
+        catalog_disk_paths=catalog_disk_paths or [],
     )
 
 
 def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> "ScanResult":
     rid = str(r["record_id"]) if r["record_id"] else None
     m = meta.get(rid) if rid else None
+    disk_paths = m.get("disk_paths") if m else None
     return ScanResult(
         result_id=r["result_id"], status=r["status"],
         name=r["name"], vendor=r["vendor"], version=r["version"],
         format=r["format"], path=r["path"],
-        match=build_match_meta(r, m) if r["record_id"] else None,
+        match=build_match_meta(r, m, catalog_disk_paths=disk_paths) if r["record_id"] else None,
         dismissed_at=r.get("dismissed_at"),
+        confirmed_at=r.get("confirmed_at"),
     )
 
 
@@ -64,7 +71,7 @@ class ScanPayload(BaseModel):
 class ScanSummary(BaseModel):
     scan_id: UUID
     matched: int
-    version_mismatch: int
+    conflicted: int
     unconfirmed: int
     untracked: int
     orphaned: int
@@ -75,6 +82,12 @@ class ScanSummary(BaseModel):
 # Report
 # ---------------------------------------------------------------------------
 
+class PluginPathEntry(BaseModel):
+    path: str
+    format: str
+    version: str
+
+
 class MatchMeta(BaseModel):
     confidence: str
     score: float | None = None
@@ -83,6 +96,15 @@ class MatchMeta(BaseModel):
     record_name: str | None = None
     record_vendor: str | None = None
     record_version: str | None = None
+    catalog_disk_paths: list[PluginPathEntry] = []
+
+
+class CatalogSearchResult(BaseModel):
+    record_id: str
+    record_table: str
+    name: str
+    vendor: str | None = None
+    version: str | None = None
 
 
 class ScanResult(BaseModel):
@@ -95,13 +117,15 @@ class ScanResult(BaseModel):
     path: str
     match: MatchMeta | None = None
     dismissed_at: datetime | None = None
+    confirmed_at: datetime | None = None
 
 
 class ScanReport(BaseModel):
     scan_id: UUID
     scanned_at: datetime
+    known: list[ScanResult]
     matched: list[ScanResult]
-    version_mismatch: list[ScanResult]
+    conflicted: list[ScanResult]
     unconfirmed: list[ScanResult]
     untracked: list[ScanResult]
     orphaned: list[ScanResult]
@@ -116,6 +140,7 @@ class Confirmation(BaseModel):
     result_id: UUID
     action: str
     target_table: str | None = None
+    target_id: str | None = None
 
 
 class ConfirmPayload(BaseModel):
@@ -149,7 +174,7 @@ class PurgeResult(BaseModel):
 
 class StatusCounts(BaseModel):
     matched: int = 0
-    version_mismatch: int = 0
+    conflicted: int = 0
     unconfirmed: int = 0
     untracked: int = 0
     orphaned: int = 0

@@ -8,7 +8,7 @@
 """
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any, Mapping
 from uuid import UUID
 
 import bcrypt
@@ -28,7 +28,7 @@ from routers.scanner_match import (
     match_plugin,
 )
 from schemas.scanner import (
-    ConfirmPayload, ConfirmResult,
+    CatalogSearchResult, ConfirmPayload, ConfirmResult,
     ScanPayload, ScanReport, ScanResult, ScanSummary,
     ScannedPlugin, build_scan_result,
 )
@@ -141,7 +141,7 @@ async def ingest_scan(
     counts = await conn.fetchrow(
         "SELECT "
         "COUNT(*) FILTER (WHERE status='matched')          AS matched,"
-        "COUNT(*) FILTER (WHERE status='version_mismatch') AS version_mismatch,"
+        "COUNT(*) FILTER (WHERE status='version_mismatch') AS conflicted,"
         "COUNT(*) FILTER (WHERE status='unconfirmed')      AS unconfirmed,"
         "COUNT(*) FILTER (WHERE status='untracked')        AS untracked,"
         "COUNT(*) FILTER (WHERE status='orphaned')         AS orphaned "
@@ -154,38 +154,99 @@ async def ingest_scan(
 # GET /report
 # ---------------------------------------------------------------------------
 
+async def _fetch_scan(conn: Connection, scan_id: UUID | None) -> Mapping[str, Any] | None:
+    if scan_id is not None:
+        return await conn.fetchrow(
+            "SELECT scan_id, scanned_at FROM plugin_scans WHERE scan_id=$1", scan_id
+        )
+    return await conn.fetchrow(
+        "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
+    )
+
+
+def _has_disk_paths(rid: str, meta: dict[str, dict[str, Any]]) -> bool:
+    m = meta.get(rid)
+    return bool(m and m.get("disk_paths"))
+
+
+def _classify_section(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> str:
+    if r["status"] == "version_mismatch":
+        return "conflicted"
+    if r["status"] != "matched":
+        return r["status"]
+    record_id = r["record_id"]
+    if not record_id:
+        return "matched"
+    return "known" if _has_disk_paths(str(record_id), meta) else "matched"
+
+
 @router.get("/report", responses={404: {"description": "No scans found"}})
 async def get_report(
     _user: Annotated[UserOut, Depends(get_current_user)],
     conn: Annotated[Connection, Depends(get_conn)],
     scan_id: UUID | None = None,
 ) -> ScanReport:
-    if scan_id is not None:
-        scan = await conn.fetchrow(
-            "SELECT scan_id, scanned_at FROM plugin_scans WHERE scan_id=$1", scan_id
-        )
-    else:
-        scan = await conn.fetchrow(
-            "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
-        )
+    scan = await _fetch_scan(conn, scan_id)
     if not scan:
         raise HTTPException(status_code=404, detail="No scans found")
 
     results = await conn.fetch(
         "SELECT result_id,status,name,vendor,version,format,path,"
-        "confidence,score,record_id,record_table,dismissed_at "
+        "confidence,score,record_id,record_table,dismissed_at,confirmed_at "
         "FROM plugin_scan_results WHERE scan_id=$1",
         scan["scan_id"],
     )
     meta = await fetch_match_meta(conn, results)
     grouped: dict[str, list[ScanResult]] = {
-        s: [] for s in ("matched", "version_mismatch", "unconfirmed", "untracked", "orphaned", "ignored")
+        s: [] for s in ("known", "matched", "conflicted", "unconfirmed", "untracked", "orphaned", "ignored")
     }
     for r in results:
-        group = grouped.get(r["status"])
-        if group is not None:
-            group.append(build_scan_result(r, meta))
+        section = _classify_section(r, meta)
+        if section in grouped:
+            grouped[section].append(build_scan_result(r, meta))
     return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], **grouped)
+
+
+# ---------------------------------------------------------------------------
+# GET /catalog/search
+# ---------------------------------------------------------------------------
+
+_CATALOG_SEARCH_UNION = " UNION ALL ".join(
+    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
+    f"{name} AS name, b.brand_name AS vendor, t.version "
+    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
+    f"WHERE t.deleted_at IS NULL"
+    for tbl, (pk, name) in CATALOG_TABLES.items()
+)
+
+
+@router.get("/catalog/search")
+async def catalog_search(
+    q: str,
+    _user: Annotated[UserOut, Depends(get_current_user)],
+    conn: Annotated[Connection, Depends(get_conn)],
+    table: str | None = None,
+) -> list[CatalogSearchResult]:
+    pattern = f"%{q}%"
+    if table and table in CATALOG_TABLES:
+        pk, name_col = CATALOG_TABLES[table]
+        sql = (
+            f"SELECT {pk}::text AS record_id, '{table}' AS record_table, "
+            f"{name_col} AS name, b.brand_name AS vendor, t.version "
+            f"FROM {table} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
+            f"WHERE t.deleted_at IS NULL "
+            f"AND ({name_col} ILIKE $1 OR b.brand_name ILIKE $1) "
+            f"ORDER BY {name_col} LIMIT 20"
+        )
+        rows = await conn.fetch(sql, pattern)
+    else:
+        sql = (
+            f"SELECT * FROM ({_CATALOG_SEARCH_UNION}) u "
+            f"WHERE (name ILIKE $1 OR vendor ILIKE $1) "
+            f"ORDER BY name LIMIT 20"
+        )
+        rows = await conn.fetch(sql, pattern)
+    return [CatalogSearchResult(**dict(r)) for r in rows]
 
 
 # ---------------------------------------------------------------------------

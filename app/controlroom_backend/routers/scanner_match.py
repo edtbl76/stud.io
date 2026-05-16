@@ -104,12 +104,12 @@ def _meta_candidates(results: list[Record]) -> dict[str, tuple]:
 
 
 async def fetch_match_meta(conn: Connection, results: list[Record]) -> dict[str, dict]:
-    """Fetch catalog name/vendor/version for each distinct matched record."""
+    """Fetch catalog name/vendor/version/disk_paths for each distinct matched record."""
     meta: dict[str, dict] = {}
     for rid, (table, record_id) in _meta_candidates(results).items():
         pk, nc = CATALOG_TABLES[table]
         rec = await conn.fetchrow(
-            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version "
+            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
             f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
             record_id,
         )
