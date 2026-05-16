@@ -15,7 +15,7 @@ jest.mock('@/lib/api', () => ({
       confirm: jest.fn(),
       acknowledge: jest.fn(),
       force: jest.fn(),
-      catalogSearch: jest.fn(),
+      catalogSearch: jest.fn().mockResolvedValue([]),
       dismiss: jest.fn(),
       keep: jest.fn(),
       exclusions: jest.fn(),
@@ -47,9 +47,9 @@ function wrapper({ children }: { children: React.ReactNode }) {
   return <QueryClientProvider client={qc}>{children}</QueryClientProvider>
 }
 
-const BASE_STATUS_COUNTS = { matched: 0, conflicted: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 }
+const BASE_STATUS_COUNTS = { known: 0, matched: 0, conflicted: 0, unconfirmed: 0, untracked: 0, orphaned: 0, ignored: 0 }
 const BASE_RUN = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', source_machine: 'test', total_count: 0, status_counts: BASE_STATUS_COUNTS, confirmation_counts: { confirmed: 0, rejected: 0, ignored: 0 } }
-const BASE_REPORT = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', known: [], matched: [], conflicted: [], unconfirmed: [], untracked: [], orphaned: [], ignored: [] }
+const BASE_REPORT = { scan_id: 's1', scanned_at: '2026-05-04T12:00:00Z', known: [], matched: [], conflicted: [], unconfirmed: [], untracked: [], orphaned: [], ignored: [], absent: [] }
 
 const MATCHED_RESULT = { result_id: 'r1', status: 'matched', name: 'Reverb Pro', vendor: 'Acme', version: '1.0', format: 'vst3', path: '/p', match: { confidence: 'exact', score: 100, record_id: 'rec1', record_table: 'effects', record_name: 'Reverb Pro Catalog', record_vendor: 'Acme', record_version: '1.0', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
 const KNOWN_RESULT = { ...MATCHED_RESULT, result_id: 'k1' }

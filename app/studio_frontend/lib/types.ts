@@ -249,6 +249,7 @@ export interface SearchResponse {
 // ---------------------------------------------------------------------------
 
 export interface StatusCounts {
+  known: number
   matched: number
   conflicted: number
   unconfirmed: number
@@ -311,6 +312,15 @@ export interface ScanResult {
   confirmed_at: string | null
 }
 
+export interface AbsentRecord {
+  record_id: string
+  record_table: string
+  name: string
+  vendor: string | null
+  version: string | null
+  disk_paths: PluginPathEntry[]
+}
+
 export interface ScanReport {
   scan_id: string
   scanned_at: string
@@ -321,6 +331,7 @@ export interface ScanReport {
   untracked: ScanResult[]
   orphaned: ScanResult[]
   ignored: ScanResult[]
+  absent: AbsentRecord[]
 }
 
 export type ConfirmDecision =
@@ -335,7 +346,7 @@ export interface Exclusion {
   excluded_at: string
 }
 
-export type ScanSection = 'known' | 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'exclusions'
+export type ScanSection = 'known' | 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'absent' | 'exclusions'
 
 export const SCANNER_TABLE_OPTIONS = [
   { value: 'effects',            label: 'Effects' },

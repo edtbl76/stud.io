@@ -33,7 +33,7 @@ CATALOG_TABLES: dict[str, tuple[str, str]] = {
 
 _CATALOG_UNION = " UNION ALL ".join(
     f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-    f"{name} AS name, b.brand_name AS vendor, t.version "
+    f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
     f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
     f"WHERE t.deleted_at IS NULL"
     for tbl, (pk, name) in CATALOG_TABLES.items()
@@ -51,6 +51,7 @@ class CatalogRecord:
     name: str
     vendor: str | None
     version: str | None
+    disk_paths: list[dict]
     search_key: str  # precomputed: f"{vendor or ''} {name}".lower().strip()
 
 
@@ -74,6 +75,7 @@ async def build_catalog_index(conn: Connection) -> list[CatalogRecord]:
             name=r["name"] or "",
             vendor=r["vendor"],
             version=r["version"],
+            disk_paths=r["disk_paths"] or [],
             search_key=f"{r['vendor'] or ''} {r['name'] or ''}".lower().strip(),
         )
         for r in rows

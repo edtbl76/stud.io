@@ -1,8 +1,8 @@
 """Integration tests for known/matched/conflicted report classification.
 
-known    = matched DB status + catalog record has disk_paths
-matched  = matched DB status + catalog record has no disk_paths
-conflicted = conflicted DB status
+known      = 'known' DB status (assigned at ingest when catalog record has disk_paths)
+matched    = 'matched' DB status (assigned at ingest when catalog record has no disk_paths)
+conflicted = 'conflicted' DB status (version mismatch between disk and catalog)
 """
 from __future__ import annotations
 
@@ -47,7 +47,7 @@ async def test_matched_with_disk_paths_goes_to_known(client, conn, auth_headers,
     effect_id = await _insert_effect(conn, disk_paths=[
         {"path": "/Library/VST3/Reverb.vst3", "format": "vst3", "version": "2.0"}
     ])
-    await _insert_matched_result(conn, scan_id, effect_id)
+    await _insert_matched_result(conn, scan_id, effect_id, status="known")
 
     resp = await client.get("/scanner/report", headers=auth_headers)
     assert resp.status_code == 200
@@ -85,7 +85,7 @@ async def test_version_mismatch_goes_to_conflicted(client, conn, auth_headers, s
 async def test_catalog_disk_paths_populated_on_known_result(client, conn, auth_headers, scan_id):
     disk_path = {"path": "/Library/VST3/Reverb.vst3", "format": "vst3", "version": "2.0"}
     effect_id = await _insert_effect(conn, disk_paths=[disk_path])
-    await _insert_matched_result(conn, scan_id, effect_id)
+    await _insert_matched_result(conn, scan_id, effect_id, status="known")
 
     resp = await client.get("/scanner/report", headers=auth_headers)
     assert resp.status_code == 200

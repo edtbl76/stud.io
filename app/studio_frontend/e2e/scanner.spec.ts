@@ -23,6 +23,11 @@ test('scanner conflicted page loads without error', async ({ page }) => {
   await expect(page.locator(SECTION_LOCATOR)).toBeVisible({ timeout: 10000 })
 })
 
+test('scanner absent page loads without error', async ({ page }) => {
+  await page.goto(`${BASE}/absent`)
+  await expect(page.locator(SECTION_LOCATOR)).toBeVisible({ timeout: 10000 })
+})
+
 // ---------------------------------------------------------------------------
 // Navigation
 // ---------------------------------------------------------------------------
@@ -40,6 +45,7 @@ test('all scanner nav items link to correct routes', async ({ page }) => {
     ['Unconfirmed', `${BASE}/unconfirmed`],
     ['Untracked',   `${BASE}/untracked`],
     ['Orphaned',    `${BASE}/orphaned`],
+    ['Absent',      `${BASE}/absent`],
     ['Exclusions',  `${BASE}/exclusions`],
   ] as const
 

@@ -318,15 +318,19 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 
 #### Core
 
-`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
+`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. At ingest time, matched results are classified as `known` (catalog record has `disk_paths` populated) or `matched` (no `disk_paths`). Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
 
-`GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped by status: `matched`, `version_mismatch`, `unconfirmed`, `untracked`, `orphaned`, `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record). If `scan_id` is omitted, returns the latest scan. Returns 404 if `scan_id` is omitted and no scans exist, or if the specified `scan_id` is not found.
+`GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped into seven sections: `known` (matched, catalog has disk paths), `matched` (matched, no disk paths), `conflicted` (version mismatch between disk and catalog), `unconfirmed` (fuzzy match awaiting review), `untracked` (no match found), `orphaned` (previously confirmed, catalog record missing from disk), `ignored`. Each result includes scanned metadata and match context (confidence, score, matched record, catalog disk paths). If `scan_id` is omitted, returns the latest scan. Returns 404 if no scan found.
+
+`GET /scanner/catalog/search?q={query}[&table={table}]` — authenticated user. ILIKE search across all catalog tables (or a single table if `table` is specified). Returns up to 20 results ordered by name. Returns 400 if `table` is non-empty and not a known catalog table.
 
 `POST /scanner/confirm` — admin only. Accepts a list of confirmation decisions. Each item specifies a `result_id` and `action`:
 - `confirm` — links the scanned plugin to the matched record; updates version in the catalog table; writes a `scanner_plugin_links` entry.
 - `reject` — clears the match; plugin reverts to `untracked`; removes the persistent link if one existed.
 - `ignore` — adds the plugin to `scanner_exclusions`; status becomes `ignored`; excluded from all future scans.
-- `create` — inserts a new record in the specified `target_table`; links it; status becomes `matched`.
+- `create` — inserts a new record in the specified `target_table`; links it; status becomes `matched` or `known`.
+- `acknowledge` — sets `confirmed_at` on the result; writes a `scanner_plugin_links` entry; status unchanged. Used for `known` and `matched` results the user has reviewed.
+- `force` — overrides the match to a user-selected catalog record (`target_id`, `target_table`); status becomes `matched` or `known`; writes a `scanner_plugin_links` entry.
 
 Confirmation errors are isolated per item (one failure does not roll back others). Returns `{applied, errors}`.
 
