@@ -78,7 +78,7 @@ export const api = {
         method: 'POST', body: JSON.stringify({ confirmations: [decision] }),
       })
     },
-    force: (resultId: string, targetId: string, targetTable: string) => {
+    force: ({ resultId, targetId, targetTable }: { resultId: string; targetId: string; targetTable: string }) => {
       const decision: ConfirmDecision = { result_id: resultId, action: 'force', target_id: targetId, target_table: targetTable }
       return req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
         method: 'POST', body: JSON.stringify({ confirmations: [decision] }),

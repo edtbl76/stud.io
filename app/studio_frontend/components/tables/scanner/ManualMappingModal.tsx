@@ -11,12 +11,9 @@ interface ManualMappingModalProps {
   onClose: () => void
 }
 
-export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly<ManualMappingModalProps>) {
-  const [query, setQuery] = React.useState(initialName)
-  const [table, setTable] = React.useState<string>('')
+function useCatalogSearch(query: string, table: string) {
   const [results, setResults] = React.useState<CatalogSearchResult[]>([])
   const [searched, setSearched] = React.useState(false)
-  const [selected, setSelected] = React.useState<CatalogSearchResult | null>(null)
 
   React.useEffect(() => {
     if (query.length < 2) {
@@ -38,6 +35,29 @@ export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly
     return () => { active = false; clearTimeout(t) }
   }, [query, table])
 
+  return { results, searched }
+}
+
+function isSelected(selected: CatalogSearchResult | null, r: CatalogSearchResult): boolean {
+  return selected?.record_table === r.record_table && selected?.record_id === r.record_id
+}
+
+export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly<ManualMappingModalProps>) {
+  const [query, setQuery] = React.useState(initialName)
+  const [table, setTable] = React.useState<string>('')
+  const [selected, setSelected] = React.useState<CatalogSearchResult | null>(null)
+  const { results, searched } = useCatalogSearch(query, table)
+
+  function handleQueryChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setQuery(e.target.value)
+    setSelected(null)
+  }
+
+  function handleTableChange(e: React.ChangeEvent<HTMLSelectElement>) {
+    setTable(e.target.value)
+    setSelected(null)
+  }
+
   function handleConfirm() {
     if (selected) onConfirm(selected.record_id, selected.record_table)
   }
@@ -51,7 +71,7 @@ export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly
           <input
             type="text"
             value={query}
-            onChange={e => { setQuery(e.target.value); setSelected(null) }}
+            onChange={handleQueryChange}
             placeholder="Search catalog…"
             className="flex-1 rounded border border-border bg-background px-3 py-2 text-sm"
             data-testid="catalog-search-input"
@@ -59,7 +79,7 @@ export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly
           />
           <select
             value={table}
-            onChange={e => { setTable(e.target.value); setSelected(null) }}
+            onChange={handleTableChange}
             className="rounded border border-border bg-background px-2 py-2 text-sm"
             data-testid="catalog-table-filter"
             aria-label="Filter by table"
@@ -79,7 +99,7 @@ export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly
               <button
                 key={`${r.record_table}-${r.record_id}`}
                 onClick={() => setSelected(r)}
-                className={`w-full text-left px-3 py-2 text-sm border-b border-border/50 last:border-0 hover:bg-muted/40 ${selected?.record_table === r.record_table && selected?.record_id === r.record_id ? 'bg-primary/10' : ''}`}
+                className={`w-full text-left px-3 py-2 text-sm border-b border-border/50 last:border-0 hover:bg-muted/40 ${isSelected(selected, r) ? 'bg-primary/10' : ''}`}
                 data-testid={`catalog-search-result-${r.record_table}-${r.record_id}`}
               >
                 <p className="font-medium text-foreground">{r.name}</p>

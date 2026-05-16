@@ -77,8 +77,8 @@ function useScannerActions(effectiveScanId: string | null) {
     onSuccess: invalidateReport,
   })
   const forceMutation = useMutation({
-    mutationFn: ({ resultId, targetId, targetTable }: { resultId: string; targetId: string; targetTable: string }) =>
-      api.scanner.force(resultId, targetId, targetTable),
+    mutationFn: (args: { resultId: string; targetId: string; targetTable: string }) =>
+      api.scanner.force(args),
     onError: () => toast.error('Failed to override mapping. Please try again.'),
     onSuccess: invalidateReport,
   })
