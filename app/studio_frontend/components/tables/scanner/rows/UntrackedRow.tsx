@@ -4,9 +4,10 @@ interface UntrackedRowProps {
   result: ScanResult
   onCreateRecord: (result: ScanResult) => void
   onIgnore: (resultId: string) => void
+  onOverride: (result: ScanResult) => void
 }
 
-export function UntrackedRow({ result, onCreateRecord, onIgnore }: Readonly<UntrackedRowProps>) {
+export function UntrackedRow({ result, onCreateRecord, onIgnore, onOverride }: Readonly<UntrackedRowProps>) {
   return (
     <div
       className="flex items-center gap-4 px-4 py-3 border-b border-border/50 text-sm"
@@ -33,6 +34,14 @@ export function UntrackedRow({ result, onCreateRecord, onIgnore }: Readonly<Untr
           data-testid={`ignore-button-${result.result_id}`}
         >
           Ignore
+        </button>
+        <button
+          onClick={() => onOverride(result)}
+          className="rounded border border-border px-2.5 py-1 text-xs hover:bg-muted text-muted-foreground"
+          aria-label={`Override ${result.name}`}
+          data-testid={`override-button-${result.result_id}`}
+        >
+          Override
         </button>
       </div>
     </div>

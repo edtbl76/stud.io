@@ -1,4 +1,4 @@
-import type { ConfirmDecision, Exclusion, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse } from '@/lib/types'
+import type { CatalogSearchResult, ConfirmDecision, Exclusion, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -72,6 +72,23 @@ export const api = {
       req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
         method: 'POST', body: JSON.stringify({ confirmations: decisions }),
       }),
+    acknowledge: (resultId: string) => {
+      const decision: ConfirmDecision = { result_id: resultId, action: 'acknowledge' }
+      return req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
+        method: 'POST', body: JSON.stringify({ confirmations: [decision] }),
+      })
+    },
+    force: ({ resultId, targetId, targetTable }: { resultId: string; targetId: string; targetTable: string }) => {
+      const decision: ConfirmDecision = { result_id: resultId, action: 'force', target_id: targetId, target_table: targetTable }
+      return req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
+        method: 'POST', body: JSON.stringify({ confirmations: [decision] }),
+      })
+    },
+    catalogSearch: ({ q, table }: { q: string; table?: string }) => {
+      const params = new URLSearchParams({ q })
+      if (table) params.set('table', table)
+      return req<CatalogSearchResult[]>(`/scanner/catalog/search?${params}`)
+    },
     dismiss: (resultId: string) =>
       req<void>(`/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }),
     keep: (resultId: string) =>

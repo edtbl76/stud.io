@@ -4,8 +4,8 @@ import { ScanRunPicker } from '@/components/tables/scanner/ScanRunPicker'
 import type { ScanRun } from '@/lib/types'
 
 const runs: ScanRun[] = [
-  { scan_id: 'scan1', scanned_at: '2026-05-04T12:00:00Z', source_machine: 'mac', total_count: 16, status_counts: { matched: 10, version_mismatch: 2, unconfirmed: 3, untracked: 1, orphaned: 0, ignored: 0 }, confirmation_counts: { confirmed: 0, rejected: 0, ignored: 0 } },
-  { scan_id: 'scan2', scanned_at: '2026-05-03T12:00:00Z', source_machine: 'mac', total_count: 12, status_counts: { matched: 8, version_mismatch: 1, unconfirmed: 2, untracked: 0, orphaned: 1, ignored: 0 }, confirmation_counts: { confirmed: 0, rejected: 0, ignored: 0 } },
+  { scan_id: 'scan1', scanned_at: '2026-05-04T12:00:00Z', source_machine: 'mac', total_count: 16, status_counts: { matched: 10, conflicted: 2, unconfirmed: 3, untracked: 1, orphaned: 0, ignored: 0 }, confirmation_counts: { confirmed: 0, rejected: 0, ignored: 0 } },
+  { scan_id: 'scan2', scanned_at: '2026-05-03T12:00:00Z', source_machine: 'mac', total_count: 12, status_counts: { matched: 8, conflicted: 1, unconfirmed: 2, untracked: 0, orphaned: 1, ignored: 0 }, confirmation_counts: { confirmed: 0, rejected: 0, ignored: 0 } },
 ]
 
 describe('ScanRunPicker', () => {

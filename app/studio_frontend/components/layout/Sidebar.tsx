@@ -27,12 +27,13 @@ const navGroups: NavGroup[] = [
   {
     title: 'PLUGIN SCANNER',
     items: [
-      { label: 'Matched',            href: '/controlroom/scanner/matched' },
-      { label: 'Version Mismatches', href: '/controlroom/scanner/version-mismatches' },
-      { label: 'Unconfirmed',        href: '/controlroom/scanner/unconfirmed' },
-      { label: 'Untracked',          href: '/controlroom/scanner/untracked' },
-      { label: 'Orphaned',           href: '/controlroom/scanner/orphaned' },
-      { label: 'Exclusions',         href: '/controlroom/scanner/exclusions' },
+      { label: 'Known',       href: '/controlroom/scanner/known' },
+      { label: 'Matched',     href: '/controlroom/scanner/matched' },
+      { label: 'Conflicted',  href: '/controlroom/scanner/conflicted' },
+      { label: 'Unconfirmed', href: '/controlroom/scanner/unconfirmed' },
+      { label: 'Untracked',   href: '/controlroom/scanner/untracked' },
+      { label: 'Orphaned',    href: '/controlroom/scanner/orphaned' },
+      { label: 'Exclusions',  href: '/controlroom/scanner/exclusions' },
     ],
   },
 ]

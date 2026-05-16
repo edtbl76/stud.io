@@ -11,8 +11,9 @@ const result: ScanResult = {
   version: '1.0.0',
   format: 'vst3',
   path: '/old/path/eq.vst3',
-  match: { confidence: 'exact', score: null, record_id: 'rec3', record_table: 'effects', record_name: 'EQ Eight', record_vendor: 'Ableton', record_version: '1.0.0' },
+  match: { confidence: 'exact', score: null, record_id: 'rec3', record_table: 'effects', record_name: 'EQ Eight', record_vendor: 'Ableton', record_version: '1.0.0', catalog_disk_paths: [] },
   dismissed_at: null,
+  confirmed_at: null,
 }
 
 describe('OrphanedRow', () => {

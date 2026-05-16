@@ -12,9 +12,10 @@ interface UnconfirmedRowProps {
   onConfirm: (resultId: string) => void
   onReject: (resultId: string) => void
   onIgnore: (resultId: string) => void
+  onOverride: (result: ScanResult) => void
 }
 
-export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore }: Readonly<UnconfirmedRowProps>) {
+export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore, onOverride }: Readonly<UnconfirmedRowProps>) {
   const confidence = result.match?.confidence ?? null
   const confidenceStyle = confidence ? (CONFIDENCE_STYLES[confidence] ?? '') : ''
 
@@ -69,6 +70,14 @@ export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore }: Readon
           data-testid={`ignore-button-${result.result_id}`}
         >
           Ignore
+        </button>
+        <button
+          onClick={() => onOverride(result)}
+          className="rounded border border-border px-2.5 py-1 text-xs hover:bg-muted text-muted-foreground"
+          aria-label={`Override match for ${result.name}`}
+          data-testid={`override-button-${result.result_id}`}
+        >
+          Override
         </button>
       </div>
     </div>

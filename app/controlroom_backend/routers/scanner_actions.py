@@ -101,11 +101,52 @@ async def _action_create(conn: Connection, ctx: _ConfirmCtx) -> None:
     await _upsert_plugin_link(conn, ctx, new_id, ctx.c.target_table)
 
 
+async def _assert_catalog_row_exists(conn: Connection, table: str, record_id: str, result_id: object) -> None:
+    pk, _ = CATALOG_TABLES[table]
+    exists = await conn.fetchval(
+        f"SELECT 1 FROM {table} WHERE {pk}=$1 AND deleted_at IS NULL", record_id
+    )
+    if not exists:
+        raise ValueError(f"result_id {result_id}: record {record_id} not found in {table}")
+
+
+async def _action_acknowledge(conn: Connection, ctx: _ConfirmCtx) -> None:
+    table = ctx.row["record_table"]
+    rid = ctx.row["record_id"]
+    if table not in CATALOG_TABLES or not rid:
+        raise ValueError(f"result_id {ctx.c.result_id}: cannot acknowledge without a linked catalog record")
+    await _assert_catalog_row_exists(conn, table, str(rid), ctx.c.result_id)
+    await conn.execute(
+        "UPDATE plugin_scan_results SET confirmed_at=NOW(), confirmed_by=$2 WHERE result_id=$1",
+        ctx.c.result_id, ctx.username,
+    )
+    await _upsert_plugin_link(conn, ctx, rid, table)
+
+
+async def _action_force(conn: Connection, ctx: _ConfirmCtx) -> None:
+    if not ctx.c.target_id or not ctx.c.target_table:
+        raise ValueError("force action requires target_id and target_table")
+    if ctx.c.target_table not in CATALOG_TABLES:
+        raise ValueError(f"unknown target_table: {ctx.c.target_table!r}")
+    target_id_uuid = UUID(ctx.c.target_id)
+    await _assert_catalog_row_exists(conn, ctx.c.target_table, ctx.c.target_id, ctx.c.result_id)
+    await conn.execute(
+        "UPDATE plugin_scan_results "
+        "SET status='matched', record_id=$1, record_table=$2, "
+        "confirmed_at=NOW(), confirmed_by=$3 "
+        "WHERE result_id=$4",
+        target_id_uuid, ctx.c.target_table, ctx.username, ctx.c.result_id,
+    )
+    await _upsert_plugin_link(conn, ctx, target_id_uuid, ctx.c.target_table)
+
+
 _ACTIONS = {
-    "confirm": _action_confirm,
-    "reject":  _action_reject,
-    "ignore":  _action_ignore,
-    "create":  _action_create,
+    "confirm":     _action_confirm,
+    "reject":      _action_reject,
+    "ignore":      _action_ignore,
+    "create":      _action_create,
+    "acknowledge": _action_acknowledge,
+    "force":       _action_force,
 }
 
 
