@@ -24,12 +24,18 @@ export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly
       setSearched(false)
       return
     }
+    let active = true
     const t = setTimeout(async () => {
-      const res = await api.scanner.catalogSearch(query, table || undefined)
-      setResults(res)
-      setSearched(true)
+      try {
+        const res = await api.scanner.catalogSearch(query, table || undefined)
+        if (active) setResults(res)
+      } catch {
+        if (active) setResults([])
+      } finally {
+        if (active) setSearched(true)
+      }
     }, 300)
-    return () => clearTimeout(t)
+    return () => { active = false; clearTimeout(t) }
   }, [query, table])
 
   function handleConfirm() {
@@ -71,10 +77,10 @@ export function ManualMappingModal({ initialName, onConfirm, onClose }: Readonly
           ) : (
             results.map(r => (
               <button
-                key={r.record_id}
+                key={`${r.record_table}-${r.record_id}`}
                 onClick={() => setSelected(r)}
-                className={`w-full text-left px-3 py-2 text-sm border-b border-border/50 last:border-0 hover:bg-muted/40 ${selected?.record_id === r.record_id ? 'bg-primary/10' : ''}`}
-                data-testid={`catalog-search-result-${r.record_id}`}
+                className={`w-full text-left px-3 py-2 text-sm border-b border-border/50 last:border-0 hover:bg-muted/40 ${selected?.record_table === r.record_table && selected?.record_id === r.record_id ? 'bg-primary/10' : ''}`}
+                data-testid={`catalog-search-result-${r.record_table}-${r.record_id}`}
               >
                 <p className="font-medium text-foreground">{r.name}</p>
                 <p className="text-xs text-muted-foreground">{r.vendor} · {r.record_table} {r.version ? `· ${r.version}` : ''}</p>

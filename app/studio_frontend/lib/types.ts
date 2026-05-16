@@ -300,7 +300,7 @@ export interface CatalogSearchResult {
 
 export interface ScanResult {
   result_id: string
-  status: 'matched' | 'version_mismatch' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'
+  status: 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'ignored'
   name: string
   vendor: string
   version: string
@@ -323,10 +323,10 @@ export interface ScanReport {
   ignored: ScanResult[]
 }
 
-export interface ConfirmDecision {
-  result_id: string
-  action: 'confirm' | 'reject' | 'ignore'
-}
+export type ConfirmDecision =
+  | { result_id: string; action: 'confirm' | 'reject' | 'ignore' }
+  | { result_id: string; action: 'acknowledge' }
+  | { result_id: string; action: 'force'; target_id: string; target_table: string }
 
 export interface Exclusion {
   exclusion_id: string

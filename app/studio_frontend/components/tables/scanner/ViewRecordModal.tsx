@@ -12,7 +12,7 @@ interface ViewRecordModalProps {
 }
 
 function VersionEntry({ result, match }: Readonly<{ result: ScanResult; match: MatchMeta | null }>) {
-  if (result.status === 'version_mismatch') {
+  if (result.status === 'conflicted') {
     return (
       <div>
         <dt className="text-xs text-muted-foreground">Version</dt>

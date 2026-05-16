@@ -128,15 +128,16 @@ async def _action_force(conn: Connection, ctx: _ConfirmCtx) -> None:
         raise ValueError("force action requires target_id and target_table")
     if ctx.c.target_table not in CATALOG_TABLES:
         raise ValueError(f"unknown target_table: {ctx.c.target_table!r}")
+    target_id_uuid = UUID(ctx.c.target_id)
     await _assert_catalog_row_exists(conn, ctx.c.target_table, ctx.c.target_id, ctx.c.result_id)
     await conn.execute(
         "UPDATE plugin_scan_results "
         "SET status='matched', record_id=$1, record_table=$2, "
         "confirmed_at=NOW(), confirmed_by=$3 "
         "WHERE result_id=$4",
-        ctx.c.target_id, ctx.c.target_table, ctx.username, ctx.c.result_id,
+        target_id_uuid, ctx.c.target_table, ctx.username, ctx.c.result_id,
     )
-    await _upsert_plugin_link(conn, ctx, ctx.c.target_id, ctx.c.target_table)
+    await _upsert_plugin_link(conn, ctx, target_id_uuid, ctx.c.target_table)
 
 
 _ACTIONS = {

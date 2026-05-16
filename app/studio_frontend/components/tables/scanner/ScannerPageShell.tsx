@@ -102,9 +102,8 @@ function useScannerActions(effectiveScanId: string | null) {
       if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
     },
     handleAcknowledge: (resultId: string) => acknowledgeMutation.mutate(resultId),
-    handleBulkAcknowledge: (results: ScanResult[]) => {
-      results.forEach(r => acknowledgeMutation.mutate(r.result_id))
-    },
+    handleBulkAcknowledge: (results: ScanResult[]) =>
+      Promise.all(results.map(r => acknowledgeMutation.mutateAsync(r.result_id))),
     handleForce: (resultId: string, targetId: string, targetTable: string) =>
       forceMutation.mutate({ resultId, targetId, targetTable }),
     handleDismiss: (id: string) => dismissMutation.mutate(id),
@@ -171,6 +170,7 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
   const [selectedConflicted, setSelectedConflicted] = React.useState<Set<string>>(new Set())
   const { runs, latestRun, isScanning, effectiveScanId, reportError, refetchReport, sectionResults } = useScannerData(section, selectedScanId)
   const actions = useScannerActions(effectiveScanId)
+  React.useEffect(() => { setSelectedConflicted(new Set()) }, [effectiveScanId])
   const { handlePurge, handleCreateRecordSubmit } = useScannerPageHandlers(effectiveScanId, setSelectedScanId, setCreateModal)
 
   if (section === 'exclusions') {
@@ -206,10 +206,14 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
     })
   }
 
-  function handleBulkConflictedUpdate() {
+  async function handleBulkConflictedUpdate() {
     const selected = sectionResults.filter(r => selectedConflicted.has(r.result_id))
-    actions.handleBulkAcknowledge(selected)
-    setSelectedConflicted(new Set())
+    try {
+      await actions.handleBulkAcknowledge(selected)
+      setSelectedConflicted(new Set())
+    } catch {
+      // toast already shown by mutation onError; preserve selection so user can retry
+    }
   }
 
   return (

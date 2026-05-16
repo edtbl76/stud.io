@@ -5,7 +5,7 @@ import type { ScanResult } from '@/lib/types'
 
 const baseResult: ScanResult = {
   result_id: 'r20',
-  status: 'version_mismatch',
+  status: 'conflicted',
   name: 'Compressor Z',
   vendor: 'Dynamics Co',
   version: '1.0.0',

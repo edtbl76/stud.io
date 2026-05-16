@@ -108,7 +108,7 @@ describe('ScannerPageShell', () => {
 
   it('renders ConflictedSectionHeader for conflicted section', async () => {
     mockRun({ conflicted: 1 })
-    const conflictedResult = { result_id: 'c1', status: 'version_mismatch', name: 'Comp Z', vendor: 'DynCo', version: '1.0', format: 'vst3', path: '/p', match: { confidence: 'exact', score: 100, record_id: 'rec2', record_table: 'effects', record_name: 'Comp Z', record_vendor: 'DynCo', record_version: '2.0', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    const conflictedResult = { result_id: 'c1', status: 'conflicted', name: 'Comp Z', vendor: 'DynCo', version: '1.0', format: 'vst3', path: '/p', match: { confidence: 'exact', score: 100, record_id: 'rec2', record_table: 'effects', record_name: 'Comp Z', record_vendor: 'DynCo', record_version: '2.0', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
     mockReport({ conflicted: [conflictedResult] })
     render(<ScannerPageShell section="conflicted" />, { wrapper })
     await waitFor(() => expect(screen.getByText('Conflicted')).toBeInTheDocument())

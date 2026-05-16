@@ -26,7 +26,7 @@ const RESULT: ScanResult = {
 }
 
 const MATCHED_RESULT: ScanResult = { ...RESULT, status: 'matched' }
-const CONFLICTED_RESULT: ScanResult = { ...RESULT, status: 'version_mismatch', match: { ...RESULT.match!, record_version: '2.0.0' } }
+const CONFLICTED_RESULT: ScanResult = { ...RESULT, status: 'conflicted', match: { ...RESULT.match!, record_version: '2.0.0' } }
 
 describe('ViewRecordModal', () => {
   it('renders record details', () => {

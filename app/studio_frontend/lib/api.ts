@@ -72,16 +72,18 @@ export const api = {
       req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
         method: 'POST', body: JSON.stringify({ confirmations: decisions }),
       }),
-    acknowledge: (resultId: string) =>
-      req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
-        method: 'POST',
-        body: JSON.stringify({ confirmations: [{ result_id: resultId, action: 'acknowledge' }] }),
-      }),
-    force: (resultId: string, targetId: string, targetTable: string) =>
-      req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
-        method: 'POST',
-        body: JSON.stringify({ confirmations: [{ result_id: resultId, action: 'force', target_id: targetId, target_table: targetTable }] }),
-      }),
+    acknowledge: (resultId: string) => {
+      const decision: ConfirmDecision = { result_id: resultId, action: 'acknowledge' }
+      return req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
+        method: 'POST', body: JSON.stringify({ confirmations: [decision] }),
+      })
+    },
+    force: (resultId: string, targetId: string, targetTable: string) => {
+      const decision: ConfirmDecision = { result_id: resultId, action: 'force', target_id: targetId, target_table: targetTable }
+      return req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
+        method: 'POST', body: JSON.stringify({ confirmations: [decision] }),
+      })
+    },
     catalogSearch: (q: string, table?: string) => {
       const params = new URLSearchParams({ q })
       if (table) params.set('table', table)

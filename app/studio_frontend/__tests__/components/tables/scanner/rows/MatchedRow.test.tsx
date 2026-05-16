@@ -45,9 +45,11 @@ describe('MatchedRow', () => {
 
   it('calls onAcknowledge with result_id when Acknowledge is clicked', () => {
     const onAcknowledge = jest.fn()
-    render(<MatchedRow result={baseResult} onViewRecord={jest.fn()} onAcknowledge={onAcknowledge} />)
+    const onViewRecord = jest.fn()
+    render(<MatchedRow result={baseResult} onViewRecord={onViewRecord} onAcknowledge={onAcknowledge} />)
     fireEvent.click(screen.getByTestId('acknowledge-button-r10'))
     expect(onAcknowledge).toHaveBeenCalledWith('r10')
+    expect(onViewRecord).not.toHaveBeenCalled()
   })
 
   it('shows confirmed indicator and hides Acknowledge button when confirmed_at is set', () => {
