@@ -14,7 +14,6 @@ async def _insert_effect(conn) -> str:
 
 
 async def _insert_matched_result(conn, effect_id: str) -> tuple:
-    """Insert a scan with a result in matched status linked to an effect."""
     scan_id = await conn.fetchval(
         "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1,$2) RETURNING scan_id",
         "test-machine", 1,
@@ -31,16 +30,33 @@ async def _insert_matched_result(conn, effect_id: str) -> tuple:
     return scan_id, result_id
 
 
+async def _post_acknowledge(client, result_id, headers):
+    return await client.post(
+        "/scanner/confirm",
+        json={"confirmations": [{"result_id": str(result_id), "action": "acknowledge"}]},
+        headers=headers,
+    )
+
+
+async def _post_force(client, result_id, effect_id, headers):
+    return await client.post(
+        "/scanner/confirm",
+        json={"confirmations": [{
+            "result_id": str(result_id),
+            "action": "force",
+            "target_id": effect_id,
+            "target_table": "effects",
+        }]},
+        headers=headers,
+    )
+
+
 @pytest.mark.asyncio
 async def test_acknowledge_sets_confirmed_at(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     _, result_id = await _insert_matched_result(conn, effect_id)
 
-    resp = await client.post(
-        "/scanner/confirm",
-        json={"confirmations": [{"result_id": str(result_id), "action": "acknowledge"}]},
-        headers=admin_headers,
-    )
+    resp = await _post_acknowledge(client, result_id, admin_headers)
     assert resp.status_code == 200
     row = await conn.fetchrow(
         "SELECT confirmed_at FROM plugin_scan_results WHERE result_id=$1", result_id
@@ -53,11 +69,7 @@ async def test_acknowledge_does_not_change_status(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     _, result_id = await _insert_matched_result(conn, effect_id)
 
-    await client.post(
-        "/scanner/confirm",
-        json={"confirmations": [{"result_id": str(result_id), "action": "acknowledge"}]},
-        headers=admin_headers,
-    )
+    await _post_acknowledge(client, result_id, admin_headers)
     row = await conn.fetchrow(
         "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id
     )
@@ -69,11 +81,7 @@ async def test_acknowledge_creates_persistent_link(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     _, result_id = await _insert_matched_result(conn, effect_id)
 
-    await client.post(
-        "/scanner/confirm",
-        json={"confirmations": [{"result_id": str(result_id), "action": "acknowledge"}]},
-        headers=admin_headers,
-    )
+    await _post_acknowledge(client, result_id, admin_headers)
     link = await conn.fetchrow(
         "SELECT record_id::text, record_table FROM scanner_plugin_links "
         "WHERE fingerprint='acme audio reverb pro'"
@@ -120,16 +128,7 @@ async def test_force_sets_status_matched(client, conn, admin_headers):
     _, result_id = await insert_scan(conn, "untracked")
     effect_id = await _insert_effect(conn)
 
-    resp = await client.post(
-        "/scanner/confirm",
-        json={"confirmations": [{
-            "result_id": str(result_id),
-            "action": "force",
-            "target_id": effect_id,
-            "target_table": "effects",
-        }]},
-        headers=admin_headers,
-    )
+    resp = await _post_force(client, result_id, effect_id, admin_headers)
     assert resp.status_code == 200
     row = await conn.fetchrow(
         "SELECT status, record_id::text, record_table FROM plugin_scan_results WHERE result_id=$1",
@@ -145,16 +144,7 @@ async def test_force_creates_persistent_link(client, conn, admin_headers):
     _, result_id = await insert_scan(conn, "untracked")
     effect_id = await _insert_effect(conn)
 
-    await client.post(
-        "/scanner/confirm",
-        json={"confirmations": [{
-            "result_id": str(result_id),
-            "action": "force",
-            "target_id": effect_id,
-            "target_table": "effects",
-        }]},
-        headers=admin_headers,
-    )
+    await _post_force(client, result_id, effect_id, admin_headers)
     link = await conn.fetchrow(
         "SELECT record_id::text FROM scanner_plugin_links WHERE record_table='effects'"
     )
