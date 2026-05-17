@@ -17,11 +17,12 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('@/lib/api', () => ({
   api: {
-    create:      (...args: unknown[]) => mockCreate(...args),
-    update:      (...args: unknown[]) => mockUpdate(...args),
-    delete:      (...args: unknown[]) => mockDelete(...args),
-    list:        (...args: unknown[]) => mockList(...args),
-    uploadPhoto: (...args: unknown[]) => mockUploadPhoto(...args),
+    create:         (...args: unknown[]) => mockCreate(...args),
+    update:         (...args: unknown[]) => mockUpdate(...args),
+    delete:         (...args: unknown[]) => mockDelete(...args),
+    list:           (...args: unknown[]) => mockList(...args),
+    uploadPhoto:    (...args: unknown[]) => mockUploadPhoto(...args),
+    searchEntities: jest.fn().mockResolvedValue({ results: [] }),
   },
 }))
 
@@ -114,18 +115,18 @@ describe('GearModal — edit mode (guitar)', () => {
   it('shows neck/middle/bridge slot inputs for SSS', () => {
     renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
-    expect(screen.getByLabelText(/neck.*model id/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/middle.*model id/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/bridge.*model id/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/neck \(single\)/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/middle \(single\)/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/bridge \(single\)/i)).toBeInTheDocument()
   })
 
   it('shows only neck/bridge slots for HH', () => {
     const hhGear = { ...mockGear, pickup_config: 'HH' }
     renderWithClient(<GearModal record={hhGear} onClose={() => {}} onMutate={() => {}} />)
     fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
-    expect(screen.getByLabelText(/neck.*model id/i)).toBeInTheDocument()
-    expect(screen.queryByLabelText(/middle.*model id/i)).not.toBeInTheDocument()
-    expect(screen.getByLabelText(/bridge.*model id/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/neck \(humbucker\)/i)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/middle/i)).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/bridge \(humbucker\)/i)).toBeInTheDocument()
   })
 
   it('calls api.update on save', async () => {

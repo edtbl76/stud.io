@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/NativeSelect'
+import { EntitySearchInput } from '@/components/EntitySearchInput'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { GUITAR_TYPE_ID } from '@/lib/gearlist'
@@ -39,6 +40,8 @@ interface GearModalProps {
 interface FormState {
   gear_name: string
   gear_type_id: string
+  brand_id: string
+  model_id: string
   serial_number: string
   year: string
   notes: string
@@ -53,7 +56,8 @@ interface FormState {
 function toForm(record: Gear | null, initialTypeId = ''): FormState {
   if (!record) {
     return {
-      gear_name: '', gear_type_id: initialTypeId, serial_number: '', year: '', notes: '',
+      gear_name: '', gear_type_id: initialTypeId, brand_id: '', model_id: '',
+      serial_number: '', year: '', notes: '',
       num_strings: '', tuning: '', pickup_config: '',
       pickup_neck_model_id: '', pickup_middle_model_id: '', pickup_bridge_model_id: '',
     }
@@ -61,6 +65,8 @@ function toForm(record: Gear | null, initialTypeId = ''): FormState {
   return {
     gear_name: record.gear_name,
     gear_type_id: record.gear_type_id ?? '',
+    brand_id: record.brand_id ?? '',
+    model_id: record.model_id ?? '',
     serial_number: record.serial_number ?? '',
     year: record.year == null ? '' : String(record.year),
     notes: record.notes ?? '',
@@ -86,6 +92,8 @@ function buildGearPayload(form: FormState): Record<string, unknown> {
   return {
     ...(form.gear_name    && { gear_name:    form.gear_name }),
     ...(form.gear_type_id && { gear_type_id: form.gear_type_id }),
+    brand_id:      ns(form.brand_id),
+    model_id:      ns(form.model_id),
     serial_number: ns(form.serial_number),
     year:          ni(form.year),
     notes:         ns(form.notes),
@@ -186,6 +194,8 @@ function GearEditForm({ form, set, gearTypes }: Readonly<EditFormProps>) {
           ))}
         </NativeSelect>
       </div>
+      <EntitySearchInput id="brand_id" label="Brand" table="brands" value={form.brand_id} onChange={(v) => set('brand_id', v)} />
+      <EntitySearchInput id="model_id" label="Model" table="models" value={form.model_id} onChange={(v) => set('model_id', v)} />
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="serial_number">Serial</Label>
@@ -234,10 +244,15 @@ function GuitarEditFields({ form, set, slots }: Readonly<GuitarEditFieldsProps>)
       {slots.map((slot) => {
         const key = `pickup_${slot.pos}_model_id` as keyof FormState
         return (
-          <div key={slot.pos} className="flex flex-col gap-1.5">
-            <Label htmlFor={key}>{slot.label} Model ID</Label>
-            <Input id={key} value={form[key]} onChange={(e) => set(key, e.target.value)} placeholder="Model UUID" className="font-mono text-xs" />
-          </div>
+          <EntitySearchInput
+            key={slot.pos}
+            id={key}
+            label={slot.label}
+            table="models"
+            value={form[key]}
+            onChange={(v) => set(key, v)}
+            placeholder="Search pickup models…"
+          />
         )
       })}
     </>
