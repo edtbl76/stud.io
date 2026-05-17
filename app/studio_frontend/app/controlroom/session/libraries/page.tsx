@@ -1,9 +1,14 @@
 'use client'
 
+import dynamic from 'next/dynamic'
 import { TablePage } from '@/components/TablePage'
 import { libraryColumns, libraryBulkEditFields, librarySortFields } from '@/components/tables/libraries/columns'
-import { LibraryModal } from '@/components/tables/libraries/LibraryModal'
-import { Library } from '@/lib/types'
+import type { Library } from '@/lib/types'
+
+const LibraryModal = dynamic(
+  () => import('@/components/tables/libraries/LibraryModal').then(m => m.LibraryModal),
+  { ssr: false, loading: () => null }
+)
 
 export default function LibrariesPage() {
   return (

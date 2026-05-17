@@ -18,6 +18,8 @@ const buttonVariants = cva(
           'bg-destructive text-destructive-foreground hover:bg-destructive/90',
         ghost:
           'hover:bg-muted text-foreground',
+        success:
+          'bg-green-600 text-white hover:bg-green-700',
       },
       size: {
         sm: 'h-8 px-3 text-xs',

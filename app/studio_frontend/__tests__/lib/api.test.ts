@@ -139,6 +139,13 @@ describe('api.searchEntities', () => {
     expect(url).not.toContain('exclude_table')
     expect(url).not.toContain('exclude_id')
   })
+
+  it('includes q= in the URL even when query is empty', async () => {
+    const spy = mockFetch(200, { results: [] })
+    await api.searchEntities('')
+    const url = spy.mock.calls[0][0] as string
+    expect(url).toContain('q=')
+  })
 })
 
 describe('api.scanner', () => {

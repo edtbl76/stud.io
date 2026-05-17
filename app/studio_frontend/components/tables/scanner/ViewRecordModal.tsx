@@ -41,8 +41,8 @@ function ModalActions({ result, onAcknowledge, onClose }: Readonly<{
       {showAcknowledge && (
         <div className="mr-auto">
           <Button
+            variant="success"
             onClick={() => onAcknowledge(result.result_id)}
-            className="bg-green-600 hover:bg-green-700 text-white"
             data-testid="view-record-acknowledge-button"
           >
             Acknowledge

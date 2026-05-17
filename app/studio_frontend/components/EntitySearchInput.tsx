@@ -57,7 +57,7 @@ export function EntitySearchInput({ id, label, table, value, onChange, placehold
       {selectedName ? (
         <div className="flex items-center gap-2">
           <span className="flex-1 text-sm text-foreground bg-muted/40 rounded px-3 py-2 truncate">{selectedName}</span>
-          <button onClick={handleClear} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Clear</button>
+          <button type="button" onClick={handleClear} className="text-xs text-muted-foreground hover:text-foreground shrink-0">Clear</button>
         </div>
       ) : (
         <div className="relative">
@@ -74,7 +74,8 @@ export function EntitySearchInput({ id, label, table, value, onChange, placehold
               {results.map(r => (
                 <button
                   key={r.id}
-                  onMouseDown={() => handleSelect(r)}
+                  type="button"
+                  onClick={() => handleSelect(r)}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-muted/40 flex flex-col"
                 >
                   <span className="font-medium text-foreground">{r.name}</span>
