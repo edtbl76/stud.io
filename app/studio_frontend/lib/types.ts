@@ -179,7 +179,9 @@ export interface Gear {
   gear_type_id: string | null
   gear_type_name: string | null
   brand_id: string | null
+  brand_name: string | null
   model_id: string | null
+  model_name: string | null
   serial_number: string | null
   year: number | null
   owner_id: string | null
@@ -189,8 +191,11 @@ export interface Gear {
   tuning: string | null
   pickup_config: string | null
   pickup_neck_model_id: string | null
+  pickup_neck_model_name: string | null
   pickup_middle_model_id: string | null
+  pickup_middle_model_name: string | null
   pickup_bridge_model_id: string | null
+  pickup_bridge_model_name: string | null
   strings_model_id: string | null
   created_at: string
   updated_at: string

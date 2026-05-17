@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/NativeSelect'
-import { EntitySearchInput } from '@/components/EntitySearchInput'
+import { BrandSelect } from '@/components/ui/BrandSelect'
+import { ModelSelectSingle } from '@/components/ui/ModelSelectSingle'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
 import { GUITAR_TYPE_ID } from '@/lib/gearlist'
@@ -41,7 +42,9 @@ interface FormState {
   gear_name: string
   gear_type_id: string
   brand_id: string
+  brand_name: string
   model_id: string
+  model_name: string
   serial_number: string
   year: string
   notes: string
@@ -49,24 +52,32 @@ interface FormState {
   tuning: string
   pickup_config: string
   pickup_neck_model_id: string
+  pickup_neck_model_name: string
   pickup_middle_model_id: string
+  pickup_middle_model_name: string
   pickup_bridge_model_id: string
+  pickup_bridge_model_name: string
 }
 
 function toForm(record: Gear | null, initialTypeId = ''): FormState {
   if (!record) {
     return {
-      gear_name: '', gear_type_id: initialTypeId, brand_id: '', model_id: '',
+      gear_name: '', gear_type_id: initialTypeId,
+      brand_id: '', brand_name: '', model_id: '', model_name: '',
       serial_number: '', year: '', notes: '',
       num_strings: '', tuning: '', pickup_config: '',
-      pickup_neck_model_id: '', pickup_middle_model_id: '', pickup_bridge_model_id: '',
+      pickup_neck_model_id: '', pickup_neck_model_name: '',
+      pickup_middle_model_id: '', pickup_middle_model_name: '',
+      pickup_bridge_model_id: '', pickup_bridge_model_name: '',
     }
   }
   return {
     gear_name: record.gear_name,
     gear_type_id: record.gear_type_id ?? '',
     brand_id: record.brand_id ?? '',
+    brand_name: record.brand_name ?? '',
     model_id: record.model_id ?? '',
+    model_name: record.model_name ?? '',
     serial_number: record.serial_number ?? '',
     year: record.year == null ? '' : String(record.year),
     notes: record.notes ?? '',
@@ -74,8 +85,11 @@ function toForm(record: Gear | null, initialTypeId = ''): FormState {
     tuning: record.tuning ?? '',
     pickup_config: record.pickup_config ?? '',
     pickup_neck_model_id: record.pickup_neck_model_id ?? '',
+    pickup_neck_model_name: record.pickup_neck_model_name ?? '',
     pickup_middle_model_id: record.pickup_middle_model_id ?? '',
+    pickup_middle_model_name: record.pickup_middle_model_name ?? '',
     pickup_bridge_model_id: record.pickup_bridge_model_id ?? '',
+    pickup_bridge_model_name: record.pickup_bridge_model_name ?? '',
   }
 }
 
@@ -194,8 +208,22 @@ function GearEditForm({ form, set, gearTypes }: Readonly<EditFormProps>) {
           ))}
         </NativeSelect>
       </div>
-      <EntitySearchInput id="brand_id" label="Brand" table="brands" value={form.brand_id} onChange={(v) => set('brand_id', v)} />
-      <EntitySearchInput id="model_id" label="Model" table="models" value={form.model_id} onChange={(v) => set('model_id', v)} />
+      <div className="flex flex-col gap-1.5">
+        <Label>Brand</Label>
+        <BrandSelect
+          value={form.brand_id}
+          displayName={form.brand_name}
+          onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label>Model</Label>
+        <ModelSelectSingle
+          value={form.model_id}
+          displayName={form.model_name}
+          onChange={(id, name) => { set('model_id', id); set('model_name', name) }}
+        />
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="serial_number">Serial</Label>
@@ -242,17 +270,21 @@ function GuitarEditFields({ form, set, slots }: Readonly<GuitarEditFieldsProps>)
         </NativeSelect>
       </div>
       {slots.map((slot) => {
-        const key = `pickup_${slot.pos}_model_id` as keyof FormState
+        const idKey = `pickup_${slot.pos}_model_id` as keyof FormState
+        const nameKey = `pickup_${slot.pos}_model_name` as keyof FormState
+        const inputId = `pickup_${slot.pos}_model`
         return (
-          <EntitySearchInput
-            key={slot.pos}
-            id={key}
-            label={slot.label}
-            table="models"
-            value={form[key]}
-            onChange={(v) => set(key, v)}
-            placeholder="Search pickup models…"
-          />
+          <div key={slot.pos} className="flex flex-col gap-1.5">
+            <Label htmlFor={inputId}>{slot.label}</Label>
+            <ModelSelectSingle
+              id={inputId}
+              value={form[idKey]}
+              displayName={form[nameKey]}
+              onChange={(id, name) => { set(idKey, id); set(nameKey, name) }}
+              typeFilter="Pickup"
+              placeholder="Search pickups..."
+            />
+          </div>
         )
       })}
     </>

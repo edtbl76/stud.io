@@ -17,26 +17,31 @@ type GearID = pgtype.UUID
 
 // GearView is a row from gear_view, with FK columns resolved to display names.
 type GearView struct {
-	GearID              pgtype.UUID        `db:"gear_id"               json:"gear_id"`
-	GearName            string             `db:"gear_name"             json:"gear_name"`
-	GearTypeID          pgtype.UUID        `db:"gear_type_id"          json:"gear_type_id"`
-	GearTypeName        pgtype.Text        `db:"gear_type_name"        json:"gear_type_name"`
-	BrandID             pgtype.UUID        `db:"brand_id"              json:"brand_id"`
-	ModelID             pgtype.UUID        `db:"model_id"              json:"model_id"`
-	SerialNumber        pgtype.Text        `db:"serial_number"         json:"serial_number"`
-	Year                pgtype.Int4        `db:"year"                  json:"year"`
-	OwnerID             pgtype.UUID        `db:"owner_id"              json:"owner_id"`
-	PhotoKey            pgtype.Text        `db:"photo_key"             json:"photo_key"`
-	Notes               pgtype.Text        `db:"notes"                 json:"notes"`
-	NumStrings          pgtype.Int4        `db:"num_strings"           json:"num_strings"`
-	Tuning              pgtype.Text        `db:"tuning"                json:"tuning"`
-	PickupConfig        pgtype.Text        `db:"pickup_config"         json:"pickup_config"`
-	PickupNeckModelID   pgtype.UUID        `db:"pickup_neck_model_id"  json:"pickup_neck_model_id"`
-	PickupMiddleModelID pgtype.UUID        `db:"pickup_middle_model_id" json:"pickup_middle_model_id"`
-	PickupBridgeModelID pgtype.UUID        `db:"pickup_bridge_model_id" json:"pickup_bridge_model_id"`
-	StringsModelID      pgtype.UUID        `db:"strings_model_id"      json:"strings_model_id"`
-	CreatedAt           pgtype.Timestamptz `db:"created_at"            json:"created_at"`
-	UpdatedAt           pgtype.Timestamptz `db:"updated_at"            json:"updated_at"`
+	GearID                pgtype.UUID        `db:"gear_id"               json:"gear_id"`
+	GearName              string             `db:"gear_name"             json:"gear_name"`
+	GearTypeID            pgtype.UUID        `db:"gear_type_id"          json:"gear_type_id"`
+	GearTypeName          pgtype.Text        `db:"gear_type_name"        json:"gear_type_name"`
+	BrandID               pgtype.UUID        `db:"brand_id"                  json:"brand_id"`
+	BrandName             pgtype.Text        `db:"brand_name"                json:"brand_name"`
+	ModelID               pgtype.UUID        `db:"model_id"                  json:"model_id"`
+	ModelName             pgtype.Text        `db:"model_name"                json:"model_name"`
+	SerialNumber          pgtype.Text        `db:"serial_number"             json:"serial_number"`
+	Year                  pgtype.Int4        `db:"year"                      json:"year"`
+	OwnerID               pgtype.UUID        `db:"owner_id"                  json:"owner_id"`
+	PhotoKey              pgtype.Text        `db:"photo_key"                 json:"photo_key"`
+	Notes                 pgtype.Text        `db:"notes"                     json:"notes"`
+	NumStrings            pgtype.Int4        `db:"num_strings"               json:"num_strings"`
+	Tuning                pgtype.Text        `db:"tuning"                    json:"tuning"`
+	PickupConfig          pgtype.Text        `db:"pickup_config"             json:"pickup_config"`
+	PickupNeckModelID     pgtype.UUID        `db:"pickup_neck_model_id"      json:"pickup_neck_model_id"`
+	PickupNeckModelName   pgtype.Text        `db:"pickup_neck_model_name"    json:"pickup_neck_model_name"`
+	PickupMiddleModelID   pgtype.UUID        `db:"pickup_middle_model_id"    json:"pickup_middle_model_id"`
+	PickupMiddleModelName pgtype.Text        `db:"pickup_middle_model_name"  json:"pickup_middle_model_name"`
+	PickupBridgeModelID   pgtype.UUID        `db:"pickup_bridge_model_id"    json:"pickup_bridge_model_id"`
+	PickupBridgeModelName pgtype.Text        `db:"pickup_bridge_model_name"  json:"pickup_bridge_model_name"`
+	StringsModelID        pgtype.UUID        `db:"strings_model_id"          json:"strings_model_id"`
+	CreatedAt             pgtype.Timestamptz `db:"created_at"            json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `db:"updated_at"            json:"updated_at"`
 }
 
 // AuditRow is a single row from audit_log for gear history.
@@ -132,10 +137,14 @@ WHERE ($1::text IS NULL OR gear_name ILIKE '%' || $1 || '%')
   AND ($2::uuid IS NULL OR gear_type_id = $2)`
 
 const listDataSQL = `
-SELECT gear_id, gear_name, gear_type_id, gear_type_name, brand_id, model_id,
+SELECT gear_id, gear_name, gear_type_id, gear_type_name,
+       brand_id, brand_name, model_id, model_name,
        serial_number, year, owner_id, photo_key, notes, num_strings, tuning,
-       pickup_config, pickup_neck_model_id, pickup_middle_model_id,
-       pickup_bridge_model_id, strings_model_id, created_at, updated_at
+       pickup_config,
+       pickup_neck_model_id, pickup_neck_model_name,
+       pickup_middle_model_id, pickup_middle_model_name,
+       pickup_bridge_model_id, pickup_bridge_model_name,
+       strings_model_id, created_at, updated_at
 FROM   gear_view
 WHERE  ($1::text IS NULL OR gear_name ILIKE '%' || $1 || '%')
   AND  ($2::uuid IS NULL OR gear_type_id = $2)
@@ -177,10 +186,14 @@ func filterArgs(f ListFilter) (any, any) {
 // ── Get ───────────────────────────────────────────────────────────────────────
 
 const getByIDSQL = `
-SELECT gear_id, gear_name, gear_type_id, gear_type_name, brand_id, model_id,
+SELECT gear_id, gear_name, gear_type_id, gear_type_name,
+       brand_id, brand_name, model_id, model_name,
        serial_number, year, owner_id, photo_key, notes, num_strings, tuning,
-       pickup_config, pickup_neck_model_id, pickup_middle_model_id,
-       pickup_bridge_model_id, strings_model_id, created_at, updated_at
+       pickup_config,
+       pickup_neck_model_id, pickup_neck_model_name,
+       pickup_middle_model_id, pickup_middle_model_name,
+       pickup_bridge_model_id, pickup_bridge_model_name,
+       strings_model_id, created_at, updated_at
 FROM   gear_view
 WHERE  gear_id = $1`
 

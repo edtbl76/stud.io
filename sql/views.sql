@@ -609,14 +609,17 @@ WHERE at.deleted_at IS NULL;
 -- =============================================================================
 -- GEARLIST
 -- =============================================================================
-CREATE OR REPLACE VIEW gear_view AS
+DROP VIEW IF EXISTS gear_view;
+CREATE VIEW gear_view AS
 SELECT
     g.gear_id,
     g.gear_name,
     g.gear_type_id,
-    gt.type_name           AS gear_type_name,
+    gt.type_name                                                     AS gear_type_name,
     g.brand_id,
+    b.brand_name,
     g.model_id,
+    TRIM(COALESCE(mb.brand_name, '') || ' ' || m.model_name)         AS model_name,
     g.serial_number,
     g.year,
     g.owner_id,
@@ -626,12 +629,21 @@ SELECT
     g.tuning,
     g.pickup_config,
     g.pickup_neck_model_id,
+    mn.model_name                                                    AS pickup_neck_model_name,
     g.pickup_middle_model_id,
+    mm.model_name                                                    AS pickup_middle_model_name,
     g.pickup_bridge_model_id,
+    mbr.model_name                                                   AS pickup_bridge_model_name,
     g.strings_model_id,
     g.created_at,
     g.updated_at
 FROM  gear g
-LEFT JOIN gear_types gt ON gt.type_id = g.gear_type_id AND gt.deleted_at IS NULL
+LEFT JOIN gear_types gt  ON gt.type_id   = g.gear_type_id           AND gt.deleted_at IS NULL
+LEFT JOIN brands b       ON b.brand_id   = g.brand_id
+LEFT JOIN models m       ON m.model_id   = g.model_id
+LEFT JOIN brands mb      ON mb.brand_id  = m.brand_id
+LEFT JOIN models mn      ON mn.model_id  = g.pickup_neck_model_id
+LEFT JOIN models mm      ON mm.model_id  = g.pickup_middle_model_id
+LEFT JOIN models mbr     ON mbr.model_id = g.pickup_bridge_model_id
 WHERE g.deleted_at IS NULL;
 

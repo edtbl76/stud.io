@@ -111,6 +111,8 @@ class _EntitySource(NamedTuple):
 
 
 _ENTITY_SOURCES: tuple[_EntitySource, ...] = (
+    _EntitySource("brands",       "brands_view",       "brand_id",       "brand_name"),
+    _EntitySource("models",       "models_view",       "model_id",       "model_name"),
     _EntitySource("effects",      "effects_view",      "effect_id",      "effect_name"),
     _EntitySource("instruments",  "instruments_view",  "instrument_id",  "instrument_name"),
     _EntitySource("libraries",    "libraries_view",    "library_id",     "library_name"),

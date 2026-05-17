@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { GearModal } from '@/components/tables/gear/GearModal'
 import type { Gear } from '@/lib/types'
@@ -9,6 +9,7 @@ const mockCreate = jest.fn()
 const mockUpdate = jest.fn()
 const mockDelete = jest.fn()
 const mockList   = jest.fn()
+const mockListPaged = jest.fn()
 const mockUploadPhoto = jest.fn()
 
 jest.mock('@/lib/auth', () => ({
@@ -17,12 +18,12 @@ jest.mock('@/lib/auth', () => ({
 
 jest.mock('@/lib/api', () => ({
   api: {
-    create:         (...args: unknown[]) => mockCreate(...args),
-    update:         (...args: unknown[]) => mockUpdate(...args),
-    delete:         (...args: unknown[]) => mockDelete(...args),
-    list:           (...args: unknown[]) => mockList(...args),
-    uploadPhoto:    (...args: unknown[]) => mockUploadPhoto(...args),
-    searchEntities: jest.fn().mockResolvedValue({ results: [] }),
+    create:      (...args: unknown[]) => mockCreate(...args),
+    update:      (...args: unknown[]) => mockUpdate(...args),
+    delete:      (...args: unknown[]) => mockDelete(...args),
+    list:        (...args: unknown[]) => mockList(...args),
+    listPaged:   (...args: unknown[]) => mockListPaged(...args),
+    uploadPhoto: (...args: unknown[]) => mockUploadPhoto(...args),
   },
 }))
 
@@ -31,10 +32,14 @@ const mockGear: Gear = {
   gear_name: 'Fender Strat',
   gear_type_id: GUITAR_TYPE_ID,
   gear_type_name: 'Guitar',
-  brand_id: null, model_id: null, serial_number: 'S123', year: 2020,
+  brand_id: null, brand_name: null,
+  model_id: null, model_name: null,
+  serial_number: 'S123', year: 2020,
   owner_id: null, photo_key: null, notes: 'Nice guitar', num_strings: 6,
   tuning: 'Standard', pickup_config: 'SSS',
-  pickup_neck_model_id: null, pickup_middle_model_id: null, pickup_bridge_model_id: null,
+  pickup_neck_model_id: null, pickup_neck_model_name: null,
+  pickup_middle_model_id: null, pickup_middle_model_name: null,
+  pickup_bridge_model_id: null, pickup_bridge_model_name: null,
   strings_model_id: null, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
 }
 
@@ -48,6 +53,7 @@ function renderWithClient(ui: React.ReactElement) {
 beforeEach(() => {
   jest.clearAllMocks()
   mockList.mockResolvedValue([])
+  mockListPaged.mockResolvedValue({ items: [], total: 0 })
 })
 
 describe('GearModal — create mode', () => {
@@ -155,6 +161,48 @@ describe('GearModal — edit mode (guitar)', () => {
   it('does not show photo upload for new records', () => {
     renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
     expect(screen.queryByLabelText(/photo/i)).not.toBeInTheDocument()
+  })
+})
+
+describe('GearModal — brand/model search', () => {
+  it('renders brand and model search inputs', () => {
+    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
+    expect(screen.getByPlaceholderText('Search brands...')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Search models...')).toBeInTheDocument()
+  })
+
+  it('sends brand_id as null when no brand is selected', async () => {
+    mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
+    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
+      '/gearlist/gear',
+      expect.objectContaining({ brand_id: null })
+    ))
+  })
+
+  it('includes brand_id in create payload when a brand is searched and selected', async () => {
+    jest.useFakeTimers()
+    mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
+    mockListPaged.mockResolvedValue({ items: [{ brand_id: 'brand-uuid-1', brand_name: 'Fender', legal_name: null, entity_type_id: null, entity_type_name: null, website: null, description: null, founder: null, years: null, created_at: '', updated_at: '' }], total: 1 })
+    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
+
+    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
+    fireEvent.change(screen.getByPlaceholderText('Search brands...'), { target: { value: 'Fend' } })
+    act(() => { jest.advanceTimersByTime(300) })
+
+    await waitFor(() => screen.getByText('Fender'))
+    fireEvent.click(screen.getByText('Fender'))
+
+    jest.runOnlyPendingTimers()
+    jest.useRealTimers()
+
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
+      '/gearlist/gear',
+      expect.objectContaining({ brand_id: 'brand-uuid-1' })
+    ))
   })
 })
 
