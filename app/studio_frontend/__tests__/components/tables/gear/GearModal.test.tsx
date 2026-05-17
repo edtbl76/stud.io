@@ -43,11 +43,23 @@ const mockGear: Gear = {
   strings_model_id: null, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
 }
 
+const mockBrand = { brand_id: 'brand-uuid-1', brand_name: 'Fender', legal_name: null, entity_type_id: null, entity_type_name: null, website: null, description: null, founder: null, years: null, created_at: '', updated_at: '' }
+const mockModel = { model_id: 'model-uuid-1', model_name: 'Stratocaster', brand_id: 'brand-1', brand_name: 'Fender', full_model_name: 'Fender Stratocaster', model_type_ids: null, model_types: [], creator: null, years_active: null, links: null, description: null, recording_notes: null, artist_reference: null, attributes: null, created_at: '', updated_at: '' }
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>)
+}
+
+async function selectFromSearch(placeholder: string, query: string, resultText: string) {
+  fireEvent.change(screen.getByPlaceholderText(placeholder), { target: { value: query } })
+  act(() => { jest.advanceTimersByTime(300) })
+  await waitFor(() => screen.getByText(resultText))
+  fireEvent.click(screen.getByText(resultText))
+  jest.runOnlyPendingTimers()
+  jest.useRealTimers()
 }
 
 beforeEach(() => {
@@ -185,19 +197,10 @@ describe('GearModal — brand/model search', () => {
   it('includes brand_id in create payload when a brand is searched and selected', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
-    mockListPaged.mockResolvedValue({ items: [{ brand_id: 'brand-uuid-1', brand_name: 'Fender', legal_name: null, entity_type_id: null, entity_type_name: null, website: null, description: null, founder: null, years: null, created_at: '', updated_at: '' }], total: 1 })
+    mockListPaged.mockResolvedValue({ items: [mockBrand], total: 1 })
     renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-
     fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
-    fireEvent.change(screen.getByPlaceholderText('Search brands...'), { target: { value: 'Fend' } })
-    act(() => { jest.advanceTimersByTime(300) })
-
-    await waitFor(() => screen.getByText('Fender'))
-    fireEvent.click(screen.getByText('Fender'))
-
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-
+    await selectFromSearch('Search brands...', 'Fend', 'Fender')
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
       '/gearlist/gear',
@@ -208,20 +211,10 @@ describe('GearModal — brand/model search', () => {
   it('includes model_id in create payload when a model is searched and selected', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
-    const mockModel = { model_id: 'model-uuid-1', model_name: 'Stratocaster', brand_id: 'brand-1', brand_name: 'Fender', full_model_name: 'Fender Stratocaster', model_type_ids: null, model_types: [], creator: null, years_active: null, links: null, description: null, recording_notes: null, artist_reference: null, attributes: null, created_at: '', updated_at: '' }
     mockListPaged.mockResolvedValue({ items: [mockModel], total: 1 })
     renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-
     fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
-    fireEvent.change(screen.getByPlaceholderText('Search models...'), { target: { value: 'Strat' } })
-    act(() => { jest.advanceTimersByTime(300) })
-
-    await waitFor(() => screen.getByText('Fender Stratocaster'))
-    fireEvent.click(screen.getByText('Fender Stratocaster'))
-
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-
+    await selectFromSearch('Search models...', 'Strat', 'Fender Stratocaster')
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
       '/gearlist/gear',
@@ -232,25 +225,12 @@ describe('GearModal — brand/model search', () => {
   it('sends model_id as null after selecting then clearing a model', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
-    const mockModel = { model_id: 'model-uuid-1', model_name: 'Stratocaster', brand_id: 'brand-1', brand_name: 'Fender', full_model_name: 'Fender Stratocaster', model_type_ids: null, model_types: [], creator: null, years_active: null, links: null, description: null, recording_notes: null, artist_reference: null, attributes: null, created_at: '', updated_at: '' }
     mockListPaged.mockResolvedValue({ items: [mockModel], total: 1 })
     renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-
     fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
-    fireEvent.change(screen.getByPlaceholderText('Search models...'), { target: { value: 'Strat' } })
-    act(() => { jest.advanceTimersByTime(300) })
-
-    await waitFor(() => screen.getByText('Fender Stratocaster'))
-    fireEvent.click(screen.getByText('Fender Stratocaster'))
-
-    jest.runOnlyPendingTimers()
-    jest.useRealTimers()
-
-    // clear the model selection via the X button next to the model input
-    const modelInput = screen.getByPlaceholderText('Search models...')
-    const clearBtn = modelInput.parentElement?.querySelector('button')
+    await selectFromSearch('Search models...', 'Strat', 'Fender Stratocaster')
+    const clearBtn = screen.getByPlaceholderText('Search models...').parentElement?.querySelector('button')
     if (clearBtn) fireEvent.click(clearBtn)
-
     fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
     await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
       '/gearlist/gear',
