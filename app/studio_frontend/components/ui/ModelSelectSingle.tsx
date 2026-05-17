@@ -17,6 +17,45 @@ interface ModelSelectSingleProps {
   readonly placeholder?: string
 }
 
+function buildFilters(query: string, typeFilter?: string): FilterState {
+  const filters: FilterState = { name: { value: query, operator: 'contains' } }
+  if (typeFilter) filters['model_type'] = { value: typeFilter, operator: 'contains' }
+  return filters
+}
+
+function useModelSearch(query: string, open: boolean, typeFilter?: string) {
+  const [results, setResults] = React.useState<Model[]>([])
+
+  React.useEffect(() => {
+    if (!open) return
+    const timer = setTimeout(async () => {
+      if (!query.trim()) { setResults([]); return }
+      try {
+        const data = await api.listPaged<Model>('/studio/catalog/models', {
+          limit: 50,
+          filters: buildFilters(query, typeFilter),
+        })
+        setResults(data.items)
+      } catch {
+        setResults([])
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query, open, typeFilter])
+
+  return results
+}
+
+function useOutsideClick(ref: React.RefObject<HTMLDivElement | null>, onClose: () => void) {
+  React.useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [ref, onClose])
+}
+
 export function ModelSelectSingle({
   id,
   value,
@@ -26,39 +65,14 @@ export function ModelSelectSingle({
   placeholder = 'Search models...',
 }: ModelSelectSingleProps) {
   const [query, setQuery] = React.useState(displayName)
-  const [results, setResults] = React.useState<Model[]>([])
   const [open, setOpen] = React.useState(false)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => { setQuery(displayName) }, [displayName])
 
-  React.useEffect(() => {
-    if (!open) return
-    const timer = setTimeout(async () => {
-      if (!query.trim()) { setResults([]); return }
-      try {
-        const filters: FilterState = {
-          name: { value: query, operator: 'contains' },
-        }
-        if (typeFilter) filters['model_type'] = { value: typeFilter, operator: 'contains' }
-        const data = await api.listPaged<Model>('/studio/catalog/models', { limit: 50, filters })
-        setResults(data.items)
-      } catch {
-        setResults([])
-      }
-    }, 300)
-    return () => clearTimeout(timer)
-  }, [query, open, typeFilter])
-
-  React.useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  const results = useModelSearch(query, open, typeFilter)
+  const close = React.useCallback(() => setOpen(false), [])
+  useOutsideClick(containerRef, close)
 
   function select(model: Model) {
     onChange(model.model_id, model.full_model_name)
@@ -69,7 +83,6 @@ export function ModelSelectSingle({
   function clear() {
     onChange('', '')
     setQuery('')
-    setResults([])
     setOpen(false)
   }
 
