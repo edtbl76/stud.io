@@ -49,10 +49,15 @@ services:
       DB_USER: studio
       DB_PASSWORD: studio
       APP_PORT: 4001
+      MINIO_ENDPOINT: http://studiominio:9000
+      MINIO_ACCESS_KEY: studio-svc
+      MINIO_SECRET_KEY: studiosvckey1
+      MINIO_BUCKET: studio-photos
     ports:
       - "127.0.0.1:4001:4001"
     depends_on:
       - studio_db
+      - studio_minio
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
       interval: 10s

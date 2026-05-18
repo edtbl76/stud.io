@@ -10,6 +10,7 @@ import { FieldRow } from '@/components/FieldRow'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
 import { NativeSelect } from '@/components/ui/NativeSelect'
 import { ModelSelectSingle } from '@/components/ui/ModelSelectSingle'
 import { api } from '@/lib/api'
@@ -17,6 +18,7 @@ import { formatDate } from '@/lib/utils'
 import { GUITAR_TYPE_ID } from '@/lib/gearlist'
 
 const ENDPOINT = '/gearlist/gear'
+const EVENT_TYPES = ['restring', 'setup', 'repair', 'modification', 'other'] as const
 const GEAR_TYPES_ENDPOINT = '/gearlist/gear-types'
 const PICKUP_CONFIGS = ['SSS', 'HH', 'HSH', 'SSH'] as const
 type PickupConfig = typeof PICKUP_CONFIGS[number]
@@ -102,9 +104,21 @@ function pickupModelId(slots: PickupSlot[] | undefined, pos: PickupSlot['pos'], 
   return (slots ?? []).some(s => s.pos === pos) ? (value.trim() || null) : null
 }
 
+function buildGuitarFields(form: FormState): Record<string, unknown> {
+  const slots = form.pickup_config ? PICKUP_SLOTS[form.pickup_config as PickupConfig] : undefined
+  return {
+    num_strings:            ni(form.num_strings),
+    tuning:                 ns(form.tuning),
+    pickup_config:          ns(form.pickup_config),
+    pickup_neck_model_id:   pickupModelId(slots, 'neck',   form.pickup_neck_model_id),
+    pickup_middle_model_id: pickupModelId(slots, 'middle', form.pickup_middle_model_id),
+    pickup_bridge_model_id: pickupModelId(slots, 'bridge', form.pickup_bridge_model_id),
+    strings_model_id:       ns(form.strings_model_id),
+  }
+}
+
 function buildGearPayload(form: FormState): Record<string, unknown> {
   const isGuitar = form.gear_type_id === GUITAR_TYPE_ID
-  const slots = isGuitar && form.pickup_config ? PICKUP_SLOTS[form.pickup_config as PickupConfig] : undefined
   return {
     ...(form.gear_name    && { gear_name:    form.gear_name }),
     ...(form.gear_type_id && { gear_type_id: form.gear_type_id }),
@@ -113,15 +127,7 @@ function buildGearPayload(form: FormState): Record<string, unknown> {
     serial_number: ns(form.serial_number),
     year:          ni(form.year),
     notes:         ns(form.notes),
-    ...(isGuitar && {
-      num_strings:            ni(form.num_strings),
-      tuning:                 ns(form.tuning),
-      pickup_config:          ns(form.pickup_config),
-      pickup_neck_model_id:   pickupModelId(slots, 'neck',   form.pickup_neck_model_id),
-      pickup_middle_model_id: pickupModelId(slots, 'middle', form.pickup_middle_model_id),
-      pickup_bridge_model_id: pickupModelId(slots, 'bridge', form.pickup_bridge_model_id),
-      strings_model_id:       ns(form.strings_model_id),
-    }),
+    ...(isGuitar && buildGuitarFields(form)),
   }
 }
 
@@ -305,6 +311,13 @@ function GearViewDetails({ record, gearTypes }: Readonly<ViewDetailsProps>) {
   const isGuitar = record.gear_type_id === GUITAR_TYPE_ID
   return (
     <div className="flex flex-col gap-4">
+      {record.photo_key && (
+        <img
+          src={`/api/gearlist/photos/${record.photo_key}`}
+          alt={record.gear_name}
+          className="w-full rounded-md object-contain max-h-64 bg-muted"
+        />
+      )}
       <FieldRow label="Type"   value={typeName} />
       <FieldRow label="Serial" value={record.serial_number} />
       <FieldRow label="Year"   value={record.year} />
@@ -315,7 +328,6 @@ function GearViewDetails({ record, gearTypes }: Readonly<ViewDetailsProps>) {
           <FieldRow label="Pickup Config" value={record.pickup_config} />
         </>
       )}
-      <FieldRow label="Photo"  value={record.photo_key ? <code className="text-xs font-mono text-muted-foreground">{record.photo_key}</code> : null} />
       <FieldRow label="Notes"  value={record.notes} />
       <FieldRow label="ID"     value={<code className="text-xs font-mono text-muted-foreground">{record.gear_id}</code>} />
     </div>
@@ -324,31 +336,86 @@ function GearViewDetails({ record, gearTypes }: Readonly<ViewDetailsProps>) {
 
 function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
   const [log, setLog] = React.useState<MaintenanceLog[]>([])
+  const [refreshKey, setRefreshKey] = React.useState(0)
+  const [showForm, setShowForm] = React.useState(false)
+  const [eventType, setEventType] = React.useState('restring')
+  const [eventDate, setEventDate] = React.useState(() => new Date().toISOString().slice(0, 10))
+  const [notes, setNotes] = React.useState('')
+  const [submitting, setSubmitting] = React.useState(false)
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
+
   React.useEffect(() => {
     let cancelled = false
     api.list<MaintenanceLog>(`${ENDPOINT}/${gearId}/maintenance`)
       .then((data) => { if (!cancelled) setLog(data) })
       .catch(() => { if (!cancelled) setLog([]) })
     return () => { cancelled = true }
-  }, [gearId])
+  }, [gearId, refreshKey])
 
-  if (log.length === 0) return null
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      await api.create(`${ENDPOINT}/${gearId}/maintenance`, { event_type: eventType, event_date: eventDate, notes })
+      setRefreshKey((k) => k + 1)
+      setShowForm(false)
+      setNotes('')
+      setEventType('restring')
+      setEventDate(new Date().toISOString().slice(0, 10))
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to save')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <div className="mt-6 border-t pt-4">
-      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">Maintenance Log</p>
-      <ul className="flex flex-col gap-2">
-        {log.map((entry) => (
-          <li key={entry.log_id} className="flex flex-col gap-0.5 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium uppercase tracking-wide">{entry.event_type}</span>
-              {entry.event_date && (
-                <span className="text-xs text-muted-foreground">{formatDate(entry.event_date)}</span>
-              )}
-            </div>
-            {entry.notes && <p className="text-xs text-muted-foreground">{entry.notes}</p>}
-          </li>
-        ))}
-      </ul>
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Maintenance Log</p>
+        {!showForm && (
+          <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>Log entry</Button>
+        )}
+      </div>
+      {log.length > 0 && (
+        <ul className="flex flex-col gap-2 mb-4">
+          {log.map((entry) => (
+            <li key={entry.log_id} className="flex flex-col gap-0.5 text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium uppercase tracking-wide">{entry.event_type}</span>
+                {entry.event_date && (
+                  <span className="text-xs text-muted-foreground">{formatDate(entry.event_date)}</span>
+                )}
+              </div>
+              {entry.notes && <p className="text-xs text-muted-foreground">{entry.notes}</p>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {showForm && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          {submitError && <p className="text-xs text-destructive">{submitError}</p>}
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mlog_type">Type</Label>
+            <NativeSelect id="mlog_type" value={eventType} onChange={(e) => setEventType(e.target.value)}>
+              {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            </NativeSelect>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mlog_date">Date</Label>
+            <Input id="mlog_date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="mlog_notes">Notes</Label>
+            <Textarea id="mlog_notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional notes..." />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
+            <Button type="submit" size="sm" disabled={submitting}>{submitting ? 'Saving…' : 'Save'}</Button>
+          </div>
+        </form>
+      )}
     </div>
   )
 }
