@@ -12,14 +12,14 @@ interface ModelSelectSingleProps {
   readonly id?: string
   readonly value: string
   readonly displayName: string
-  readonly onChange: (id: string, name: string) => void
+  readonly onChange: (id: string, name: string, brandId?: string | null) => void
   readonly typeFilter?: string
   readonly placeholder?: string
 }
 
 function buildFilters(query: string, typeFilter?: string): FilterState {
   const filters: FilterState = { name: { value: query, operator: 'contains' } }
-  if (typeFilter) filters['model_type'] = { value: typeFilter, operator: 'contains' }
+  if (typeFilter) filters['types'] = { value: typeFilter, operator: 'contains' }
   return filters
 }
 
@@ -75,13 +75,13 @@ export function ModelSelectSingle({
   useOutsideClick(containerRef, close)
 
   function select(model: Model) {
-    onChange(model.model_id, model.full_model_name)
+    onChange(model.model_id, model.full_model_name, model.brand_id)
     setQuery(model.full_model_name)
     setOpen(false)
   }
 
   function clear() {
-    onChange('', '')
+    onChange('', '', null)
     setQuery('')
     setOpen(false)
   }

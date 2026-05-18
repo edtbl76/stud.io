@@ -40,7 +40,8 @@ const mockGear: Gear = {
   pickup_neck_model_id: null, pickup_neck_model_name: null,
   pickup_middle_model_id: null, pickup_middle_model_name: null,
   pickup_bridge_model_id: null, pickup_bridge_model_name: null,
-  strings_model_id: null, created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
+  strings_model_id: null, strings_model_name: null,
+  created_at: '2024-01-01T00:00:00Z', updated_at: '2024-01-01T00:00:00Z',
 }
 
 const mockBrand = { brand_id: 'brand-uuid-1', brand_name: 'Fender', legal_name: null, entity_type_id: null, entity_type_name: null, website: null, description: null, founder: null, years: null, created_at: '', updated_at: '' }
@@ -185,9 +186,8 @@ describe('GearModal — edit mode (guitar)', () => {
 })
 
 describe('GearModal — brand/model search', () => {
-  it('renders brand and model search inputs', () => {
+  it('renders model search input', () => {
     renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-    expect(screen.getByPlaceholderText('Search brands...')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('Search models...')).toBeInTheDocument()
   })
 
@@ -197,13 +197,13 @@ describe('GearModal — brand/model search', () => {
     await saveAndExpectPayload({ brand_id: null })
   })
 
-  it('includes brand_id in create payload when a brand is searched and selected', async () => {
+  it('auto-fills brand_id from selected model', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
-    mockListPaged.mockResolvedValue({ items: [mockBrand], total: 1 })
+    mockListPaged.mockResolvedValue({ items: [mockModel], total: 1 })
     renderNewModal()
-    await selectFromSearch('Search brands...', 'Fend', 'Fender')
-    await saveAndExpectPayload({ brand_id: 'brand-uuid-1' })
+    await selectFromSearch('Search models...', 'Strat', 'Fender Stratocaster')
+    await saveAndExpectPayload({ model_id: 'model-uuid-1', brand_id: 'brand-1' })
   })
 
   it('includes model_id in create payload when a model is searched and selected', async () => {

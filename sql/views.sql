@@ -635,6 +635,7 @@ SELECT
     g.pickup_bridge_model_id,
     mbr.model_name                                                   AS pickup_bridge_model_name,
     g.strings_model_id,
+    TRIM(COALESCE(mbs.brand_name, '') || ' ' || ms.model_name)           AS strings_model_name,
     g.created_at,
     g.updated_at
 FROM  gear g
@@ -645,5 +646,7 @@ LEFT JOIN brands mb      ON mb.brand_id  = m.brand_id
 LEFT JOIN models mn      ON mn.model_id  = g.pickup_neck_model_id
 LEFT JOIN models mm      ON mm.model_id  = g.pickup_middle_model_id
 LEFT JOIN models mbr     ON mbr.model_id = g.pickup_bridge_model_id
+LEFT JOIN models ms      ON ms.model_id  = g.strings_model_id
+LEFT JOIN brands mbs     ON mbs.brand_id = ms.brand_id
 WHERE g.deleted_at IS NULL;
 

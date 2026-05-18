@@ -197,6 +197,7 @@ export interface Gear {
   pickup_bridge_model_id: string | null
   pickup_bridge_model_name: string | null
   strings_model_id: string | null
+  strings_model_name: string | null
   created_at: string
   updated_at: string
 }

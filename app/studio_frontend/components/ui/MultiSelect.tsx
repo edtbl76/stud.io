@@ -30,7 +30,7 @@ export function MultiSelect({
 
   const { data: options = [], isLoading } = useQuery({
     queryKey: ['config', configSlug],
-    queryFn: () => api.list<LookupOut>(`/config/${configSlug}`),
+    queryFn: () => api.list<LookupOut>(`/studio/config/${configSlug}`),
     staleTime: 60_000,
   })
 

@@ -40,6 +40,7 @@ type GearView struct {
 	PickupBridgeModelID   pgtype.UUID        `db:"pickup_bridge_model_id"    json:"pickup_bridge_model_id"`
 	PickupBridgeModelName pgtype.Text        `db:"pickup_bridge_model_name"  json:"pickup_bridge_model_name"`
 	StringsModelID        pgtype.UUID        `db:"strings_model_id"          json:"strings_model_id"`
+	StringsModelName      pgtype.Text        `db:"strings_model_name"        json:"strings_model_name"`
 	CreatedAt             pgtype.Timestamptz `db:"created_at"            json:"created_at"`
 	UpdatedAt             pgtype.Timestamptz `db:"updated_at"            json:"updated_at"`
 }
@@ -144,7 +145,7 @@ SELECT gear_id, gear_name, gear_type_id, gear_type_name,
        pickup_neck_model_id, pickup_neck_model_name,
        pickup_middle_model_id, pickup_middle_model_name,
        pickup_bridge_model_id, pickup_bridge_model_name,
-       strings_model_id, created_at, updated_at
+       strings_model_id, strings_model_name, created_at, updated_at
 FROM   gear_view
 WHERE  ($1::text IS NULL OR gear_name ILIKE '%' || $1 || '%')
   AND  ($2::uuid IS NULL OR gear_type_id = $2)
@@ -193,7 +194,7 @@ SELECT gear_id, gear_name, gear_type_id, gear_type_name,
        pickup_neck_model_id, pickup_neck_model_name,
        pickup_middle_model_id, pickup_middle_model_name,
        pickup_bridge_model_id, pickup_bridge_model_name,
-       strings_model_id, created_at, updated_at
+       strings_model_id, strings_model_name, created_at, updated_at
 FROM   gear_view
 WHERE  gear_id = $1`
 

@@ -89,7 +89,7 @@ describe('ModelSelectSingle', () => {
     expect(mockListPaged).toHaveBeenCalledWith('/studio/catalog/models', expect.objectContaining({
       filters: expect.objectContaining({
         name: { value: 'Strat', operator: 'contains' },
-        model_type: { value: 'Pickup', operator: 'contains' },
+        types: { value: 'Pickup', operator: 'contains' },
       }),
     }))
   })
@@ -103,7 +103,7 @@ describe('ModelSelectSingle', () => {
 
     await waitFor(() => expect(mockListPaged).toHaveBeenCalled())
     const [, opts] = mockListPaged.mock.calls[0] as [unknown, { filters: Record<string, unknown> }]
-    expect(opts.filters).not.toHaveProperty('model_type')
+    expect(opts.filters).not.toHaveProperty('types')
   })
 
   it('calls onChange with id and full_model_name when a result is selected', async () => {
@@ -117,7 +117,7 @@ describe('ModelSelectSingle', () => {
     await waitFor(() => screen.getByText('Fender Stratocaster'))
     fireEvent.click(screen.getByText('Fender Stratocaster'))
 
-    expect(onChange).toHaveBeenCalledWith('model-1', 'Fender Stratocaster')
+    expect(onChange).toHaveBeenCalledWith('model-1', 'Fender Stratocaster', 'brand-1')
   })
 
   it('clears selection when X is clicked', () => {
@@ -125,6 +125,6 @@ describe('ModelSelectSingle', () => {
     render(<ModelSelectSingle value="model-1" displayName="Fender Stratocaster" onChange={onChange} />)
 
     fireEvent.click(screen.getByRole('button'))
-    expect(onChange).toHaveBeenCalledWith('', '')
+    expect(onChange).toHaveBeenCalledWith('', '', null)
   })
 })

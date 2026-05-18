@@ -7,6 +7,7 @@ import type { Model } from '@/lib/types'
 const mockCreate = jest.fn()
 const mockUpdate = jest.fn()
 const mockDelete = jest.fn()
+const mockList   = jest.fn()
 
 jest.mock('@/lib/auth', () => ({
   useAuth: () => ({ role: 'admin', token: 'test-token' }),
@@ -17,11 +18,8 @@ jest.mock('@/lib/api', () => ({
     create: (...args: unknown[]) => mockCreate(...args),
     update: (...args: unknown[]) => mockUpdate(...args),
     delete: (...args: unknown[]) => mockDelete(...args),
+    list:   (...args: unknown[]) => mockList(...args),
   },
-}))
-
-jest.mock('@/components/ui/MultiSelect', () => ({
-  MultiSelect: () => null,
 }))
 
 jest.mock('@/components/ui/BrandSelect', () => ({
@@ -55,7 +53,7 @@ const mockModel: Model = {
 }
 
 describe('ModelModal — view mode', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => { jest.clearAllMocks(); mockList.mockResolvedValue([]) })
 
   it('shows create title when record is null', () => {
     renderWithClient(<ModelModal record={null} onClose={() => {}} onMutate={() => {}} />)
@@ -76,7 +74,13 @@ describe('ModelModal — view mode', () => {
 })
 
 describe('ModelModal — create mode', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => { jest.clearAllMocks(); mockList.mockResolvedValue([]) })
+
+  it('fetches model types from /studio/config/model-types', async () => {
+    mockList.mockResolvedValue([{ type_id: 'type-1', type_name: 'Preamp', type_description: null }])
+    renderWithClient(<ModelModal record={null} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => expect(mockList).toHaveBeenCalledWith('/studio/config/model-types'))
+  })
 
   it('renders required form field in create mode', () => {
     renderWithClient(<ModelModal record={null} onClose={() => {}} onMutate={() => {}} />)
@@ -108,7 +112,7 @@ describe('ModelModal — create mode', () => {
 })
 
 describe('ModelModal — edit mode', () => {
-  beforeEach(() => jest.clearAllMocks())
+  beforeEach(() => { jest.clearAllMocks(); mockList.mockResolvedValue([]) })
 
   it('renders form fields with existing values', () => {
     renderWithClient(<ModelModal record={mockModel} onClose={() => {}} onMutate={() => {}} />)

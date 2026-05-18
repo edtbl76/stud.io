@@ -11,7 +11,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { NativeSelect } from '@/components/ui/NativeSelect'
-import { BrandSelect } from '@/components/ui/BrandSelect'
 import { ModelSelectSingle } from '@/components/ui/ModelSelectSingle'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
@@ -42,7 +41,6 @@ interface FormState {
   gear_name: string
   gear_type_id: string
   brand_id: string
-  brand_name: string
   model_id: string
   model_name: string
   serial_number: string
@@ -57,25 +55,27 @@ interface FormState {
   pickup_middle_model_name: string
   pickup_bridge_model_id: string
   pickup_bridge_model_name: string
+  strings_model_id: string
+  strings_model_name: string
 }
 
 function toForm(record: Gear | null, initialTypeId = ''): FormState {
   if (!record) {
     return {
       gear_name: '', gear_type_id: initialTypeId,
-      brand_id: '', brand_name: '', model_id: '', model_name: '',
+      brand_id: '', model_id: '', model_name: '',
       serial_number: '', year: '', notes: '',
       num_strings: '', tuning: '', pickup_config: '',
       pickup_neck_model_id: '', pickup_neck_model_name: '',
       pickup_middle_model_id: '', pickup_middle_model_name: '',
       pickup_bridge_model_id: '', pickup_bridge_model_name: '',
+      strings_model_id: '', strings_model_name: '',
     }
   }
   return {
     gear_name: record.gear_name,
     gear_type_id: record.gear_type_id ?? '',
     brand_id: record.brand_id ?? '',
-    brand_name: record.brand_name ?? '',
     model_id: record.model_id ?? '',
     model_name: record.model_name ?? '',
     serial_number: record.serial_number ?? '',
@@ -90,6 +90,8 @@ function toForm(record: Gear | null, initialTypeId = ''): FormState {
     pickup_middle_model_name: record.pickup_middle_model_name ?? '',
     pickup_bridge_model_id: record.pickup_bridge_model_id ?? '',
     pickup_bridge_model_name: record.pickup_bridge_model_name ?? '',
+    strings_model_id: record.strings_model_id ?? '',
+    strings_model_name: record.strings_model_name ?? '',
   }
 }
 
@@ -118,6 +120,7 @@ function buildGearPayload(form: FormState): Record<string, unknown> {
       pickup_neck_model_id:   pickupModelId(slots, 'neck',   form.pickup_neck_model_id),
       pickup_middle_model_id: pickupModelId(slots, 'middle', form.pickup_middle_model_id),
       pickup_bridge_model_id: pickupModelId(slots, 'bridge', form.pickup_bridge_model_id),
+      strings_model_id:       ns(form.strings_model_id),
     }),
   }
 }
@@ -209,19 +212,11 @@ function GearEditForm({ form, set, gearTypes }: Readonly<EditFormProps>) {
         </NativeSelect>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label>Brand</Label>
-        <BrandSelect
-          value={form.brand_id}
-          displayName={form.brand_name}
-          onChange={(id, name) => { set('brand_id', id); set('brand_name', name) }}
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
         <Label>Model</Label>
         <ModelSelectSingle
           value={form.model_id}
           displayName={form.model_name}
-          onChange={(id, name) => { set('model_id', id); set('model_name', name) }}
+          onChange={(id, name, brandId) => { set('model_id', id); set('model_name', name); set('brand_id', brandId ?? '') }}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -287,6 +282,17 @@ function GuitarEditFields({ form, set, slots }: Readonly<GuitarEditFieldsProps>)
           </div>
         )
       })}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="strings_model">String Set</Label>
+        <ModelSelectSingle
+          id="strings_model"
+          value={form.strings_model_id}
+          displayName={form.strings_model_name}
+          onChange={(id, name) => { set('strings_model_id', id); set('strings_model_name', name) }}
+          typeFilter="Guitar Strings"
+          placeholder="Search strings..."
+        />
+      </div>
     </>
   )
 }

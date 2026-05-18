@@ -50,6 +50,19 @@ for (const table of ALL_TABLES) {
 }
 
 // ---------------------------------------------------------------------------
+// Config dropdown population (regression: /studio/config path)
+// ---------------------------------------------------------------------------
+
+test('model create modal: Model Types dropdown is populated', async ({ page }) => {
+  await page.goto('/studio/catalog/models')
+  await waitForRows(page)
+  await page.getByRole('button', { name: 'Add', exact: true }).click()
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 })
+  await page.getByRole('button', { name: /select model types/i }).click()
+  await expect(page.getByText('No options available')).not.toBeVisible({ timeout: 5_000 })
+})
+
+// ---------------------------------------------------------------------------
 // Plugin Paths section (U-07: disk_paths on catalog records)
 // ---------------------------------------------------------------------------
 
