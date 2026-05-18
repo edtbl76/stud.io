@@ -62,6 +62,19 @@ async function selectFromSearch(placeholder: string, query: string, resultText: 
   jest.useRealTimers()
 }
 
+function renderNewModal() {
+  renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
+  fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
+}
+
+async function saveAndExpectPayload(payload: Record<string, unknown>) {
+  fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+  await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
+    '/gearlist/gear',
+    expect.objectContaining(payload)
+  ))
+}
+
 beforeEach(() => {
   jest.clearAllMocks()
   mockList.mockResolvedValue([])
@@ -81,13 +94,8 @@ describe('GearModal — create mode', () => {
 
   it('calls api.create with gear_name on save', async () => {
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
-    const onMutate = jest.fn()
-    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={onMutate} />)
-
-    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith('/gearlist/gear', expect.objectContaining({ gear_name: 'My Guitar' })))
+    renderNewModal()
+    await saveAndExpectPayload({ gear_name: 'My Guitar' })
   })
 })
 
@@ -185,57 +193,37 @@ describe('GearModal — brand/model search', () => {
 
   it('sends brand_id as null when no brand is selected', async () => {
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
-    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
-      '/gearlist/gear',
-      expect.objectContaining({ brand_id: null })
-    ))
+    renderNewModal()
+    await saveAndExpectPayload({ brand_id: null })
   })
 
   it('includes brand_id in create payload when a brand is searched and selected', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
     mockListPaged.mockResolvedValue({ items: [mockBrand], total: 1 })
-    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
+    renderNewModal()
     await selectFromSearch('Search brands...', 'Fend', 'Fender')
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
-      '/gearlist/gear',
-      expect.objectContaining({ brand_id: 'brand-uuid-1' })
-    ))
+    await saveAndExpectPayload({ brand_id: 'brand-uuid-1' })
   })
 
   it('includes model_id in create payload when a model is searched and selected', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
     mockListPaged.mockResolvedValue({ items: [mockModel], total: 1 })
-    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
+    renderNewModal()
     await selectFromSearch('Search models...', 'Strat', 'Fender Stratocaster')
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
-      '/gearlist/gear',
-      expect.objectContaining({ model_id: 'model-uuid-1' })
-    ))
+    await saveAndExpectPayload({ model_id: 'model-uuid-1' })
   })
 
   it('sends model_id as null after selecting then clearing a model', async () => {
     jest.useFakeTimers()
     mockCreate.mockResolvedValue({ ...mockGear, gear_id: 'new-id' })
     mockListPaged.mockResolvedValue({ items: [mockModel], total: 1 })
-    renderWithClient(<GearModal record={null} onClose={() => {}} onMutate={() => {}} />)
-    fireEvent.change(screen.getByLabelText(/^name/i), { target: { value: 'My Guitar' } })
+    renderNewModal()
     await selectFromSearch('Search models...', 'Strat', 'Fender Stratocaster')
     const clearBtn = screen.getByPlaceholderText('Search models...').parentElement?.querySelector('button')
     if (clearBtn) fireEvent.click(clearBtn)
-    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-    await waitFor(() => expect(mockCreate).toHaveBeenCalledWith(
-      '/gearlist/gear',
-      expect.objectContaining({ model_id: null })
-    ))
+    await saveAndExpectPayload({ model_id: null })
   })
 })
 
