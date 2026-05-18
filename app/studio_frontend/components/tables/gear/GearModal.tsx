@@ -217,6 +217,7 @@ function GearEditForm({ form, set, gearTypes }: Readonly<EditFormProps>) {
           value={form.model_id}
           displayName={form.model_name}
           onChange={(id, name, brandId) => { set('model_id', id); set('model_name', name); set('brand_id', brandId ?? '') }}
+          typeFilter={isGuitar ? 'Guitar' : undefined}
         />
       </div>
       <div className="grid grid-cols-2 gap-4">
