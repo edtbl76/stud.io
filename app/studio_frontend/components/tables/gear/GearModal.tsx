@@ -334,15 +334,61 @@ function GearViewDetails({ record, gearTypes }: Readonly<ViewDetailsProps>) {
   )
 }
 
-function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
-  const [log, setLog] = React.useState<MaintenanceLog[]>([])
-  const [refreshKey, setRefreshKey] = React.useState(0)
-  const [showForm, setShowForm] = React.useState(false)
+interface MaintenanceEntryFormProps {
+  gearId: string
+  onSaved: () => void
+  onCancel: () => void
+}
+
+function MaintenanceEntryForm({ gearId, onSaved, onCancel }: Readonly<MaintenanceEntryFormProps>) {
   const [eventType, setEventType] = React.useState('restring')
   const [eventDate, setEventDate] = React.useState(() => new Date().toISOString().slice(0, 10))
   const [notes, setNotes] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
+
+  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setSubmitting(true)
+    setSubmitError(null)
+    try {
+      await api.create(`${ENDPOINT}/${gearId}/maintenance`, { event_type: eventType, event_date: eventDate, notes })
+      onSaved()
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Failed to save')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {submitError && <p className="text-xs text-destructive">{submitError}</p>}
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="mlog_type">Type</Label>
+        <NativeSelect id="mlog_type" value={eventType} onChange={(e) => setEventType(e.target.value)}>
+          {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+        </NativeSelect>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="mlog_date">Date</Label>
+        <Input id="mlog_date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="mlog_notes">Notes</Label>
+        <Textarea id="mlog_notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional notes..." />
+      </div>
+      <div className="flex gap-2 justify-end">
+        <Button type="button" variant="outline" size="sm" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" size="sm" disabled={submitting}>{submitting ? 'Saving…' : 'Save'}</Button>
+      </div>
+    </form>
+  )
+}
+
+function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
+  const [log, setLog] = React.useState<MaintenanceLog[]>([])
+  const [refreshKey, setRefreshKey] = React.useState(0)
+  const [showForm, setShowForm] = React.useState(false)
 
   React.useEffect(() => {
     let cancelled = false
@@ -352,22 +398,9 @@ function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
     return () => { cancelled = true }
   }, [gearId, refreshKey])
 
-  async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setSubmitting(true)
-    setSubmitError(null)
-    try {
-      await api.create(`${ENDPOINT}/${gearId}/maintenance`, { event_type: eventType, event_date: eventDate, notes })
-      setRefreshKey((k) => k + 1)
-      setShowForm(false)
-      setNotes('')
-      setEventType('restring')
-      setEventDate(new Date().toISOString().slice(0, 10))
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to save')
-    } finally {
-      setSubmitting(false)
-    }
+  function handleSaved() {
+    setRefreshKey((k) => k + 1)
+    setShowForm(false)
   }
 
   return (
@@ -394,27 +427,7 @@ function MaintenanceSection({ gearId }: Readonly<{ gearId: string }>) {
         </ul>
       )}
       {showForm && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          {submitError && <p className="text-xs text-destructive">{submitError}</p>}
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mlog_type">Type</Label>
-            <NativeSelect id="mlog_type" value={eventType} onChange={(e) => setEventType(e.target.value)}>
-              {EVENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-            </NativeSelect>
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mlog_date">Date</Label>
-            <Input id="mlog_date" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} required />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="mlog_notes">Notes</Label>
-            <Textarea id="mlog_notes" value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Optional notes..." />
-          </div>
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button type="submit" size="sm" disabled={submitting}>{submitting ? 'Saving…' : 'Save'}</Button>
-          </div>
-        </form>
+        <MaintenanceEntryForm gearId={gearId} onSaved={handleSaved} onCancel={() => setShowForm(false)} />
       )}
     </div>
   )
