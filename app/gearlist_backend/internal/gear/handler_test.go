@@ -58,12 +58,22 @@ func fixedGear() gear.GearView {
 	return gear.GearView{GearID: id, GearName: "Test Strat"}
 }
 
+// uuidFromPath returns the first UUID-shaped segment in url, or "".
+func uuidFromPath(url string) string {
+	for _, seg := range strings.Split(url, "/") {
+		if len(seg) == 36 && strings.Count(seg, "-") == 4 {
+			return seg
+		}
+	}
+	return ""
+}
+
 // serveGear builds a request and dispatches it to h, returning the recorder.
-func serveGear(t *testing.T, h http.Handler, method, url, pathID string, body io.Reader) *httptest.ResponseRecorder {
-	t.Helper()
+// It sets X-User and auto-extracts {id} from any UUID segment in url.
+func serveGear(h http.Handler, method, url string, body io.Reader) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, url, body)
-	if pathID != "" {
-		req.SetPathValue("id", pathID)
+	if id := uuidFromPath(url); id != "" {
+		req.SetPathValue("id", id)
 	}
 	req.Header.Set("X-User", "admin")
 	w := httptest.NewRecorder()
@@ -303,8 +313,7 @@ func TestGearHandler_Photo_CleansUpOnSetPhotoKeyFailure(t *testing.T) {
 }
 
 func TestGearHandler_Create_InvalidJSON_Returns400(t *testing.T) {
-	w := serveGear(t, gear.NewHandler(&stubGearStore{}), http.MethodPost, "/gear", "", strings.NewReader("{bad json"))
-	mustStatus(t, w, http.StatusBadRequest)
+	mustStatus(t, serveGear(gear.NewHandler(&stubGearStore{}), http.MethodPost, "/gear", strings.NewReader("{bad json")), http.StatusBadRequest)
 }
 
 func TestGearHandler_Create_StoreError_Returns500(t *testing.T) {
@@ -312,19 +321,18 @@ func TestGearHandler_Create_StoreError_Returns500(t *testing.T) {
 		return gear.GearView{}, errors.New("db error")
 	}}
 	body, _ := json.Marshal(map[string]any{"gear_name": "Guitar"})
-	mustStatus(t, serveGear(t, gear.NewHandler(stub), http.MethodPost, "/gear", "", bytes.NewReader(body)), http.StatusInternalServerError)
+	mustStatus(t, serveGear(gear.NewHandler(stub), http.MethodPost, "/gear", bytes.NewReader(body)), http.StatusInternalServerError)
 }
 
 func TestGearHandler_Get_StoreError_Returns500(t *testing.T) {
 	stub := &stubGearStore{getFn: func(_ context.Context, _ gear.GearID) (gear.GearView, error) {
 		return gear.GearView{}, errors.New("db error")
 	}}
-	mustStatus(t, serveGear(t, gear.NewHandler(stub), http.MethodGet, "/gear/"+gearID, gearID, nil), http.StatusInternalServerError)
+	mustStatus(t, serveGear(gear.NewHandler(stub), http.MethodGet, "/gear/"+gearID, nil), http.StatusInternalServerError)
 }
 
 func TestGearHandler_Update_InvalidJSON_Returns400(t *testing.T) {
-	w := serveGear(t, gear.NewHandler(&stubGearStore{}), http.MethodPatch, "/gear/"+gearID, gearID, strings.NewReader("{bad json"))
-	mustStatus(t, w, http.StatusBadRequest)
+	mustStatus(t, serveGear(gear.NewHandler(&stubGearStore{}), http.MethodPatch, "/gear/"+gearID, strings.NewReader("{bad json")), http.StatusBadRequest)
 }
 
 func TestGearHandler_Update_NotFound_Returns404(t *testing.T) {
@@ -332,7 +340,7 @@ func TestGearHandler_Update_NotFound_Returns404(t *testing.T) {
 		return gear.GearView{}, pgx.ErrNoRows
 	}}
 	body, _ := json.Marshal(map[string]any{"gear_name": "X"})
-	mustStatus(t, serveGear(t, gear.NewHandler(stub), http.MethodPatch, "/gear/"+gearID, gearID, bytes.NewReader(body)), http.StatusNotFound)
+	mustStatus(t, serveGear(gear.NewHandler(stub), http.MethodPatch, "/gear/"+gearID, bytes.NewReader(body)), http.StatusNotFound)
 }
 
 func TestGearHandler_Update_StoreError_Returns500(t *testing.T) {
@@ -340,21 +348,21 @@ func TestGearHandler_Update_StoreError_Returns500(t *testing.T) {
 		return gear.GearView{}, errors.New("db error")
 	}}
 	body, _ := json.Marshal(map[string]any{"gear_name": "X"})
-	mustStatus(t, serveGear(t, gear.NewHandler(stub), http.MethodPatch, "/gear/"+gearID, gearID, bytes.NewReader(body)), http.StatusInternalServerError)
+	mustStatus(t, serveGear(gear.NewHandler(stub), http.MethodPatch, "/gear/"+gearID, bytes.NewReader(body)), http.StatusInternalServerError)
 }
 
 func TestGearHandler_Delete_StoreError_Returns500(t *testing.T) {
 	stub := &stubGearStore{deleteFn: func(_ context.Context, _ gear.GearID, _ string) error {
 		return errors.New("db error")
 	}}
-	mustStatus(t, serveGear(t, gear.NewHandler(stub), http.MethodDelete, "/gear/"+gearID, gearID, nil), http.StatusInternalServerError)
+	mustStatus(t, serveGear(gear.NewHandler(stub), http.MethodDelete, "/gear/"+gearID, nil), http.StatusInternalServerError)
 }
 
 func TestGearHandler_History_StoreError_Returns500(t *testing.T) {
 	stub := &stubGearStore{historyFn: func(_ context.Context, _ gear.GearID) ([]gear.AuditRow, error) {
 		return nil, errors.New("db error")
 	}}
-	mustStatus(t, serveGear(t, gear.NewHandler(stub), http.MethodGet, "/gear/"+gearID+"/history", gearID, nil), http.StatusInternalServerError)
+	mustStatus(t, serveGear(gear.NewHandler(stub), http.MethodGet, "/gear/"+gearID+"/history", nil), http.StatusInternalServerError)
 }
 
 func TestGearHandler_Photo_UploadError_Returns500(t *testing.T) {
@@ -375,7 +383,7 @@ func TestGearHandler_Photo_UploadError_Returns500(t *testing.T) {
 }
 
 func TestGearHandler_NotFound_Returns404(t *testing.T) {
-	mustStatus(t, serveGear(t, gear.NewHandler(&stubGearStore{}), http.MethodPut, "/gear", "", nil), http.StatusNotFound)
+	mustStatus(t, serveGear(gear.NewHandler(&stubGearStore{}), http.MethodPut, "/gear", nil), http.StatusNotFound)
 }
 
 func TestGearHandler_Photo_UnknownContentLength_Returns413(t *testing.T) {
