@@ -91,6 +91,36 @@ function ConflictBody({ result, choices, onChange }: Readonly<{
   )
 }
 
+function CompareFieldRow({ label, diskValue, catalogValue }: Readonly<{ label: string; diskValue: string; catalogValue: string }>) {
+  const differs = diskValue !== catalogValue
+  return (
+    <div className="space-y-0.5">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <div className="flex gap-6 text-sm">
+        <span className="text-xs text-muted-foreground w-12 shrink-0 pt-0.5">Disk</span>
+        <span className="font-mono text-foreground">{diskValue}</span>
+      </div>
+      <div className="flex gap-6 text-sm">
+        <span className="text-xs text-muted-foreground w-12 shrink-0 pt-0.5">Catalog</span>
+        <span className={`font-mono ${differs ? 'text-amber-500' : 'text-foreground'}`}>{catalogValue}</span>
+      </div>
+    </div>
+  )
+}
+
+function CompareBody({ result }: Readonly<{ result: ScanResult }>) {
+  const { match } = result
+  return (
+    <div className="px-6 py-4 space-y-4">
+      <FieldRow label="Table" value={<span className="font-mono">{match?.record_table ?? '—'}</span>} />
+      <CompareFieldRow label="Name" diskValue={result.name} catalogValue={match?.record_name ?? result.name} />
+      <CompareFieldRow label="Vendor" diskValue={result.vendor} catalogValue={match?.record_vendor ?? result.vendor} />
+      <CompareFieldRow label="Version" diskValue={result.version} catalogValue={match?.record_version ?? result.version} />
+      <FieldRow label="Record ID" value={<span className="font-mono text-xs break-all">{match?.record_id ?? '—'}</span>} />
+    </div>
+  )
+}
+
 function ViewBody({ result }: Readonly<{ result: ScanResult }>) {
   const { match } = result
   return (
@@ -138,6 +168,7 @@ function ModalFooter({ result, onAcknowledge, onSaveConflict, onClose, onSave }:
 
 export function ViewRecordModal({ result, onClose, onAcknowledge, onSaveConflict, onSaved: _ }: Readonly<ViewRecordModalProps>) {
   const isConflicted = result.status === 'conflicted'
+  const isUnconfirmed = result.status === 'unconfirmed'
   const isConfirmed = !!result.confirmed_at
   const { choices, handleChoiceChange, resolvedValues } = useConflictResolution(result)
 
@@ -158,10 +189,9 @@ export function ViewRecordModal({ result, onClose, onAcknowledge, onSaveConflict
             )}
           </DialogTitle>
         </DialogHeader>
-        {isConflicted
-          ? <ConflictBody result={result} choices={choices} onChange={handleChoiceChange} />
-          : <ViewBody result={result} />
-        }
+        {isConflicted && <ConflictBody result={result} choices={choices} onChange={handleChoiceChange} />}
+        {isUnconfirmed && <CompareBody result={result} />}
+        {!isConflicted && !isUnconfirmed && <ViewBody result={result} />}
         <DialogFooter>
           <ModalFooter result={result} onAcknowledge={onAcknowledge} onSaveConflict={onSaveConflict} onClose={onClose} onSave={handleSave} />
         </DialogFooter>
