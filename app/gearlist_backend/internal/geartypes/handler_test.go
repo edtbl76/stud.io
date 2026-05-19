@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -46,8 +47,30 @@ func fixedType() geartypes.GearType {
 	return geartypes.GearType{TypeID: id, TypeName: "Guitar"}
 }
 
+const typeID = "aaaaaaaa-0000-0000-0000-000000000001"
+
 func newHandler(stub *stubStore) *geartypes.Handler {
 	return geartypes.NewHandler(stub)
+}
+
+// serveGT builds a request and dispatches it to h, returning the recorder.
+func serveGT(t *testing.T, h *geartypes.Handler, method, url, pathID string, body io.Reader) *httptest.ResponseRecorder {
+	t.Helper()
+	req := httptest.NewRequest(method, url, body)
+	if pathID != "" {
+		req.SetPathValue("id", pathID)
+	}
+	req.Header.Set("X-User", "admin")
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+	return w
+}
+
+func mustCode(t *testing.T, w *httptest.ResponseRecorder, want int) {
+	t.Helper()
+	if w.Code != want {
+		t.Errorf("status = %d, want %d", w.Code, want)
+	}
 }
 
 // ── GET /gear-types ───────────────────────────────────────────────────────────
@@ -202,37 +225,18 @@ func TestHandler_Delete_InvalidUUID_Returns400(t *testing.T) {
 }
 
 func TestHandler_Get_StoreError_Returns500(t *testing.T) {
-	const id = "aaaaaaaa-0000-0000-0000-000000000001"
 	stub := &stubStore{getFn: func(_ context.Context, _ geartypes.TypeID) (geartypes.GearType, error) {
 		return geartypes.GearType{}, errors.New("db error")
 	}}
-	req := httptest.NewRequest(http.MethodGet, "/gear-types/"+id, nil)
-	req.SetPathValue("id", id)
-	w := httptest.NewRecorder()
-	newHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want 500", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(stub), http.MethodGet, "/gear-types/"+typeID, typeID, nil), http.StatusInternalServerError)
 }
 
 func TestHandler_Get_InvalidUUID_Returns400(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/gear-types/not-a-uuid", nil)
-	req.SetPathValue("id", "not-a-uuid")
-	w := httptest.NewRecorder()
-	newHandler(&stubStore{}).ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(&stubStore{}), http.MethodGet, "/gear-types/not-a-uuid", "not-a-uuid", nil), http.StatusBadRequest)
 }
 
 func TestHandler_Create_InvalidJSON_Returns400(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPost, "/gear-types", bytes.NewReader([]byte("{bad json")))
-	req.Header.Set("X-User", "admin")
-	w := httptest.NewRecorder()
-	newHandler(&stubStore{}).ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(&stubStore{}), http.MethodPost, "/gear-types", "", bytes.NewReader([]byte("{bad json"))), http.StatusBadRequest)
 }
 
 func TestHandler_Create_StoreError_Returns500(t *testing.T) {
@@ -240,87 +244,41 @@ func TestHandler_Create_StoreError_Returns500(t *testing.T) {
 		return geartypes.GearType{}, errors.New("db error")
 	}}
 	body, _ := json.Marshal(map[string]string{"type_name": "Amp"})
-	req := httptest.NewRequest(http.MethodPost, "/gear-types", bytes.NewReader(body))
-	req.Header.Set("X-User", "admin")
-	w := httptest.NewRecorder()
-	newHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want 500", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(stub), http.MethodPost, "/gear-types", "", bytes.NewReader(body)), http.StatusInternalServerError)
 }
 
 func TestHandler_Update_InvalidUUID_Returns400(t *testing.T) {
 	body, _ := json.Marshal(map[string]string{"type_name": "X"})
-	req := httptest.NewRequest(http.MethodPatch, "/gear-types/not-a-uuid", bytes.NewReader(body))
-	req.SetPathValue("id", "not-a-uuid")
-	w := httptest.NewRecorder()
-	newHandler(&stubStore{}).ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(&stubStore{}), http.MethodPatch, "/gear-types/not-a-uuid", "not-a-uuid", bytes.NewReader(body)), http.StatusBadRequest)
 }
 
 func TestHandler_Update_InvalidJSON_Returns400(t *testing.T) {
-	const id = "aaaaaaaa-0000-0000-0000-000000000001"
-	req := httptest.NewRequest(http.MethodPatch, "/gear-types/"+id, bytes.NewReader([]byte("{bad json")))
-	req.SetPathValue("id", id)
-	w := httptest.NewRecorder()
-	newHandler(&stubStore{}).ServeHTTP(w, req)
-	if w.Code != http.StatusBadRequest {
-		t.Errorf("status = %d, want 400", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(&stubStore{}), http.MethodPatch, "/gear-types/"+typeID, typeID, bytes.NewReader([]byte("{bad json"))), http.StatusBadRequest)
 }
 
 func TestHandler_Update_NotFound_Returns404(t *testing.T) {
-	const id = "aaaaaaaa-0000-0000-0000-000000000001"
 	stub := &stubStore{updateFn: func(_ context.Context, _ geartypes.TypeID, _ geartypes.UpdateInput, _ string) (geartypes.GearType, error) {
 		return geartypes.GearType{}, pgx.ErrNoRows
 	}}
 	body, _ := json.Marshal(map[string]string{"type_name": "X"})
-	req := httptest.NewRequest(http.MethodPatch, "/gear-types/"+id, bytes.NewReader(body))
-	req.SetPathValue("id", id)
-	w := httptest.NewRecorder()
-	newHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(stub), http.MethodPatch, "/gear-types/"+typeID, typeID, bytes.NewReader(body)), http.StatusNotFound)
 }
 
 func TestHandler_Update_StoreError_Returns500(t *testing.T) {
-	const id = "aaaaaaaa-0000-0000-0000-000000000001"
 	stub := &stubStore{updateFn: func(_ context.Context, _ geartypes.TypeID, _ geartypes.UpdateInput, _ string) (geartypes.GearType, error) {
 		return geartypes.GearType{}, errors.New("db error")
 	}}
 	body, _ := json.Marshal(map[string]string{"type_name": "X"})
-	req := httptest.NewRequest(http.MethodPatch, "/gear-types/"+id, bytes.NewReader(body))
-	req.SetPathValue("id", id)
-	w := httptest.NewRecorder()
-	newHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want 500", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(stub), http.MethodPatch, "/gear-types/"+typeID, typeID, bytes.NewReader(body)), http.StatusInternalServerError)
 }
 
 func TestHandler_Delete_StoreError_Returns500(t *testing.T) {
-	const id = "aaaaaaaa-0000-0000-0000-000000000001"
 	stub := &stubStore{deleteFn: func(_ context.Context, _ geartypes.TypeID, _ string) error {
 		return errors.New("db error")
 	}}
-	req := httptest.NewRequest(http.MethodDelete, "/gear-types/"+id, nil)
-	req.SetPathValue("id", id)
-	req.Header.Set("X-User", "admin")
-	w := httptest.NewRecorder()
-	newHandler(stub).ServeHTTP(w, req)
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want 500", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(stub), http.MethodDelete, "/gear-types/"+typeID, typeID, nil), http.StatusInternalServerError)
 }
 
 func TestHandler_UnknownMethod_Returns404(t *testing.T) {
-	req := httptest.NewRequest(http.MethodPut, "/gear-types", nil)
-	w := httptest.NewRecorder()
-	newHandler(&stubStore{}).ServeHTTP(w, req)
-	if w.Code != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", w.Code)
-	}
+	mustCode(t, serveGT(t, newHandler(&stubStore{}), http.MethodPut, "/gear-types", "", nil), http.StatusNotFound)
 }

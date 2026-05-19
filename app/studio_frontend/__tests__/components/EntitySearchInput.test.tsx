@@ -24,6 +24,13 @@ function defaultProps(overrides = {}) {
   }
 }
 
+function setupSearch(query: string, propOverrides: Record<string, unknown> = {}): void {
+  mockSearchEntities.mockResolvedValue({ results: RESULTS })
+  render(<EntitySearchInput {...defaultProps(propOverrides)} />)
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: query } })
+  act(() => { jest.advanceTimersByTime(350) })
+}
+
 beforeEach(() => {
   jest.useFakeTimers()
   jest.clearAllMocks()
@@ -54,7 +61,7 @@ describe('EntitySearchInput — rendering', () => {
 })
 
 describe('EntitySearchInput — search debounce', () => {
-  it('does not search when query is shorter than 2 chars', async () => {
+  it('does not search when query is shorter than 2 chars', () => {
     mockSearchEntities.mockResolvedValue({ results: RESULTS })
     render(<EntitySearchInput {...defaultProps()} />)
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'F' } })
@@ -63,35 +70,23 @@ describe('EntitySearchInput — search debounce', () => {
   })
 
   it('searches after debounce when query is 2+ chars', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe')
     await waitFor(() => expect(mockSearchEntities).toHaveBeenCalledWith('Fe'))
   })
 
   it('filters results to the specified table', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps({ table: 'brands' })} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe', { table: 'brands' })
     await waitFor(() => expect(screen.getByText('Fender')).toBeInTheDocument())
     expect(screen.queryByText('Stratocaster')).not.toBeInTheDocument()
   })
 
   it('shows results dropdown when open and results exist', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe')
     await waitFor(() => expect(screen.getByText('Fender')).toBeInTheDocument())
   })
 
   it('shows brand_name subtitle when result has brand_name', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps({ table: 'models' })} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'St' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('St', { table: 'models' })
     await waitFor(() => expect(screen.getByText('Fender')).toBeInTheDocument())
   })
 
@@ -108,20 +103,14 @@ describe('EntitySearchInput — search debounce', () => {
 describe('EntitySearchInput — selection', () => {
   it('calls onChange with id on selection', async () => {
     const onChange = jest.fn()
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps({ onChange })} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe', { onChange })
     await waitFor(() => screen.getByText('Fender'))
     fireEvent.click(screen.getByText('Fender'))
     expect(onChange).toHaveBeenCalledWith('e1')
   })
 
   it('shows selected name chip after selection', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe')
     await waitFor(() => screen.getByText('Fender'))
     fireEvent.click(screen.getByText('Fender'))
     expect(screen.getByText('Fender')).toBeInTheDocument()
@@ -129,10 +118,7 @@ describe('EntitySearchInput — selection', () => {
   })
 
   it('formats selected name as "brand name" when result has brand_name', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps({ table: 'models' })} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'St' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('St', { table: 'models' })
     await waitFor(() => screen.getByText('Stratocaster'))
     fireEvent.click(screen.getByText('Stratocaster'))
     expect(screen.getByText('Fender Stratocaster')).toBeInTheDocument()
@@ -142,10 +128,7 @@ describe('EntitySearchInput — selection', () => {
 describe('EntitySearchInput — clear', () => {
   it('calls onChange with empty string on clear', async () => {
     const onChange = jest.fn()
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps({ onChange })} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe', { onChange })
     await waitFor(() => screen.getByText('Fender'))
     fireEvent.click(screen.getByText('Fender'))
     fireEvent.click(screen.getByRole('button', { name: /clear/i }))
@@ -153,10 +136,7 @@ describe('EntitySearchInput — clear', () => {
   })
 
   it('shows search input again after clearing', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe')
     await waitFor(() => screen.getByText('Fender'))
     fireEvent.click(screen.getByText('Fender'))
     fireEvent.click(screen.getByRole('button', { name: /clear/i }))
@@ -181,10 +161,7 @@ describe('EntitySearchInput — open/close', () => {
   })
 
   it('closes dropdown on blur after delay', async () => {
-    mockSearchEntities.mockResolvedValue({ results: RESULTS })
-    render(<EntitySearchInput {...defaultProps()} />)
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Fe' } })
-    act(() => { jest.advanceTimersByTime(350) })
+    setupSearch('Fe')
     await waitFor(() => screen.getByText('Fender'))
     fireEvent.blur(screen.getByRole('textbox'))
     act(() => { jest.advanceTimersByTime(200) })
