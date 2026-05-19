@@ -116,6 +116,23 @@ async def _action_acknowledge(conn: Connection, ctx: _ConfirmCtx) -> None:
     if table not in CATALOG_TABLES or not rid:
         raise ValueError(f"result_id {ctx.c.result_id}: cannot acknowledge without a linked catalog record")
     await _assert_catalog_row_exists(conn, table, str(rid), ctx.c.result_id)
+
+    pk, _ = CATALOG_TABLES[table]
+    scanned_path = ctx.row.get("path") or ""
+    if scanned_path:
+        old_row = await conn.fetchrow(f"SELECT disk_paths FROM {table} WHERE {pk}=$1", rid)
+        old_paths: list = list(old_row["disk_paths"] or []) if old_row else []
+        if not any(e.get("path") == scanned_path for e in old_paths):
+            new_entry = {"path": scanned_path, "format": ctx.row["format"], "version": ctx.row["version"]}
+            new_paths = old_paths + [new_entry]
+            await conn.execute(
+                f"UPDATE {table} SET disk_paths=$1, updated_at=NOW() WHERE {pk}=$2",
+                new_paths, rid,
+            )
+            await log_audit(conn, table, rid, "UPDATE", ctx.username,
+                            old_data={"disk_paths": old_paths},
+                            new_data={"disk_paths": new_paths})
+
     await conn.execute(
         "UPDATE plugin_scan_results SET confirmed_at=NOW(), confirmed_by=$2 WHERE result_id=$1",
         ctx.c.result_id, ctx.username,
@@ -152,7 +169,7 @@ _ACTIONS = {
 
 async def apply_confirmation(conn: Connection, c: Confirmation, username: str) -> None:
     row = await conn.fetchrow(
-        "SELECT name,vendor,version,record_id,record_table "
+        "SELECT name,vendor,version,format,path,record_id,record_table "
         "FROM plugin_scan_results WHERE result_id=$1", c.result_id,
     )
     if not row:

@@ -210,7 +210,8 @@ async def get_report(
     results = await conn.fetch(
         "SELECT result_id,status,name,vendor,version,format,path,"
         "confidence,score,record_id,record_table,dismissed_at,confirmed_at "
-        "FROM plugin_scan_results WHERE scan_id=$1",
+        "FROM plugin_scan_results WHERE scan_id=$1 "
+        "ORDER BY name, result_id",
         scan["scan_id"],
     )
     meta = await fetch_match_meta(conn, results)

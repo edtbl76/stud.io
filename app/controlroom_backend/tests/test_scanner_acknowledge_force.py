@@ -169,3 +169,81 @@ async def test_force_requires_target_id(client, conn, admin_headers):
     assert resp.status_code == 200
     data = resp.json()
     assert data["errors"][0]["error"] is not None
+
+
+# ── acknowledge: disk_paths + audit ──────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_acknowledge_appends_disk_path_to_catalog_record(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    _, result_id = await _insert_matched_result(conn, effect_id)
+
+    await _post_acknowledge(client, result_id, admin_headers)
+
+    row = await conn.fetchrow(
+        "SELECT disk_paths FROM effects WHERE effect_id=$1::uuid", effect_id
+    )
+    paths = row["disk_paths"] or []
+    assert any(p["path"] == "/Library/VST3/Reverb.vst3" for p in paths), \
+        f"expected scanned path in disk_paths, got {paths}"
+    assert any(p["format"] == "vst3" for p in paths)
+    assert any(p["version"] == "2.0" for p in paths)
+
+
+@pytest.mark.asyncio
+async def test_acknowledge_creates_audit_log_entry(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    _, result_id = await _insert_matched_result(conn, effect_id)
+
+    await _post_acknowledge(client, result_id, admin_headers)
+
+    audit = await conn.fetchrow(
+        "SELECT operation, new_data FROM audit_log "
+        "WHERE table_name='effects' AND record_id=$1::uuid "
+        "ORDER BY performed_at DESC LIMIT 1",
+        effect_id,
+    )
+    assert audit is not None, "expected an audit_log entry after acknowledge"
+    assert audit["operation"] == "UPDATE"
+    assert "disk_paths" in (audit["new_data"] or {})
+
+
+@pytest.mark.asyncio
+async def test_acknowledge_does_not_duplicate_existing_disk_path(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    _, result_id1 = await _insert_matched_result(conn, effect_id)
+    _, result_id2 = await _insert_matched_result(conn, effect_id)
+
+    await _post_acknowledge(client, result_id1, admin_headers)
+    await _post_acknowledge(client, result_id2, admin_headers)
+
+    row = await conn.fetchrow(
+        "SELECT disk_paths FROM effects WHERE effect_id=$1::uuid", effect_id
+    )
+    matching = [p for p in (row["disk_paths"] or []) if p["path"] == "/Library/VST3/Reverb.vst3"]
+    assert len(matching) == 1, f"path should appear exactly once, got {row['disk_paths']}"
+
+
+@pytest.mark.asyncio
+async def test_acknowledge_skips_disk_path_when_path_is_empty(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    scan_id = await conn.fetchval(
+        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1,$2) RETURNING scan_id",
+        "test-machine", 1,
+    )
+    result_id = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, "
+        " confidence, score, record_id, record_table) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING result_id",
+        scan_id, "Reverb Pro", "Acme Audio", "2.0", "vst3",
+        "", "matched", "exact", 100.0, effect_id, "effects",
+    )
+
+    await _post_acknowledge(client, result_id, admin_headers)
+
+    row = await conn.fetchrow(
+        "SELECT disk_paths FROM effects WHERE effect_id=$1::uuid", effect_id
+    )
+    assert (row["disk_paths"] or []) == [], \
+        "disk_paths should remain empty when scan path is empty"
