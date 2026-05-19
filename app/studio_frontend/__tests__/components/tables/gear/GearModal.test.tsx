@@ -240,3 +240,122 @@ describe('GearModal — edit mode (non-guitar)', () => {
     expect(screen.queryByLabelText(/tuning/i)).not.toBeInTheDocument()
   })
 })
+
+function setupMaintenanceMocks(logEntries: object[] = []) {
+  jest.clearAllMocks()
+  mockList.mockImplementation((url: string) => {
+    if (url === '/gearlist/gear-types') return Promise.resolve([])
+    return Promise.resolve(logEntries)
+  })
+}
+
+describe('GearModal — maintenance section', () => {
+  beforeEach(() => { setupMaintenanceMocks() })
+
+  it('shows Log entry button in view mode', async () => {
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /log entry/i })).toBeInTheDocument())
+  })
+
+  it('shows maintenance form when Log entry is clicked', async () => {
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log entry/i }))
+    expect(screen.getByLabelText(/^type$/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/^date$/i)).toBeInTheDocument()
+  })
+
+  it('hides Log entry button while form is shown', async () => {
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log entry/i }))
+    expect(screen.queryByRole('button', { name: /log entry/i })).not.toBeInTheDocument()
+  })
+
+  it('submits maintenance entry and hides form on success', async () => {
+    mockCreate.mockResolvedValue({})
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() =>
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.stringContaining('/maintenance'),
+        expect.objectContaining({ event_type: 'restring' }),
+      )
+    )
+  })
+
+  it('shows error when maintenance submit fails', async () => {
+    mockCreate.mockRejectedValue(new Error('Submit failed'))
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(screen.getByText('Submit failed')).toBeInTheDocument())
+  })
+
+  it('cancels maintenance form without submitting', async () => {
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /log entry/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^cancel$/i }))
+    expect(mockCreate).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: /log entry/i })).toBeInTheDocument()
+  })
+
+  it('renders existing maintenance log entries', async () => {
+    setupMaintenanceMocks([
+      { log_id: 'l1', event_type: 'setup', event_date: '2026-01-10', notes: 'Full setup done' },
+    ])
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    await waitFor(() => expect(screen.getByText('setup')).toBeInTheDocument())
+    expect(screen.getByText('Full setup done')).toBeInTheDocument()
+  })
+})
+
+describe('GearModal — photo upload', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockList.mockResolvedValue([])
+  })
+
+  it('shows uploading state while upload is in progress', async () => {
+    let resolveUpload!: () => void
+    mockUploadPhoto.mockReturnValue(new Promise<void>((resolve) => { resolveUpload = resolve }))
+    const onMutate = jest.fn()
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={onMutate} />)
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+    const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' })
+    const input = screen.getByLabelText(/photo/i) as HTMLInputElement
+    fireEvent.change(input, { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByText(/uploading/i)).toBeInTheDocument())
+    resolveUpload()
+    await waitFor(() => expect(onMutate).toHaveBeenCalled())
+  })
+
+  it('shows upload error when photo upload fails', async () => {
+    mockUploadPhoto.mockRejectedValue(new Error('Upload failed'))
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /^edit$/i }))
+    const file = new File(['data'], 'photo.jpg', { type: 'image/jpeg' })
+    const input = screen.getByLabelText(/photo/i) as HTMLInputElement
+    fireEvent.change(input, { target: { files: [file] } })
+    await waitFor(() => expect(screen.getByText('Upload failed')).toBeInTheDocument())
+  })
+})
+
+describe('GearModal — history mode', () => {
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockList.mockResolvedValue([])
+  })
+
+  it('shows history title when in history mode', async () => {
+    renderWithClient(<GearModal record={mockGear} onClose={() => {}} onMutate={() => {}} />)
+    fireEvent.click(screen.getByRole('button', { name: /^history$/i }))
+    await waitFor(() =>
+      expect(screen.getByText(/Fender Strat.*History/i)).toBeInTheDocument()
+    )
+  })
+})

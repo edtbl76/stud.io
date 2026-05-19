@@ -12,15 +12,13 @@ interface EntitySearchInputProps {
   label: string
   table: string
   value: string
+  displayName?: string
   onChange: (id: string) => void
   placeholder?: string
 }
 
-export function EntitySearchInput({ id, label, table, value, onChange, placeholder }: Readonly<EntitySearchInputProps>) {
-  const [query, setQuery] = React.useState('')
+function useEntitySearch(query: string, table: string): EntityResult[] {
   const [results, setResults] = React.useState<EntityResult[]>([])
-  const [selectedName, setSelectedName] = React.useState<string | null>(null)
-  const [open, setOpen] = React.useState(false)
 
   React.useEffect(() => {
     if (query.length < 2) { setResults([]); return }
@@ -36,11 +34,23 @@ export function EntitySearchInput({ id, label, table, value, onChange, placehold
     return () => { active = false; clearTimeout(t) }
   }, [query, table])
 
+  return results
+}
+
+export function EntitySearchInput({ id, label, table, value, displayName, onChange, placeholder }: Readonly<EntitySearchInputProps>) {
+  const [query, setQuery] = React.useState('')
+  const [selectedName, setSelectedName] = React.useState<string | null>(displayName ?? null)
+  const [open, setOpen] = React.useState(false)
+  const results = useEntitySearch(query, table)
+
+  React.useEffect(() => {
+    setSelectedName(value && displayName ? displayName : null)
+  }, [value, displayName])
+
   function handleSelect(r: EntityResult) {
     onChange(r.id)
     setSelectedName(r.brand_name ? `${r.brand_name} ${r.name}` : r.name)
     setQuery('')
-    setResults([])
     setOpen(false)
   }
 
@@ -48,7 +58,6 @@ export function EntitySearchInput({ id, label, table, value, onChange, placehold
     onChange('')
     setSelectedName(null)
     setQuery('')
-    setResults([])
   }
 
   return (

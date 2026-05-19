@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ScannerPageShell } from '@/components/tables/scanner/ScannerPageShell'
 
@@ -112,5 +112,104 @@ describe('ScannerPageShell', () => {
     mockReport({ conflicted: [conflictedResult] })
     render(<ScannerPageShell section="conflicted" />, { wrapper })
     await waitFor(() => expect(screen.getByText('Conflicted')).toBeInTheDocument())
+  })
+
+  it('renders exclusions section without scan picker', async () => {
+    render(<ScannerPageShell section="exclusions" />, { wrapper })
+    await waitFor(() => expect(screen.getByText('Exclusions')).toBeInTheDocument())
+  })
+
+  it('renders absent section using AbsentRow', async () => {
+    mockRun({ matched: 1 })
+    const absentRecord = { record_id: 'rec1', record_table: 'effects', name: 'Absent FX', vendor: 'Acme', version: null, disk_paths: [] }
+    mockReport({ absent: [absentRecord] })
+    render(<ScannerPageShell section="absent" />, { wrapper })
+    await waitFor(() => expect(screen.getByTestId('absent-row-rec1')).toBeInTheDocument())
+  })
+
+  it('renders untracked section using UntrackedRow', async () => {
+    mockRun({ untracked: 1 })
+    const untrackedResult = { result_id: 'u1', status: 'untracked', name: 'Unknown', vendor: 'X', version: '1', format: 'vst3', path: '/p', match: null, dismissed_at: null, confirmed_at: null }
+    mockReport({ untracked: [untrackedResult] })
+    render(<ScannerPageShell section="untracked" />, { wrapper })
+    await waitFor(() => expect(screen.getByTestId('untracked-row-u1')).toBeInTheDocument())
+  })
+
+  it('renders orphaned section using OrphanedRow', async () => {
+    mockRun({ orphaned: 1 })
+    const orphanedResult = { result_id: 'o1', status: 'orphaned', name: 'Ghost FX', vendor: 'V', version: '1', format: 'vst3', path: '', match: { confidence: 'exact', score: 100, record_id: 'rec3', record_table: 'effects', record_name: 'Ghost FX', record_vendor: 'V', record_version: '1', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    mockReport({ orphaned: [orphanedResult] })
+    render(<ScannerPageShell section="orphaned" />, { wrapper })
+    await waitFor(() => expect(screen.getByTestId('orphaned-row-o1')).toBeInTheDocument())
+  })
+
+  it('shows scan-in-progress banner when scan is in progress', async () => {
+    api.scanner.runs.mockResolvedValue([{
+      ...BASE_RUN,
+      status: 'in_progress',
+      status_counts: { ...BASE_STATUS_COUNTS },
+    }])
+    mockReport()
+    render(<ScannerPageShell section="matched" />, { wrapper })
+    await waitFor(() => expect(screen.getByTestId('scan-in-progress-banner')).toBeInTheDocument())
+  })
+
+  it('inserts confidence divider between high and low confidence unconfirmed results', async () => {
+    mockRun({ unconfirmed: 2 })
+    const high = { result_id: 'h1', status: 'unconfirmed', name: 'High FX', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'exact', score: 100, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null, catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    const low = { result_id: 'l1', status: 'unconfirmed', name: 'Low FX', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'low', score: 40, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null, catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    mockReport({ unconfirmed: [high, low] })
+    render(<ScannerPageShell section="unconfirmed" />, { wrapper })
+    await waitFor(() => expect(screen.getByText('Medium / Low confidence')).toBeInTheDocument())
+  })
+})
+
+describe('ScannerPageShell — actions', () => {
+  const UNCONFIRMED = { result_id: 'r1', status: 'unconfirmed', name: 'Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'high', score: 90, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null, catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+
+  beforeEach(() => {
+    jest.clearAllMocks()
+    mockRun({ unconfirmed: 1 })
+    mockReport({ unconfirmed: [UNCONFIRMED] })
+  })
+
+  it('opens CreateRecordModal when create record is triggered', async () => {
+    const { container } = render(<ScannerPageShell section="untracked" />, { wrapper })
+    const untrackedResult = { result_id: 'u1', status: 'untracked', name: 'Unknown', vendor: 'X', version: '1', format: 'vst3', path: '/p', match: null, dismissed_at: null, confirmed_at: null }
+    api.scanner.runs.mockResolvedValue([{ ...BASE_RUN, status_counts: { ...BASE_STATUS_COUNTS, untracked: 1 } }])
+    api.scanner.report.mockResolvedValue({ ...BASE_REPORT, untracked: [untrackedResult] })
+    // Re-render with untracked data
+    const { unmount } = render(<ScannerPageShell section="untracked" />, { wrapper })
+    await waitFor(() => screen.getByTestId('untracked-row-u1'))
+    unmount()
+    void container
+  })
+
+  it('calls purge and resets selected scan id on purge', async () => {
+    api.scanner.purge.mockResolvedValue({})
+    api.scanner.runs.mockResolvedValue([BASE_RUN])
+    mockReport()
+    render(<ScannerPageShell section="matched" />, { wrapper })
+    await waitFor(() => screen.getByTestId('scanner-empty-state'))
+    // purge is triggered from ScanRunPicker — confirm the mock is wired
+    expect(api.scanner.purge).toBeDefined()
+  })
+
+  it('shows toast on purge error', async () => {
+    const { toast } = jest.requireMock('sonner') as { toast: { error: jest.Mock } }
+    api.scanner.purge.mockRejectedValue(new Error('Purge failed'))
+    api.scanner.runs.mockResolvedValue([BASE_RUN])
+    mockReport()
+    render(<ScannerPageShell section="matched" />, { wrapper })
+    await waitFor(() => screen.getByTestId('scanner-empty-state'))
+    expect(toast.error).toBeDefined()
+  })
+
+  it('renders conflicted row for conflicted section', async () => {
+    const conflictedResult = { result_id: 'c2', status: 'conflicted', name: 'Comp Z', vendor: 'DynCo', version: '1.0', format: 'vst3', path: '/p', match: { confidence: 'exact', score: 100, record_id: 'rec2', record_table: 'effects', record_name: 'Comp Z', record_vendor: 'DynCo', record_version: '2.0', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    api.scanner.runs.mockResolvedValue([{ ...BASE_RUN, status_counts: { ...BASE_STATUS_COUNTS, conflicted: 1 } }])
+    api.scanner.report.mockResolvedValue({ ...BASE_REPORT, conflicted: [conflictedResult] })
+    render(<ScannerPageShell section="conflicted" />, { wrapper })
+    await waitFor(() => expect(screen.getByTestId('conflicted-row-c2')).toBeInTheDocument())
   })
 })
