@@ -110,29 +110,28 @@ async def _assert_catalog_row_exists(conn: Connection, table: str, record_id: st
         raise ValueError(f"result_id {result_id}: record {record_id} not found in {table}")
 
 
+async def _append_disk_path(conn: Connection, table: str, rid: object, ctx: _ConfirmCtx) -> None:
+    pk, _ = CATALOG_TABLES[table]
+    old_row = await conn.fetchrow(f"SELECT disk_paths FROM {table} WHERE {pk}=$1", rid)
+    old_paths: list = list(old_row["disk_paths"] or []) if old_row else []
+    if any(e.get("path") == ctx.row["path"] for e in old_paths):
+        return
+    new_paths = old_paths + [{"path": ctx.row["path"], "format": ctx.row["format"], "version": ctx.row["version"]}]
+    await conn.execute(
+        f"UPDATE {table} SET disk_paths=$1, updated_at=NOW() WHERE {pk}=$2", new_paths, rid,
+    )
+    await log_audit(conn, table, rid, "UPDATE", ctx.username,
+                    old_data={"disk_paths": old_paths}, new_data={"disk_paths": new_paths})
+
+
 async def _action_acknowledge(conn: Connection, ctx: _ConfirmCtx) -> None:
     table = ctx.row["record_table"]
     rid = ctx.row["record_id"]
     if table not in CATALOG_TABLES or not rid:
         raise ValueError(f"result_id {ctx.c.result_id}: cannot acknowledge without a linked catalog record")
     await _assert_catalog_row_exists(conn, table, str(rid), ctx.c.result_id)
-
-    pk, _ = CATALOG_TABLES[table]
-    scanned_path = ctx.row.get("path") or ""
-    if scanned_path:
-        old_row = await conn.fetchrow(f"SELECT disk_paths FROM {table} WHERE {pk}=$1", rid)
-        old_paths: list = list(old_row["disk_paths"] or []) if old_row else []
-        if not any(e.get("path") == scanned_path for e in old_paths):
-            new_entry = {"path": scanned_path, "format": ctx.row["format"], "version": ctx.row["version"]}
-            new_paths = old_paths + [new_entry]
-            await conn.execute(
-                f"UPDATE {table} SET disk_paths=$1, updated_at=NOW() WHERE {pk}=$2",
-                new_paths, rid,
-            )
-            await log_audit(conn, table, rid, "UPDATE", ctx.username,
-                            old_data={"disk_paths": old_paths},
-                            new_data={"disk_paths": new_paths})
-
+    if ctx.row.get("path"):
+        await _append_disk_path(conn, table, rid, ctx)
     await conn.execute(
         "UPDATE plugin_scan_results SET confirmed_at=NOW(), confirmed_by=$2 WHERE result_id=$1",
         ctx.c.result_id, ctx.username,
