@@ -102,3 +102,40 @@ async def test_catalog_disk_paths_empty_on_matched_result(client, conn, auth_hea
     assert resp.status_code == 200
     matched_result = resp.json()["matched"][0]
     assert matched_result["match"]["catalog_disk_paths"] == []
+
+
+@pytest.mark.asyncio
+async def test_conflicted_moves_to_matched_when_catalog_version_updated(client, conn, auth_headers, scan_id):
+    """Stored 'conflicted' result re-evaluates to 'matched' once catalog version matches disk."""
+    effect_id = await _insert_effect(conn)  # version=NULL; disk version is "2.0" → conflicted
+    await _insert_matched_result(conn, scan_id, effect_id, status="conflicted")
+
+    await conn.execute(
+        "UPDATE effects SET version=$1 WHERE effect_id=$2::uuid", "2.0", effect_id
+    )
+
+    resp = await client.get("/scanner/report", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["conflicted"]) == 0, "result should no longer be conflicted"
+    assert len(data["matched"]) == 1
+    assert data["matched"][0]["status"] == "matched"
+
+
+@pytest.mark.asyncio
+async def test_conflicted_moves_to_known_when_version_matches_and_disk_paths_present(client, conn, auth_headers, scan_id):
+    """Stored 'conflicted' result re-evaluates to 'known' when version matches and disk_paths is set."""
+    disk_path = {"path": "/Library/VST3/Reverb.vst3", "format": "vst3", "version": "2.0"}
+    effect_id = await _insert_effect(conn, disk_paths=[disk_path])
+    await _insert_matched_result(conn, scan_id, effect_id, status="conflicted")
+
+    await conn.execute(
+        "UPDATE effects SET version=$1 WHERE effect_id=$2::uuid", "2.0", effect_id
+    )
+
+    resp = await client.get("/scanner/report", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data["conflicted"]) == 0, "result should no longer be conflicted"
+    assert len(data["known"]) == 1
+    assert data["known"][0]["status"] == "known"

@@ -219,8 +219,15 @@ async def get_report(
         s: [] for s in ("known", "matched", "conflicted", "unconfirmed", "untracked", "orphaned", "ignored")
     }
     for r in results:
-        if r["status"] in grouped:
-            grouped[r["status"]].append(build_scan_result(r, meta))
+        rid = str(r["record_id"]) if r["record_id"] else None
+        m = meta.get(rid) if rid else None
+        effective_status = (
+            _assign_status("exact", r["version"], m.get("version"), m.get("disk_paths"))
+            if r["status"] == "conflicted" and r["confidence"] == "exact" and m
+            else r["status"]
+        )
+        if effective_status in grouped:
+            grouped[effective_status].append(build_scan_result(r, meta, effective_status))
 
     absent = await _fetch_absent_records(conn, scan["scan_id"])
     return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], absent=absent, **grouped)
