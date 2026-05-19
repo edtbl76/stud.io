@@ -25,16 +25,12 @@ def build_match_meta(
     )
 
 
-def build_scan_result(
-    r: Mapping[str, Any],
-    meta: dict[str, dict[str, Any]],
-    status: str | None = None,
-) -> "ScanResult":
+def build_scan_result(r: Mapping[str, Any], meta: dict[str, dict[str, Any]]) -> "ScanResult":
     rid = str(r["record_id"]) if r["record_id"] else None
     m = meta.get(rid) if rid else None
     disk_paths = m.get("disk_paths") if m else None
     return ScanResult(
-        result_id=r["result_id"], status=status if status is not None else r["status"],
+        result_id=r["result_id"], status=r["status"],
         name=r["name"], vendor=r["vendor"], version=r["version"],
         format=r["format"], path=r["path"],
         match=build_match_meta(r, m, catalog_disk_paths=disk_paths) if r["record_id"] else None,

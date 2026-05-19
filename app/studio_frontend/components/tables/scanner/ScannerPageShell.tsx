@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import type { AbsentRecord, ConfirmDecision, ScanReport, ScanResult, ScanSection } from '@/lib/types'
+import { SEARCH_TABLE_META } from '@/lib/searchMeta'
 import { ScanRunPicker } from './ScanRunPicker'
 import { ScanInProgressBanner } from './ScanInProgressBanner'
 import { ScanSectionHeader } from './ScanSectionHeader'
@@ -99,10 +100,40 @@ function useScannerActions(effectiveScanId: string | null) {
     onSuccess: invalidateReport,
   })
 
+  const saveConflictMutation = useMutation({
+    mutationFn: async ({ result, values }: { result: ScanResult; values: import('@/components/tables/scanner/ViewRecordModal').ConflictResolution }) => {
+      const endpoint = SEARCH_TABLE_META[result.match!.record_table!]?.endpoint
+      await api.update(endpoint, result.match!.record_id!, values)
+      await api.scanner.acknowledge(result.result_id)
+    },
+    onError: () => toast.error('Failed to save conflict resolution. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+
   return {
     handleConfirm: (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'confirm' }]),
     handleReject:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'reject' }]),
     handleIgnore:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'ignore' }]),
+    handleSaveConflict: (result: ScanResult, values: import('@/components/tables/scanner/ViewRecordModal').ConflictResolution) =>
+      saveConflictMutation.mutate({ result, values }),
+    handleBulkAcceptDisk: async (results: ScanResult[]) => {
+      let succeeded = 0
+      for (const r of results) {
+        const endpoint = SEARCH_TABLE_META[r.match?.record_table ?? '']?.endpoint
+        if (!endpoint || !r.match?.record_id) continue
+        try {
+          await api.update(endpoint, r.match.record_id, { version: r.version })
+          succeeded++
+        } catch {
+          toast.error(`Updated ${succeeded} of ${results.length} — stopped at "${r.name}"`)
+          invalidateReport()
+          return
+        }
+      }
+      toast.success(`Updated ${succeeded} record${succeeded === 1 ? '' : 's'}`)
+      invalidateReport()
+    },
+
     handleConfirmAll: (results: ScanResult[]) => {
       const high = results.filter(isHighConfidence)
       if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
@@ -215,12 +246,8 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
 
   async function handleBulkConflictedUpdate() {
     const selected = sectionResults.filter(r => selectedConflicted.has(r.result_id))
-    try {
-      await actions.handleBulkAcknowledge(selected)
-      setSelectedConflicted(new Set())
-    } catch {
-      // toast already shown by mutation onError; preserve selection so user can retry
-    }
+    await actions.handleBulkAcceptDisk(selected)
+    setSelectedConflicted(new Set())
   }
 
   return (
@@ -255,6 +282,11 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           result={viewRecord}
           onClose={() => setViewRecord(null)}
           onAcknowledge={actions.handleAcknowledge}
+          onSaveConflict={(resultId, values) => {
+            const r = sectionResults.find(x => x.result_id === resultId) ?? viewRecord
+            actions.handleSaveConflict(r, values)
+            setViewRecord(null)
+          }}
           onSaved={() => refetchReport()}
         />
       )}
@@ -309,9 +341,13 @@ function ScannerSectionContent({
   reportError, actions, selectedConflicted, onScanIdChange, onPurge, onCreateRecord,
   onViewRecord, onRefetch, onOverride, onConflictedSelect, onBulkConflictedUpdate,
 }: Readonly<ScannerSectionContentProps>) {
+  const [hideConfirmed, setHideConfirmed] = React.useState(true)
   const sectionTitle = SECTION_TITLES[section]
   const isAbsent = section === 'absent'
-  const displayCount = isAbsent ? absentResults.length : sectionResults.length
+  const visibleResults = section === 'conflicted' && hideConfirmed
+    ? sectionResults.filter(r => !r.confirmed_at)
+    : sectionResults
+  const displayCount = isAbsent ? absentResults.length : visibleResults.length
 
   return (
     <>
@@ -321,8 +357,10 @@ function ScannerSectionContent({
       {isScanning && latestRunScanId && <ScanInProgressBanner scannedAt={latestRunScanId} />}
       {section === 'conflicted' ? (
         <ConflictedSectionHeader
-          count={sectionResults.length}
+          count={visibleResults.length}
           selectedCount={selectedConflicted.size}
+          hideConfirmed={hideConfirmed}
+          onToggleHideConfirmed={() => setHideConfirmed(prev => !prev)}
           onBulkUpdate={onBulkConflictedUpdate}
         />
       ) : (
@@ -350,7 +388,7 @@ function ScannerSectionContent({
             />
           ) : (
             <VirtualSectionList
-              items={buildListItems(section, sectionResults)}
+              items={buildListItems(section, visibleResults)}
               estimatedItemHeight={estimatedHeight(section)}
               renderItem={(item) => renderRow(item, section, {
                 onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,

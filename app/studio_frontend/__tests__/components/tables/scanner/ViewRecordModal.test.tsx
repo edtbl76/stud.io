@@ -27,7 +27,24 @@ const RESULT: ScanResult = {
 
 const MATCHED_RESULT: ScanResult = { ...RESULT, status: 'matched' }
 const KNOWN_RESULT: ScanResult = { ...RESULT, status: 'known' }
-const CONFLICTED_RESULT: ScanResult = { ...RESULT, status: 'conflicted', match: { ...RESULT.match!, record_version: '2.0.0' } }
+const CONFLICTED_RESULT: ScanResult = {
+  ...RESULT,
+  status: 'conflicted',
+  match: { ...RESULT.match!, record_version: '2.0.0' },
+}
+const CONFLICTED_ALL_FIELDS: ScanResult = {
+  ...RESULT,
+  status: 'conflicted',
+  name: 'Reverb Pro Disk',
+  vendor: 'Acme Disk',
+  version: '3.0.0',
+  match: {
+    ...RESULT.match!,
+    record_name: 'Reverb Pro Catalog',
+    record_vendor: 'Acme Catalog',
+    record_version: '2.0.0',
+  },
+}
 
 describe('ViewRecordModal', () => {
   it('renders record details', () => {
@@ -81,9 +98,58 @@ describe('ViewRecordModal', () => {
     expect(screen.getByTestId('view-record-confirmed-badge')).toBeInTheDocument()
   })
 
-  it('shows disk and catalog versions side-by-side for conflicted results', () => {
-    render(<ViewRecordModal result={CONFLICTED_RESULT} onClose={jest.fn()} />)
-    expect(screen.getByText(/1\.0\.0/)).toBeInTheDocument()
-    expect(screen.getByText(/2\.0\.0/)).toBeInTheDocument()
+  describe('conflict resolution', () => {
+    it('shows per-field disk and catalog radio options for conflicting version', () => {
+      render(<ViewRecordModal result={CONFLICTED_RESULT} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect(screen.getByTestId('conflict-version-disk')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-version-catalog')).toBeInTheDocument()
+    })
+
+    it('shows per-field radios for all differing fields', () => {
+      render(<ViewRecordModal result={CONFLICTED_ALL_FIELDS} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect(screen.getByTestId('conflict-name-disk')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-name-catalog')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-vendor-disk')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-vendor-catalog')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-version-disk')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-version-catalog')).toBeInTheDocument()
+    })
+
+    it('defaults version to disk and name/vendor to catalog', () => {
+      render(<ViewRecordModal result={CONFLICTED_ALL_FIELDS} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect((screen.getByTestId('conflict-version-disk') as HTMLInputElement).checked).toBe(true)
+      expect((screen.getByTestId('conflict-version-catalog') as HTMLInputElement).checked).toBe(false)
+      expect((screen.getByTestId('conflict-name-catalog') as HTMLInputElement).checked).toBe(true)
+      expect((screen.getByTestId('conflict-vendor-catalog') as HTMLInputElement).checked).toBe(true)
+    })
+
+    it('shows Save button when onSaveConflict provided for conflicted result', () => {
+      render(<ViewRecordModal result={CONFLICTED_RESULT} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect(screen.getByTestId('view-record-save-conflict-button')).toBeInTheDocument()
+    })
+
+    it('calls onSaveConflict with chosen values on Save', () => {
+      const onSaveConflict = jest.fn()
+      render(<ViewRecordModal result={CONFLICTED_RESULT} onClose={jest.fn()} onSaveConflict={onSaveConflict} />)
+      fireEvent.click(screen.getByTestId('view-record-save-conflict-button'))
+      expect(onSaveConflict).toHaveBeenCalledWith('r1', {
+        name: 'Reverb Pro',
+        vendor: 'Acme Audio',
+        version: '1.0.0',
+      })
+    })
+
+    it('calls onSaveConflict with catalog version when catalog radio selected', () => {
+      const onSaveConflict = jest.fn()
+      render(<ViewRecordModal result={CONFLICTED_RESULT} onClose={jest.fn()} onSaveConflict={onSaveConflict} />)
+      fireEvent.click(screen.getByTestId('conflict-version-catalog'))
+      fireEvent.click(screen.getByTestId('view-record-save-conflict-button'))
+      expect(onSaveConflict).toHaveBeenCalledWith('r1', expect.objectContaining({ version: '2.0.0' }))
+    })
+
+    it('does not show Save button for non-conflicted results', () => {
+      render(<ViewRecordModal result={MATCHED_RESULT} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect(screen.queryByTestId('view-record-save-conflict-button')).not.toBeInTheDocument()
+    })
   })
 })
