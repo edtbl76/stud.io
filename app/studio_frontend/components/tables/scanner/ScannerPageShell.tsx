@@ -360,7 +360,7 @@ function SectionHeader({ section, sectionResults, visibleResults, selectedConfli
   }
   return (
     <>
-      <ScanSectionHeader title={SECTION_TITLES[section]} count={visibleResults.length} />
+      <ScanSectionHeader title={SECTION_TITLES[section]} count={visibleResults.length} hideConfirmed={hideConfirmed} onToggleHideConfirmed={onToggleHideConfirmed} />
       {section === 'unconfirmed' && (
         <BulkActionBar
           highConfidenceCount={sectionResults.filter(isHighConfidence).length}
@@ -421,7 +421,7 @@ function ScannerSectionContent({
   onViewRecord, onRefetch, onOverride, onConflictedSelect, onBulkConflictedUpdate,
 }: Readonly<ScannerSectionContentProps>) {
   const [hideConfirmed, setHideConfirmed] = React.useState(true)
-  const visibleResults = section === 'conflicted' && hideConfirmed
+  const visibleResults = hideConfirmed
     ? sectionResults.filter(r => !r.confirmed_at)
     : sectionResults
 
@@ -507,7 +507,7 @@ const ROW_RENDERERS: Partial<Record<ScanSection, RowRenderer>> = {
   known:       (r, h) => <MatchedRow result={r} onViewRecord={h.onViewRecord} onAcknowledge={h.onAcknowledge} />,
   matched:     (r, h) => <MatchedRow result={r} onViewRecord={h.onViewRecord} onAcknowledge={h.onAcknowledge} />,
   conflicted:  (r, h) => <ConflictedRow result={r} selected={h.selectedConflicted.has(r.result_id)} onSelect={h.onConflictedSelect} onViewRecord={h.onViewRecord} />,
-  unconfirmed: (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} onOverride={h.onOverride} />,
+  unconfirmed: (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} onOverride={h.onOverride} onViewRecord={h.onViewRecord} />,
   untracked:   (r, h) => <UntrackedRow result={r} onCreateRecord={h.onCreateRecord} onIgnore={h.onIgnore} onOverride={h.onOverride} />,
   orphaned:    (r, h) => <OrphanedRow result={r} onDismiss={h.onDismiss} onKeepPermanently={h.onKeep} onRemoveFromCatalog={h.onRemove} onViewRecord={h.onViewRecord} />,
 }

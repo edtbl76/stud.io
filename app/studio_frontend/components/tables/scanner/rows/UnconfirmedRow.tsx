@@ -13,20 +13,28 @@ interface UnconfirmedRowProps {
   onReject: (resultId: string) => void
   onIgnore: (resultId: string) => void
   onOverride: (result: ScanResult) => void
+  onViewRecord: (result: ScanResult) => void
 }
 
-export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore, onOverride }: Readonly<UnconfirmedRowProps>) {
+export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore, onOverride, onViewRecord }: Readonly<UnconfirmedRowProps>) {
   const confidence = result.match?.confidence ?? null
   const confidenceStyle = confidence ? (CONFIDENCE_STYLES[confidence] ?? '') : ''
 
   return (
     <div
-      className="flex items-center gap-4 px-4 py-3 border-b border-border/50 text-sm"
+      className="relative flex items-center gap-4 px-4 py-3 border-b border-border/50 text-sm hover:bg-muted/30"
       data-testid={`unconfirmed-row-${result.result_id}`}
     >
+      <button
+        className="absolute inset-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+        onClick={() => onViewRecord(result)}
+        aria-label={`View record for ${result.name}`}
+        data-testid={`unconfirmed-row-view-${result.result_id}`}
+      />
+
       {confidence && (
         <span
-          className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${confidenceStyle}`}
+          className={`relative z-10 shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${confidenceStyle}`}
           aria-label={`Confidence: ${confidence}`}
           data-testid="confidence-badge"
         >
@@ -34,19 +42,19 @@ export function UnconfirmedRow({ result, onConfirm, onReject, onIgnore, onOverri
         </span>
       )}
 
-      <div className="flex-1 min-w-0">
+      <div className="relative z-10 flex-1 min-w-0 pointer-events-none">
         <p className="font-medium text-foreground truncate">{result.name}</p>
         <p className="text-xs text-muted-foreground truncate">{result.vendor} · {result.version} · {result.format}</p>
       </div>
 
       {result.match?.record_name && (
-        <div className="text-xs text-muted-foreground text-right shrink-0 hidden md:block">
+        <div className="relative z-10 text-xs text-muted-foreground text-right shrink-0 hidden md:block pointer-events-none">
           <p className="text-foreground">{result.match.record_name}</p>
           <p>{result.match.record_table}</p>
         </div>
       )}
 
-      <div className="flex gap-1.5 shrink-0">
+      <div className="relative z-10 flex gap-1.5 shrink-0">
         <button
           onClick={() => onConfirm(result.result_id)}
           className="rounded bg-primary px-2.5 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90"
