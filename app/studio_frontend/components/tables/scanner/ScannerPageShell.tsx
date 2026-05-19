@@ -336,18 +336,93 @@ interface ScannerSectionContentProps {
   onBulkConflictedUpdate: () => void
 }
 
+function SectionHeader({ section, sectionResults, visibleResults, selectedConflicted, hideConfirmed, onToggleHideConfirmed, onBulkConflictedUpdate, actions }: Readonly<{
+  section: Exclude<ScanSection, 'exclusions'>
+  sectionResults: ScanResult[]
+  visibleResults: ScanResult[]
+  selectedConflicted: Set<string>
+  hideConfirmed: boolean
+  onToggleHideConfirmed: () => void
+  onBulkConflictedUpdate: () => void
+  actions: ReturnType<typeof useScannerActions>
+}>) {
+  if (section === 'conflicted') {
+    return (
+      <ConflictedSectionHeader
+        count={visibleResults.length}
+        selectedCount={selectedConflicted.size}
+        hideConfirmed={hideConfirmed}
+        onToggleHideConfirmed={onToggleHideConfirmed}
+        onBulkUpdate={onBulkConflictedUpdate}
+      />
+    )
+  }
+  return (
+    <>
+      <ScanSectionHeader title={SECTION_TITLES[section]} count={visibleResults.length} />
+      {section === 'unconfirmed' && (
+        <BulkActionBar
+          highConfidenceCount={sectionResults.filter(isHighConfidence).length}
+          onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
+        />
+      )}
+    </>
+  )
+}
+
+function SectionResultsArea({ section, absentResults, visibleResults, reportError, onRefetch, actions, onCreateRecord, onViewRecord, onOverride, onConflictedSelect, selectedConflicted }: Readonly<{
+  section: Exclude<ScanSection, 'exclusions'>
+  absentResults: AbsentRecord[]
+  visibleResults: ScanResult[]
+  reportError: boolean
+  onRefetch: () => void
+  actions: ReturnType<typeof useScannerActions>
+  onCreateRecord: (result: ScanResult) => void
+  onViewRecord: (result: ScanResult) => void
+  onOverride: (result: ScanResult) => void
+  onConflictedSelect: (resultId: string) => void
+  selectedConflicted: Set<string>
+}>) {
+  if (reportError) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 gap-3 text-sm text-muted-foreground">
+        <p>Failed to load scan results.</p>
+        <button onClick={onRefetch} className="text-primary underline" data-testid="scanner-retry-button">Retry</button>
+      </div>
+    )
+  }
+  const items = section === 'absent'
+    ? absentResults
+    : buildListItems(section, visibleResults)
+  const renderItem = section === 'absent'
+    ? (r: AbsentRecord) => <AbsentRow record={r} />
+    : (item: ScanResult | { type: 'divider' }) => renderRow(item, section, {
+        onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
+        onAcknowledge: actions.handleAcknowledge,
+        onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
+        onCreateRecord, onViewRecord, onOverride, onConflictedSelect, selectedConflicted,
+      })
+  return (
+    <div className="flex-1 overflow-hidden">
+      <VirtualSectionList
+        items={items}
+        estimatedItemHeight={section === 'absent' ? ROW_HEIGHT_WITH_SUBTITLE : estimatedHeight(section)}
+        renderItem={renderItem as (item: unknown) => React.ReactNode}
+        emptyState={<SectionEmptyState section={section} />}
+      />
+    </div>
+  )
+}
+
 function ScannerSectionContent({
   runs, effectiveScanId, section, sectionResults, absentResults, isScanning, latestRunScanId,
   reportError, actions, selectedConflicted, onScanIdChange, onPurge, onCreateRecord,
   onViewRecord, onRefetch, onOverride, onConflictedSelect, onBulkConflictedUpdate,
 }: Readonly<ScannerSectionContentProps>) {
   const [hideConfirmed, setHideConfirmed] = React.useState(true)
-  const sectionTitle = SECTION_TITLES[section]
-  const isAbsent = section === 'absent'
   const visibleResults = section === 'conflicted' && hideConfirmed
     ? sectionResults.filter(r => !r.confirmed_at)
     : sectionResults
-  const displayCount = isAbsent ? absentResults.length : visibleResults.length
 
   return (
     <>
@@ -355,56 +430,18 @@ function ScannerSectionContent({
         <ScanRunPicker runs={runs} selectedId={effectiveScanId} onChange={onScanIdChange} onPurge={onPurge} />
       </div>
       {isScanning && latestRunScanId && <ScanInProgressBanner scannedAt={latestRunScanId} />}
-      {section === 'conflicted' ? (
-        <ConflictedSectionHeader
-          count={visibleResults.length}
-          selectedCount={selectedConflicted.size}
-          hideConfirmed={hideConfirmed}
-          onToggleHideConfirmed={() => setHideConfirmed(prev => !prev)}
-          onBulkUpdate={onBulkConflictedUpdate}
-        />
-      ) : (
-        <ScanSectionHeader title={sectionTitle} count={displayCount} />
-      )}
-      {section === 'unconfirmed' && (
-        <BulkActionBar
-          highConfidenceCount={sectionResults.filter(isHighConfidence).length}
-          onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
-        />
-      )}
-      {reportError ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-3 text-sm text-muted-foreground">
-          <p>Failed to load scan results.</p>
-          <button onClick={onRefetch} className="text-primary underline" data-testid="scanner-retry-button">Retry</button>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-hidden">
-          {isAbsent ? (
-            <VirtualSectionList
-              items={absentResults}
-              estimatedItemHeight={ROW_HEIGHT_WITH_SUBTITLE}
-              renderItem={(r) => <AbsentRow record={r} />}
-              emptyState={<SectionEmptyState section={section} />}
-            />
-          ) : (
-            <VirtualSectionList
-              items={buildListItems(section, visibleResults)}
-              estimatedItemHeight={estimatedHeight(section)}
-              renderItem={(item) => renderRow(item, section, {
-                onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
-                onAcknowledge: actions.handleAcknowledge,
-                onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
-                onCreateRecord,
-                onViewRecord,
-                onOverride,
-                onConflictedSelect,
-                selectedConflicted,
-              })}
-              emptyState={<SectionEmptyState section={section} />}
-            />
-          )}
-        </div>
-      )}
+      <SectionHeader
+        section={section} sectionResults={sectionResults} visibleResults={visibleResults}
+        selectedConflicted={selectedConflicted} hideConfirmed={hideConfirmed}
+        onToggleHideConfirmed={() => setHideConfirmed(prev => !prev)}
+        onBulkConflictedUpdate={onBulkConflictedUpdate} actions={actions}
+      />
+      <SectionResultsArea
+        section={section} absentResults={absentResults} visibleResults={visibleResults}
+        reportError={reportError} onRefetch={onRefetch} actions={actions}
+        onCreateRecord={onCreateRecord} onViewRecord={onViewRecord} onOverride={onOverride}
+        onConflictedSelect={onConflictedSelect} selectedConflicted={selectedConflicted}
+      />
     </>
   )
 }
