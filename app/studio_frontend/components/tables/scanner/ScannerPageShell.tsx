@@ -123,6 +123,7 @@ function useScannerActions(effectiveScanId: string | null) {
         if (!endpoint || !r.match?.record_id) continue
         try {
           await api.update(endpoint, r.match.record_id, { version: r.version })
+          await api.scanner.acknowledge(r.result_id)
           succeeded++
         } catch {
           toast.error(`Updated ${succeeded} of ${results.length} — stopped at "${r.name}"`)
