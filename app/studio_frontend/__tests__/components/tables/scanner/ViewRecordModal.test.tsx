@@ -85,6 +85,12 @@ describe('ViewRecordModal', () => {
     expect(screen.queryByTestId('view-record-acknowledge-button')).not.toBeInTheDocument()
   })
 
+  it('hides Acknowledge button for unconfirmed results', () => {
+    const unconfirmed = { ...RESULT, status: 'unconfirmed' as const }
+    render(<ViewRecordModal result={unconfirmed} onClose={jest.fn()} onAcknowledge={jest.fn()} />)
+    expect(screen.queryByTestId('view-record-acknowledge-button')).not.toBeInTheDocument()
+  })
+
   it('calls onAcknowledge with result_id when Acknowledge is clicked', () => {
     const onAcknowledge = jest.fn()
     render(<ViewRecordModal result={MATCHED_RESULT} onClose={jest.fn()} onAcknowledge={onAcknowledge} />)
@@ -145,6 +151,19 @@ describe('ViewRecordModal', () => {
       fireEvent.click(screen.getByTestId('conflict-version-catalog'))
       fireEvent.click(screen.getByTestId('view-record-save-conflict-button'))
       expect(onSaveConflict).toHaveBeenCalledWith('r1', expect.objectContaining({ version: '2.0.0' }))
+    })
+
+    it('shows Save button for unconfirmed results with onSaveConflict', () => {
+      const unconfirmed = { ...CONFLICTED_ALL_FIELDS, status: 'unconfirmed' as const }
+      render(<ViewRecordModal result={unconfirmed} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect(screen.getByTestId('view-record-save-conflict-button')).toBeInTheDocument()
+    })
+
+    it('shows per-field radios for unconfirmed results with differing fields', () => {
+      const unconfirmed = { ...CONFLICTED_ALL_FIELDS, status: 'unconfirmed' as const }
+      render(<ViewRecordModal result={unconfirmed} onClose={jest.fn()} onSaveConflict={jest.fn()} />)
+      expect(screen.getByTestId('conflict-name-disk')).toBeInTheDocument()
+      expect(screen.getByTestId('conflict-vendor-disk')).toBeInTheDocument()
     })
 
     it('does not show Save button for non-conflicted results', () => {

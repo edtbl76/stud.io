@@ -48,25 +48,27 @@ function useConflictResolution(result: ScanResult) {
   return { choices, handleChoiceChange, resolvedValues }
 }
 
-function ConflictFieldRow({ label, diskValue, catalogValue, choice, onChange, testIdPrefix }: Readonly<{
+function FieldCompareRow({ label, diskValue, catalogValue, choice, onChange, testIdPrefix }: Readonly<{
   label: string
   diskValue: string
   catalogValue: string
-  choice: FieldChoice
-  onChange: (c: FieldChoice) => void
-  testIdPrefix: string
+  choice?: FieldChoice
+  onChange?: (c: FieldChoice) => void
+  testIdPrefix?: string
 }>) {
-  if (diskValue === catalogValue) return <FieldRow label={label} value={diskValue} />
+  const differs = diskValue !== catalogValue
+  const interactive = !!onChange && !!testIdPrefix
+  if (!differs) return <FieldRow label={label} value={diskValue} />
   return (
     <div className="space-y-1">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <label className="flex items-center gap-3 cursor-pointer rounded px-2 py-1.5 hover:bg-muted/40">
-        <input type="radio" name={testIdPrefix} checked={choice === 'disk'} onChange={() => onChange('disk')} data-testid={`${testIdPrefix}-disk`} className="accent-primary" />
+      <label className={`flex items-center gap-3 rounded px-2 py-1.5 ${interactive ? 'cursor-pointer hover:bg-muted/40' : ''}`}>
+        {interactive && <input type="radio" name={testIdPrefix} checked={choice === 'disk'} onChange={() => onChange?.('disk')} data-testid={`${testIdPrefix}-disk`} className="accent-primary" />}
         <span className="text-xs text-muted-foreground w-10 shrink-0">Disk</span>
         <span className="font-mono text-sm text-foreground">{diskValue}</span>
       </label>
-      <label className="flex items-center gap-3 cursor-pointer rounded px-2 py-1.5 hover:bg-muted/40">
-        <input type="radio" name={testIdPrefix} checked={choice === 'catalog'} onChange={() => onChange('catalog')} data-testid={`${testIdPrefix}-catalog`} className="accent-primary" />
+      <label className={`flex items-center gap-3 rounded px-2 py-1.5 ${interactive ? 'cursor-pointer hover:bg-muted/40' : ''}`}>
+        {interactive && <input type="radio" name={testIdPrefix} checked={choice === 'catalog'} onChange={() => onChange?.('catalog')} data-testid={`${testIdPrefix}-catalog`} className="accent-primary" />}
         <span className="text-xs text-muted-foreground w-10 shrink-0">Catalog</span>
         <span className="font-mono text-sm text-amber-500">{catalogValue}</span>
       </label>
@@ -74,48 +76,18 @@ function ConflictFieldRow({ label, diskValue, catalogValue, choice, onChange, te
   )
 }
 
-function ConflictBody({ result, choices, onChange }: Readonly<{
+function ResolutionBody({ result, choices, onChange }: Readonly<{
   result: ScanResult
-  choices: ConflictChoices
-  onChange: (field: keyof ConflictChoices, value: FieldChoice) => void
+  choices?: ConflictChoices
+  onChange?: (field: keyof ConflictChoices, value: FieldChoice) => void
 }>) {
   const { match } = result
   return (
     <div className="px-6 py-4 space-y-4">
       <FieldRow label="Table" value={<span className="font-mono">{match?.record_table ?? '—'}</span>} />
-      <ConflictFieldRow label="Name" diskValue={result.name} catalogValue={match?.record_name ?? result.name} choice={choices.name} onChange={(v) => onChange('name', v)} testIdPrefix="conflict-name" />
-      <ConflictFieldRow label="Vendor" diskValue={result.vendor} catalogValue={match?.record_vendor ?? result.vendor} choice={choices.vendor} onChange={(v) => onChange('vendor', v)} testIdPrefix="conflict-vendor" />
-      <ConflictFieldRow label="Version" diskValue={result.version} catalogValue={match?.record_version ?? result.version} choice={choices.version} onChange={(v) => onChange('version', v)} testIdPrefix="conflict-version" />
-      <FieldRow label="Record ID" value={<span className="font-mono text-xs break-all">{match?.record_id ?? '—'}</span>} />
-    </div>
-  )
-}
-
-function CompareFieldRow({ label, diskValue, catalogValue }: Readonly<{ label: string; diskValue: string; catalogValue: string }>) {
-  const differs = diskValue !== catalogValue
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <div className="flex gap-6 text-sm">
-        <span className="text-xs text-muted-foreground w-12 shrink-0 pt-0.5">Disk</span>
-        <span className="font-mono text-foreground">{diskValue}</span>
-      </div>
-      <div className="flex gap-6 text-sm">
-        <span className="text-xs text-muted-foreground w-12 shrink-0 pt-0.5">Catalog</span>
-        <span className={`font-mono ${differs ? 'text-amber-500' : 'text-foreground'}`}>{catalogValue}</span>
-      </div>
-    </div>
-  )
-}
-
-function CompareBody({ result }: Readonly<{ result: ScanResult }>) {
-  const { match } = result
-  return (
-    <div className="px-6 py-4 space-y-4">
-      <FieldRow label="Table" value={<span className="font-mono">{match?.record_table ?? '—'}</span>} />
-      <CompareFieldRow label="Name" diskValue={result.name} catalogValue={match?.record_name ?? result.name} />
-      <CompareFieldRow label="Vendor" diskValue={result.vendor} catalogValue={match?.record_vendor ?? result.vendor} />
-      <CompareFieldRow label="Version" diskValue={result.version} catalogValue={match?.record_version ?? result.version} />
+      <FieldCompareRow label="Name" diskValue={result.name} catalogValue={match?.record_name ?? result.name} choice={choices?.name} onChange={onChange ? (v) => onChange('name', v) : undefined} testIdPrefix="conflict-name" />
+      <FieldCompareRow label="Vendor" diskValue={result.vendor} catalogValue={match?.record_vendor ?? result.vendor} choice={choices?.vendor} onChange={onChange ? (v) => onChange('vendor', v) : undefined} testIdPrefix="conflict-vendor" />
+      <FieldCompareRow label="Version" diskValue={result.version} catalogValue={match?.record_version ?? result.version} choice={choices?.version} onChange={onChange ? (v) => onChange('version', v) : undefined} testIdPrefix="conflict-version" />
       <FieldRow label="Record ID" value={<span className="font-mono text-xs break-all">{match?.record_id ?? '—'}</span>} />
     </div>
   )
@@ -141,8 +113,9 @@ function ModalFooter({ result, onAcknowledge, onSaveConflict, onClose, onSave }:
   onClose: () => void
   onSave: () => void
 }>) {
-  const isConflicted = result.status === 'conflicted'
-  const showAcknowledge = !isConflicted && !result.confirmed_at && !!onAcknowledge
+  const needsResolution = result.status === 'conflicted' || result.status === 'unconfirmed'
+  const showSave = needsResolution && !!onSaveConflict
+  const showAcknowledge = !needsResolution && !result.confirmed_at && !!onAcknowledge
   return (
     <>
       {showAcknowledge && (
@@ -152,7 +125,7 @@ function ModalFooter({ result, onAcknowledge, onSaveConflict, onClose, onSave }:
           </Button>
         </div>
       )}
-      {isConflicted && onSaveConflict && (
+      {showSave && (
         <div className="mr-auto">
           <Button variant="success" onClick={onSave} data-testid="view-record-save-conflict-button">
             Save
@@ -167,8 +140,7 @@ function ModalFooter({ result, onAcknowledge, onSaveConflict, onClose, onSave }:
 }
 
 export function ViewRecordModal({ result, onClose, onAcknowledge, onSaveConflict, onSaved: _ }: Readonly<ViewRecordModalProps>) {
-  const isConflicted = result.status === 'conflicted'
-  const isUnconfirmed = result.status === 'unconfirmed'
+  const isResolvable = result.status === 'conflicted' || result.status === 'unconfirmed'
   const isConfirmed = !!result.confirmed_at
   const { choices, handleChoiceChange, resolvedValues } = useConflictResolution(result)
 
@@ -189,9 +161,10 @@ export function ViewRecordModal({ result, onClose, onAcknowledge, onSaveConflict
             )}
           </DialogTitle>
         </DialogHeader>
-        {isConflicted && <ConflictBody result={result} choices={choices} onChange={handleChoiceChange} />}
-        {isUnconfirmed && <CompareBody result={result} />}
-        {!isConflicted && !isUnconfirmed && <ViewBody result={result} />}
+        {isResolvable
+          ? <ResolutionBody result={result} choices={choices} onChange={handleChoiceChange} />
+          : <ViewBody result={result} />
+        }
         <DialogFooter>
           <ModalFooter result={result} onAcknowledge={onAcknowledge} onSaveConflict={onSaveConflict} onClose={onClose} onSave={handleSave} />
         </DialogFooter>

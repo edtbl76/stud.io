@@ -9,7 +9,6 @@ import { SEARCH_TABLE_META } from '@/lib/searchMeta'
 import { ScanRunPicker } from './ScanRunPicker'
 import { ScanInProgressBanner } from './ScanInProgressBanner'
 import { ScanSectionHeader } from './ScanSectionHeader'
-import { BulkActionBar } from './BulkActionBar'
 import { VirtualSectionList } from './VirtualSectionList'
 import { ExclusionsSection } from './ExclusionsSection'
 import { ConflictedSectionHeader } from './ConflictedSectionHeader'
@@ -23,12 +22,6 @@ import { CreateRecordModal } from './CreateRecordModal'
 import { ViewRecordModal } from './ViewRecordModal'
 import { ManualMappingModal } from './ManualMappingModal'
 
-const HIGH_CONFIDENCE = new Set(['exact', 'high'])
-
-const isHighConfidence = (r: ScanResult) =>
-  !!(r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
-
-const isLowConfidence = (r: ScanResult) => !isHighConfidence(r)
 
 const SECTION_TITLES: Record<Exclude<ScanSection, 'exclusions'>, string> = {
   known:       'Known',
@@ -135,10 +128,6 @@ function useScannerActions(effectiveScanId: string | null) {
       invalidateReport()
     },
 
-    handleConfirmAll: (results: ScanResult[]) => {
-      const high = results.filter(isHighConfidence)
-      if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
-    },
     handleAcknowledge: (resultId: string) => acknowledgeMutation.mutate(resultId),
     handleBulkAcknowledge: (results: ScanResult[]) =>
       Promise.all(results.map(r => acknowledgeMutation.mutateAsync(r.result_id))),
@@ -359,15 +348,7 @@ function SectionHeader({ section, sectionResults, visibleResults, selectedConfli
     )
   }
   return (
-    <>
-      <ScanSectionHeader title={SECTION_TITLES[section]} count={visibleResults.length} hideConfirmed={hideConfirmed} onToggleHideConfirmed={onToggleHideConfirmed} />
-      {section === 'unconfirmed' && (
-        <BulkActionBar
-          highConfidenceCount={sectionResults.filter(isHighConfidence).length}
-          onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
-        />
-      )}
-    </>
+    <ScanSectionHeader title={SECTION_TITLES[section]} count={visibleResults.length} hideConfirmed={hideConfirmed} onToggleHideConfirmed={onToggleHideConfirmed} />
   )
 }
 
@@ -447,15 +428,18 @@ function ScannerSectionContent({
   )
 }
 
-type DividerSentinel = { type: 'divider' }
-type ListItem = ScanResult | DividerSentinel
+type ListItem = ScanResult | { type: 'divider' }
 
 function buildListItems(section: ScanSection, results: ScanResult[]): ListItem[] {
   if (section !== 'unconfirmed') return results
-  const high = results.filter(isHighConfidence)
-  const low = results.filter(isLowConfidence)
-  if (high.length === 0 || low.length === 0) return results
-  return [...high, { type: 'divider' as const }, ...low]
+  return [...results].sort((a, b) => {
+    const tableA = a.match?.record_table ?? ''
+    const tableB = b.match?.record_table ?? ''
+    if (tableA !== tableB) return tableA.localeCompare(tableB)
+    const nameA = a.match?.record_name ?? a.name
+    const nameB = b.match?.record_name ?? b.name
+    return nameA.localeCompare(nameB)
+  })
 }
 
 const ROW_HEIGHT_DEFAULT = 56
@@ -491,15 +475,6 @@ interface RowHandlers {
   selectedConflicted: Set<string>
 }
 
-function ConfidenceDivider() {
-  return (
-    <div className="px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground">
-      <div className="flex-1 border-t border-border" />
-      <span>Medium / Low confidence</span>
-      <div className="flex-1 border-t border-border" />
-    </div>
-  )
-}
 
 type RowRenderer = (result: ScanResult, h: RowHandlers) => React.ReactNode
 
@@ -513,7 +488,6 @@ const ROW_RENDERERS: Partial<Record<ScanSection, RowRenderer>> = {
 }
 
 function renderRow(item: ListItem, section: ScanSection, h: RowHandlers): React.ReactNode {
-  if ('type' in item && item.type === 'divider') return <ConfidenceDivider />
   const renderer = ROW_RENDERERS[section]
   return renderer ? renderer(item as ScanResult, h) : null
 }

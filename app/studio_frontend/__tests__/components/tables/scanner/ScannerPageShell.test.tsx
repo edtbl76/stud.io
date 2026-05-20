@@ -98,12 +98,21 @@ describe('ScannerPageShell', () => {
     await waitFor(() => expect(screen.getByTestId('scanner-retry-button')).toBeInTheDocument())
   })
 
-  it('renders BulkActionBar for unconfirmed section', async () => {
-    mockRun({ unconfirmed: 1 })
-    const unconfirmedResult = { result_id: 'r1', status: 'unconfirmed', name: 'Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'high', score: 90, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null, catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
-    mockReport({ unconfirmed: [unconfirmedResult] })
+  it('renders unconfirmed results sorted by catalog table then catalog name', async () => {
+    mockRun({ unconfirmed: 3 })
+    const r1 = { result_id: 'r1', status: 'unconfirmed', name: 'Z Synth', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'high', score: 90, record_id: 'rec1', record_table: 'instruments', record_name: 'Z Synth', record_vendor: 'V', record_version: '1', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    const r2 = { result_id: 'r2', status: 'unconfirmed', name: 'A Effect', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'high', score: 90, record_id: 'rec2', record_table: 'effects', record_name: 'A Effect', record_vendor: 'V', record_version: '1', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    const r3 = { result_id: 'r3', status: 'unconfirmed', name: 'B Effect', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'low', score: 40, record_id: 'rec3', record_table: 'effects', record_name: 'B Effect', record_vendor: 'V', record_version: '1', catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
+    mockReport({ unconfirmed: [r1, r2, r3] })
     render(<ScannerPageShell section="unconfirmed" />, { wrapper })
-    await waitFor(() => expect(screen.getByTestId('confirm-all-high-confidence-button')).toBeInTheDocument())
+    await waitFor(() => {
+      expect(screen.getByTestId('unconfirmed-row-r1')).toBeInTheDocument()
+      expect(screen.getByTestId('unconfirmed-row-r2')).toBeInTheDocument()
+      expect(screen.getByTestId('unconfirmed-row-r3')).toBeInTheDocument()
+      const body = document.body.innerHTML
+      expect(body.indexOf('unconfirmed-row-r2')).toBeLessThan(body.indexOf('unconfirmed-row-r3'))
+      expect(body.indexOf('unconfirmed-row-r3')).toBeLessThan(body.indexOf('unconfirmed-row-r1'))
+    })
   })
 
   it('renders ConflictedSectionHeader for conflicted section', async () => {
@@ -154,14 +163,6 @@ describe('ScannerPageShell', () => {
     await waitFor(() => expect(screen.getByTestId('scan-in-progress-banner')).toBeInTheDocument())
   })
 
-  it('inserts confidence divider between high and low confidence unconfirmed results', async () => {
-    mockRun({ unconfirmed: 2 })
-    const high = { result_id: 'h1', status: 'unconfirmed', name: 'High FX', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'exact', score: 100, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null, catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
-    const low = { result_id: 'l1', status: 'unconfirmed', name: 'Low FX', vendor: 'V', version: '1', format: 'vst3', path: '/p', match: { confidence: 'low', score: 40, record_id: null, record_table: null, record_name: null, record_vendor: null, record_version: null, catalog_disk_paths: [] }, dismissed_at: null, confirmed_at: null }
-    mockReport({ unconfirmed: [high, low] })
-    render(<ScannerPageShell section="unconfirmed" />, { wrapper })
-    await waitFor(() => expect(screen.getByText('Medium / Low confidence')).toBeInTheDocument())
-  })
 })
 
 describe('ScannerPageShell — actions', () => {
