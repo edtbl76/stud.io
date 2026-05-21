@@ -261,3 +261,53 @@ async def test_idx_scans_scanned_at_exists(conn):
         "WHERE tablename = 'plugin_scans' AND indexname = 'idx_scans_scanned_at'"
     )
     assert row is not None, "idx_scans_scanned_at must exist on plugin_scans"
+
+
+# ---------------------------------------------------------------------------
+# U-01 rewrite: rule table indexes
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_vendor_rules_disk_vendor_index_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'scanner_vendor_rules' AND indexname = 'idx_vendor_rules_disk_vendor'"
+    )
+    assert row is not None, "idx_vendor_rules_disk_vendor must exist on scanner_vendor_rules"
+
+
+@pytest.mark.asyncio
+async def test_name_rules_disk_name_index_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'scanner_name_rules' AND indexname = 'idx_name_rules_disk_name'"
+    )
+    assert row is not None, "idx_name_rules_disk_name must exist on scanner_name_rules"
+
+
+@pytest.mark.asyncio
+async def test_vendor_rules_join_uses_index(conn):
+    plan = await conn.fetchval(
+        "EXPLAIN (FORMAT JSON) "
+        "SELECT psr.name, vr.catalog_vendor "
+        "FROM plugin_scan_results psr "
+        "LEFT JOIN scanner_vendor_rules vr ON psr.vendor = vr.disk_vendor AND vr.enabled = TRUE "
+        "WHERE psr.scan_id = $1",
+        '00000000-0000-0000-0000-000000000000',
+    )
+    assert _uses_index(_plan_text(plan)), \
+        "vendor rule JOIN should use Index Scan on idx_vendor_rules_disk_vendor"
+
+
+@pytest.mark.asyncio
+async def test_name_rules_join_uses_index(conn):
+    plan = await conn.fetchval(
+        "EXPLAIN (FORMAT JSON) "
+        "SELECT psr.name, nr.catalog_name "
+        "FROM plugin_scan_results psr "
+        "LEFT JOIN scanner_name_rules nr ON psr.name = nr.disk_name AND nr.enabled = TRUE "
+        "WHERE psr.scan_id = $1",
+        '00000000-0000-0000-0000-000000000000',
+    )
+    assert _uses_index(_plan_text(plan)), \
+        "name rule JOIN should use Index Scan on idx_name_rules_disk_name"
