@@ -5,10 +5,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import type { AbsentRecord, ConfirmDecision, ScanReport, ScanResult, ScanSection } from '@/lib/types'
+import { SEARCH_TABLE_META } from '@/lib/searchMeta'
 import { ScanRunPicker } from './ScanRunPicker'
 import { ScanInProgressBanner } from './ScanInProgressBanner'
 import { ScanSectionHeader } from './ScanSectionHeader'
-import { BulkActionBar } from './BulkActionBar'
 import { VirtualSectionList } from './VirtualSectionList'
 import { ExclusionsSection } from './ExclusionsSection'
 import { ConflictedSectionHeader } from './ConflictedSectionHeader'
@@ -22,12 +22,6 @@ import { CreateRecordModal } from './CreateRecordModal'
 import { ViewRecordModal } from './ViewRecordModal'
 import { ManualMappingModal } from './ManualMappingModal'
 
-const HIGH_CONFIDENCE = new Set(['exact', 'high'])
-
-const isHighConfidence = (r: ScanResult) =>
-  !!(r.match?.confidence && HIGH_CONFIDENCE.has(r.match.confidence))
-
-const isLowConfidence = (r: ScanResult) => !isHighConfidence(r)
 
 const SECTION_TITLES: Record<Exclude<ScanSection, 'exclusions'>, string> = {
   known:       'Known',
@@ -99,14 +93,41 @@ function useScannerActions(effectiveScanId: string | null) {
     onSuccess: invalidateReport,
   })
 
+  const saveConflictMutation = useMutation({
+    mutationFn: async ({ result, values }: { result: ScanResult; values: import('@/components/tables/scanner/ViewRecordModal').ConflictResolution }) => {
+      const endpoint = SEARCH_TABLE_META[result.match!.record_table!]?.endpoint
+      await api.update(endpoint, result.match!.record_id!, values)
+      await api.scanner.acknowledge(result.result_id)
+    },
+    onError: () => toast.error('Failed to save conflict resolution. Please try again.'),
+    onSuccess: invalidateReport,
+  })
+
   return {
     handleConfirm: (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'confirm' }]),
     handleReject:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'reject' }]),
     handleIgnore:  (resultId: string) => confirmMutation.mutate([{ result_id: resultId, action: 'ignore' }]),
-    handleConfirmAll: (results: ScanResult[]) => {
-      const high = results.filter(isHighConfidence)
-      if (high.length > 0) confirmMutation.mutate(high.map(r => ({ result_id: r.result_id, action: 'confirm' as const })))
+    handleSaveConflict: (result: ScanResult, values: import('@/components/tables/scanner/ViewRecordModal').ConflictResolution) =>
+      saveConflictMutation.mutate({ result, values }),
+    handleBulkAcceptDisk: async (results: ScanResult[]) => {
+      let succeeded = 0
+      for (const r of results) {
+        const endpoint = SEARCH_TABLE_META[r.match?.record_table ?? '']?.endpoint
+        if (!endpoint || !r.match?.record_id) continue
+        try {
+          await api.update(endpoint, r.match.record_id, { version: r.version })
+          await api.scanner.acknowledge(r.result_id)
+          succeeded++
+        } catch {
+          toast.error(`Updated ${succeeded} of ${results.length} — stopped at "${r.name}"`)
+          invalidateReport()
+          return
+        }
+      }
+      toast.success(`Updated ${succeeded} record${succeeded === 1 ? '' : 's'}`)
+      invalidateReport()
     },
+
     handleAcknowledge: (resultId: string) => acknowledgeMutation.mutate(resultId),
     handleBulkAcknowledge: (results: ScanResult[]) =>
       Promise.all(results.map(r => acknowledgeMutation.mutateAsync(r.result_id))),
@@ -215,12 +236,8 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
 
   async function handleBulkConflictedUpdate() {
     const selected = sectionResults.filter(r => selectedConflicted.has(r.result_id))
-    try {
-      await actions.handleBulkAcknowledge(selected)
-      setSelectedConflicted(new Set())
-    } catch {
-      // toast already shown by mutation onError; preserve selection so user can retry
-    }
+    await actions.handleBulkAcceptDisk(selected)
+    setSelectedConflicted(new Set())
   }
 
   return (
@@ -255,6 +272,11 @@ export function ScannerPageShell({ section }: Readonly<{ section: ScanSection }>
           result={viewRecord}
           onClose={() => setViewRecord(null)}
           onAcknowledge={actions.handleAcknowledge}
+          onSaveConflict={(resultId, values) => {
+            const r = sectionResults.find(x => x.result_id === resultId) ?? viewRecord
+            actions.handleSaveConflict(r, values)
+            setViewRecord(null)
+          }}
           onSaved={() => refetchReport()}
         />
       )}
@@ -304,14 +326,85 @@ interface ScannerSectionContentProps {
   onBulkConflictedUpdate: () => void
 }
 
+function SectionHeader({ section, sectionResults, visibleResults, selectedConflicted, hideConfirmed, onToggleHideConfirmed, onBulkConflictedUpdate, actions }: Readonly<{
+  section: Exclude<ScanSection, 'exclusions'>
+  sectionResults: ScanResult[]
+  visibleResults: ScanResult[]
+  selectedConflicted: Set<string>
+  hideConfirmed: boolean
+  onToggleHideConfirmed: () => void
+  onBulkConflictedUpdate: () => void
+  actions: ReturnType<typeof useScannerActions>
+}>) {
+  if (section === 'conflicted') {
+    return (
+      <ConflictedSectionHeader
+        count={visibleResults.length}
+        selectedCount={selectedConflicted.size}
+        hideConfirmed={hideConfirmed}
+        onToggleHideConfirmed={onToggleHideConfirmed}
+        onBulkUpdate={onBulkConflictedUpdate}
+      />
+    )
+  }
+  return (
+    <ScanSectionHeader title={SECTION_TITLES[section]} count={visibleResults.length} hideConfirmed={hideConfirmed} onToggleHideConfirmed={onToggleHideConfirmed} />
+  )
+}
+
+function SectionResultsArea({ section, absentResults, visibleResults, reportError, onRefetch, actions, onCreateRecord, onViewRecord, onOverride, onConflictedSelect, selectedConflicted }: Readonly<{
+  section: Exclude<ScanSection, 'exclusions'>
+  absentResults: AbsentRecord[]
+  visibleResults: ScanResult[]
+  reportError: boolean
+  onRefetch: () => void
+  actions: ReturnType<typeof useScannerActions>
+  onCreateRecord: (result: ScanResult) => void
+  onViewRecord: (result: ScanResult) => void
+  onOverride: (result: ScanResult) => void
+  onConflictedSelect: (resultId: string) => void
+  selectedConflicted: Set<string>
+}>) {
+  if (reportError) {
+    return (
+      <div className="flex flex-col items-center justify-center flex-1 gap-3 text-sm text-muted-foreground">
+        <p>Failed to load scan results.</p>
+        <button onClick={onRefetch} className="text-primary underline" data-testid="scanner-retry-button">Retry</button>
+      </div>
+    )
+  }
+  const items = section === 'absent'
+    ? absentResults
+    : buildListItems(section, visibleResults)
+  const renderItem = section === 'absent'
+    ? (r: AbsentRecord) => <AbsentRow record={r} />
+    : (item: ScanResult | { type: 'divider' }) => renderRow(item, section, {
+        onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
+        onAcknowledge: actions.handleAcknowledge,
+        onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
+        onCreateRecord, onViewRecord, onOverride, onConflictedSelect, selectedConflicted,
+      })
+  return (
+    <div className="flex-1 overflow-hidden">
+      <VirtualSectionList
+        items={items}
+        estimatedItemHeight={section === 'absent' ? ROW_HEIGHT_WITH_SUBTITLE : estimatedHeight(section)}
+        renderItem={renderItem as (item: unknown) => React.ReactNode}
+        emptyState={<SectionEmptyState section={section} />}
+      />
+    </div>
+  )
+}
+
 function ScannerSectionContent({
   runs, effectiveScanId, section, sectionResults, absentResults, isScanning, latestRunScanId,
   reportError, actions, selectedConflicted, onScanIdChange, onPurge, onCreateRecord,
   onViewRecord, onRefetch, onOverride, onConflictedSelect, onBulkConflictedUpdate,
 }: Readonly<ScannerSectionContentProps>) {
-  const sectionTitle = SECTION_TITLES[section]
-  const isAbsent = section === 'absent'
-  const displayCount = isAbsent ? absentResults.length : sectionResults.length
+  const [hideConfirmed, setHideConfirmed] = React.useState(true)
+  const visibleResults = hideConfirmed
+    ? sectionResults.filter(r => !r.confirmed_at)
+    : sectionResults
 
   return (
     <>
@@ -319,67 +412,34 @@ function ScannerSectionContent({
         <ScanRunPicker runs={runs} selectedId={effectiveScanId} onChange={onScanIdChange} onPurge={onPurge} />
       </div>
       {isScanning && latestRunScanId && <ScanInProgressBanner scannedAt={latestRunScanId} />}
-      {section === 'conflicted' ? (
-        <ConflictedSectionHeader
-          count={sectionResults.length}
-          selectedCount={selectedConflicted.size}
-          onBulkUpdate={onBulkConflictedUpdate}
-        />
-      ) : (
-        <ScanSectionHeader title={sectionTitle} count={displayCount} />
-      )}
-      {section === 'unconfirmed' && (
-        <BulkActionBar
-          highConfidenceCount={sectionResults.filter(isHighConfidence).length}
-          onConfirmAll={() => actions.handleConfirmAll(sectionResults)}
-        />
-      )}
-      {reportError ? (
-        <div className="flex flex-col items-center justify-center flex-1 gap-3 text-sm text-muted-foreground">
-          <p>Failed to load scan results.</p>
-          <button onClick={onRefetch} className="text-primary underline" data-testid="scanner-retry-button">Retry</button>
-        </div>
-      ) : (
-        <div className="flex-1 overflow-hidden">
-          {isAbsent ? (
-            <VirtualSectionList
-              items={absentResults}
-              estimatedItemHeight={ROW_HEIGHT_WITH_SUBTITLE}
-              renderItem={(r) => <AbsentRow record={r} />}
-              emptyState={<SectionEmptyState section={section} />}
-            />
-          ) : (
-            <VirtualSectionList
-              items={buildListItems(section, sectionResults)}
-              estimatedItemHeight={estimatedHeight(section)}
-              renderItem={(item) => renderRow(item, section, {
-                onConfirm: actions.handleConfirm, onReject: actions.handleReject, onIgnore: actions.handleIgnore,
-                onAcknowledge: actions.handleAcknowledge,
-                onDismiss: actions.handleDismiss, onKeep: actions.handleKeep, onRemove: actions.handleRemove,
-                onCreateRecord,
-                onViewRecord,
-                onOverride,
-                onConflictedSelect,
-                selectedConflicted,
-              })}
-              emptyState={<SectionEmptyState section={section} />}
-            />
-          )}
-        </div>
-      )}
+      <SectionHeader
+        section={section} sectionResults={sectionResults} visibleResults={visibleResults}
+        selectedConflicted={selectedConflicted} hideConfirmed={hideConfirmed}
+        onToggleHideConfirmed={() => setHideConfirmed(prev => !prev)}
+        onBulkConflictedUpdate={onBulkConflictedUpdate} actions={actions}
+      />
+      <SectionResultsArea
+        section={section} absentResults={absentResults} visibleResults={visibleResults}
+        reportError={reportError} onRefetch={onRefetch} actions={actions}
+        onCreateRecord={onCreateRecord} onViewRecord={onViewRecord} onOverride={onOverride}
+        onConflictedSelect={onConflictedSelect} selectedConflicted={selectedConflicted}
+      />
     </>
   )
 }
 
-type DividerSentinel = { type: 'divider' }
-type ListItem = ScanResult | DividerSentinel
+type ListItem = ScanResult | { type: 'divider' }
 
 function buildListItems(section: ScanSection, results: ScanResult[]): ListItem[] {
   if (section !== 'unconfirmed') return results
-  const high = results.filter(isHighConfidence)
-  const low = results.filter(isLowConfidence)
-  if (high.length === 0 || low.length === 0) return results
-  return [...high, { type: 'divider' as const }, ...low]
+  return [...results].sort((a, b) => {
+    const tableA = a.match?.record_table ?? ''
+    const tableB = b.match?.record_table ?? ''
+    if (tableA !== tableB) return tableA.localeCompare(tableB)
+    const nameA = a.match?.record_name ?? a.name
+    const nameB = b.match?.record_name ?? b.name
+    return nameA.localeCompare(nameB)
+  })
 }
 
 const ROW_HEIGHT_DEFAULT = 56
@@ -415,15 +475,6 @@ interface RowHandlers {
   selectedConflicted: Set<string>
 }
 
-function ConfidenceDivider() {
-  return (
-    <div className="px-4 py-2 flex items-center gap-2 text-xs text-muted-foreground">
-      <div className="flex-1 border-t border-border" />
-      <span>Medium / Low confidence</span>
-      <div className="flex-1 border-t border-border" />
-    </div>
-  )
-}
 
 type RowRenderer = (result: ScanResult, h: RowHandlers) => React.ReactNode
 
@@ -431,13 +482,12 @@ const ROW_RENDERERS: Partial<Record<ScanSection, RowRenderer>> = {
   known:       (r, h) => <MatchedRow result={r} onViewRecord={h.onViewRecord} onAcknowledge={h.onAcknowledge} />,
   matched:     (r, h) => <MatchedRow result={r} onViewRecord={h.onViewRecord} onAcknowledge={h.onAcknowledge} />,
   conflicted:  (r, h) => <ConflictedRow result={r} selected={h.selectedConflicted.has(r.result_id)} onSelect={h.onConflictedSelect} onViewRecord={h.onViewRecord} />,
-  unconfirmed: (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} onOverride={h.onOverride} />,
+  unconfirmed: (r, h) => <UnconfirmedRow result={r} onConfirm={h.onConfirm} onReject={h.onReject} onIgnore={h.onIgnore} onOverride={h.onOverride} onViewRecord={h.onViewRecord} />,
   untracked:   (r, h) => <UntrackedRow result={r} onCreateRecord={h.onCreateRecord} onIgnore={h.onIgnore} onOverride={h.onOverride} />,
   orphaned:    (r, h) => <OrphanedRow result={r} onDismiss={h.onDismiss} onKeepPermanently={h.onKeep} onRemoveFromCatalog={h.onRemove} onViewRecord={h.onViewRecord} />,
 }
 
 function renderRow(item: ListItem, section: ScanSection, h: RowHandlers): React.ReactNode {
-  if ('type' in item && item.type === 'divider') return <ConfidenceDivider />
   const renderer = ROW_RENDERERS[section]
   return renderer ? renderer(item as ScanResult, h) : null
 }

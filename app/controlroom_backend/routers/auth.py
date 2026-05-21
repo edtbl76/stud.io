@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import PyJWTError as JWTError
 from pydantic import BaseModel
 
 from config import settings

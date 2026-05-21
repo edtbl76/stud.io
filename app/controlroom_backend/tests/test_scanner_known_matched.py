@@ -102,3 +102,5 @@ async def test_catalog_disk_paths_empty_on_matched_result(client, conn, auth_hea
     assert resp.status_code == 200
     matched_result = resp.json()["matched"][0]
     assert matched_result["match"]["catalog_disk_paths"] == []
+
+

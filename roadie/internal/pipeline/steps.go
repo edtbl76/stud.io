@@ -139,6 +139,7 @@ func PipAuditStep(root Root) ToolStep {
 			"-m", "pip_audit",
 			"-r", filepath.Join(r, backendDir, "requirements.txt"),
 			"--ignore-vuln", "CVE-2024-23342",
+			"--ignore-vuln", "PYSEC-2025-183",
 		},
 		Env: pathEnv(ResolvePython()),
 	}

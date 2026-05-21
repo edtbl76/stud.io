@@ -210,3 +210,67 @@ describe('useSessionState — filter debounce', () => {
     expect(result.current.activeFilters).toEqual({})
   })
 })
+
+describe('useSessionState — setFilterEntry null / clearFilters', () => {
+  it('removes a single filter entry when set to null', () => {
+    const { result } = makeHook()
+    act(() => {
+      result.current.setFilterEntry('name', { value: 'test', operator: 'contains' })
+    })
+    act(() => {
+      result.current.setFilterEntry('name', null)
+    })
+    expect(result.current.inputFilters).toEqual({})
+  })
+
+  it('clearFilters removes all active filters immediately', () => {
+    const { result } = makeHook()
+    act(() => {
+      result.current.setFilterEntry('name', { value: 'test', operator: 'contains' })
+    })
+    act(() => { result.current.clearFilters() })
+    expect(result.current.inputFilters).toEqual({})
+    expect(result.current.activeFilters).toEqual({})
+  })
+})
+
+describe('useSessionState — isEntryActive edge cases', () => {
+  beforeEach(() => { jest.useFakeTimers() })
+  afterEach(() => { jest.useRealTimers() })
+
+  it('activates value-free operators (is_empty) immediately', () => {
+    const { result } = makeHook()
+    act(() => {
+      result.current.setFilterEntry('name', { value: '', operator: 'is_empty' })
+    })
+    act(() => { jest.advanceTimersByTime(350) })
+    expect(result.current.activeFilters).toMatchObject({ name: { operator: 'is_empty' } })
+  })
+
+  it('activates date operators with non-empty value', () => {
+    const { result } = makeHook()
+    act(() => {
+      result.current.setFilterEntry('date', { value: '2026-05-01', operator: 'date_after' })
+    })
+    act(() => { jest.advanceTimersByTime(350) })
+    expect(result.current.activeFilters).toMatchObject({ date: { operator: 'date_after' } })
+  })
+
+  it('activates quoted single-char values', () => {
+    const { result } = makeHook()
+    act(() => {
+      result.current.setFilterEntry('name', { value: '"x"', operator: 'contains' })
+    })
+    act(() => { jest.advanceTimersByTime(350) })
+    expect(result.current.activeFilters).toMatchObject({ name: { value: '"x"' } })
+  })
+})
+
+describe('useSessionState — makeDefaultEntry', () => {
+  it('returns an entry with the default operator', async () => {
+    const { makeDefaultEntry } = await import('@/lib/useSessionState')
+    const entry = makeDefaultEntry('test')
+    expect(entry.value).toBe('test')
+    expect(entry.operator).toBeDefined()
+  })
+})

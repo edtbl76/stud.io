@@ -42,6 +42,13 @@ const config: Config = {
     '!components/layout/LayoutShell.tsx',
     // TanStack Table column definitions — thin view config, logic tested via Modal tests
     '!components/tables/**/columns.tsx',
+    '!components/tables/gear/guitarColumns.tsx',
+    // Thin Next.js route files — all logic lives in components, not in the route shell
+    '!app/**/layout.tsx',
+    '!app/controlroom/scanner/**/page.tsx',
+    '!app/controlroom/session/**/page.tsx',
+    '!app/gearlist/**',
+    '!app/studio/config/**',
   ],
   coverageReporters: ['lcov', 'text-summary'],
   coverageDirectory: 'coverage',

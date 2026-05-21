@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 
 from fastapi import Request
-from jose import jwt as _jwt
-from jose.exceptions import JWTError
+import jwt as _jwt
+from jwt.exceptions import PyJWTError as JWTError
 from slowapi import Limiter
 
 from config import settings

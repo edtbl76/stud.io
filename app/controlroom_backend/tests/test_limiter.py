@@ -36,7 +36,7 @@ def test_key_by_user_falls_back_to_ip_when_no_auth_header():
 
 
 def test_key_by_user_falls_back_to_ip_when_sub_missing():
-    from jose import jwt as _jwt
+    import jwt as _jwt
     from limiter import _key_by_user
     from config import settings
     token = _jwt.encode({"role": "admin"}, settings.jwt_secret, algorithm=settings.jwt_algorithm)

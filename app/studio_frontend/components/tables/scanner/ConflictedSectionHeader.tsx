@@ -1,15 +1,26 @@
 interface ConflictedSectionHeaderProps {
   count: number
   selectedCount: number
+  hideConfirmed: boolean
+  onToggleHideConfirmed: () => void
   onBulkUpdate: () => void
 }
 
-export function ConflictedSectionHeader({ count, selectedCount, onBulkUpdate }: Readonly<ConflictedSectionHeaderProps>) {
+export function ConflictedSectionHeader({
+  count, selectedCount, hideConfirmed, onToggleHideConfirmed, onBulkUpdate,
+}: Readonly<ConflictedSectionHeaderProps>) {
   return (
     <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-muted/20">
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold text-foreground">Conflicted</span>
         <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">{count}</span>
+        <button
+          onClick={onToggleHideConfirmed}
+          className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+          data-testid="toggle-hide-confirmed"
+        >
+          {hideConfirmed ? 'Show confirmed' : 'Hide confirmed'}
+        </button>
       </div>
       {selectedCount > 0 && (
         <button
