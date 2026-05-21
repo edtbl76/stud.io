@@ -27,6 +27,11 @@ CVE-2026-29111
 # glibc iconv is not invoked by the application; present only as an OS base image dep.
 CVE-2026-4046
 
+# CVE-2026-40356: krb5 — DoS via integer overflow in MIT Kerberos 5 (libgssapi-krb5-2)
+# Suppressed: no fix available in debian 13.5. The application uses JWT/bcrypt authentication
+# exclusively; libgssapi-krb5-2 is an indirect OS dependency not reachable from the app.
+CVE-2026-40356
+
 # Frontend npm devDependency CVEs
 # The following packages are transitive dependencies of build/test tooling
 # (jest, playwright, next build) installed in the dev container. They are not
