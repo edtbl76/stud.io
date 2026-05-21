@@ -98,8 +98,12 @@ CREATE INDEX IF NOT EXISTS idx_name_aliases_disk_name
 
 INSERT INTO scanner_name_patterns
     (label, pattern, match_fields, action, enabled, is_seeded, created_by)
-VALUES
-    ('Mono variant', '{name}(m)', '{vendor,version,format}', 'alias_to_match', FALSE, TRUE, 'system')
-ON CONFLICT DO NOTHING;
+SELECT 'Mono variant', '{name}(m)', '{vendor,version,format}', 'alias_to_match', FALSE, TRUE, 'system'
+WHERE NOT EXISTS (
+    SELECT 1 FROM scanner_name_patterns
+    WHERE label = 'Mono variant'
+      AND pattern = '{name}(m)'
+      AND match_fields = '{vendor,version,format}'
+);
 
 COMMIT;

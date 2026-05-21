@@ -330,13 +330,18 @@ async def test_new_status_values_accepted(conn):
         "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1, $2) RETURNING scan_id",
         "test-machine", 1,
     )
-    for status in ("unlinked", "needs_review", "excluded"):
+    expected = {"unlinked", "needs_review", "excluded"}
+    for status in expected:
         await conn.execute(
             "INSERT INTO plugin_scan_results "
             "(scan_id, name, vendor, version, format, path, status) "
             "VALUES ($1, $2, $3, $4, $5, $6, $7)",
             scan_id, "Test Plugin", "Test Vendor", "1.0", "vst3", "/test.vst3", status,
         )
+    rows = await conn.fetch(
+        "SELECT status FROM plugin_scan_results WHERE scan_id = $1", scan_id
+    )
+    assert {r["status"] for r in rows} == expected
 
 
 @pytest.mark.asyncio

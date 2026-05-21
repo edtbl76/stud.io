@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS plugin_scan_results (
     version      TEXT        NOT NULL,
     format       TEXT        NOT NULL CHECK (format IN ('vst3', 'au', 'vst2')),
     path         TEXT        NOT NULL,
-    status       TEXT        NOT NULL CHECK (status IN ('known', 'matched', 'conflicted', 'unconfirmed', 'untracked', 'orphaned', 'ignored')),
+    status       TEXT        NOT NULL CHECK (status IN ('known', 'matched', 'conflicted', 'unconfirmed', 'untracked', 'orphaned', 'ignored', 'unlinked', 'needs_review', 'excluded')),
     confidence   TEXT        CHECK (confidence IN ('exact', 'high', 'medium', 'low', 'none')),
     score        NUMERIC(5,2) CHECK (score BETWEEN 0 AND 100),
     record_id    UUID,                   -- matched ControlRoom record (soft ref, no FK — table is dynamic)
