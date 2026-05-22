@@ -127,11 +127,10 @@ async def _toggle_rule(conn: Connection, cfg: _RuleConfig, rule_id: UUID, enable
 
 
 def _is_clean_match(display_name, display_vendor, version, record) -> bool:
-    return (
-        (display_name or "").lower() == (record.name or "").lower()
-        and (display_vendor or "").lower() == (record.vendor or "").lower()
-        and (version or "") == (record.version or "")
-    )
+    name_ok = (display_name or "").lower() == (record.name or "").lower()
+    vendor_ok = (display_vendor or "").lower() == (record.vendor or "").lower()
+    version_ok = (version or "") == (record.version or "")
+    return name_ok and vendor_ok and version_ok
 
 
 def _collect_clean_ids(rows, cfg: _RuleConfig, catalog_value: str, ctx: _CatalogCtx) -> list:

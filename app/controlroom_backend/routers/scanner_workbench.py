@@ -67,14 +67,10 @@ class _WorkbenchQuery:
         self,
         scan_id: UUID | None = Query(None),
         bucket: str | None = Query(None),
-        catalog_type: str | None = Query(None),
-        fmt: str | None = Query(None, alias="format"),
         show_confirmed: bool = Query(False),
     ):
         self.scan_id = scan_id
         self.bucket = bucket
-        self.catalog_type = catalog_type
-        self.fmt = fmt
         self.show_confirmed = show_confirmed
 
 
