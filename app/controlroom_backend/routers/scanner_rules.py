@@ -126,9 +126,13 @@ async def _toggle_rule(conn: Connection, cfg: _RuleConfig, rule_id: UUID, enable
     return row
 
 
+def _norm(s: str | None) -> str:
+    return (s or "").lower()
+
+
 def _is_clean_match(display_name, display_vendor, version, record) -> bool:
-    name_ok = (display_name or "").lower() == (record.name or "").lower()
-    vendor_ok = (display_vendor or "").lower() == (record.vendor or "").lower()
+    name_ok = _norm(display_name) == _norm(record.name)
+    vendor_ok = _norm(display_vendor) == _norm(record.vendor)
     version_ok = (version or "") == (record.version or "")
     return name_ok and vendor_ok and version_ok
 
