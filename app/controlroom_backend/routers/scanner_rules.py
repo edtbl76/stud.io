@@ -103,8 +103,8 @@ class _RuleValues:
 async def _insert_rule(conn: Connection, cfg: _RuleConfig, vals: _RuleValues, username: str):
     try:
         return await conn.fetchrow(cfg.insert_sql, vals.disk.lower(), vals.catalog, username)
-    except UniqueViolationError:
-        raise HTTPException(status_code=409, detail=cfg.conflict_msg)
+    except UniqueViolationError as exc:
+        raise HTTPException(status_code=409, detail=cfg.conflict_msg) from exc
 
 
 async def _update_rule(conn: Connection, cfg: _RuleConfig, rule_id: UUID, catalog_value: str):

@@ -17,6 +17,11 @@ from schemas.scanner_workbench import ResetRequest, ResetResult
 router = APIRouter()
 
 _HARD_RESET_CONFIRMATION = "RESET ALL SCANNER DATA"
+_HTTP_UNPROCESSABLE_ENTITY = 422
+
+
+def _parse_row_count(result: str) -> int:
+    return int(result.split()[-1])
 
 
 @router.post("/admin/reset/soft")
@@ -29,7 +34,7 @@ async def reset_soft(
         vr = await conn.execute("UPDATE scanner_vendor_rules SET enabled=FALSE")
         nr = await conn.execute("UPDATE scanner_name_rules SET enabled=FALSE")
         pr = await conn.execute("UPDATE scanner_name_patterns SET enabled=FALSE")
-    total = sum(int(s.split()[-1]) for s in (vr, nr, pr))
+    total = sum(_parse_row_count(s) for s in (vr, nr, pr))
     return ResetResult(type="soft", rules_disabled=total)
 
 
@@ -45,14 +50,12 @@ async def reset_hard(
     """
     if body.confirmation_text != _HARD_RESET_CONFIRMATION:
         raise HTTPException(
-            status_code=422,
+            status_code=_HTTP_UNPROCESSABLE_ENTITY,
             detail=f"confirmation_text must be exactly '{_HARD_RESET_CONFIRMATION}'",
         )
 
     async with conn.transaction():
-        results_deleted = int(
-            (await conn.execute("DELETE FROM plugin_scan_results")).split()[-1]
-        )
+        results_deleted = _parse_row_count(await conn.execute("DELETE FROM plugin_scan_results"))
         await conn.execute("DELETE FROM plugin_scans")
         await conn.execute("DELETE FROM scanner_vendor_rules")
         await conn.execute("DELETE FROM scanner_name_rules")
@@ -62,11 +65,9 @@ async def reset_hard(
         await conn.execute(
             "DELETE FROM scanner_name_patterns WHERE is_seeded = FALSE"
         )
-        seeded = int(
-            (await conn.execute(
-                "UPDATE scanner_name_patterns SET enabled=FALSE WHERE is_seeded=TRUE"
-            )).split()[-1]
-        )
+        seeded = _parse_row_count(await conn.execute(
+            "UPDATE scanner_name_patterns SET enabled=FALSE WHERE is_seeded=TRUE"
+        ))
 
     return ResetResult(
         type="hard",

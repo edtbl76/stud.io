@@ -6,7 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from asyncpg import Connection
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
@@ -66,7 +66,7 @@ async def _create_link_for_result(
         "SELECT name, vendor FROM plugin_scan_results WHERE result_id=$1", result_id
     )
     if not row:
-        return False
+        raise HTTPException(status_code=404, detail="Scan result not found")
     pk, nc = CATALOG_TABLES[catalog_ref.record_table]
     catalog = await conn.fetchrow(
         f"SELECT {nc} AS name, b.brand_name AS vendor "
@@ -74,7 +74,7 @@ async def _create_link_for_result(
         catalog_ref.record_id,
     )
     if not catalog:
-        return False
+        raise HTTPException(status_code=404, detail="Catalog record not found")
     fp = f"{row['vendor']} {row['name']}".lower().strip()
     if catalog["vendor"] is not None:
         await conn.execute(
@@ -102,9 +102,9 @@ async def _candidates_for_unlinked(conn: Connection, source_id: UUID, q_lower: s
     result_row = await conn.fetchrow(
         "SELECT scan_id FROM plugin_scan_results WHERE result_id=$1", source_id
     )
-    already_linked = (
-        await _confirmed_record_ids(conn, result_row["scan_id"]) if result_row else set()
-    )
+    if not result_row:
+        raise HTTPException(status_code=404, detail="Scan result not found")
+    already_linked = await _confirmed_record_ids(conn, result_row["scan_id"])
     orphaned_rows = await conn.fetch(_ORPHANED_QUERY)
     candidates: list[OrphanedRecord] = [
         OrphanedRecord(
@@ -141,7 +141,7 @@ async def _candidates_for_orphaned(conn: Connection, source_id: UUID, q_lower: s
     return FindLinkCandidatesResponse(type="orphaned", candidates=candidates_wb, total=len(candidates_wb))
 
 
-@router.get("/links/candidates")
+@router.get("/links/candidates", responses={404: {"description": "Scan result not found"}})
 async def find_link_candidates(
     lq: Annotated[_LinkQuery, Depends()],
     _user: Annotated[UserOut, Depends(require_admin)],
@@ -153,13 +153,13 @@ async def find_link_candidates(
     return await _candidates_for_orphaned(conn, lq.source_id, q_lower)
 
 
-@router.post("/links", status_code=status.HTTP_201_CREATED)
+@router.post("/links", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
 async def create_link(body: CreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     created = await _create_link_for_result(conn, body.result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username)
     return BulkLinkResult(links_created=int(created))
 
 
-@router.post("/links/bulk", status_code=status.HTTP_201_CREATED)
+@router.post("/links/bulk", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
 async def bulk_create_links(body: BulkCreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     results = [
         await _create_link_for_result(conn, result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username)

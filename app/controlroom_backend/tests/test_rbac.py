@@ -314,3 +314,35 @@ async def test_unauthenticated_cannot_get_recent_scans(client):
 async def test_user_cannot_get_scan_report(client, auth_headers):
     response = await client.get(f"/scanner/scans/{DUMMY_UUID}/report", headers=auth_headers)
     assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_get_scan_report_by_id(client):
+    response = await client.get(f"/scanner/scans/{DUMMY_UUID}/report")
+    assert response.status_code == 401
+
+
+async def test_user_cannot_soft_reset(client, auth_headers):
+    response = await client.post("/scanner/admin/reset/soft", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_soft_reset(client):
+    response = await client.post("/scanner/admin/reset/soft")
+    assert response.status_code == 401
+
+
+async def test_user_cannot_hard_reset(client, auth_headers):
+    response = await client.post(
+        "/scanner/admin/reset/hard",
+        json={"confirmation_text": "RESET ALL SCANNER DATA"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_hard_reset(client):
+    response = await client.post(
+        "/scanner/admin/reset/hard",
+        json={"confirmation_text": "RESET ALL SCANNER DATA"},
+    )
+    assert response.status_code == 401
