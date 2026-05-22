@@ -69,10 +69,15 @@ Defined in `sql/scanner_schema.sql`. Used by the FastAPI scanner routes and the 
 | Table | Description |
 |---|---|
 | `plugin_scans` | One row per scan run uploaded by the plugin-scanner binary. Fields: `scan_id UUID PK`, `scanned_at TIMESTAMPTZ`, `source_machine TEXT`, `total_count INT`. No soft delete — hard-deleted when purged. |
-| `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), confirmation state (`confirmed_at`, `confirmed_by`), and soft-hide flag (`dismissed_at`). Status values: `known` (matched, catalog has disk_paths), `matched` (matched, no disk_paths), `conflicted` (version mismatch), `unconfirmed` (fuzzy match), `untracked` (no match), `orphaned` (confirmed link but record absent from disk), `ignored`. No soft delete. |
+| `plugin_scan_results` | One row per discovered plugin per scan. FK to `plugin_scans` with `ON DELETE CASCADE`. Stores raw scanned metadata (`name`, `vendor`, `version`, `format`, `path`), server-side match result (`status`, `confidence`, `score`, `record_id`, `record_table`), confirmation state (`confirmed_at`, `confirmed_by`), and soft-hide flag (`dismissed_at`). Status values (rewrite): `unlinked` (no catalog match), `needs_review` (match found, unconfirmed or field mismatch), `known` (confirmed, catalog has disk_paths), `orphaned` (catalog record with disk_paths not found in scan), `excluded` (explicitly ignored). Legacy values `matched`, `conflicted`, `unconfirmed`, `untracked`, `ignored` remain valid during coexistence period (removed in U-05 cleanup). No soft delete. |
 | `scanner_api_keys` | API keys for plugin-scanner binary authentication. Stores `label TEXT`, `key_hint TEXT` (last 4 chars of plaintext), `hashed_key TEXT UNIQUE` (bcrypt), `created_at`, `revoked_at`. Plaintext key never stored. |
-| `scanner_exclusions` | Plugins excluded from all future scan reports. Fields: `exclusion_id UUID PK`, `vendor TEXT`, `name TEXT`, `excluded_at TIMESTAMPTZ`. UNIQUE constraint on `(vendor, name)`. |
-| `scanner_plugin_links` | Persistent confirmed match links — survives scan history purges. Maps a scanned plugin fingerprint (`"{vendor} {name}".lower().strip()`) to a confirmed ControlRoom catalog record. Written on `confirm`, `create`, `acknowledge`, and `force` actions; deleted on `reject`. UNIQUE on `fingerprint`. |
+| `scanner_exclusions` | Plugins excluded from all future scans. Fields: `exclusion_id UUID PK`, `vendor TEXT`, `name TEXT`, `excluded_at TIMESTAMPTZ`. UNIQUE constraint on `(vendor, name)`. |
+| `scanner_plugin_links` | Legacy persistent match links — retained during coexistence period, dropped in U-05 cleanup. |
+| `scanner_vendor_rules` | Vendor normalization rules. Maps raw disk vendor string to catalog vendor string. Example: `"ikmultimedia"` → `"IK Multimedia"`. UNIQUE on `disk_vendor`. Applied at workbench query time. |
+| `scanner_name_rules` | Name normalization rules. Maps raw disk plugin name to catalog name. UNIQUE on `disk_name`. Applied at workbench query time. |
+| `scanner_name_patterns` | Pattern-based rules using `{name}` template syntax. `match_fields TEXT[]` defines which additional fields must align. `is_seeded BOOLEAN` protects system-provided rules from hard-reset deletion. Seeded rule: Mono Variant (`{name}(m)`, ships disabled). |
+| `scanner_name_aliases` | Maps a specific disk name to a catalog record. Created by the "Set Name Alias" collision resolution. UNIQUE on `disk_name`. |
+| `scanner_rejections` | Persists rejected `(fingerprint, record_id)` pairings so bad matches do not reappear in the workbench. UNIQUE on `(fingerprint, record_id)`. Optimistically purged when the same pairing is later confirmed. |
 
 ### Soft delete
 
@@ -150,12 +155,26 @@ Gear photo uploads are stored in [MinIO](https://min.io/), an S3-compatible obje
 |---|---|
 | API port | 1983 |
 | Admin console | 1982 |
-| Bucket | `studio-photos` (created on first boot by init script) |
+
+**`studio-photos` bucket** — gear photo storage, managed by the GearList Go service.
+
+| Key | Detail |
+|---|---|
+| Created | On first boot by init script |
 | Object key format | `gear/{gear_id}/photo.{ext}` |
 | Accepted formats | `image/jpeg`, `image/png`, `image/webp` |
 | Max upload size | 10 MB (enforced by `gearlist_backend` before the MinIO call) |
+| Client | `minio-go` in `gearlist_backend`. On DB write failure, the object is deleted to prevent orphans. |
 
-The Go service uploads photos directly to MinIO using the `minio-go` client. If the subsequent database write fails, the uploaded object is deleted to prevent orphans. The frontend retrieves photos via the FastAPI BFF proxy at `/gearlist/gear/{id}/photo` (not yet implemented as a separate GET — currently the `photo_key` is stored and clients construct the URL separately).
+**`studio-downloads` bucket** — plugin-scanner release storage, managed by the Roadie CLI `release` command and read by the Next.js BFF.
+
+| Key | Detail |
+|---|---|
+| Object prefix | `plugin-scanner/` |
+| Object naming | `plugin-scanner-{version}-darwin-arm64.zip` |
+| Client | `@aws-sdk/client-s3` in Next.js BFF (`app/api/scanner/download/_s3.ts`) |
+| Env vars required | `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `SCANNER_DOWNLOADS_BUCKET` (default `studio-downloads`) |
+| Access | Authenticated browser users download via `GET /api/scanner/download/url?key=` (Next.js streams the object; no presigned URL exposed to the client) |
 
 ## Schema and migrations
 
