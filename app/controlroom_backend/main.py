@@ -13,6 +13,7 @@ from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, users
 from routers import backup_ops, change_review, admin_stats, import_export, gearlist
 from routers import scanner, scanner_admin
+from routers import scanner_workbench, scanner_rules, scanner_report, scanner_links, scanner_rejections, scanner_reset
 from routers.auth import seed_default_admin
 
 
@@ -50,14 +51,21 @@ app.include_router(workstations.router,  prefix="/studio/session/workstations", 
 app.include_router(tools.router,         prefix="/studio/tools",                tags=["tools"])
 app.include_router(config_router.router, prefix="/studio/config",               tags=["config"])
 ADMIN_PREFIX = "/studio/admin"
+_SCANNER_PREFIX = "/scanner"
 app.include_router(backup_ops.router,    prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(change_review.router, prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(admin_stats.router,     prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(import_export.router,  prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(users.router,        prefix="/studio/admin/users", tags=["users"])
 app.include_router(gearlist.router,       prefix="/gearlist",           tags=["gearlist"])
-app.include_router(scanner.router,        prefix="/scanner",            tags=["scanner"])
-app.include_router(scanner_admin.router,  prefix="/scanner",            tags=["scanner"])
+app.include_router(scanner.router,             prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_admin.router,       prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_workbench.router,   prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_rules.router,       prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_report.router,      prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_links.router,       prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_rejections.router,  prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_reset.router,       prefix=_SCANNER_PREFIX, tags=["scanner"])
 
 
 @app.get("/health")

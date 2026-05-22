@@ -22,7 +22,14 @@ app/studio_frontend/
 │   │   │   ├── google/     # POST — Google SSO login
 │   │   │   ├── logout/     # POST — cookie deletion
 │   │   │   └── session.ts  # Shared helper: calls FastAPI /auth/me, sets httpOnly cookie
-│   │   └── [...path]/      # Catch-all proxy — forwards all other requests to FastAPI
+│   │   ├── scanner/        # Scanner BFF routes (NOT the catch-all proxy — special handling)
+│   │   │   ├── scan/       # POST — API key passthrough to FastAPI /scanner/scan
+│   │   │   └── download/
+│   │   │       ├── _s3.ts      # S3Client singleton + listReleases/getObject helpers
+│   │   │       ├── latest/     # GET — latest release metadata from studio-downloads bucket
+│   │   │       ├── history/    # GET — all releases, newest-first
+│   │   │       └── url/        # GET ?key= — streams release zip from MinIO
+│   │   └── [...path]/      # Catch-all proxy — reads httpOnly cookie, adds Bearer, forwards to FastAPI
 │   ├── login/              # Login page
 │   ├── page.tsx            # Home page — module selection tiles + StudioIllustration
 │   ├── search/             # Global search results page (/search?q=...)
@@ -30,16 +37,31 @@ app/studio_frontend/
 │   │   └── page.tsx        # SearchContent: query, tabs, notes toggle, modal dispatch
 │   ├── controlroom/        # ControlRoom module
 │   │   ├── layout.tsx      # Renders Sidebar + main content area
-│   │   ├── catalog/        # Brands, Models
 │   │   ├── session/        # Effects, Instruments, Libraries, Workstations
 │   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
-│   │   ├── config/         # Lookup table editors (7 tables)
-│   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore
+│   │   └── scanner/        # Plugin Scanner — 8 bucket triage pages
+│   │       ├── known/      # Known (matched + catalog has disk_paths)
+│   │       ├── matched/    # Matched, awaiting acknowledgement
+│   │       ├── conflicted/ # Version mismatch between disk and catalog
+│   │       ├── unconfirmed/# Fuzzy match awaiting review
+│   │       ├── untracked/  # No catalog match found
+│   │       ├── orphaned/   # Confirmed links whose catalog record missing from scan
+│   │       ├── absent/     # Catalog records with disk_paths not found in this scan
+│   │       └── exclusions/ # Explicitly excluded plugins
 │   ├── studio/             # Studio Management module
 │   │   ├── layout.tsx      # Renders UsersSidebar + main content area
 │   │   ├── catalog/        # Brands, Models
-│   │   ├── config/         # Lookup table editors (effect-types, gear-types, etc.)
-│   │   └── admin/          # Stats, Change Review, Import/Export, Backup/Restore, Users
+│   │   ├── config/         # Lookup table editors
+│   │   │   ├── [slug]/     # effect-types, entity-types, instrument-types,
+│   │   │   │               #   model-types, plugin-formats, tag-types, tool-types
+│   │   │   └── gear-types/ # Gear types (GearList service — not FastAPI config)
+│   │   └── admin/          # Studio Management admin pages
+│   │       ├── stats/
+│   │       ├── change-review/
+│   │       ├── import-export/
+│   │       ├── backup/
+│   │       ├── plugin-scanner/ # API key management + scanner release downloads
+│   │       └── users/
 │   └── gearlist/           # GearList module (Go service backend)
 │       ├── layout.tsx      # Renders GearListSidebar + main content area
 │       ├── guitars/        # Guitars page (pre-filtered to Guitar gear type)
@@ -240,12 +262,16 @@ Route protection is handled by a client-side check in `AuthProvider` — unauthe
 
 ### BFF API routes
 
-| Route | Method | Description |
-|---|---|---|
-| `/api/auth/token` | POST | Username/password login — calls FastAPI `/auth/token`, sets cookie |
-| `/api/auth/google` | POST | Google SSO login — calls FastAPI `/auth/google`, sets cookie |
-| `/api/auth/logout` | POST | Clears the `controlroom_token` cookie |
-| `/api/[...path]` | GET/POST/PATCH/DELETE | Catch-all proxy — reads cookie, adds Bearer header, forwards to FastAPI (handles `/auth/me` and all other API calls) |
+| Route | Method | Auth | Description |
+|---|---|---|---|
+| `/api/auth/token` | POST | none | Username/password login — calls FastAPI `/auth/token`, sets httpOnly cookie |
+| `/api/auth/google` | POST | none | Google SSO login — calls FastAPI `/auth/google`, sets httpOnly cookie |
+| `/api/auth/logout` | POST | cookie | Clears the `controlroom_token` cookie |
+| `/api/scanner/scan` | POST | API key | Passes body + `Authorization` header directly to FastAPI `/scanner/scan`. Used by the Go binary — does NOT use the httpOnly cookie. |
+| `/api/scanner/download/latest` | GET | cookie | Returns the most recent release object from MinIO `studio-downloads/plugin-scanner/`. |
+| `/api/scanner/download/history` | GET | cookie | Returns all releases from that prefix, newest-first. |
+| `/api/scanner/download/url` | GET | cookie | Query param `key=<object-key>`. Streams the zip directly from MinIO as a download. |
+| `/api/[...path]` | GET/POST/PATCH/DELETE | cookie | Catch-all proxy — reads httpOnly cookie, adds `Authorization: Bearer`, forwards to FastAPI. Handles `/auth/me` and all other API calls. |
 
 The cookie is named `controlroom_token` and is set with `httpOnly: true`, `secure: true`, `sameSite: lax`, and an 8-hour `maxAge`.
 
@@ -297,5 +323,17 @@ E2E spec files:
 - `crud.spec.ts` — row click opens and closes modal for all 18 tables
 - `brands.spec.ts` — brand typeahead returns results in create modal; shows Create option for unknown brand names
 - `bulk-edit.spec.ts` — bulk selection and apply flow
+- `filter.spec.ts` — per-column filter operators across table types
+- `sort.spec.ts` — multi-level sort via sort pills
+- `infinite-scroll.spec.ts` — scroll-to-load behaviour on paginated tables
+- `record-history.spec.ts` — audit history view in modal; operation badges and diff display
+- `record-navigation.spec.ts` — navigating from search results to the full table page and reopening the modal
 - `search.spec.ts` — global search: TopBar query navigation, results page, tab filtering, deep-link to record modal
 - `gearlist.spec.ts` — GearList module: guitars and other gear pages load; create modal opens; gear row click opens detail modal; guitar edit mode shows pickup config select
+- `scanner.spec.ts` — ControlRoom scanner bucket pages (known/matched/conflicted/etc.): load without error, empty-state rendering
+- `plugin-scanner.spec.ts` — Studio Management plugin-scanner admin page: page load, API key manager renders, generate-key button visible, release card visible
+- `stats.spec.ts` — Admin stats page row counts render
+- `backup.spec.ts` — Backup and restore page loads
+- `change-review.spec.ts` — Change Review page loads with pending entries
+- `smoke.spec.ts` — Smoke tests: all major pages load without JS errors
+- `perf.spec.ts` — Lighthouse Core Web Vitals (LCP, TBT, CLS) across all major pages

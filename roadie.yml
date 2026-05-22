@@ -50,6 +50,8 @@ build:
     - sql/migrations/add_metadata_source.sql
     - sql/migrations/add_scanner_dismiss_keep.sql
     - sql/migrations/add_disk_paths.sql
+    - sql/migrations/scanner_rewrite_u01.sql
+    - sql/migrations/scanner_rewrite_u02_schema.sql
     - sql/views.sql
   seed_files:
     - sql/seeds/01_entity_types.sql

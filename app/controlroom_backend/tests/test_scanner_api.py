@@ -51,7 +51,11 @@ async def test_ingest_scan_returns_summary(client, conn, scanner_key):
     assert response.status_code == 200
     data = response.json()
     assert "scan_id" in data
-    assert data["untracked"] + data["matched"] + data["unconfirmed"] == 1
+    # S-12: response uses new five-bucket vocabulary
+    assert data["unlinked"] + data["needs_review"] == 1
+    assert "matched" not in data
+    assert "untracked" not in data
+    assert "unconfirmed" not in data
     stored = await conn.fetchval(
         "SELECT metadata_source FROM plugin_scan_results WHERE scan_id=$1",
         data["scan_id"],

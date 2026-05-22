@@ -344,6 +344,82 @@ async def test_new_status_values_accepted(conn):
     assert {r["status"] for r in rows} == expected
 
 
+# ---------------------------------------------------------------------------
+# U-02 rewrite: scanner_rejections table
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_scanner_rejections_table_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_schema = 'public' AND table_name = 'scanner_rejections'"
+    )
+    assert row is not None
+
+
+@pytest.mark.asyncio
+async def test_scanner_rejections_has_required_columns(conn):
+    rows = await conn.fetch(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_name = 'scanner_rejections'"
+    )
+    columns = {r['column_name'] for r in rows}
+    required = {'rejection_id', 'fingerprint', 'record_id', 'record_table',
+                'confidence', 'rejected_by', 'rejected_at'}
+    assert required.issubset(columns)
+
+
+@pytest.mark.asyncio
+async def test_scanner_rejections_unique_fingerprint_record(conn):
+    import uuid
+    record_id = uuid.uuid4()
+    await conn.execute(
+        "INSERT INTO scanner_rejections "
+        "(fingerprint, record_id, record_table, confidence, rejected_by) "
+        "VALUES ($1, $2, $3, $4, $5)",
+        'acme audio reverb pro', record_id, 'effects', 'exact', 'admin',
+    )
+    with pytest.raises(Exception, match='unique'):
+        await conn.execute(
+            "INSERT INTO scanner_rejections "
+            "(fingerprint, record_id, record_table, confidence, rejected_by) "
+            "VALUES ($1, $2, $3, $4, $5)",
+            'acme audio reverb pro', record_id, 'effects', 'high', 'admin',
+        )
+
+
+@pytest.mark.asyncio
+async def test_scanner_rejections_allows_same_fingerprint_different_record(conn):
+    import uuid
+    fp = 'acme audio reverb pro'
+    await conn.execute(
+        "INSERT INTO scanner_rejections "
+        "(fingerprint, record_id, record_table, confidence, rejected_by) "
+        "VALUES ($1, $2, $3, $4, $5)",
+        fp, uuid.uuid4(), 'effects', 'exact', 'admin',
+    )
+    await conn.execute(
+        "INSERT INTO scanner_rejections "
+        "(fingerprint, record_id, record_table, confidence, rejected_by) "
+        "VALUES ($1, $2, $3, $4, $5)",
+        fp, uuid.uuid4(), 'effects', 'high', 'admin',
+    )
+    count = await conn.fetchval(
+        "SELECT COUNT(*) FROM scanner_rejections WHERE fingerprint = $1", fp
+    )
+    assert count == 2
+
+
+@pytest.mark.asyncio
+async def test_scanner_rejections_fingerprint_index_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'scanner_rejections' "
+        "AND indexname = 'idx_rejections_fingerprint'"
+    )
+    assert row is not None, "idx_rejections_fingerprint index not found"
+
+
 @pytest.mark.asyncio
 async def test_mono_variant_seed_exists(conn):
     row = await conn.fetchrow(

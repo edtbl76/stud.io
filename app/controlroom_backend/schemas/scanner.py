@@ -71,12 +71,10 @@ class ScanPayload(BaseModel):
 class ScanSummary(BaseModel):
     scan_id: UUID
     known: int
-    matched: int
-    conflicted: int
-    unconfirmed: int
-    untracked: int
+    unlinked: int
     orphaned: int
-    ignored: int = 0
+    needs_review: int
+    excluded: int
 
 
 # ---------------------------------------------------------------------------

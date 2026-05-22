@@ -143,12 +143,11 @@ async def ingest_scan(
 
     counts = await conn.fetchrow(
         "SELECT "
-        "COUNT(*) FILTER (WHERE status='known')        AS known,"
-        "COUNT(*) FILTER (WHERE status='matched')      AS matched,"
-        "COUNT(*) FILTER (WHERE status='conflicted')   AS conflicted,"
-        "COUNT(*) FILTER (WHERE status='unconfirmed')  AS unconfirmed,"
-        "COUNT(*) FILTER (WHERE status='untracked')    AS untracked,"
-        "COUNT(*) FILTER (WHERE status='orphaned')     AS orphaned "
+        "COUNT(*) FILTER (WHERE status='known')                                 AS known,"
+        "COUNT(*) FILTER (WHERE status IN ('untracked','unlinked'))             AS unlinked,"
+        "COUNT(*) FILTER (WHERE status='orphaned')                              AS orphaned,"
+        "COUNT(*) FILTER (WHERE status IN ('matched','unconfirmed','conflicted','needs_review')) AS needs_review,"
+        "COUNT(*) FILTER (WHERE status IN ('ignored','excluded'))               AS excluded "
         "FROM plugin_scan_results WHERE scan_id=$1", scan_id,
     )
     return ScanSummary(scan_id=scan_id, **dict(counts))

@@ -285,3 +285,17 @@ async def test_name_rules_disk_name_index_exists(conn):
     assert row is not None, "idx_name_rules_disk_name must exist on scanner_name_rules"
 
 
+# ---------------------------------------------------------------------------
+# U-02: workbench query plan assertions
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_rejections_fingerprint_index_exists(conn):
+    row = await conn.fetchrow(
+        "SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'scanner_rejections' "
+        "AND indexname = 'idx_rejections_fingerprint'"
+    )
+    assert row is not None, "idx_rejections_fingerprint must exist on scanner_rejections"
+
+

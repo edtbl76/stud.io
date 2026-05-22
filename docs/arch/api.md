@@ -15,18 +15,19 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | Prefix | File | Description |
 |---|---|---|
 | `/auth` | `routers/auth.py` | Login, token refresh, Google OAuth callback |
-| `/brands` | `routers/brands.py` | CRUD for brands |
-| `/models` | `routers/models.py` | CRUD for models |
-| `/effects` | `routers/effects.py` | CRUD for effects |
-| `/instruments` | `routers/instruments.py` | CRUD for instruments |
-| `/libraries` | `routers/libraries.py` | CRUD for libraries |
-| `/workstations` | `routers/workstations.py` | CRUD for workstations |
-| `/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
-| `/config/{slug}` | `routers/config.py` | CRUD for all lookup tables (effect-types, tag-types, etc.) |
-| `/search` | `routers/search.py` | Cross-table full-text search (PostgreSQL FTS) |
-| `/admin` | `routers/backup_ops.py`, `routers/change_review.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
-| `/users` | `routers/users.py` | User management (admin only) |
+| `/search` | `routers/search.py` | Cross-table full-text search (PostgreSQL FTS) and entity typeahead |
+| `/studio/catalog/brands` | `routers/brands.py` | CRUD for brands |
+| `/studio/catalog/models` | `routers/models.py` | CRUD for models |
+| `/studio/session/effects` | `routers/effects.py` | CRUD for effects |
+| `/studio/session/instruments` | `routers/instruments.py` | CRUD for instruments |
+| `/studio/session/libraries` | `routers/libraries.py` | CRUD for libraries |
+| `/studio/session/workstations` | `routers/workstations.py` | CRUD for workstations |
+| `/studio/tools/{category}` | `routers/tools.py` | CRUD for all tool tables (admin, composition, measurement, reference, workflow) |
+| `/studio/config/{slug}` | `routers/config.py` | CRUD for all 7 lookup tables (effect-types, tag-types, etc.) |
+| `/studio/admin` | `routers/backup_ops.py`, `routers/change_review.py` + `change_review_list.py` + `change_review_undo.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
+| `/studio/admin/users` | `routers/users.py` | User management (admin only) |
 | `/gearlist/*` | `routers/gearlist.py` | Catch-all proxy to the internal GearList Go service |
+| `/scanner` | `routers/scanner.py` + `scanner_actions.py` + `scanner_match.py` + `scanner_admin.py` | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
 
 ---
 
@@ -78,7 +79,7 @@ Role is embedded in the JWT payload. The `require_admin` dependency in `routers/
 All content table list endpoints use server-side pagination with sorting and optional per-column filtering:
 
 ```
-GET /effects?limit=100&offset=0&sort_by=effect_name&sort_by=brand_name&sort_dir=asc&sort_dir=asc&filter_name=reverb
+GET /studio/session/effects?limit=100&offset=0&sort_by=effect_name&sort_by=brand_name&sort_dir=asc&sort_dir=asc&filter_name=reverb
 ```
 
 Query parameters:
@@ -117,11 +118,13 @@ Each router defines a `filterable` mapping of key → `FilterableField` (`router
 
 ### CRUD endpoints
 
+The full path depends on the router prefix (e.g. `/studio/catalog/brands`, `/studio/session/effects`, `/studio/tools/{category}`):
+
 ```
-GET    /{resource}/{id}     # Get one record (from view)
-POST   /{resource}          # Create (inserts into base table, returns from view)
-PATCH  /{resource}/{id}     # Update (updates base table, returns from view)
-DELETE /{resource}/{id}     # Soft-delete (sets deleted_at, does not remove the row)
+GET    /{prefix}/{resource}/{id}     # Get one record (from view)
+POST   /{prefix}/{resource}          # Create (inserts into base table, returns from view)
+PATCH  /{prefix}/{resource}/{id}     # Update (updates base table, returns from view)
+DELETE /{prefix}/{resource}/{id}     # Soft-delete (sets deleted_at, does not remove the row)
 ```
 
 After every write, the response re-fetches from the semantic view so the returned record includes all resolved display names.
@@ -131,9 +134,10 @@ After every write, the response re-fetches from the semantic view so the returne
 Every content router and both dynamic routers expose a history endpoint:
 
 ```
-GET /{resource}/{id}/history          # individual content routers (brands, models, effects, etc.)
-GET /tools/{category}/{id}/history    # tools router (resolves table from category)
-GET /config/{slug}/{id}/history       # config router (resolves table from slug)
+GET /studio/catalog/{resource}/{id}/history    # catalog routers (brands, models)
+GET /studio/session/{resource}/{id}/history    # session routers (effects, instruments, libraries, workstations)
+GET /studio/tools/{category}/{id}/history      # tools router (resolves table from category)
+GET /studio/config/{slug}/{id}/history         # config router (resolves table from slug)
 ```
 
 Accessible by any authenticated user. Returns all `audit_log` entries for the given record sorted `performed_at DESC`, with `old_data` and `new_data` fully included (unlike the Change Review list endpoint). No pagination — a single record's history is bounded.
@@ -178,7 +182,7 @@ Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results a
 
 ### Dynamic router: tools
 
-`/tools/{category}` maps to one of five base tables based on the category path parameter:
+`/studio/tools/{category}` maps to one of five base tables based on the category path parameter:
 
 | Category | Table |
 |---|---|
@@ -190,7 +194,7 @@ Response model: `{ results: [{ table_name, id, name, brand_name }] }`. Results a
 
 ### Dynamic router: config
 
-`/config/{slug}` maps to one of seven lookup tables:
+`/studio/config/{slug}` maps to one of seven lookup tables. `gear-types` is **not** included — it is managed by the GearList Go service at `/gearlist/gear-types`.
 
 | Slug | Table |
 |---|---|
@@ -266,25 +270,25 @@ The gear list endpoint uses the same `{ items: [...], total: N }` response shape
 
 ### Backup
 
-`GET /admin/backup` — streams a `pg_dump` of `masterdb` as a SQL file download. The file includes an embedded manifest (row counts and content hashes per table) as a comment block at the top, enabling later verification.
+`GET /studio/admin/backup` — streams a `pg_dump` of `masterdb` as a SQL file download. The file includes an embedded manifest (row counts and content hashes per table) as a comment block at the top, enabling later verification.
 
 ### Restore
 
-`POST /admin/restore` — accepts a `.sql` file upload and pipes it through `psql` against the existing `masterdb`. This performs an object-level restore within the existing database (no DROP/CREATE of the database itself). The operation is destructive at the object level — existing data is overwritten — and irreversible.
+`POST /studio/admin/restore` — accepts a `.sql` file upload and pipes it through `psql` against the existing `masterdb`. This performs an object-level restore within the existing database (no DROP/CREATE of the database itself). The operation is destructive at the object level — existing data is overwritten — and irreversible.
 
 ### Verify
 
-`POST /admin/verify` — accepts a `.sql` backup file, restores it to a temporary per-request database (`masterdb_verify_<uuid>`), computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification, and the unique name ensures concurrent verifications do not interfere. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
+`POST /studio/admin/verify` — accepts a `.sql` backup file, restores it to a temporary per-request database (`masterdb_verify_<uuid>`), computes content hashes per table, compares against the embedded manifest, and returns a pass/fail report. The temporary database is always dropped after verification, and the unique name ensures concurrent verifications do not interfere. Returns 400 if the file has no manifest (pre-manifest backup or wrong file).
 
 ### Import / Export
 
 Three endpoints in `routers/import_export.py`. All require admin. xlsx files are built and parsed with **openpyxl**.
 
-`GET /admin/export/xlsx?tables=<comma-separated>` — exports current (non-deleted) records. One sheet per table, one row per record. ID columns are included for round-trip updates. Column schema is defined in `routers/_xlsx_schema.py` (`TABLE_CONFIGS`). Lookup display names are resolved from the semantic views. A hidden `_Lookups` sheet is included with all valid lookup values per column (used by template dropdowns).
+`GET /studio/admin/export/xlsx?tables=<comma-separated>` — exports current (non-deleted) records. One sheet per table, one row per record. ID columns are included for round-trip updates. Column schema is defined in `routers/_xlsx_schema.py` (`TABLE_CONFIGS`). Lookup display names are resolved from the semantic views. A hidden `_Lookups` sheet is included with all valid lookup values per column (used by template dropdowns).
 
-`GET /admin/export/template?tables=<comma-separated>` — same structure but no data rows and no ID column. Lookup fields have Excel `DataValidation` dropdowns referencing the `_Lookups` sheet.
+`GET /studio/admin/export/template?tables=<comma-separated>` — same structure but no data rows and no ID column. Lookup fields have Excel `DataValidation` dropdowns referencing the `_Lookups` sheet.
 
-`POST /admin/import/xlsx` — accepts a multipart `.xlsx` upload (max 10 MB). Parses sheet names against `SHEET_TO_KEY` (e.g. "Brands" → `brands`). Unknown sheets and empty sheets are ignored. For each recognized sheet:
+`POST /studio/admin/import/xlsx` — accepts a multipart `.xlsx` upload (max 10 MB). Parses sheet names against `SHEET_TO_KEY` (e.g. "Brands" → `brands`). Unknown sheets and empty sheets are ignored. For each recognized sheet:
 
 - Rows **without** an "ID" cell → `INSERT`
 - Rows **with** an "ID" cell → `UPDATE … WHERE deleted_at IS NULL`
@@ -300,19 +304,21 @@ The xlxs logic is split across three internal modules:
 
 ### Stats
 
-`GET /admin/stats` — returns row counts for all 18 content and lookup tables grouped by Catalog, Session, Tools, and Config. Tables within each group are sorted by count descending, display name ascending as tie-break. The `total` field is the sum across all groups and excludes the `users` table.
+`GET /studio/admin/stats` — returns row counts for all 18 content and lookup tables grouped by Catalog, Session, Tools, and Config. Tables within each group are sorted by count descending, display name ascending as tie-break. The `total` field is the sum across all groups and excludes the `users` table.
 
 ### Change Review
 
-`GET /admin/change-review` — returns a paginated list of `audit_log` entries. Accessible by any authenticated user. Optional query parameters: `table` (filter by table name), `operation` (`CREATE`, `UPDATE`, `DELETE`), `status` (`pending` [default], `acknowledged`, `undone`, `all`), `page` (1-based, default 1), `page_size` (default 50, max 200). Results sorted by `performed_at DESC`. The `record_display_name` field is populated by querying each table's name column (base table, not view, so soft-deleted records still resolve); falls back to the first 8 characters of `record_id` for hard-deleted records.
+`GET /studio/admin/change-review` — returns a paginated list of `audit_log` entries. Accessible by any authenticated user. Optional query parameters: `table` (filter by table name), `operation` (`CREATE`, `UPDATE`, `DELETE`), `status` (`pending` [default], `acknowledged`, `undone`, `all`), `page` (1-based, default 1), `page_size` (default 50, max 200). Results sorted by `performed_at DESC`. The `record_display_name` field is populated by querying each table's name column (base table, not view, so soft-deleted records still resolve); falls back to the first 8 characters of `record_id` for hard-deleted records.
 
-`POST /admin/change-review/{audit_id}/acknowledge` — admin only. Marks the audit entry as acknowledged (`acknowledged_at`, `acknowledged_by`). Returns the updated entry. Returns 409 if already resolved.
+`POST /studio/admin/change-review/{audit_id}/acknowledge` — admin only. Marks the audit entry as acknowledged (`acknowledged_at`, `acknowledged_by`). Returns the updated entry. Returns 409 if already resolved.
 
-`POST /admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents the undo. UPDATE restoration skips `created_at` and `updated_at` (both are auto-managed columns); all other fields are restored, with UUID and datetime strings in `old_data` coerced back to their native types before binding to the database.
+`POST /studio/admin/change-review/{audit_id}/undo` — admin only. Reverses the original operation: hard-deletes a CREATE record, restores `old_data` for an UPDATE, or clears `deleted_at` for a DELETE. Sets `undone_at`/`undone_by` on the audit entry. Does not create a new audit entry. Returns 409 if already resolved or if a FK violation prevents the undo. UPDATE restoration skips `created_at` and `updated_at` (both are auto-managed columns); all other fields are restored, with UUID and datetime strings in `old_data` coerced back to their native types before binding to the database.
 
-`DELETE /admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.
+`DELETE /studio/admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.
 
 ### Plugin Scanner
+
+> **U-02 merged** — New workbench API endpoints are live. Old endpoints marked `(coexistence — removed in U-05 cleanup)` remain active during the transition.
 
 All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Authorization: Bearer psc_...`); all other routes use JWT bearer auth.
 
@@ -354,8 +360,71 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 `DELETE /scanner/exclude/{exclusion_id}` — remove an exclusion. Returns 404 if not found.
 
-#### Scan History
+#### Scan History (coexistence — removed in U-05 cleanup)
 
 `GET /scanner/scans` — authenticated user. Returns all scan runs with per-run status counts and confirmation counts, newest first.
 
 `DELETE /scanner/scans?older_than_days=N` — admin only. Hard-deletes scan runs (and their results via CASCADE) older than N days. Returns `{deleted_count}`.
+
+#### Workbench (U-02 — rules-driven view)
+
+`GET /scanner/workbench[?scan_id=UUID&bucket=str&format=str&show_confirmed=bool]` — admin only. Returns all scan results for a scan with active rules applied, buckets recomputed, and rejections checked. Defaults to the most recent scan. Response: `{rows: WorkbenchRow[], orphaned: OrphanedRecord[], scan_id}`. Sorted by catalog type → catalog record name → bucket.
+
+`GET /scanner/scans/recent` — admin only. Returns the most recent 10 scans for the scan picker. Response: `[{scan_id, scanned_at, source_machine, total_count}]`.
+
+`GET /scanner/scans/{id}/report` — admin only. Raw scan data for a specific scan — ingest-time status values, no rules applied. Response: `{scan_id, scanned_at, results_by_status}`. Returns 404 if scan not found.
+
+#### Rules (U-02)
+
+`GET /scanner/rules` — admin only. Returns all rules grouped by type: `{vendor: [...], name: [...], pattern: [...]}`.
+
+`POST /scanner/rules/vendor` — admin only. Body: `{disk_vendor, catalog_vendor}`. Returns rule + `{affected_count, clean_count, needs_review_count}`. Returns 409 on duplicate `disk_vendor`.
+
+`PATCH /scanner/rules/vendor/{id}` — admin only. Update `catalog_vendor`. Returns 404 if not found.
+
+`DELETE /scanner/rules/vendor/{id}` — admin only. Returns 204. Returns 404 if not found.
+
+`PATCH /scanner/rules/vendor/{id}/toggle` — admin only. Body: `{enabled: bool}`. Returns updated rule.
+
+`POST /scanner/rules/vendor/{id}/acknowledge-clean` — admin only. Bulk-confirms all clean matches for this rule against the current scan. Returns `{acknowledged: N}`. Idempotent.
+
+Same endpoints at `/scanner/rules/name/{id}` for name rules.
+
+`PATCH /scanner/rules/pattern/{id}/toggle` — admin only. Toggle enabled on a pattern rule (including the seeded Mono Variant rule).
+
+#### Rejections (U-02)
+
+`POST /scanner/results/{result_id}/reject` — admin only. Stores rejection for `(fingerprint, record_id)` pairing; clears match fields on scan result. Idempotent via `ON CONFLICT DO NOTHING`. Returns 204. Returns 404 if result not found.
+
+`GET /scanner/rejections` — admin only. Returns all rejection rows.
+
+`DELETE /scanner/rejections/{rejection_id}` — admin only. Removes a rejection. Returns 204. Returns 404 if not found.
+
+#### Links (U-02)
+
+`GET /scanner/links/candidates?type=unlinked|orphaned&source_id=UUID[&q=str]` — admin only. Find link candidates. `type=unlinked` returns orphaned catalog records (from a scan result). `type=orphaned` returns unlinked scan results (from a catalog record). `q` filters by name substring.
+
+`POST /scanner/links` — admin only. Body: `{result_id, catalog_record_id, catalog_record_table}`. Creates vendor+name rules pairing the disk fingerprint to the catalog record. Returns `{links_created: 1}`. Purges matching rejection entry.
+
+`POST /scanner/links/bulk` — admin only. Body: `{result_ids: [...], catalog_record_id, catalog_record_table}`. Creates links for multiple result fingerprints. Returns `{links_created: N}`.
+
+#### Reset (U-02)
+
+`POST /scanner/admin/reset/soft` — admin only. Disables all rules (`scanner_vendor_rules`, `scanner_name_rules`, `scanner_name_patterns`). Data intact. Returns `{type: "soft", rules_disabled: N}`.
+
+`POST /scanner/admin/reset/hard` — admin only. Body: `{confirmation_text: "RESET ALL SCANNER DATA"}`. Returns 422 if text does not match exactly. Wipes all scan data, rules, aliases, rejections, exclusions in one transaction. Seeded pattern rules survive (set to disabled). Returns `{type: "hard", records_wiped: N, seeded_rules_restored: N}`.
+
+---
+
+## Scanner download BFF routes (Next.js only — no FastAPI)
+
+Plugin scanner release downloads are handled entirely by the Next.js server. These routes bypass the httpOnly-cookie BFF proxy and connect directly to MinIO using the `@aws-sdk/client-s3` SDK. They are not FastAPI endpoints.
+
+| Route | Method | Auth | Description |
+|---|---|---|---|
+| `/api/scanner/download/latest` | GET | JWT session cookie | Returns the most recent release object `{key, version, released_at, size_bytes}` from the `studio-downloads/plugin-scanner/` MinIO prefix. |
+| `/api/scanner/download/history` | GET | JWT session cookie | Returns all releases from that prefix, sorted newest-first. |
+| `/api/scanner/download/url` | GET | JWT session cookie | Query param `key=<object-key>`. Streams the object directly from MinIO as a binary download. |
+| `/api/scanner/scan` | POST | API key (`Authorization: Bearer psc_...`) | Passes the scan payload directly to FastAPI `POST /scanner/scan`. Does **not** use the httpOnly cookie — the binary's API key is forwarded as-is. Also forwards `X-Idempotency-Key` if present. |
+
+The `studio-downloads` bucket and `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, and `SCANNER_DOWNLOADS_BUCKET` env vars must be set in the Next.js container for these routes to work. See `app/studio_frontend/app/api/scanner/download/_s3.ts`.
