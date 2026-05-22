@@ -40,6 +40,14 @@ async def _setup_link(conn) -> tuple:
     return result_id, effect_id
 
 
+async def _assert_name_rule_persisted(conn, disk_name: str, catalog_name: str) -> None:
+    row = await conn.fetchrow(
+        "SELECT catalog_name FROM scanner_name_rules WHERE disk_name = $1", disk_name
+    )
+    assert row is not None
+    assert row["catalog_name"] == catalog_name
+
+
 # ---------------------------------------------------------------------------
 # GET /scanner/links/candidates?type=unlinked
 # ---------------------------------------------------------------------------
@@ -97,11 +105,7 @@ async def test_create_link_creates_vendor_name_rule(client, conn, admin_headers)
     )
     assert resp.status_code == 201
     assert resp.json()["links_created"] == 1
-    name_rule = await conn.fetchrow(
-        "SELECT catalog_name FROM scanner_name_rules WHERE disk_name = $1", "reverb pro"
-    )
-    assert name_rule is not None
-    assert name_rule["catalog_name"] == "Reverb Pro"
+    await _assert_name_rule_persisted(conn, "reverb pro", "Reverb Pro")
 
 
 @pytest.mark.asyncio
@@ -139,11 +143,7 @@ async def test_bulk_create_links(client, conn, admin_headers):
     )
     assert resp.status_code == 201
     assert resp.json()["links_created"] == 2
-    name_rule = await conn.fetchrow(
-        "SELECT catalog_name FROM scanner_name_rules WHERE disk_name = $1", "reverb pro"
-    )
-    assert name_rule is not None
-    assert name_rule["catalog_name"] == "Reverb Pro"
+    await _assert_name_rule_persisted(conn, "reverb pro", "Reverb Pro")
 
 
 # ---------------------------------------------------------------------------

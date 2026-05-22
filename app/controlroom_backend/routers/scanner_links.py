@@ -1,6 +1,7 @@
 """Find Link candidates, single link creation, and bulk link creation."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
@@ -19,6 +20,12 @@ from schemas.scanner_workbench import (
 )
 
 router = APIRouter()
+
+
+@dataclass(frozen=True)
+class _CatalogRef:
+    record_id: UUID
+    record_table: str
 
 _ORPHANED_QUERY = " UNION ALL ".join(
     f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
@@ -53,18 +60,18 @@ async def _optimistic_purge(conn: Connection, fingerprint: str, record_id: UUID)
 
 
 async def _create_link_for_result(
-    conn: Connection, result_id: UUID, catalog_record_id: UUID, catalog_record_table: str, username: str
+    conn: Connection, result_id: UUID, catalog_ref: _CatalogRef, username: str
 ) -> bool:
     row = await conn.fetchrow(
         "SELECT name, vendor FROM plugin_scan_results WHERE result_id=$1", result_id
     )
     if not row:
         return False
-    pk, nc = CATALOG_TABLES[catalog_record_table]
+    pk, nc = CATALOG_TABLES[catalog_ref.record_table]
     catalog = await conn.fetchrow(
         f"SELECT {nc} AS name, b.brand_name AS vendor "
-        f"FROM {catalog_record_table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
-        catalog_record_id,
+        f"FROM {catalog_ref.record_table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
+        catalog_ref.record_id,
     )
     if not catalog:
         return False
@@ -78,7 +85,7 @@ async def _create_link_for_result(
         "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_name) DO NOTHING",
         row["name"].lower(), catalog["name"], username,
     )
-    await _optimistic_purge(conn, fp, catalog_record_id)
+    await _optimistic_purge(conn, fp, catalog_ref.record_id)
     return True
 
 
@@ -148,14 +155,14 @@ async def find_link_candidates(
 
 @router.post("/links", status_code=status.HTTP_201_CREATED)
 async def create_link(body: CreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
-    created = await _create_link_for_result(conn, body.result_id, body.catalog_record_id, body.catalog_record_table, user.username)
+    created = await _create_link_for_result(conn, body.result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username)
     return BulkLinkResult(links_created=int(created))
 
 
 @router.post("/links/bulk", status_code=status.HTTP_201_CREATED)
 async def bulk_create_links(body: BulkCreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     results = [
-        await _create_link_for_result(conn, result_id, body.catalog_record_id, body.catalog_record_table, user.username)
+        await _create_link_for_result(conn, result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username)
         for result_id in body.result_ids
     ]
     return BulkLinkResult(links_created=sum(results))

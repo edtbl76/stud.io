@@ -81,6 +81,7 @@ _NAME = _RuleConfig(
 class _CatalogCtx:
     catalog_index: object
     exclusions: set
+    rejection_set: set
 
 
 @dataclass(frozen=True)
@@ -168,6 +169,7 @@ async def _ack_clean(conn: Connection, cfg: _RuleConfig, rule_id: UUID, username
     ctx = _CatalogCtx(
         catalog_index=await build_catalog_index(conn),
         exclusions=await load_exclusions(conn),
+        rejection_set=set(),
     )
     rows = await conn.fetch(cfg.ack_scan_sql, rule[cfg.disk_col])
     clean_ids = _collect_clean_ids(rows, cfg, rule[cfg.catalog_col], ctx)
@@ -193,14 +195,14 @@ async def _load_rejection_set(conn: Connection) -> set[tuple]:
     return {(r["fingerprint"], r["record_id"]) for r in rows}
 
 
-def _score_row(row, rule_app: _RuleApp, ctx: _CatalogCtx, rejection_set: set[tuple]) -> tuple[int, int]:
+def _score_row(row, rule_app: _RuleApp, ctx: _CatalogCtx) -> tuple[int, int]:
     display_vendor = rule_app.catalog_value if rule_app.rule_type == "vendor" else row["vendor"]
     display_name = rule_app.catalog_value if rule_app.rule_type == "name" else row["name"]
     _, match = match_plugin(display_name, display_vendor, ctx.catalog_index, ctx.exclusions)
     if match.record is None:
         return 0, 0
     fp = f"{display_vendor} {display_name}".lower().strip()
-    if (fp, str(match.record.record_id)) in rejection_set:
+    if (fp, str(match.record.record_id)) in ctx.rejection_set:
         return 0, 0
     return 1, int(_is_clean_match(display_name, display_vendor, row["version"], match.record))
 
@@ -211,21 +213,19 @@ async def count_affected_with_clean_split(
     ctx = _CatalogCtx(
         catalog_index=await build_catalog_index(conn),
         exclusions=await load_exclusions(conn),
+        rejection_set=await _load_rejection_set(conn),
     )
-    rejection_set = await _load_rejection_set(conn)
     rule_app = _RuleApp(rule_type=rule_type, catalog_value=catalog_value)
     rows = await _fetch_candidates(conn, rule_type, disk_field)
     affected, clean = 0, 0
     for row in rows:
-        a, c = _score_row(row, rule_app, ctx, rejection_set)
+        a, c = _score_row(row, rule_app, ctx)
         affected += a
         clean += c
     return {"affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean}
 
 
-async def _count_rules(
-    conn: Connection, rules: list, rule_type: str, ctx: _CatalogCtx, rejection_set: set[tuple],
-) -> dict:
+async def _count_rules(conn: Connection, rules: list, rule_type: str, ctx: _CatalogCtx) -> dict:
     disk_col = "disk_vendor" if rule_type == "vendor" else "disk_name"
     cat_col = "catalog_vendor" if rule_type == "vendor" else "catalog_name"
     counts: dict = {}
@@ -234,7 +234,7 @@ async def _count_rules(
         rows = await _fetch_candidates(conn, rule_type, rule[disk_col])
         affected, clean = 0, 0
         for row in rows:
-            a, c = _score_row(row, rule_app, ctx, rejection_set)
+            a, c = _score_row(row, rule_app, ctx)
             affected += a
             clean += c
         counts[rule["rule_id"]] = {
@@ -261,10 +261,10 @@ async def list_rules(
     ctx = _CatalogCtx(
         catalog_index=await build_catalog_index(conn),
         exclusions=await load_exclusions(conn),
+        rejection_set=await _load_rejection_set(conn),
     )
-    rejection_set = await _load_rejection_set(conn)
-    vendor_counts = await _count_rules(conn, vendor_rows, "vendor", ctx, rejection_set)
-    name_counts = await _count_rules(conn, name_rows, "name", ctx, rejection_set)
+    vendor_counts = await _count_rules(conn, vendor_rows, "vendor", ctx)
+    name_counts = await _count_rules(conn, name_rows, "name", ctx)
     return AllRules(
         vendor=[VendorRuleOut(**dict(r), **vendor_counts[r["rule_id"]]) for r in vendor_rows],
         name=[NameRuleOut(**dict(r), **name_counts[r["rule_id"]]) for r in name_rows],
