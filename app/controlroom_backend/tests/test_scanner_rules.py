@@ -158,12 +158,22 @@ async def test_toggle_vendor_rule_enables(client, conn, admin_headers):
 @pytest.mark.asyncio
 async def test_acknowledge_clean_confirms_clean_matches(client, conn, admin_headers):
     effect_id = await _insert_effect(conn, name="Reverb Pro")
-    await seed_scan_with_result(conn, name="Reverb Pro", vendor="ikmultimedia", version="1.0.0")
-    await conn.execute("UPDATE effects SET version='1.0.0' WHERE effect_id=$1", effect_id)
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (brand_name) VALUES ($1) RETURNING brand_id", "IK Multimedia"
+    )
+    await conn.execute(
+        "UPDATE effects SET brand_id=$1, version='1.0.0' WHERE effect_id=$2", brand_id, effect_id
+    )
+    _, result_id = await seed_scan_with_result(conn, name="Reverb Pro", vendor="ikmultimedia", version="1.0.0")
     rule_id = await _insert_vendor_rule(conn)
     resp = await client.post(f"/scanner/rules/vendor/{rule_id}/acknowledge-clean", headers=admin_headers)
     assert resp.status_code == 200
-    assert resp.json()["acknowledged"] >= 0
+    assert resp.json()["acknowledged"] == 1
+    confirmed = await conn.fetchrow(
+        "SELECT confirmed_at, confirmed_by FROM plugin_scan_results WHERE result_id=$1", result_id
+    )
+    assert confirmed["confirmed_at"] is not None
+    assert confirmed["confirmed_by"] == "adminuser"
 
 
 @pytest.mark.asyncio

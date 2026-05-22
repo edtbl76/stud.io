@@ -63,7 +63,7 @@ def _find_catalog_match(display_name: str, display_vendor: str, catalog: list[Fa
 
 
 def count_affected_pure(results: list[FakeScanResult], catalog: list[FakeCatalogRecord], spec: _RuleSpec) -> dict[str, int]:
-    affected, clean = 0, 0
+    affected, clean, needs_review = 0, 0, 0
     for result in results:
         applied = _apply_rule(result, spec)
         if applied is None:
@@ -75,7 +75,25 @@ def count_affected_pure(results: list[FakeScanResult], catalog: list[FakeCatalog
         affected += 1
         if _is_clean(result, display_name, display_vendor, match):
             clean += 1
-    return {"affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean}
+        else:
+            needs_review += 1
+    return {"affected_count": affected, "clean_count": clean, "needs_review_count": needs_review}
+
+
+def _independent_needs_review(
+    results: list[FakeScanResult], catalog: list[FakeCatalogRecord], spec: _RuleSpec
+) -> int:
+    count = 0
+    for result in results:
+        applied = _apply_rule(result, spec)
+        if applied is None:
+            continue
+        match = _find_catalog_match(*applied, catalog)
+        if match is None:
+            continue
+        if not _is_clean(result, *applied, match):
+            count += 1
+    return count
 
 
 _result_st = st.builds(FakeScanResult, name=_text, vendor=_text, version=_version)
@@ -90,8 +108,10 @@ _record_st = st.builds(FakeCatalogRecord, name=_text, vendor=st.one_of(st.none()
 )
 @settings(max_examples=200)
 def test_counts_invariant_vendor_rule(results, catalog, disk_field, normalized):
-    counts = count_affected_pure(results, catalog, _RuleSpec("vendor", disk_field, normalized))
+    spec = _RuleSpec("vendor", disk_field, normalized)
+    counts = count_affected_pure(results, catalog, spec)
     assert counts["clean_count"] + counts["needs_review_count"] == counts["affected_count"]
+    assert counts["needs_review_count"] == _independent_needs_review(results, catalog, spec)
 
 
 @given(
@@ -102,8 +122,10 @@ def test_counts_invariant_vendor_rule(results, catalog, disk_field, normalized):
 )
 @settings(max_examples=200)
 def test_counts_invariant_name_rule(results, catalog, disk_field, normalized):
-    counts = count_affected_pure(results, catalog, _RuleSpec("name", disk_field, normalized))
+    spec = _RuleSpec("name", disk_field, normalized)
+    counts = count_affected_pure(results, catalog, spec)
     assert counts["clean_count"] + counts["needs_review_count"] == counts["affected_count"]
+    assert counts["needs_review_count"] == _independent_needs_review(results, catalog, spec)
 
 
 @given(results=st.lists(_result_st, min_size=0, max_size=20))

@@ -299,3 +299,18 @@ async def test_unauthenticated_cannot_keep_scanner_result(client):
 async def test_unauthenticated_cannot_list_exclusions(client):
     response = await client.get("/scanner/exclusions")
     assert response.status_code == 401
+
+
+async def test_user_cannot_get_recent_scans(client, auth_headers):
+    response = await client.get("/scanner/scans/recent", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_get_recent_scans(client):
+    response = await client.get("/scanner/scans/recent")
+    assert response.status_code == 401
+
+
+async def test_user_cannot_get_scan_report(client, auth_headers):
+    response = await client.get(f"/scanner/scans/{DUMMY_UUID}/report", headers=auth_headers)
+    assert response.status_code == 403

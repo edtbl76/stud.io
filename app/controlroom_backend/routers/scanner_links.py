@@ -52,25 +52,52 @@ async def _optimistic_purge(conn: Connection, fingerprint: str, record_id: UUID)
     )
 
 
-async def _create_link_for_result(conn: Connection, result_id: UUID, catalog_record_id: UUID, username: str) -> None:
+async def _create_link_for_result(
+    conn: Connection, result_id: UUID, catalog_record_id: UUID, catalog_record_table: str, username: str
+) -> bool:
     row = await conn.fetchrow(
         "SELECT name, vendor FROM plugin_scan_results WHERE result_id=$1", result_id
     )
     if not row:
-        return
-    fp = f"{row['vendor']} {row['name']}".lower().strip()
-    await conn.execute(
-        "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_vendor) DO NOTHING",
-        row["vendor"].lower(), row["vendor"], username,
+        return False
+    pk, nc = CATALOG_TABLES[catalog_record_table]
+    catalog = await conn.fetchrow(
+        f"SELECT {nc} AS name, b.brand_name AS vendor "
+        f"FROM {catalog_record_table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
+        catalog_record_id,
     )
+    if not catalog:
+        return False
+    fp = f"{row['vendor']} {row['name']}".lower().strip()
+    if catalog["vendor"] is not None:
+        await conn.execute(
+            "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_vendor) DO NOTHING",
+            row["vendor"].lower(), catalog["vendor"], username,
+        )
     await conn.execute(
         "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_name) DO NOTHING",
-        row["name"].lower(), row["name"], username,
+        row["name"].lower(), catalog["name"], username,
     )
     await _optimistic_purge(conn, fp, catalog_record_id)
+    return True
 
 
-async def _candidates_for_unlinked(conn: Connection, q_lower: str | None) -> FindLinkCandidatesResponse:
+async def _confirmed_record_ids(conn: Connection, scan_id: UUID) -> set[str]:
+    rows = await conn.fetch(
+        "SELECT record_id::text FROM plugin_scan_results "
+        "WHERE scan_id=$1 AND confirmed_at IS NOT NULL AND record_id IS NOT NULL",
+        scan_id,
+    )
+    return {r["record_id"] for r in rows}
+
+
+async def _candidates_for_unlinked(conn: Connection, source_id: UUID, q_lower: str | None) -> FindLinkCandidatesResponse:
+    result_row = await conn.fetchrow(
+        "SELECT scan_id FROM plugin_scan_results WHERE result_id=$1", source_id
+    )
+    already_linked = (
+        await _confirmed_record_ids(conn, result_row["scan_id"]) if result_row else set()
+    )
     orphaned_rows = await conn.fetch(_ORPHANED_QUERY)
     candidates: list[OrphanedRecord] = [
         OrphanedRecord(
@@ -82,19 +109,20 @@ async def _candidates_for_unlinked(conn: Connection, q_lower: str | None) -> Fin
             disk_paths=r["disk_paths"] or [],
         )
         for r in orphaned_rows
-        if _name_matches(r["name"], q_lower)
+        if _name_matches(r["name"], q_lower) and r["record_id"] not in already_linked
     ]
     return FindLinkCandidatesResponse(type="unlinked", candidates=candidates, total=len(candidates))
 
 
-async def _candidates_for_orphaned(conn: Connection, q_lower: str | None) -> FindLinkCandidatesResponse:
+async def _candidates_for_orphaned(conn: Connection, source_id: UUID, q_lower: str | None) -> FindLinkCandidatesResponse:
     scan_row = await conn.fetchrow("SELECT scan_id FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1")
     if not scan_row:
         return FindLinkCandidatesResponse(type="orphaned", candidates=[], total=0)
     results = await conn.fetch(
         "SELECT result_id, name, vendor, version, format, path FROM plugin_scan_results "
-        "WHERE scan_id=$1 AND status IN ('untracked','unlinked') AND confirmed_at IS NULL",
-        scan_row["scan_id"],
+        "WHERE scan_id=$1 AND status IN ('untracked','unlinked') AND confirmed_at IS NULL "
+        "AND (record_id IS NULL OR record_id != $2)",
+        scan_row["scan_id"], source_id,
     )
     candidates_wb = [
         {"result_id": str(r["result_id"]), "disk_name": r["name"], "disk_vendor": r["vendor"],
@@ -114,18 +142,20 @@ async def find_link_candidates(
 ) -> FindLinkCandidatesResponse:
     q_lower = lq.q.lower() if lq.q else None
     if lq.type == "unlinked":
-        return await _candidates_for_unlinked(conn, q_lower)
-    return await _candidates_for_orphaned(conn, q_lower)
+        return await _candidates_for_unlinked(conn, lq.source_id, q_lower)
+    return await _candidates_for_orphaned(conn, lq.source_id, q_lower)
 
 
 @router.post("/links", status_code=status.HTTP_201_CREATED)
 async def create_link(body: CreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
-    await _create_link_for_result(conn, body.result_id, body.catalog_record_id, user.username)
-    return BulkLinkResult(links_created=1)
+    created = await _create_link_for_result(conn, body.result_id, body.catalog_record_id, body.catalog_record_table, user.username)
+    return BulkLinkResult(links_created=int(created))
 
 
 @router.post("/links/bulk", status_code=status.HTTP_201_CREATED)
 async def bulk_create_links(body: BulkCreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
-    for result_id in body.result_ids:
-        await _create_link_for_result(conn, result_id, body.catalog_record_id, user.username)
-    return BulkLinkResult(links_created=len(body.result_ids))
+    results = [
+        await _create_link_for_result(conn, result_id, body.catalog_record_id, body.catalog_record_table, user.username)
+        for result_id in body.result_ids
+    ]
+    return BulkLinkResult(links_created=sum(results))

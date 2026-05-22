@@ -6,6 +6,7 @@ from typing import Annotated
 from uuid import UUID
 
 from asyncpg import Connection
+from asyncpg.exceptions import UniqueViolationError
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from database import get_conn
@@ -101,10 +102,8 @@ class _RuleValues:
 async def _insert_rule(conn: Connection, cfg: _RuleConfig, vals: _RuleValues, username: str):
     try:
         return await conn.fetchrow(cfg.insert_sql, vals.disk.lower(), vals.catalog, username)
-    except Exception as exc:
-        if "unique" in str(exc).lower():
-            raise HTTPException(status_code=409, detail=cfg.conflict_msg)
-        raise
+    except UniqueViolationError:
+        raise HTTPException(status_code=409, detail=cfg.conflict_msg)
 
 
 async def _update_rule(conn: Connection, cfg: _RuleConfig, rule_id: UUID, catalog_value: str):
@@ -189,17 +188,19 @@ async def _fetch_candidates(conn: Connection, rule_type: str, disk_field: str):
     )
 
 
-async def _score_row(conn: Connection, row, rule_app: _RuleApp, ctx: _CatalogCtx) -> tuple[int, int]:
+async def _load_rejection_set(conn: Connection) -> set[tuple]:
+    rows = await conn.fetch("SELECT fingerprint, record_id::text FROM scanner_rejections")
+    return {(r["fingerprint"], r["record_id"]) for r in rows}
+
+
+def _score_row(row, rule_app: _RuleApp, ctx: _CatalogCtx, rejection_set: set[tuple]) -> tuple[int, int]:
     display_vendor = rule_app.catalog_value if rule_app.rule_type == "vendor" else row["vendor"]
     display_name = rule_app.catalog_value if rule_app.rule_type == "name" else row["name"]
     _, match = match_plugin(display_name, display_vendor, ctx.catalog_index, ctx.exclusions)
     if match.record is None:
         return 0, 0
     fp = f"{display_vendor} {display_name}".lower().strip()
-    if await conn.fetchrow(
-        "SELECT 1 FROM scanner_rejections WHERE fingerprint=$1 AND record_id=$2",
-        fp, UUID(match.record.record_id),
-    ):
+    if (fp, str(match.record.record_id)) in rejection_set:
         return 0, 0
     return 1, int(_is_clean_match(display_name, display_vendor, row["version"], match.record))
 
@@ -211,14 +212,35 @@ async def count_affected_with_clean_split(
         catalog_index=await build_catalog_index(conn),
         exclusions=await load_exclusions(conn),
     )
+    rejection_set = await _load_rejection_set(conn)
     rule_app = _RuleApp(rule_type=rule_type, catalog_value=catalog_value)
     rows = await _fetch_candidates(conn, rule_type, disk_field)
     affected, clean = 0, 0
     for row in rows:
-        a, c = await _score_row(conn, row, rule_app, ctx)
+        a, c = _score_row(row, rule_app, ctx, rejection_set)
         affected += a
         clean += c
     return {"affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean}
+
+
+async def _count_rules(
+    conn: Connection, rules: list, rule_type: str, ctx: _CatalogCtx, rejection_set: set[tuple],
+) -> dict:
+    disk_col = "disk_vendor" if rule_type == "vendor" else "disk_name"
+    cat_col = "catalog_vendor" if rule_type == "vendor" else "catalog_name"
+    counts: dict = {}
+    for rule in rules:
+        rule_app = _RuleApp(rule_type=rule_type, catalog_value=rule[cat_col])
+        rows = await _fetch_candidates(conn, rule_type, rule[disk_col])
+        affected, clean = 0, 0
+        for row in rows:
+            a, c = _score_row(row, rule_app, ctx, rejection_set)
+            affected += a
+            clean += c
+        counts[rule["rule_id"]] = {
+            "affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean,
+        }
+    return counts
 
 
 # ---------------------------------------------------------------------------
@@ -236,9 +258,16 @@ async def list_rules(
         "SELECT rule_id, label, pattern, match_fields, action, enabled, is_seeded, "
         "created_by, created_at FROM scanner_name_patterns ORDER BY label"
     )
+    ctx = _CatalogCtx(
+        catalog_index=await build_catalog_index(conn),
+        exclusions=await load_exclusions(conn),
+    )
+    rejection_set = await _load_rejection_set(conn)
+    vendor_counts = await _count_rules(conn, vendor_rows, "vendor", ctx, rejection_set)
+    name_counts = await _count_rules(conn, name_rows, "name", ctx, rejection_set)
     return AllRules(
-        vendor=[VendorRuleOut(**dict(r), affected_count=0, clean_count=0, needs_review_count=0) for r in vendor_rows],
-        name=[NameRuleOut(**dict(r), affected_count=0, clean_count=0, needs_review_count=0) for r in name_rows],
+        vendor=[VendorRuleOut(**dict(r), **vendor_counts[r["rule_id"]]) for r in vendor_rows],
+        name=[NameRuleOut(**dict(r), **name_counts[r["rule_id"]]) for r in name_rows],
         pattern=[PatternRuleOut(**dict(r)) for r in pattern_rows],
     )
 

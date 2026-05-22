@@ -97,6 +97,11 @@ async def test_create_link_creates_vendor_name_rule(client, conn, admin_headers)
     )
     assert resp.status_code == 201
     assert resp.json()["links_created"] == 1
+    name_rule = await conn.fetchrow(
+        "SELECT catalog_name FROM scanner_name_rules WHERE disk_name = $1", "reverb pro"
+    )
+    assert name_rule is not None
+    assert name_rule["catalog_name"] == "Reverb Pro"
 
 
 @pytest.mark.asyncio
@@ -134,6 +139,11 @@ async def test_bulk_create_links(client, conn, admin_headers):
     )
     assert resp.status_code == 201
     assert resp.json()["links_created"] == 2
+    name_rule = await conn.fetchrow(
+        "SELECT catalog_name FROM scanner_name_rules WHERE disk_name = $1", "reverb pro"
+    )
+    assert name_rule is not None
+    assert name_rule["catalog_name"] == "Reverb Pro"
 
 
 # ---------------------------------------------------------------------------
