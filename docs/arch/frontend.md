@@ -39,7 +39,7 @@ app/studio_frontend/
 │   │   ├── layout.tsx      # Renders Sidebar + main content area
 │   │   ├── session/        # Effects, Instruments, Libraries, Workstations
 │   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
-│   │   └── scanner/        # Plugin Scanner — 8 bucket triage pages
+│   │   └── scanner/        # Plugin Scanner — bucket triage pages + rules management
 │   │       ├── known/      # Known (matched + catalog has disk_paths)
 │   │       ├── matched/    # Matched, awaiting acknowledgement
 │   │       ├── conflicted/ # Version mismatch between disk and catalog
@@ -47,7 +47,8 @@ app/studio_frontend/
 │   │       ├── untracked/  # No catalog match found
 │   │       ├── orphaned/   # Confirmed links whose catalog record missing from scan
 │   │       ├── absent/     # Catalog records with disk_paths not found in this scan
-│   │       └── exclusions/ # Explicitly excluded plugins
+│   │       ├── exclusions/ # Explicitly excluded plugins
+│   │       └── rules/      # Plugin Scanner Rules — vendor/name/pattern rule management (U-03, 1.17.0)
 │   ├── studio/             # Studio Management module
 │   │   ├── layout.tsx      # Renders UsersSidebar + main content area
 │   │   ├── catalog/        # Brands, Models

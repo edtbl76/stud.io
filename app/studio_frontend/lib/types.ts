@@ -1,3 +1,39 @@
+export type RuleType = 'vendor' | 'name' | 'pattern'
+
+export interface VendorRule {
+  rule_id: string; disk_vendor: string; catalog_vendor: string
+  enabled: boolean; created_by: string; created_at: string
+  affected_count: number; clean_count: number; needs_review_count: number
+}
+
+export interface NameRule {
+  rule_id: string; disk_name: string; catalog_name: string
+  enabled: boolean; created_by: string; created_at: string
+  affected_count: number; clean_count: number; needs_review_count: number
+}
+
+export interface PatternRule {
+  rule_id: string; label: string; pattern: string
+  match_fields: string[]; action: string
+  enabled: boolean; is_seeded: boolean; created_by: string; created_at: string
+}
+
+export interface AllRules { vendor: VendorRule[]; name: NameRule[]; pattern: PatternRule[] }
+
+export interface RuleCreationResult {
+  rule: VendorRule | NameRule | PatternRule
+  affected_count: number; clean_count: number; needs_review_count: number
+}
+
+export interface VendorRuleInput { disk_vendor: string; catalog_vendor: string }
+export interface NameRuleInput { disk_name: string; catalog_name: string }
+export interface UpdateRuleInput { id: string; type: 'vendor' | 'name'; catalogValue: string }
+export interface PatternRuleInput {
+  label: string; pattern: string; match_fields: string[]; action: string; enabled: boolean
+}
+
+export type AcknowledgeResult = { acknowledged: number }
+
 export interface TypeRef { id: string; name: string }
 export interface ModelRef { id: string; name: string }
 export interface ParentRef { table_name: string; id: string; name: string | null }

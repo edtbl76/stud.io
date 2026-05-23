@@ -1,4 +1,4 @@
-import type { CatalogSearchResult, ConfirmDecision, Exclusion, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, CatalogSearchResult, ConfirmDecision, Exclusion, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, UpdateRuleInput, VendorRuleInput } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -104,5 +104,22 @@ export const api = {
       const qs = olderThanDays === 'all' ? '' : `?older_than_days=${olderThanDays}`
       return req<{ deleted_count: number }>(`/scanner/scans${qs}`, { method: 'DELETE' })
     },
+    rules: () => req<AllRules>('/scanner/rules'),
+    createVendorRule: (input: VendorRuleInput) =>
+      req<RuleCreationResult>('/scanner/rules/vendor', { method: 'POST', body: JSON.stringify(input) }),
+    createNameRule: (input: NameRuleInput) =>
+      req<RuleCreationResult>('/scanner/rules/name', { method: 'POST', body: JSON.stringify(input) }),
+    createPatternRule: (input: PatternRuleInput) =>
+      req<RuleCreationResult>('/scanner/rules/pattern', { method: 'POST', body: JSON.stringify(input) }),
+    updateRule: ({ id, type, catalogValue }: UpdateRuleInput) => {
+      const body = type === 'vendor' ? { catalog_vendor: catalogValue } : { catalog_name: catalogValue }
+      return req<RuleCreationResult>(`/scanner/rules/${type}/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+    },
+    deleteRule: (id: string, type: RuleType) =>
+      req<void>(`/scanner/rules/${type}/${id}`, { method: 'DELETE' }),
+    toggleRule: (id: string, type: RuleType, enabled: boolean) =>
+      req<RuleCreationResult>(`/scanner/rules/${type}/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
+    acknowledgeClean: (id: string, type: RuleType) =>
+      req<AcknowledgeResult>(`/scanner/rules/${type}/${id}/acknowledge-clean`, { method: 'POST' }),
   },
 }

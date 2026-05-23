@@ -107,6 +107,16 @@ describe('Sidebar', () => {
     expect(effectsLink.className).toContain('text-primary')
   })
 
+  // Step 48
+  it('renders Plugin Scanner Rules link pointing to /controlroom/scanner/rules', () => {
+    mockPathname = '/controlroom/scanner/rules'
+    render(<Sidebar />)
+    // Group auto-expands when on a scanner path — no button click needed
+    const link = screen.getByRole('link', { name: 'Plugin Scanner Rules' })
+    expect(link).toBeInTheDocument()
+    expect(link.getAttribute('href')).toBe('/controlroom/scanner/rules')
+  })
+
   it('does not apply active link styling when path does not match', () => {
     mockPathname = '/unrelated'
     render(<Sidebar />)

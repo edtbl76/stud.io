@@ -22,6 +22,7 @@ graph LR
         reportrouter["Report Router"]
         linksrouter["Links Router"]
         rejectionsrouter["Rejections Router"]
+        resetrouter["Reset Router"]
         crudlib["CRUD Library"]
         dbpool["DB Pool"]
     end
@@ -46,6 +47,7 @@ graph LR
     appcore -->|"/scanner/scans/recent · /scans/{id}/report"| reportrouter
     appcore -->|"/scanner/links"| linksrouter
     appcore -->|"/scanner/results · /rejections"| rejectionsrouter
+    appcore -->|"/scanner/admin/reset"| resetrouter
     catalogrouters --> crudlib
     sessionrouters --> crudlib
     toolsrouter --> crudlib
@@ -57,6 +59,7 @@ graph LR
     reportrouter --> dbpool
     linksrouter --> dbpool
     rejectionsrouter --> dbpool
+    resetrouter --> dbpool
     dbpool --> db
     authrouter -->|"validate tokens"| google
     gearlistrouter -->|"X-User / X-Role"| gearlist
@@ -81,5 +84,6 @@ graph LR
 | Report Router | FastAPI / Python | Recent scan list (`/scanner/scans/recent`) + raw scan report |
 | Links Router | FastAPI / Python | Find-link candidates and link creation |
 | Rejections Router | FastAPI / Python | Reject match, list rejections, delete rejection |
+| Reset Router | FastAPI / Python | Soft reset (disable all rules) and hard reset (full wipe) at `/scanner/admin/reset` |
 | CRUD Library | Python | Shared list, get, soft-delete, history, log_audit |
 | DB Pool | asyncpg | Connection pool min=2 max=10; provides `get_conn()` dependency |
