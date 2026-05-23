@@ -29,8 +29,9 @@ function RuleRow({ rule, columns, editId, editValue, confirmDeleteId, setEditId,
   const ruleData = rule as unknown as Record<string, string | number | boolean | null | undefined>
 
   function handleEditStart() {
+    const key = columns.length > 0 ? columns[0].key : undefined
     setEditId(rule.rule_id)
-    setEditValue(String(ruleData[columns[0].key] ?? ''))
+    setEditValue(key === undefined ? '' : String(ruleData[key] ?? ''))
   }
 
   function handleDeleteConfirm() {
