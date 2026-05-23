@@ -65,7 +65,7 @@ describe('api.scanner.createPatternRule', () => {
 describe('api.scanner.updateRule', () => {
   it('calls PATCH /scanner/rules/{type}/{id} with catalog value as body', async () => {
     const spy = mockFetch({})
-    await api.scanner.updateRule('abc', 'vendor', 'IK Multimedia')
+    await api.scanner.updateRule({ id: 'abc', type: 'vendor', catalogValue: 'IK Multimedia' })
     expect(spy).toHaveBeenCalledWith(
       `${BASE}/scanner/rules/vendor/abc`,
       expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ catalog_vendor: 'IK Multimedia' }) })
@@ -74,7 +74,7 @@ describe('api.scanner.updateRule', () => {
 
   it('uses catalog_name key for name rules', async () => {
     const spy = mockFetch({})
-    await api.scanner.updateRule('xyz', 'name', 'Reverb Pro')
+    await api.scanner.updateRule({ id: 'xyz', type: 'name', catalogValue: 'Reverb Pro' })
     expect(spy).toHaveBeenCalledWith(
       `${BASE}/scanner/rules/name/xyz`,
       expect.objectContaining({ body: JSON.stringify({ catalog_name: 'Reverb Pro' }) })

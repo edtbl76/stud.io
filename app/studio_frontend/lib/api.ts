@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, CatalogSearchResult, ConfirmDecision, Exclusion, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, VendorRuleInput } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, CatalogSearchResult, ConfirmDecision, Exclusion, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, UpdateRuleInput, VendorRuleInput } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -111,7 +111,7 @@ export const api = {
       req<RuleCreationResult>('/scanner/rules/name', { method: 'POST', body: JSON.stringify(input) }),
     createPatternRule: (input: PatternRuleInput) =>
       req<RuleCreationResult>('/scanner/rules/pattern', { method: 'POST', body: JSON.stringify(input) }),
-    updateRule: (id: string, type: RuleType, catalogValue: string) => {
+    updateRule: ({ id, type, catalogValue }: UpdateRuleInput) => {
       const body = type === 'vendor' ? { catalog_vendor: catalogValue } : { catalog_name: catalogValue }
       return req<RuleCreationResult>(`/scanner/rules/${type}/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     },

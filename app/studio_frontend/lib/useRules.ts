@@ -42,7 +42,7 @@ export function useRules() {
 
   const updateRule = useMutation({
     mutationFn: ({ id, type, catalogValue }: { id: string; type: RuleType; catalogValue: string }) =>
-      api.scanner.updateRule(id, type, catalogValue),
+      api.scanner.updateRule({ id, type, catalogValue }),
     onSuccess: invalidateBoth,
   })
 
