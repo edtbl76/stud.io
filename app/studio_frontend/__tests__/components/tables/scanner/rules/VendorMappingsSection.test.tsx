@@ -28,7 +28,9 @@ it('renders disk_vendor and catalog_vendor column headers', async () => {
   expect(screen.getByText('Catalog Vendor')).toBeInTheDocument()
 })
 
-it('passes ruleType vendor to RuleSection (row renders after load)', async () => {
+it('renders vendor rule row with disk_vendor and catalog_vendor after data loads', async () => {
   render(<VendorMappingsSection />, { wrapper })
-  expect(screen.getByTestId('rule-section-add-button')).toBeInTheDocument()
+  const row = await screen.findByTestId('rule-row-v1')
+  expect(row).toHaveTextContent('ikm')
+  expect(row).toHaveTextContent('IK Multimedia')
 })

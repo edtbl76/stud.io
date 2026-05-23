@@ -27,7 +27,7 @@ export interface RuleCreationResult {
 
 export interface VendorRuleInput { disk_vendor: string; catalog_vendor: string }
 export interface NameRuleInput { disk_name: string; catalog_name: string }
-export interface UpdateRuleInput { id: string; type: RuleType; catalogValue: string }
+export interface UpdateRuleInput { id: string; type: 'vendor' | 'name'; catalogValue: string }
 export interface PatternRuleInput {
   label: string; pattern: string; match_fields: string[]; action: string; enabled: boolean
 }

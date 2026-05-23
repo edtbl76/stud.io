@@ -41,7 +41,7 @@ export function useRules() {
   })
 
   const updateRule = useMutation({
-    mutationFn: ({ id, type, catalogValue }: { id: string; type: RuleType; catalogValue: string }) =>
+    mutationFn: ({ id, type, catalogValue }: { id: string; type: 'vendor' | 'name'; catalogValue: string }) =>
       api.scanner.updateRule({ id, type, catalogValue }),
     onSuccess: invalidateBoth,
   })
@@ -59,7 +59,7 @@ export function useRules() {
     createVendorRule: (input: VendorRuleInput) => createVendorRule.mutateAsync(input),
     createNameRule: (input: NameRuleInput) => createNameRule.mutateAsync(input),
     createPatternRule: (input: PatternRuleInput) => createPatternRule.mutateAsync(input),
-    updateRule: (id: string, type: RuleType, catalogValue: string) => updateRule.mutateAsync({ id, type, catalogValue }),
+    updateRule: (id: string, type: 'vendor' | 'name', catalogValue: string) => updateRule.mutateAsync({ id, type, catalogValue }),
     toggleRule: (id: string, type: RuleType, enabled: boolean) => toggleRule.mutateAsync({ id, type, enabled }),
     deleteRule: (id: string, type: RuleType) => deleteRule.mutateAsync({ id, type }),
     acknowledgeClean: async (id: string, type: RuleType) => {

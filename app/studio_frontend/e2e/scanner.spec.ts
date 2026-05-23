@@ -106,7 +106,8 @@ test('rules page loads and shows all three sections', async ({ page }) => {
 
 test('Add Rule button in Vendor Mappings opens creation form', async ({ page }) => {
   await page.goto(`${BASE}/rules`)
-  await expect(page.getByText('Vendor Mappings')).toBeVisible({ timeout: 10000 })
-  await page.getByTestId('rule-section-add-button').first().click()
+  const vendorSection = page.locator('section').filter({ hasText: 'Vendor Mappings' })
+  await expect(vendorSection).toBeVisible({ timeout: 10000 })
+  await vendorSection.getByTestId('rule-section-add-button').click()
   await expect(page.getByTestId('input-disk-vendor')).toBeVisible()
 })
