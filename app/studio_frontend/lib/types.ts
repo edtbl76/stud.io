@@ -287,6 +287,136 @@ export interface SearchResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Plugin Scanner — Workbench (U-04)
+// ---------------------------------------------------------------------------
+
+export type WorkbenchBucket = 'unlinked' | 'orphaned' | 'needs_review' | 'known' | 'excluded'
+
+export interface WorkbenchRow {
+  result_id: string
+  disk_name: string
+  disk_vendor: string
+  disk_version: string
+  disk_format: string
+  disk_path: string
+  display_name: string
+  display_vendor: string
+  catalog_record_id: string | null
+  catalog_record_table: string | null
+  catalog_record_name: string | null
+  catalog_record_vendor: string | null
+  catalog_record_version: string | null
+  bucket: WorkbenchBucket
+  confidence: string | null
+  confirmed_at: string | null
+  confirmed_by: string | null
+}
+
+export interface OrphanedRecord {
+  catalog_record_id: string
+  catalog_record_table: string
+  name: string
+  vendor: string | null
+  version: string | null
+  disk_paths: Record<string, unknown>[]
+}
+
+export interface WorkbenchResponse {
+  rows: WorkbenchRow[]
+  orphaned: OrphanedRecord[]
+  scan_id: string | null
+}
+
+export interface WorkbenchServerParams {
+  scan_id?: string
+  bucket?: string
+  show_confirmed?: boolean
+}
+
+export type NeedsReviewSubState = 'version mismatch' | 'unconfirmed' | 'collision'
+
+export interface WorkbenchClientFilters {
+  bucket: WorkbenchBucket | ''
+  needs_review_substate: NeedsReviewSubState | ''
+  catalog_type: string
+  format: string
+}
+
+export interface FindLinkCandidatesResponse {
+  type: 'unlinked' | 'orphaned'
+  candidates: WorkbenchRow[] | OrphanedRecord[]
+  total: number
+}
+
+export interface CreateLinkRequest {
+  result_id: string
+  catalog_record_id: string
+  catalog_record_table: string
+}
+
+export interface BulkCreateLinkRequest {
+  result_ids: string[]
+  catalog_record_id: string
+  catalog_record_table: string
+}
+
+export interface BulkLinkResult {
+  links_created: number
+}
+
+export interface SoftResetResult {
+  type: 'soft'
+  rules_disabled: number
+}
+
+export interface HardResetRequest {
+  confirmation_text: string
+}
+
+export interface HardResetResult {
+  type: 'hard'
+  records_wiped: number
+  seeded_rules_restored: number
+}
+
+export interface SelectionState {
+  selectedIds: Set<string>
+  lastClickedIndex: number | null
+}
+
+export type FieldSource = 'disk' | 'catalog'
+
+export interface SingleResolutionInput {
+  nameSource: FieldSource
+  vendorSource: FieldSource
+  versionSource: FieldSource
+}
+
+export type FieldChoice = 'a' | 'b' | 'catalog'
+
+export interface CollisionResolutionInput {
+  nameChoice: FieldChoice
+  vendorChoice: FieldChoice
+  versionChoice: FieldChoice
+}
+
+export interface BulkAcknowledgeRequest {
+  audit_ids: string[]
+}
+
+export interface BulkAcknowledgeResult {
+  acknowledged: number
+}
+
+export interface BulkUndoRequest {
+  audit_ids: string[]
+}
+
+export interface BulkUndoResult {
+  undone: number
+}
+
+// ---------------------------------------------------------------------------
 // Plugin Scanner
 // ---------------------------------------------------------------------------
 

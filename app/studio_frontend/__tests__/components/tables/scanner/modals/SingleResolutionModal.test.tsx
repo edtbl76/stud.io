@@ -1,0 +1,159 @@
+import * as React from 'react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { SingleResolutionModal } from '@/components/tables/scanner/modals/SingleResolutionModal'
+import type { WorkbenchRow, RuleCreationResult } from '@/lib/types'
+
+jest.mock('@/lib/api', () => ({
+  api: {
+    update: jest.fn(),
+    scanner: {
+      createVendorRule: jest.fn(),
+      createNameRule: jest.fn(),
+    },
+  },
+}))
+
+import { api } from '@/lib/api'
+const mockApi = api as jest.Mocked<typeof api>
+
+function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
+  return {
+    result_id: 'r1', disk_name: 'Surge XT', disk_vendor: 'Vembertech', disk_version: '1.3', disk_format: 'VST3',
+    disk_path: '/p', display_name: 'Surge XT', display_vendor: 'Vembertech',
+    catalog_record_id: 'c1', catalog_record_table: 'instruments',
+    catalog_record_name: 'Surge', catalog_record_vendor: 'Surge Synth Team', catalog_record_version: '1.3',
+    bucket: 'needs_review', confidence: null, confirmed_at: null, confirmed_by: null,
+    ...overrides,
+  }
+}
+
+const noop = jest.fn()
+
+function mockSuccess() {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue({
+    rule: { rule_id: 'rv1', disk_vendor: 'Vembertech', catalog_vendor: 'Surge Synth Team', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 2, clean_count: 1, needs_review_count: 1 },
+    affected_count: 2, clean_count: 1, needs_review_count: 1,
+  } satisfies RuleCreationResult)
+  ;(mockApi.scanner.createNameRule as jest.Mock).mockResolvedValue({
+    rule: { rule_id: 'rn1', disk_name: 'Surge XT', catalog_name: 'Surge', disk_vendor: 'Vembertech', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
+    affected_count: 1, clean_count: 1, needs_review_count: 0,
+  } satisfies RuleCreationResult)
+}
+
+afterEach(() => jest.resetAllMocks())
+
+// Step 56
+it('renders both disk and catalog values with radios for differing fields', () => {
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  // name differs: disk="Surge XT", catalog="Surge"
+  expect(screen.getByText('Surge XT')).toBeInTheDocument()
+  expect(screen.getByText('Surge')).toBeInTheDocument()
+  // vendor differs: disk="Vembertech", catalog="Surge Synth Team"
+  expect(screen.getByText('Vembertech')).toBeInTheDocument()
+  expect(screen.getByText('Surge Synth Team')).toBeInTheDocument()
+  // radio buttons present for differing fields
+  expect(screen.getAllByRole('radio').length).toBeGreaterThan(0)
+})
+
+// Step 57
+it('shows no radio for matching fields', () => {
+  // version matches (1.3 === 1.3), only name and vendor differ
+  const row = makeRow()
+  render(<SingleResolutionModal row={row} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  // version field (1.3) should render as plain text without radio
+  const radios = screen.getAllByRole('radio')
+  // 2 differing fields × 2 radios each = 4 radios (name and vendor)
+  expect(radios).toHaveLength(4)
+})
+
+// Step 58
+it('Save is disabled when no radio selected', () => {
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
+})
+
+it('Save is enabled after all differing fields are resolved', () => {
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  // select disk for first two differing fields (radios alternate disk/catalog per field)
+  fireEvent.click(radios[0]) // name → disk
+  fireEvent.click(radios[2]) // vendor → disk
+  expect(screen.getByRole('button', { name: /save/i })).not.toBeDisabled()
+})
+
+// Step 59
+it('calls api.update with chosen field values on Save', async () => {
+  mockSuccess()
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // name → disk ("Surge XT")
+  fireEvent.click(radios[3]) // vendor → catalog ("Surge Synth Team")
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith(
+    '/catalog/instruments', 'c1',
+    expect.objectContaining({ name: 'Surge XT', vendor: 'Surge Synth Team' })
+  ))
+})
+
+// Step 60
+it('creates vendor rule when catalog vendor chosen', async () => {
+  mockSuccess()
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // name → disk (no name rule)
+  fireEvent.click(radios[3]) // vendor → catalog (creates vendor rule)
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(mockApi.scanner.createVendorRule).toHaveBeenCalledWith({
+    disk_vendor: 'Vembertech', catalog_vendor: 'Surge Synth Team',
+  }))
+  expect(mockApi.scanner.createNameRule).not.toHaveBeenCalled()
+})
+
+it('does not create rule when disk value chosen', async () => {
+  mockSuccess()
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // name → disk
+  fireEvent.click(radios[2]) // vendor → disk
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
+  expect(mockApi.scanner.createVendorRule).not.toHaveBeenCalled()
+  expect(mockApi.scanner.createNameRule).not.toHaveBeenCalled()
+})
+
+// Step 61
+it('shows inline error and keeps modal open when PATCH fails', async () => {
+  ;(mockApi.update as jest.Mock).mockRejectedValue(new Error('Server error'))
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0])
+  fireEvent.click(radios[2])
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+  expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+})
+
+// Step 62
+it('calls onSaved and onFireRuleToasts on success', async () => {
+  mockSuccess()
+  const onSaved = jest.fn()
+  const onFireRuleToasts = jest.fn()
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={onSaved} onFireRuleToasts={onFireRuleToasts} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // disk name
+  fireEvent.click(radios[3]) // catalog vendor → triggers vendor rule
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+  expect(onFireRuleToasts).toHaveBeenCalled()
+})
+
+// Step 63
+it('calls onClose on Cancel without calling onSaved', () => {
+  const onClose = jest.fn()
+  const onSaved = jest.fn()
+  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={onSaved} onFireRuleToasts={noop} />)
+  fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
+  expect(onClose).toHaveBeenCalled()
+  expect(onSaved).not.toHaveBeenCalled()
+})

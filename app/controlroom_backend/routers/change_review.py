@@ -4,6 +4,7 @@ from uuid import UUID
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from database import get_conn
 from routers.auth import require_admin, get_current_user, UserOut
@@ -18,6 +19,18 @@ from routers._helpers import (
 )
 from routers.change_review_undo import apply_undo_operation, UndoTarget
 from routers.change_review_list import _build_filter_clause, _batch_display_names, _build_entries
+
+
+class BulkAuditRequest(BaseModel):
+    audit_ids: list[UUID]
+
+
+class BulkAcknowledgeResult(BaseModel):
+    acknowledged: int
+
+
+class BulkUndoResult(BaseModel):
+    undone: int
 
 router = APIRouter()
 
@@ -164,6 +177,54 @@ async def undo_change(
         return AuditEntry(**dict(updated), record_display_name=None)
     except asyncpg.ForeignKeyViolationError:
         raise HTTPException(status_code=409, detail="Cannot undo: record is referenced by other records")
+
+
+@router.post(
+    "/change-review/bulk-acknowledge",
+    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}},
+)
+async def bulk_acknowledge(
+    body: BulkAuditRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> BulkAcknowledgeResult:
+    """Mark multiple audit entries as acknowledged, skipping already-resolved entries."""
+    if not body.audit_ids:
+        return BulkAcknowledgeResult(acknowledged=0)
+    result = await conn.execute(
+        """UPDATE audit_log
+           SET acknowledged_at = NOW(), acknowledged_by = $2
+           WHERE audit_id = ANY($1)
+             AND acknowledged_at IS NULL
+             AND undone_at IS NULL""",
+        body.audit_ids, user.username,
+    )
+    count = int(result.split()[-1])
+    return BulkAcknowledgeResult(acknowledged=count)
+
+
+@router.post(
+    "/change-review/bulk-undo",
+    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}},
+)
+async def bulk_undo(
+    body: BulkAuditRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> BulkUndoResult:
+    """Mark multiple pending audit entries as undone, skipping already-resolved entries."""
+    if not body.audit_ids:
+        return BulkUndoResult(undone=0)
+    result = await conn.execute(
+        """UPDATE audit_log
+           SET undone_at = NOW(), undone_by = $2
+           WHERE audit_id = ANY($1)
+             AND acknowledged_at IS NULL
+             AND undone_at IS NULL""",
+        body.audit_ids, user.username,
+    )
+    count = int(result.split()[-1])
+    return BulkUndoResult(undone=count)
 
 
 @router.delete(

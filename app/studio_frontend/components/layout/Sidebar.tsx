@@ -27,15 +27,8 @@ const navGroups: NavGroup[] = [
   {
     title: 'PLUGIN SCANNER',
     items: [
+      { label: 'Scan Workbench', href: '/controlroom/scanner/workbench' },
       { label: 'Plugin Scanner Rules', href: '/controlroom/scanner/rules' },
-      { label: 'Known',       href: '/controlroom/scanner/known' },
-      { label: 'Matched',     href: '/controlroom/scanner/matched' },
-      { label: 'Conflicted',  href: '/controlroom/scanner/conflicted' },
-      { label: 'Unconfirmed', href: '/controlroom/scanner/unconfirmed' },
-      { label: 'Untracked',   href: '/controlroom/scanner/untracked' },
-      { label: 'Orphaned',    href: '/controlroom/scanner/orphaned' },
-      { label: 'Absent',      href: '/controlroom/scanner/absent' },
-      { label: 'Exclusions',  href: '/controlroom/scanner/exclusions' },
     ],
   },
 ]

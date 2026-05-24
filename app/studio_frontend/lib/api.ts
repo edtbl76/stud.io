@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, CatalogSearchResult, ConfirmDecision, Exclusion, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, UpdateRuleInput, VendorRuleInput } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkAcknowledgeResult, BulkCreateLinkRequest, BulkLinkResult, BulkUndoResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -121,5 +121,44 @@ export const api = {
       req<RuleCreationResult>(`/scanner/rules/${type}/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
     acknowledgeClean: (id: string, type: RuleType) =>
       req<AcknowledgeResult>(`/scanner/rules/${type}/${id}/acknowledge-clean`, { method: 'POST' }),
+    workbench: (params: WorkbenchServerParams) => {
+      const p = new URLSearchParams()
+      if (params.scan_id) p.set('scan_id', params.scan_id)
+      if (params.bucket) p.set('bucket', params.bucket)
+      if (params.show_confirmed !== undefined) p.set('show_confirmed', String(params.show_confirmed))
+      return req<WorkbenchResponse>(`/scanner/workbench?${p.toString()}`)
+    },
+    findLinkCandidates: (type: 'unlinked' | 'orphaned', sourceId: string, q?: string) => {
+      const p = new URLSearchParams({ type, source_id: sourceId })
+      if (q) p.set('q', q)
+      return req<FindLinkCandidatesResponse>(`/scanner/links/candidates?${p.toString()}`)
+    },
+    createLink: (body: CreateLinkRequest) =>
+      req<BulkLinkResult>('/scanner/links', { method: 'POST', body: JSON.stringify(body) }),
+    bulkCreateLinks: (body: BulkCreateLinkRequest) =>
+      req<BulkLinkResult>('/scanner/links/bulk', { method: 'POST', body: JSON.stringify(body) }),
+    rejectMatch: (resultId: string) =>
+      req<void>(`/scanner/results/${resultId}/reject`, { method: 'POST' }),
+    softReset: () =>
+      req<SoftResetResult>('/scanner/admin/reset/soft', { method: 'POST' }),
+    hardReset: (confirmationText: string) =>
+      req<HardResetResult>('/scanner/admin/reset/hard', {
+        method: 'POST',
+        body: JSON.stringify({ confirmation_text: confirmationText }),
+      }),
+    exclude: (vendor: string, name: string) =>
+      req<void>('/scanner/exclude', { method: 'POST', body: JSON.stringify({ vendor, name }) }),
+  },
+  studio: {
+    bulkAcknowledgeChangeReview: (auditIds: string[]) =>
+      req<BulkAcknowledgeResult>('/studio/admin/change-review/bulk-acknowledge', {
+        method: 'POST',
+        body: JSON.stringify({ audit_ids: auditIds }),
+      }),
+    bulkUndoChangeReview: (auditIds: string[]) =>
+      req<BulkUndoResult>('/studio/admin/change-review/bulk-undo', {
+        method: 'POST',
+        body: JSON.stringify({ audit_ids: auditIds }),
+      }),
   },
 }

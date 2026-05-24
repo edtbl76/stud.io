@@ -40,6 +40,7 @@ app/studio_frontend/
 │   │   ├── session/        # Effects, Instruments, Libraries, Workstations
 │   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
 │   │   └── scanner/        # Plugin Scanner — bucket triage pages + rules management
+│   │       ├── workbench/  # Scan Workbench — five-bucket unified triage UI (U-04, 1.17.0)
 │   │       ├── known/      # Known (matched + catalog has disk_paths)
 │   │       ├── matched/    # Matched, awaiting acknowledgement
 │   │       ├── conflicted/ # Version mismatch between disk and catalog
@@ -88,7 +89,13 @@ app/studio_frontend/
 │   │   ├── workstations/   # WorkstationModal, columns
 │   │   ├── tools/          # ToolModal, columns (shared by all 5 tool tables)
 │   │   ├── config/         # ConfigModal, columns (shared by all config lookup tables)
-│   │   └── gear/           # GearModal, columns, guitarColumns
+│   │   ├── gear/           # GearModal, columns, guitarColumns
+│   │   ├── scanner/rules/  # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
+│   │   └── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag; modals: SingleResolutionModal, CollisionModal, FindLinkModal, CreateRecordModal
+│   ├── admin/              # Shared admin components
+│   │   └── ChangeReviewBulkBar.tsx  # Bulk approve/reject bar + confirmation dialog for Change Review page
+│   ├── scanner/            # Cross-cutting scanner utilities
+│   │   └── RuleToastManager.tsx  # fireRuleToasts — sonner toasts after rule creation (success + affected-count info)
 │   └── ui/                 # shadcn/ui primitives (Button, Input, Dialog, etc.)
 ├── lib/
 │   ├── api.ts                   # Typed fetch wrapper — calls relative /api/... paths; uploadPhoto sends raw File binary
@@ -100,6 +107,10 @@ app/studio_frontend/
 │   ├── parentSelectRecents.ts   # localStorage utility for recent ParentSelect picks — max 10, deduplicated by (table_name, id)
 │   ├── types.ts                 # TypeScript interfaces for all API response shapes
 │   ├── useSessionState.ts       # Hook: per-user, per-table localStorage persistence for filters, sorting, column visibility, and column sizing. Exposes isDirty and resetView.
+│   ├── useRules.ts              # Hook: React Query mutations for scanner rule CRUD (vendor, name, pattern) via TanStack useMutation
+│   ├── useWorkbench.ts          # Hook: workbench data, client filters, sub-state derivation, selection (toggle/shift/selectAll) for ScanWorkbenchPage
+│   ├── useFindLink.ts           # Hook: debounced candidate search + selection for FindLinkModal (unlinked-to-orphaned and orphaned-to-unlinked modes)
+│   ├── useChangeReviewBulk.ts   # Hook: checkbox selection state + shift-click + select-all for Change Review bulk actions
 │   ├── useTableData.ts          # Hook: data fetching for TablePage — handles paginated (useInfiniteQuery) and non-paginated (useQuery) modes, resolves filter params
 │   ├── useTableFilters.ts       # Hook: per-column filter state with 350 ms debounce and 2-char minimum (used standalone; session state supersedes this for TablePage)
 │   └── utils.ts                 # Tailwind class merge utility (cn), formatSlug, formatDate
@@ -331,7 +342,8 @@ E2E spec files:
 - `record-navigation.spec.ts` — navigating from search results to the full table page and reopening the modal
 - `search.spec.ts` — global search: TopBar query navigation, results page, tab filtering, deep-link to record modal
 - `gearlist.spec.ts` — GearList module: guitars and other gear pages load; create modal opens; gear row click opens detail modal; guitar edit mode shows pickup config select
-- `scanner.spec.ts` — ControlRoom scanner bucket pages (known/matched/conflicted/etc.): load without error, empty-state rendering
+- `scanner.spec.ts` — ControlRoom scanner bucket pages (known/matched/conflicted/etc.): load without error, empty-state rendering; rules page loads all three sections; Add Rule button opens creation form
+- `scanner-workbench.spec.ts` — Scan Workbench page: loads with heading and filter bar; Soft Reset toast; needs_review row opens SingleResolutionModal
 - `plugin-scanner.spec.ts` — Studio Management plugin-scanner admin page: page load, API key manager renders, generate-key button visible, release card visible
 - `stats.spec.ts` — Admin stats page row counts render
 - `backup.spec.ts` — Backup and restore page loads
