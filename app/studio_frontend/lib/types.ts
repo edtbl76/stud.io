@@ -400,20 +400,12 @@ export interface CollisionResolutionInput {
   versionChoice: FieldChoice
 }
 
-export interface BulkAcknowledgeRequest {
+export interface BulkAuditActionRequest {
   audit_ids: string[]
 }
 
-export interface BulkAcknowledgeResult {
-  acknowledged: number
-}
-
-export interface BulkUndoRequest {
-  audit_ids: string[]
-}
-
-export interface BulkUndoResult {
-  undone: number
+export interface BulkActionResult {
+  count: number
 }
 
 // ---------------------------------------------------------------------------

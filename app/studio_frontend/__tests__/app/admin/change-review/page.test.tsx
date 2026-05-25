@@ -526,41 +526,30 @@ describe('ChangeReviewPage', () => {
     expect(screen.getByText(/approve 2 pending changes/i)).toBeInTheDocument()
   })
 
-  // Step 91
-  it('confirming Bulk Approve calls bulk-acknowledge endpoint and removes rows', async () => {
+  async function confirmBulkEndpointCall(actionButton: RegExp, endpoint: string, bulkResult: unknown) {
     mockFetch
       .mockResolvedValueOnce(ok(mockResponse))
-      .mockResolvedValueOnce(ok({ acknowledged: 2 }))
+      .mockResolvedValueOnce(ok(bulkResult))
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
-    const selectAll = screen.getByRole('checkbox', { name: /select all/i })
-    fireEvent.click(selectAll)
-    fireEvent.click(screen.getByRole('button', { name: /bulk approve/i }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }))
+    fireEvent.click(screen.getByRole('button', { name: actionButton }))
     fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
     await waitFor(() =>
       expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/bulk-acknowledge'),
+        expect.stringContaining(endpoint),
         expect.objectContaining({ method: 'POST' })
       )
     )
+  }
+
+  // Step 91
+  it('confirming Bulk Approve calls bulk/acknowledge endpoint and removes rows', async () => {
+    await confirmBulkEndpointCall(/bulk approve/i, '/bulk/acknowledge', { count: 2 })
   })
 
   // Step 92
-  it('Bulk Reject (Undo) calls bulk-undo endpoint', async () => {
-    mockFetch
-      .mockResolvedValueOnce(ok(mockResponse))
-      .mockResolvedValueOnce(ok({ undone: 2 }))
-    render(<ChangeReviewPage />)
-    await waitFor(() => screen.getAllByText('effects'))
-    const selectAll = screen.getByRole('checkbox', { name: /select all/i })
-    fireEvent.click(selectAll)
-    fireEvent.click(screen.getByRole('button', { name: /bulk reject/i }))
-    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
-    await waitFor(() =>
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('/bulk-undo'),
-        expect.objectContaining({ method: 'POST' })
-      )
-    )
+  it('Bulk Reject (Undo) calls bulk/undo endpoint', async () => {
+    await confirmBulkEndpointCall(/bulk reject/i, '/bulk/undo', { count: 2 })
   })
 })

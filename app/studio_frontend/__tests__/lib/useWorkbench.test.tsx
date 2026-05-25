@@ -71,6 +71,14 @@ beforeEach(() => {
   api.scanner.workbench.mockResolvedValue(EMPTY_RESPONSE)
 })
 
+async function setupWorkbenchWithRow(overrides: Partial<WorkbenchRow> = {}) {
+  const row = makeRow(overrides)
+  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
+  const { result } = renderHook(() => useWorkbench(), { wrapper })
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  return result
+}
+
 // ---------------------------------------------------------------------------
 // Step 16: always sends show_confirmed=true
 // ---------------------------------------------------------------------------
@@ -198,24 +206,18 @@ it('Step 24: collision — two needs_review rows sharing catalog_record_id get s
 })
 
 it('Step 25: version mismatch — disk_version differs from catalog_record_version', async () => {
-  const row = makeRow({
+  const result = await setupWorkbenchWithRow({
     result_id: 'r-vm', bucket: 'needs_review', catalog_record_id: 'cat-vm',
     disk_version: '1.0', catalog_record_version: '2.0',
   })
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
   expect(result.current.rowSubStates.get('r-vm')).toBe('version mismatch')
 })
 
 it('Step 26: unconfirmed — fallback when not collision or version mismatch', async () => {
-  const row = makeRow({
+  const result = await setupWorkbenchWithRow({
     result_id: 'r-uc', bucket: 'needs_review', catalog_record_id: 'cat-uc',
     disk_version: '1.0', catalog_record_version: '1.0',
   })
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
   expect(result.current.rowSubStates.get('r-uc')).toBe('unconfirmed')
 })
 
@@ -246,10 +248,7 @@ it('Step 23: needs_review_substate filter shows only rows with matching sub-stat
 // ---------------------------------------------------------------------------
 
 it('Step 27a: toggleSelect adds then removes an id', async () => {
-  const row = makeRow({ result_id: 'r1', bucket: 'unlinked' })
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRow({ result_id: 'r1', bucket: 'unlinked' })
 
   act(() => { result.current.toggleSelect('r1') })
   expect(result.current.selectedIds.has('r1')).toBe(true)
@@ -283,10 +282,7 @@ it('Step 27c: selectAll selects all visible rows', async () => {
 })
 
 it('Step 27d: clearSelection empties selectedIds', async () => {
-  const row = makeRow({ result_id: 'r1', bucket: 'unlinked' })
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRow({ result_id: 'r1', bucket: 'unlinked' })
 
   act(() => { result.current.toggleSelect('r1') })
   act(() => { result.current.clearSelection() })

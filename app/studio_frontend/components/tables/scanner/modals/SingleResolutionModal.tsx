@@ -25,6 +25,27 @@ interface SingleResolutionModalProps {
   onFireRuleToasts: (result: RuleCreationResult) => void
 }
 
+function buildPatch(fields: Field[], sources: ResolutionState): Record<string, string> {
+  const patch: Record<string, string> = {}
+  for (const f of fields) {
+    const chosen = sources[f.sourceKey]
+    patch[f.key] = (f.diskValue === f.catalogValue || chosen === 'disk')
+      ? f.diskValue
+      : (f.catalogValue ?? f.diskValue)
+  }
+  return patch
+}
+
+function collectRulePromises(fields: Field[], sources: ResolutionState): Promise<RuleCreationResult>[] {
+  const promises: Promise<RuleCreationResult>[] = []
+  for (const f of fields) {
+    if (f.diskValue === f.catalogValue || sources[f.sourceKey] !== 'catalog') continue
+    if (f.key === 'vendor') promises.push(api.scanner.createVendorRule({ disk_vendor: f.diskValue, catalog_vendor: f.catalogValue! }))
+    else if (f.key === 'name') promises.push(api.scanner.createNameRule({ disk_name: f.diskValue, catalog_name: f.catalogValue! }))
+  }
+  return promises
+}
+
 export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts }: Readonly<SingleResolutionModalProps>) {
   const fields: Field[] = [
     { key: 'name', label: 'Name', diskValue: row.disk_name, catalogValue: row.catalog_record_name, sourceKey: 'nameSource' },
@@ -50,37 +71,16 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
     setIsSaving(true)
     setError(null)
 
-    const patch: Record<string, string> = {}
-    for (const f of fields) {
-      if (f.diskValue === f.catalogValue) {
-        patch[f.key] = f.diskValue
-      } else {
-        const chosen = sources[f.sourceKey]
-        patch[f.key] = chosen === 'disk' ? f.diskValue : (f.catalogValue ?? f.diskValue)
-      }
-    }
-
     try {
-      await api.update(`/catalog/${row.catalog_record_table}`, row.catalog_record_id!, patch)
+      await api.update(`/catalog/${row.catalog_record_table}`, row.catalog_record_id!, buildPatch(fields, sources))
     } catch {
       setError('Failed to save. Please try again.')
       setIsSaving(false)
       return
     }
 
-    const rulePromises: Promise<RuleCreationResult>[] = []
-    for (const f of differingFields) {
-      if (sources[f.sourceKey] !== 'catalog') continue
-      if (f.key === 'vendor') {
-        rulePromises.push(api.scanner.createVendorRule({ disk_vendor: f.diskValue, catalog_vendor: f.catalogValue! }))
-      } else if (f.key === 'name') {
-        rulePromises.push(api.scanner.createNameRule({ disk_name: f.diskValue, catalog_name: f.catalogValue! }))
-      }
-    }
-
-    const results = await Promise.all(rulePromises)
+    const results = await Promise.all(collectRulePromises(fields, sources))
     results.forEach((r) => onFireRuleToasts(r))
-
     setIsSaving(false)
     onSaved()
   }

@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import { DiffModal } from '@/components/DiffModal'
 import { NativeSelect } from '@/components/ui/NativeSelect'
 import type { AuditEntry, AuditEntryWithData, ChangeReviewResponse } from '@/lib/types'
-import { useChangeReviewBulk } from '@/lib/useChangeReviewBulk'
+import { useChangeReviewBulk, type BulkAction } from '@/lib/useChangeReviewBulk'
 import { ChangeReviewBulkBar } from '@/components/admin/ChangeReviewBulkBar'
 import { ChangeReviewTable, type EntryAction } from './ChangeReviewTable'
 
@@ -224,6 +224,28 @@ function ChangeReviewFilters({ tableFilter, operationFilter, statusFilter, onTab
   )
 }
 
+const BULK_ENDPOINTS: Record<BulkAction, string> = {
+  approve: 'bulk/acknowledge',
+  reject: 'bulk/undo',
+}
+
+interface PaginationControlsProps {
+  page: number
+  totalPages: number
+  onPrev: () => void
+  onNext: () => void
+}
+
+function PaginationControls({ page, totalPages, onPrev, onNext }: Readonly<PaginationControlsProps>) {
+  return (
+    <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
+      <button onClick={onPrev} disabled={page <= 1} className="px-2 py-1 border border-border rounded disabled:opacity-40">Previous</button>
+      <span>Page {page} of {totalPages}</span>
+      <button onClick={onNext} disabled={page >= totalPages} className="px-2 py-1 border border-border rounded disabled:opacity-40">Next</button>
+    </div>
+  )
+}
+
 export default function ChangeReviewPage() {
   const { role } = useAuth()
   const isAdmin = role === 'admin'
@@ -240,14 +262,12 @@ export default function ChangeReviewPage() {
 
   async function handleBulkConfirm() {
     const ids = Array.from(selectedIds)
-    const path = bulkAction === 'approve' ? 'bulk-acknowledge' : 'bulk-undo'
-    const body = { audit_ids: ids }
     closeBulkAction()
     clearSelection()
-    await fetch(`/api/studio/admin/change-review/${path}`, {
+    await fetch(`/api/studio/admin/change-review/${BULK_ENDPOINTS[bulkAction!]}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ audit_ids: ids }),
     })
   }
 
@@ -294,12 +314,7 @@ export default function ChangeReviewPage() {
           onCancelBulk={closeBulkAction}
         />
       )}
-      {!data && (
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      )}
-      {data && (
+      {data ? (
         <ChangeReviewTable
           data={data}
           loadingDetail={loadingDetail}
@@ -312,12 +327,17 @@ export default function ChangeReviewPage() {
           onToggle={handleToggle}
           onSelectAll={selectAll}
         />
+      ) : (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
       )}
-      <div className="flex items-center justify-between mt-4 text-xs text-muted-foreground">
-        <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1} className="px-2 py-1 border border-border rounded disabled:opacity-40">Previous</button>
-        <span>Page {page} of {totalPages}</span>
-        <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages} className="px-2 py-1 border border-border rounded disabled:opacity-40">Next</button>
-      </div>
+      <PaginationControls
+        page={page}
+        totalPages={totalPages}
+        onPrev={() => setPage((p) => Math.max(1, p - 1))}
+        onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+      />
       {detailEntry && <DiffModal entry={detailEntry} onClose={() => setDetailEntry(null)} />}
     </div>
   )

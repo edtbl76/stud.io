@@ -36,6 +36,23 @@ const noop = jest.fn()
 
 afterEach(() => jest.resetAllMocks())
 
+function mockVendorRuleSuccess() {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue({
+    rule: { rule_id: 'rv1', disk_vendor: 'VendorA', catalog_vendor: 'CatalogVendor', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
+    affected_count: 1, clean_count: 1, needs_review_count: 0,
+  } satisfies RuleCreationResult)
+}
+
+function renderAndSaveCatalogVendor() {
+  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // name → A
+  fireEvent.click(radios[5]) // vendor → Catalog
+  fireEvent.click(radios[6]) // version → A
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+}
+
 // Step 64
 it('renders Result A, Result B, Catalog column headers', () => {
   render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
@@ -55,17 +72,8 @@ it('renders 3 radio buttons (A, B, Catalog) for each differing field row', () =>
 
 // Step 66 — radios: [name-A, name-B, name-Cat, vendor-A, vendor-B, vendor-Cat, ver-A, ver-B, ver-Cat]
 it('calls api.update with values from chosen sources on Save', async () => {
-  ;(mockApi.update as jest.Mock).mockResolvedValue({})
-  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue({
-    rule: { rule_id: 'rv1', disk_vendor: 'VendorA', catalog_vendor: 'CatalogVendor', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
-    affected_count: 1, clean_count: 1, needs_review_count: 0,
-  } satisfies RuleCreationResult)
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → A
-  fireEvent.click(radios[5]) // vendor → Catalog
-  fireEvent.click(radios[6]) // version → A
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  mockVendorRuleSuccess()
+  renderAndSaveCatalogVendor()
   await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith(
     '/catalog/instruments', 'c1',
     expect.objectContaining({ name: 'Plugin A', vendor: 'CatalogVendor' })
@@ -73,17 +81,8 @@ it('calls api.update with values from chosen sources on Save', async () => {
 })
 
 it('creates vendor rule when Catalog chosen for vendor', async () => {
-  ;(mockApi.update as jest.Mock).mockResolvedValue({})
-  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue({
-    rule: { rule_id: 'rv1', disk_vendor: 'VendorA', catalog_vendor: 'CatalogVendor', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
-    affected_count: 1, clean_count: 1, needs_review_count: 0,
-  } satisfies RuleCreationResult)
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → A
-  fireEvent.click(radios[5]) // vendor → Catalog
-  fireEvent.click(radios[6]) // version → A
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  mockVendorRuleSuccess()
+  renderAndSaveCatalogVendor()
   await waitFor(() => expect(mockApi.scanner.createVendorRule).toHaveBeenCalled())
 })
 

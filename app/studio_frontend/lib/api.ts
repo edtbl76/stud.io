@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, BulkAcknowledgeResult, BulkCreateLinkRequest, BulkLinkResult, BulkUndoResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -151,12 +151,12 @@ export const api = {
   },
   studio: {
     bulkAcknowledgeChangeReview: (auditIds: string[]) =>
-      req<BulkAcknowledgeResult>('/studio/admin/change-review/bulk-acknowledge', {
+      req<BulkActionResult>('/studio/admin/change-review/bulk/acknowledge', {
         method: 'POST',
         body: JSON.stringify({ audit_ids: auditIds }),
       }),
     bulkUndoChangeReview: (auditIds: string[]) =>
-      req<BulkUndoResult>('/studio/admin/change-review/bulk-undo', {
+      req<BulkActionResult>('/studio/admin/change-review/bulk/undo', {
         method: 'POST',
         body: JSON.stringify({ audit_ids: auditIds }),
       }),

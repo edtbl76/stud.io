@@ -19,10 +19,8 @@ import type {
   SingleResolutionInput,
   FieldChoice,
   CollisionResolutionInput,
-  BulkAcknowledgeRequest,
-  BulkAcknowledgeResult,
-  BulkUndoRequest,
-  BulkUndoResult,
+  BulkAuditActionRequest,
+  BulkActionResult,
 } from '../../lib/types'
 
 function mockFetch(body?: unknown, status = 200) {
@@ -148,15 +146,11 @@ describe('remaining workbench types', () => {
     expect(coll.versionChoice).toBe('catalog')
   })
 
-  it('BulkAcknowledgeRequest / BulkAcknowledgeResult / BulkUndoRequest / BulkUndoResult are assignable', () => {
-    const ackReq: BulkAcknowledgeRequest = { audit_ids: ['a1'] }
-    const ackRes: BulkAcknowledgeResult = { acknowledged: 2 }
-    const undoReq: BulkUndoRequest = { audit_ids: ['a2'] }
-    const undoRes: BulkUndoResult = { undone: 1 }
-    expect(ackReq.audit_ids).toHaveLength(1)
-    expect(ackRes.acknowledged).toBe(2)
-    expect(undoReq.audit_ids).toHaveLength(1)
-    expect(undoRes.undone).toBe(1)
+  it('BulkAuditActionRequest / BulkActionResult are assignable', () => {
+    const req: BulkAuditActionRequest = { audit_ids: ['a1'] }
+    const res: BulkActionResult = { count: 2 }
+    expect(req.audit_ids).toHaveLength(1)
+    expect(res.count).toBe(2)
   })
 })
 
@@ -290,11 +284,11 @@ describe('api.scanner.exclude', () => {
 
 // Step 12
 describe('api.studio bulk Change Review methods', () => {
-  it('bulkAcknowledgeChangeReview calls POST /studio/admin/change-review/bulk-acknowledge', async () => {
-    const spy = mockFetch({ acknowledged: 2 })
+  it('bulkAcknowledgeChangeReview calls POST /studio/admin/change-review/bulk/acknowledge', async () => {
+    const spy = mockFetch({ count: 2 })
     await api.studio.bulkAcknowledgeChangeReview(['id1', 'id2'])
     expect(spy).toHaveBeenCalledWith(
-      `${BASE}/studio/admin/change-review/bulk-acknowledge`,
+      `${BASE}/studio/admin/change-review/bulk/acknowledge`,
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ audit_ids: ['id1', 'id2'] }),
@@ -302,11 +296,11 @@ describe('api.studio bulk Change Review methods', () => {
     )
   })
 
-  it('bulkUndoChangeReview calls POST /studio/admin/change-review/bulk-undo', async () => {
-    const spy = mockFetch({ undone: 1 })
+  it('bulkUndoChangeReview calls POST /studio/admin/change-review/bulk/undo', async () => {
+    const spy = mockFetch({ count: 1 })
     await api.studio.bulkUndoChangeReview(['id1'])
     expect(spy).toHaveBeenCalledWith(
-      `${BASE}/studio/admin/change-review/bulk-undo`,
+      `${BASE}/studio/admin/change-review/bulk/undo`,
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ audit_ids: ['id1'] }),

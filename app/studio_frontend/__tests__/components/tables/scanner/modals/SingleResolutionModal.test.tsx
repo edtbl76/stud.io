@@ -43,6 +43,14 @@ function mockSuccess() {
 
 afterEach(() => jest.resetAllMocks())
 
+function renderAndClickSave(radioIndices: number[]) {
+  mockSuccess()
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  for (const idx of radioIndices) fireEvent.click(radios[idx])
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+}
+
 // Step 56
 it('renders both disk and catalog values with radios for differing fields', () => {
   render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
@@ -84,12 +92,7 @@ it('Save is enabled after all differing fields are resolved', () => {
 
 // Step 59
 it('calls api.update with chosen field values on Save', async () => {
-  mockSuccess()
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → disk ("Surge XT")
-  fireEvent.click(radios[3]) // vendor → catalog ("Surge Synth Team")
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  renderAndClickSave([0, 3]) // name → disk, vendor → catalog
   await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith(
     '/catalog/instruments', 'c1',
     expect.objectContaining({ name: 'Surge XT', vendor: 'Surge Synth Team' })
@@ -98,12 +101,7 @@ it('calls api.update with chosen field values on Save', async () => {
 
 // Step 60
 it('creates vendor rule when catalog vendor chosen', async () => {
-  mockSuccess()
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → disk (no name rule)
-  fireEvent.click(radios[3]) // vendor → catalog (creates vendor rule)
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  renderAndClickSave([0, 3]) // name → disk, vendor → catalog
   await waitFor(() => expect(mockApi.scanner.createVendorRule).toHaveBeenCalledWith({
     disk_vendor: 'Vembertech', catalog_vendor: 'Surge Synth Team',
   }))
@@ -111,12 +109,7 @@ it('creates vendor rule when catalog vendor chosen', async () => {
 })
 
 it('does not create rule when disk value chosen', async () => {
-  mockSuccess()
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → disk
-  fireEvent.click(radios[2]) // vendor → disk
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  renderAndClickSave([0, 2]) // name → disk, vendor → disk
   await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
   expect(mockApi.scanner.createVendorRule).not.toHaveBeenCalled()
   expect(mockApi.scanner.createNameRule).not.toHaveBeenCalled()

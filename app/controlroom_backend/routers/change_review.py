@@ -1,5 +1,5 @@
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 import asyncpg
@@ -25,14 +25,27 @@ class BulkAuditRequest(BaseModel):
     audit_ids: list[UUID]
 
 
-class BulkAcknowledgeResult(BaseModel):
-    acknowledged: int
-
-
-class BulkUndoResult(BaseModel):
-    undone: int
+class BulkActionResult(BaseModel):
+    count: int
 
 router = APIRouter()
+
+_ACKNOWLEDGE_SQL = (
+    "UPDATE audit_log SET acknowledged_at = NOW(), acknowledged_by = $2"
+    " WHERE audit_id = ANY($1) AND acknowledged_at IS NULL AND undone_at IS NULL"
+)
+
+_UNDO_SQL = (
+    "UPDATE audit_log SET undone_at = NOW(), undone_by = $2"
+    " WHERE audit_id = ANY($1) AND acknowledged_at IS NULL AND undone_at IS NULL"
+)
+
+
+async def _bulk_update_audit(ids: list[UUID], username: str, conn: asyncpg.Connection, sql: str) -> int:
+    if not ids:
+        return 0
+    result = await conn.execute(sql, ids, username)
+    return int(result.split()[-1])
 
 
 @router.get(
@@ -111,6 +124,26 @@ async def get_change_detail(
     return AuditEntryWithData(**row_dict, record_display_name=None)
 
 
+_BULK_SQL: dict[str, str] = {
+    'acknowledge': _ACKNOWLEDGE_SQL,
+    'undo': _UNDO_SQL,
+}
+
+
+@router.post(
+    "/change-review/bulk/{action}",
+    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}},
+)
+async def bulk_action(
+    action: Literal['acknowledge', 'undo'],
+    body: BulkAuditRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> BulkActionResult:
+    """Mark multiple audit entries as acknowledged or undone, skipping already-resolved entries."""
+    return BulkActionResult(count=await _bulk_update_audit(body.audit_ids, user.username, conn, _BULK_SQL[action]))
+
+
 @router.post(
     "/change-review/{audit_id}/acknowledge",
     responses={404: {"description": "Not found"}, 409: {"description": "Conflict"}},
@@ -177,54 +210,6 @@ async def undo_change(
         return AuditEntry(**dict(updated), record_display_name=None)
     except asyncpg.ForeignKeyViolationError:
         raise HTTPException(status_code=409, detail="Cannot undo: record is referenced by other records")
-
-
-@router.post(
-    "/change-review/bulk-acknowledge",
-    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}},
-)
-async def bulk_acknowledge(
-    body: BulkAuditRequest,
-    user: Annotated[UserOut, Depends(require_admin)],
-    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
-) -> BulkAcknowledgeResult:
-    """Mark multiple audit entries as acknowledged, skipping already-resolved entries."""
-    if not body.audit_ids:
-        return BulkAcknowledgeResult(acknowledged=0)
-    result = await conn.execute(
-        """UPDATE audit_log
-           SET acknowledged_at = NOW(), acknowledged_by = $2
-           WHERE audit_id = ANY($1)
-             AND acknowledged_at IS NULL
-             AND undone_at IS NULL""",
-        body.audit_ids, user.username,
-    )
-    count = int(result.split()[-1])
-    return BulkAcknowledgeResult(acknowledged=count)
-
-
-@router.post(
-    "/change-review/bulk-undo",
-    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}},
-)
-async def bulk_undo(
-    body: BulkAuditRequest,
-    user: Annotated[UserOut, Depends(require_admin)],
-    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
-) -> BulkUndoResult:
-    """Mark multiple pending audit entries as undone, skipping already-resolved entries."""
-    if not body.audit_ids:
-        return BulkUndoResult(undone=0)
-    result = await conn.execute(
-        """UPDATE audit_log
-           SET undone_at = NOW(), undone_by = $2
-           WHERE audit_id = ANY($1)
-             AND acknowledged_at IS NULL
-             AND undone_at IS NULL""",
-        body.audit_ids, user.username,
-    )
-    count = int(result.split()[-1])
-    return BulkUndoResult(undone=count)
 
 
 @router.delete(

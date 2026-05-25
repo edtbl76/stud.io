@@ -63,19 +63,20 @@ function applyFilters(
   })
 }
 
+function isActiveRow(r: WorkbenchRow): boolean {
+  return r.bucket !== 'known' && r.bucket !== 'excluded' && r.catalog_record_id !== null
+}
+
+function isPassiveRow(r: WorkbenchRow): boolean {
+  return (r.bucket === 'known' || r.bucket === 'excluded') && r.catalog_record_id !== null
+}
+
 function applySiblingFilter(rows: WorkbenchRow[]): WorkbenchRow[] {
   const activeSiblingIds = new Set<string>()
   for (const r of rows) {
-    if (r.bucket !== 'known' && r.bucket !== 'excluded' && r.catalog_record_id) {
-      activeSiblingIds.add(r.catalog_record_id)
-    }
+    if (isActiveRow(r)) activeSiblingIds.add(r.catalog_record_id!)
   }
-  return rows.filter((r) => {
-    if ((r.bucket === 'known' || r.bucket === 'excluded') && r.catalog_record_id) {
-      return activeSiblingIds.has(r.catalog_record_id)
-    }
-    return true
-  })
+  return rows.filter((r) => !isPassiveRow(r) || activeSiblingIds.has(r.catalog_record_id!))
 }
 
 export function useWorkbench() {
