@@ -316,6 +316,8 @@ The xlxs logic is split across three internal modules:
 
 `DELETE /studio/admin/change-review/{audit_id}/permanent` — admin only. Hard-deletes the record referenced by a `DELETE` audit entry (confirms permanent deletion). Sets `undone_at`/`undone_by`. Returns 204. Returns 400 for non-DELETE entries, 409 if already resolved.
 
+`POST /studio/admin/change-review/bulk/{action}` — admin only. `action` is `acknowledge` or `undo`. Body: `{audit_ids: [UUID, ...]}`. Applies the named action to all listed entries in a single transaction. Returns `{count: N}`. Returns 409 if any entry is already resolved (the entire batch is rolled back).
+
 ### Plugin Scanner
 
 > **U-02 merged** — New workbench API endpoints are live. Old endpoints marked `(coexistence — removed in U-05 cleanup)` remain active during the transition.

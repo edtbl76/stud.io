@@ -28,8 +28,9 @@ Two roles: `admin` and `user`.
 | Create / update / delete any record | ✗ | ✓ |
 | Backup / restore | ✗ | ✓ |
 | Stats dashboard | ✗ | ✓ |
-| Change review writes (acknowledge, undo, delete) | ✗ | ✓ |
+| Change review writes (acknowledge, undo, delete, bulk acknowledge/undo) | ✗ | ✓ |
 | Change review reads | ✓ | ✓ |
+| Scanner admin (soft reset, hard reset) | ✗ | ✓ |
 | Import / export | ✗ | ✓ |
 | User management (create, role change, delete) | ✗ | ✓ |
 | List users | ✓ | ✓ |
@@ -48,6 +49,8 @@ RBAC is enforced via a `require_admin` FastAPI dependency injected into every wr
 | Admin stats | `test_user_cannot_access_stats`, `test_unauthenticated_cannot_access_stats` |
 | Change review writes | `test_user_cannot_acknowledge/undo/delete_change_review` |
 | Change review reads | `test_user_can_list_change_review` |
+| Change review bulk writes | `test_bulk_acknowledge/undo_requires_admin`, `test_bulk_acknowledge/undo_unauthenticated_returns_401` (in `test_change_review_bulk.py`) |
+| Scanner admin | `test_user_cannot_soft/hard_reset`, `test_unauthenticated_cannot_soft/hard_reset` (in `test_rbac.py`) |
 | Import/export | `test_user_cannot_export_xlsx/template`, `test_user_cannot_import` |
 | User management | `test_user_cannot_create/change_role/delete_user` |
 | Unauthenticated writes | `test_unauthenticated_cannot_write/acknowledge/export/create_user` |
