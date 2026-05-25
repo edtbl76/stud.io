@@ -23,6 +23,8 @@ import type {
   BulkActionResult,
 } from '../../lib/types'
 
+const originalFetch = global.fetch
+
 function mockFetch(body?: unknown, status = 200) {
   const mock = jest.fn().mockResolvedValue({
     ok: status < 400, status, statusText: 'OK',
@@ -32,7 +34,10 @@ function mockFetch(body?: unknown, status = 200) {
   return mock
 }
 
-afterEach(() => jest.restoreAllMocks())
+afterEach(() => {
+  jest.restoreAllMocks()
+  global.fetch = originalFetch
+})
 
 const BASE = '/api'
 

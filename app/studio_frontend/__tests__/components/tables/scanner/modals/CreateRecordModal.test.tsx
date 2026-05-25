@@ -75,6 +75,18 @@ it('shows inline error when catalog POST fails; link not called', async () => {
   expect(mockApi.scanner.createLink).not.toHaveBeenCalled()
 })
 
+it('shows inline error and re-enables Save when createLink fails', async () => {
+  ;(mockApi.create as jest.Mock).mockResolvedValue({ id: 'newCat1' })
+  ;(mockApi.scanner.createLink as jest.Mock).mockRejectedValue(new Error('Link error'))
+  const onSaved = jest.fn()
+  render(<CreateRecordModal row={makeRow()} onClose={noop} onSaved={onSaved} />)
+  fireEvent.change(screen.getByRole('combobox', { name: /catalog type/i }), { target: { value: 'instruments' } })
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+  expect(onSaved).not.toHaveBeenCalled()
+  expect(screen.getByRole('button', { name: /save/i })).not.toBeDisabled()
+})
+
 // Step 78
 it('calls onSaved after successful save', async () => {
   ;(mockApi.create as jest.Mock).mockResolvedValue({ id: 'newCat1' })

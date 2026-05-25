@@ -54,6 +54,7 @@ export function CollisionModal({ rowA, rowB, onClose, onSaved, onFireRuleToasts 
     name: rowA.disk_name, vendor: rowA.disk_vendor, version: rowA.disk_version, catalogType: '',
   })
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const allResolved = fields.every((f) => choices[f.choiceKey] !== null)
 
@@ -76,20 +77,26 @@ export function CollisionModal({ rowA, rowB, onClose, onSaved, onFireRuleToasts 
 
   async function handleSave() {
     setIsSaving(true)
-    const patch: Record<string, string> = {}
-    for (const f of fields) patch[f.key] = resolveValue(f)
-    await api.update(`/catalog/${rowA.catalog_record_table}`, rowA.catalog_record_id!, patch)
+    setError(null)
+    try {
+      const patch: Record<string, string> = {}
+      for (const f of fields) patch[f.key] = resolveValue(f)
+      await api.update(`/catalog/${rowA.catalog_record_table}`, rowA.catalog_record_id!, patch)
 
-    const rulePromises: Promise<RuleCreationResult>[] = []
-    for (const f of fields) {
-      if (choices[f.choiceKey] !== 'catalog') continue
-      if (f.key === 'vendor') rulePromises.push(api.scanner.createVendorRule({ disk_vendor: f.valueA, catalog_vendor: f.catalogValue! }))
-      if (f.key === 'name') rulePromises.push(api.scanner.createNameRule({ disk_name: f.valueA, catalog_name: f.catalogValue! }))
+      const rulePromises: Promise<RuleCreationResult>[] = []
+      for (const f of fields) {
+        if (choices[f.choiceKey] !== 'catalog' || !f.catalogValue) continue
+        if (f.key === 'vendor') rulePromises.push(api.scanner.createVendorRule({ disk_vendor: f.valueA, catalog_vendor: f.catalogValue }))
+        if (f.key === 'name') rulePromises.push(api.scanner.createNameRule({ disk_name: f.valueA, catalog_name: f.catalogValue }))
+      }
+      const results = await Promise.all(rulePromises)
+      results.forEach((r) => onFireRuleToasts(r))
+      onSaved()
+    } catch {
+      setError('Failed to save. Please try again.')
+    } finally {
+      setIsSaving(false)
     }
-    const results = await Promise.all(rulePromises)
-    results.forEach((r) => onFireRuleToasts(r))
-    setIsSaving(false)
-    onSaved()
   }
 
   async function handleSetNameAlias() {
@@ -107,12 +114,18 @@ export function CollisionModal({ rowA, rowB, onClose, onSaved, onFireRuleToasts 
 
   async function handleCreateSave() {
     setIsSaving(true)
-    const created = await api.create<{ id: string }>(`/catalog/${newRecord.catalogType}`, {
-      name: newRecord.name, vendor: newRecord.vendor, version: newRecord.version,
-    })
-    await api.scanner.createLink({ result_id: rowA.result_id, catalog_record_id: created.id, catalog_record_table: newRecord.catalogType })
-    setIsSaving(false)
-    onSaved()
+    setError(null)
+    try {
+      const created = await api.create<{ id: string }>(`/catalog/${newRecord.catalogType}`, {
+        name: newRecord.name, vendor: newRecord.vendor, version: newRecord.version,
+      })
+      await api.scanner.createLink({ result_id: rowA.result_id, catalog_record_id: created.id, catalog_record_table: newRecord.catalogType })
+      onSaved()
+    } catch {
+      setError('Failed to save. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   if (showCreateForm) {
@@ -128,6 +141,7 @@ export function CollisionModal({ rowA, rowB, onClose, onSaved, onFireRuleToasts 
             {CATALOG_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
+        {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
         <div className="mt-4 flex justify-end gap-2">
           <button type="button" onClick={() => setShowCreateForm(false)}>Back</button>
           <button type="button" onClick={handleCreateSave} disabled={!newRecord.catalogType || isSaving}>Save</button>
@@ -180,6 +194,7 @@ export function CollisionModal({ rowA, rowB, onClose, onSaved, onFireRuleToasts 
         <button type="button" onClick={() => setShowCreateForm(true)}>Create New Record</button>
       </div>
 
+      {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
       <div className="mt-4 flex justify-end gap-2">
         <button type="button" onClick={onClose}>Cancel</button>
         <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>

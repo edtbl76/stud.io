@@ -4,20 +4,27 @@ import { useRef, useState } from 'react'
 
 export type BulkAction = 'approve' | 'reject'
 
+const BULK_ENDPOINTS: Record<BulkAction, string> = {
+  approve: 'bulk/acknowledge',
+  reject: 'bulk/undo',
+}
+
 export interface UseChangeReviewBulkReturn {
   selectedIds: Set<string>
   bulkAction: BulkAction | null
+  bulkError: boolean
   toggle: (id: string) => void
   shiftToggle: (id: string, allIds: string[]) => void
   selectAll: (ids: string[]) => void
-  clearSelection: () => void
   openBulkAction: (action: BulkAction) => void
   closeBulkAction: () => void
+  confirmBulk: () => Promise<void>
 }
 
 export function useChangeReviewBulk(): UseChangeReviewBulkReturn {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkAction, setBulkAction] = useState<BulkAction | null>(null)
+  const [bulkError, setBulkError] = useState(false)
   const lastSelectedRef = useRef<string | null>(null)
 
   function toggle(id: string) {
@@ -69,5 +76,27 @@ export function useChangeReviewBulk(): UseChangeReviewBulkReturn {
     setBulkAction(null)
   }
 
-  return { selectedIds, bulkAction, toggle, shiftToggle, selectAll, clearSelection, openBulkAction, closeBulkAction }
+  async function confirmBulk() {
+    const ids = Array.from(selectedIds)
+    setBulkError(false)
+    try {
+      const res = await fetch(`/api/studio/admin/change-review/${BULK_ENDPOINTS[bulkAction!]}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audit_ids: ids }),
+      })
+      if (!res.ok) throw new Error('Bulk action failed')
+      closeBulkAction()
+      clearSelection()
+    } catch {
+      setBulkError(true)
+    }
+  }
+
+  return {
+    selectedIds, bulkAction, bulkError,
+    toggle, shiftToggle, selectAll,
+    openBulkAction, closeBulkAction,
+    confirmBulk,
+  }
 }

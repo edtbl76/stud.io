@@ -115,6 +115,19 @@ it('does not create rule when disk value chosen', async () => {
   expect(mockApi.scanner.createNameRule).not.toHaveBeenCalled()
 })
 
+it('skips vendor rule creation when catalog vendor value is null', async () => {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  render(<SingleResolutionModal
+    row={makeRow({ catalog_record_name: 'Surge XT', catalog_record_vendor: null })}
+    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+  />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[1]) // vendor → catalog (null)
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
+  expect(mockApi.scanner.createVendorRule).not.toHaveBeenCalled()
+})
+
 // Step 61
 it('shows inline error and keeps modal open when PATCH fails', async () => {
   ;(mockApi.update as jest.Mock).mockRejectedValue(new Error('Server error'))

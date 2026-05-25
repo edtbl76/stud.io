@@ -86,6 +86,20 @@ it('creates vendor rule when Catalog chosen for vendor', async () => {
   await waitFor(() => expect(mockApi.scanner.createVendorRule).toHaveBeenCalled())
 })
 
+it('skips rule creation when catalog vendor value is null', async () => {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  const a = makeRow('rA', 'Plugin A', 'VendorA', { catalog_record_vendor: null })
+  const b = makeRow('rB', 'Plugin B', 'VendorB', { catalog_record_vendor: null })
+  render(<CollisionModal rowA={a} rowB={b} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // name → A
+  fireEvent.click(radios[4]) // vendor → catalog (null)
+  fireEvent.click(radios[6]) // version → A
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
+  expect(mockApi.scanner.createVendorRule).not.toHaveBeenCalled()
+})
+
 // Step 67
 it('enables Set Name Alias when only names differ and all other fields match', () => {
   const a = makeRow('rA', 'Plugin A', 'SharedVendor', { catalog_record_vendor: 'SharedVendor', disk_version: '1.0', catalog_record_version: '1.0' })
@@ -122,6 +136,32 @@ it('transitions to inline form with disk values when Create New Record clicked',
   fireEvent.click(screen.getByRole('button', { name: /create new record/i }))
   expect(screen.getByDisplayValue('Plugin A')).toBeInTheDocument()
   expect(screen.getByDisplayValue('VendorA')).toBeInTheDocument()
+})
+
+async function assertInlineError(saveButtonName: RegExp) {
+  await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+  expect(screen.getByRole('button', { name: saveButtonName })).not.toBeDisabled()
+}
+
+// Step 71 (error handling)
+it('shows inline error and keeps modal open when handleSave api.update fails', async () => {
+  ;(mockApi.update as jest.Mock).mockRejectedValue(new Error('Network error'))
+  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]) // name → A
+  fireEvent.click(radios[3]) // vendor → B
+  fireEvent.click(radios[6]) // version → A
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await assertInlineError(/save/i)
+})
+
+it('shows inline error and keeps form open when handleCreateSave api.create fails', async () => {
+  ;(mockApi.create as jest.Mock).mockRejectedValue(new Error('Server error'))
+  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  fireEvent.click(screen.getByRole('button', { name: /create new record/i }))
+  fireEvent.change(screen.getByRole('combobox', { name: /catalog type/i }), { target: { value: 'instruments' } })
+  fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+  await assertInlineError(/^save$/i)
 })
 
 // Step 70

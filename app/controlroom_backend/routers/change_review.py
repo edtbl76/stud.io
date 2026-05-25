@@ -33,19 +33,20 @@ router = APIRouter()
 _ACKNOWLEDGE_SQL = (
     "UPDATE audit_log SET acknowledged_at = NOW(), acknowledged_by = $2"
     " WHERE audit_id = ANY($1) AND acknowledged_at IS NULL AND undone_at IS NULL"
+    " RETURNING audit_id"
 )
 
 _UNDO_SQL = (
     "UPDATE audit_log SET undone_at = NOW(), undone_by = $2"
     " WHERE audit_id = ANY($1) AND acknowledged_at IS NULL AND undone_at IS NULL"
+    " RETURNING audit_id"
 )
 
 
-async def _bulk_update_audit(ids: list[UUID], username: str, conn: asyncpg.Connection, sql: str) -> int:
+async def _bulk_update_audit(ids: list[UUID], username: str, conn: asyncpg.Connection, sql: str) -> list[asyncpg.Record]:
     if not ids:
-        return 0
-    result = await conn.execute(sql, ids, username)
-    return int(result.split()[-1])
+        return []
+    return await conn.fetch(sql, ids, username)
 
 
 @router.get(
@@ -132,7 +133,7 @@ _BULK_SQL: dict[str, str] = {
 
 @router.post(
     "/change-review/bulk/{action}",
-    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}},
+    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}, 409: {"description": "Conflict"}},
 )
 async def bulk_action(
     action: Literal['acknowledge', 'undo'],
@@ -140,8 +141,14 @@ async def bulk_action(
     user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[asyncpg.Connection, Depends(get_conn)],
 ) -> BulkActionResult:
-    """Mark multiple audit entries as acknowledged or undone, skipping already-resolved entries."""
-    return BulkActionResult(count=await _bulk_update_audit(body.audit_ids, user.username, conn, _BULK_SQL[action]))
+    """Mark multiple audit entries as acknowledged or undone, raising 409 on conflict."""
+    if not body.audit_ids:
+        return BulkActionResult(count=0)
+    async with conn.transaction():
+        updated = await _bulk_update_audit(body.audit_ids, user.username, conn, _BULK_SQL[action])
+        if len(updated) < len(body.audit_ids):
+            raise HTTPException(status_code=409, detail="One or more entries are already resolved")
+    return BulkActionResult(count=len(updated))
 
 
 @router.post(

@@ -34,17 +34,15 @@ export function CreateRecordModal({ row, onClose, onSaved }: Readonly<CreateReco
   async function handleSave() {
     setIsSaving(true)
     setError(null)
-    let created: { id: string }
     try {
-      created = await api.create<{ id: string }>(`/catalog/${catalogType}`, { name, vendor, version, format })
+      const created = await api.create<{ id: string }>(`/catalog/${catalogType}`, { name, vendor, version, format })
+      await api.scanner.createLink({ result_id: row.result_id, catalog_record_id: created.id, catalog_record_table: catalogType })
+      onSaved()
     } catch {
       setError('Failed to create record. Please try again.')
+    } finally {
       setIsSaving(false)
-      return
     }
-    await api.scanner.createLink({ result_id: row.result_id, catalog_record_id: created.id, catalog_record_table: catalogType })
-    setIsSaving(false)
-    onSaved()
   }
 
   return (

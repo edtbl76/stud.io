@@ -6,6 +6,7 @@ import { WorkbenchRow as WorkbenchRowComponent } from './WorkbenchRow'
 import type { WorkbenchRow, OrphanedRecord, NeedsReviewSubState } from '@/lib/types'
 
 const SKELETON_COUNT = 8
+const WORKBENCH_HEIGHT = '600px'
 
 interface WorkbenchTableProps {
   rows: WorkbenchRow[]
@@ -51,7 +52,7 @@ export function WorkbenchTable({
 
   return (
     <div>
-      <div ref={parentRef} className="overflow-y-auto" style={{ height: '600px' }}>
+      <div ref={parentRef} className="overflow-y-auto" style={{ height: WORKBENCH_HEIGHT }}>
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map((vItem) => {
             const row = rows[vItem.index]

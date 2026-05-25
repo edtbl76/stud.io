@@ -271,6 +271,21 @@ it('Step 27b: shiftSelect selects a range from lastClickedIndex to current', asy
   expect(result.current.selectedIds.has('r3')).toBe(false)
 })
 
+it('shiftSelect clamps stale lastClickedIndex when visibleRows shrinks via filter', async () => {
+  const vst3Rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
+  const auRows = ['r3', 'r4'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
+  api.scanner.workbench.mockResolvedValue({ rows: [...vst3Rows, ...auRows], orphaned: [], scan_id: null })
+  const { result } = renderHook(() => useWorkbench(), { wrapper })
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+  act(() => { result.current.toggleSelect('r4') })  // lastClickedIndex = 4 (all 5 visible)
+  act(() => { result.current.setClientFilter({ format: 'VST3' }) })  // visibleRows shrinks to r0..r2
+  act(() => { result.current.shiftSelect('r0') })  // fromIdx should clamp to 2; select r0..r2
+  expect(result.current.selectedIds.has('r0')).toBe(true)
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r2')).toBe(true)
+})
+
 it('Step 27c: selectAll selects all visible rows', async () => {
   const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
   api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })

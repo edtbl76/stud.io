@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth'
 import { DiffModal } from '@/components/DiffModal'
 import { NativeSelect } from '@/components/ui/NativeSelect'
 import type { AuditEntry, AuditEntryWithData, ChangeReviewResponse } from '@/lib/types'
-import { useChangeReviewBulk, type BulkAction } from '@/lib/useChangeReviewBulk'
+import { useChangeReviewBulk } from '@/lib/useChangeReviewBulk'
 import { ChangeReviewBulkBar } from '@/components/admin/ChangeReviewBulkBar'
 import { ChangeReviewTable, type EntryAction } from './ChangeReviewTable'
 
@@ -224,11 +224,6 @@ function ChangeReviewFilters({ tableFilter, operationFilter, statusFilter, onTab
   )
 }
 
-const BULK_ENDPOINTS: Record<BulkAction, string> = {
-  approve: 'bulk/acknowledge',
-  reject: 'bulk/undo',
-}
-
 interface PaginationControlsProps {
   page: number
   totalPages: number
@@ -246,6 +241,48 @@ function PaginationControls({ page, totalPages, onPrev, onNext }: Readonly<Pagin
   )
 }
 
+interface ChangeReviewContentProps {
+  data: ChangeReviewResponse | null
+  loadingDetail: string | null
+  rowErrors: Record<string, string>
+  pendingActions: Set<string>
+  isAdmin: boolean
+  selectedIds: Set<string>
+  onRowClick: (id: string) => void
+  onAction: (auditId: string, action: EntryAction) => Promise<void>
+  onToggle: (id: string) => void
+  onShiftToggle: (id: string, allIds: string[]) => void
+  onSelectAll: (ids: string[]) => void
+}
+
+function ChangeReviewContent({
+  data, loadingDetail, rowErrors, pendingActions,
+  isAdmin, selectedIds, onRowClick, onAction, onToggle, onShiftToggle, onSelectAll,
+}: Readonly<ChangeReviewContentProps>) {
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+  return (
+    <ChangeReviewTable
+      data={data}
+      loadingDetail={loadingDetail}
+      rowErrors={rowErrors}
+      pendingActions={pendingActions}
+      isAdmin={isAdmin}
+      selectedIds={selectedIds}
+      onRowClick={onRowClick}
+      onAction={onAction}
+      onToggle={onToggle}
+      onShiftToggle={onShiftToggle}
+      onSelectAll={onSelectAll}
+    />
+  )
+}
+
 export default function ChangeReviewPage() {
   const { role } = useAuth()
   const isAdmin = role === 'admin'
@@ -258,24 +295,13 @@ export default function ChangeReviewPage() {
     detailEntry, setDetailEntry,
     loadingDetail, handleRowClick, handleAction,
   } = useChangeReview()
-  const { selectedIds, bulkAction, toggle, shiftToggle, selectAll, clearSelection, openBulkAction, closeBulkAction } = useChangeReviewBulk()
-
-  async function handleBulkConfirm() {
-    const ids = Array.from(selectedIds)
-    closeBulkAction()
-    clearSelection()
-    await fetch(`/api/studio/admin/change-review/${BULK_ENDPOINTS[bulkAction!]}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ audit_ids: ids }),
-    })
-  }
-
-  function handleToggle(id: string, shiftKey: boolean) {
-    const allIds = data?.entries.map((e) => e.audit_id) ?? []
-    if (shiftKey) shiftToggle(id, allIds)
-    else toggle(id)
-  }
+  const {
+    selectedIds, bulkAction, bulkError,
+    toggle, shiftToggle, selectAll,
+    openBulkAction, closeBulkAction,
+    confirmBulk,
+  } = useChangeReviewBulk()
+  const showBulkBar = isAdmin && selectedIds.size > 0
 
   if (error) {
     return (
@@ -296,6 +322,9 @@ export default function ChangeReviewPage() {
       {refreshError && (
         <p className="text-xs text-amber-600 mb-2">Could not refresh — showing last known data.</p>
       )}
+      {bulkError && (
+        <p className="text-xs text-destructive mb-2">Bulk action failed — please try again.</p>
+      )}
       <ChangeReviewFilters
         tableFilter={tableFilter}
         operationFilter={operationFilter}
@@ -304,34 +333,29 @@ export default function ChangeReviewPage() {
         onOperationChange={(v) => { setOperationFilter(v); setPage(1) }}
         onStatusChange={(v) => { setStatusFilter(v); setPage(1) }}
       />
-      {selectedIds.size > 0 && (
+      {showBulkBar && (
         <ChangeReviewBulkBar
           selectedCount={selectedIds.size}
           bulkAction={bulkAction}
           onBulkApprove={() => openBulkAction('approve')}
           onBulkReject={() => openBulkAction('reject')}
-          onConfirm={() => { void handleBulkConfirm() }}
+          onConfirm={() => { void confirmBulk() }}
           onCancelBulk={closeBulkAction}
         />
       )}
-      {data ? (
-        <ChangeReviewTable
-          data={data}
-          loadingDetail={loadingDetail}
-          rowErrors={rowErrors}
-          pendingActions={pendingActions}
-          isAdmin={isAdmin}
-          selectedIds={selectedIds}
-          onRowClick={(id) => { void handleRowClick(id) }}
-          onAction={handleAction}
-          onToggle={handleToggle}
-          onSelectAll={selectAll}
-        />
-      ) : (
-        <div className="flex items-center justify-center py-10">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      )}
+      <ChangeReviewContent
+        data={data}
+        loadingDetail={loadingDetail}
+        rowErrors={rowErrors}
+        pendingActions={pendingActions}
+        isAdmin={isAdmin}
+        selectedIds={selectedIds}
+        onRowClick={(id) => { void handleRowClick(id) }}
+        onAction={handleAction}
+        onToggle={toggle}
+        onShiftToggle={shiftToggle}
+        onSelectAll={selectAll}
+      />
       <PaginationControls
         page={page}
         totalPages={totalPages}

@@ -28,8 +28,15 @@ test('needs_review row click opens SingleResolutionModal', async ({ page }) => {
 
 // Step 95
 test('Soft Reset button fires and shows toast', async ({ page }) => {
+  await page.route('**/api/scanner/admin/reset/soft', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ type: 'soft', rules_disabled: 0 }),
+    })
+  })
   await page.goto(BASE)
   await expect(page.getByRole('button', { name: /soft reset/i })).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: /soft reset/i }).click()
-  await expect(page.getByText(/soft reset/i)).toBeVisible({ timeout: 5000 })
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: /soft reset complete/i })).toBeVisible({ timeout: 5000 })
 })

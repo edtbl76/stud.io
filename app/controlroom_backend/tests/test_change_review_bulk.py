@@ -14,6 +14,15 @@ async def _post_bulk(client, headers, endpoint: str, audit_ids: list[UUID]) -> i
     return response.json()["count"]
 
 
+async def _post_bulk_conflict(client, headers, endpoint: str, audit_ids: list[UUID]) -> None:
+    response = await client.post(
+        endpoint,
+        json={"audit_ids": [str(i) for i in audit_ids]},
+        headers=headers,
+    )
+    assert response.status_code == 409
+
+
 # ---------------------------------------------------------------------------
 # Step 13: bulk-acknowledge
 # ---------------------------------------------------------------------------
@@ -28,10 +37,10 @@ async def test_bulk_acknowledge_sets_acknowledged_fields(client, admin_headers, 
     assert row2["acknowledged_at"] is not None
 
 
-async def test_bulk_acknowledge_skips_already_resolved_ids(client, admin_headers, conn):
+async def test_bulk_acknowledge_raises_409_when_entry_already_resolved(client, admin_headers, conn):
     pending_id, _ = await insert_audit(conn, operation="UPDATE")
     already_acked_id, _ = await insert_acknowledged_audit(conn, operation="UPDATE")
-    assert await _post_bulk(client, admin_headers, "/studio/admin/change-review/bulk/acknowledge", [pending_id, already_acked_id]) == 1
+    await _post_bulk_conflict(client, admin_headers, "/studio/admin/change-review/bulk/acknowledge", [pending_id, already_acked_id])
 
 
 async def test_bulk_acknowledge_empty_list_returns_zero(client, admin_headers):
@@ -54,11 +63,11 @@ async def test_bulk_undo_marks_entries_undone(client, admin_headers, conn):
     assert row1["undone_at"] is not None
 
 
-async def test_bulk_undo_skips_already_resolved_ids(client, admin_headers, conn):
+async def test_bulk_undo_raises_409_when_entry_already_resolved(client, admin_headers, conn):
     pending_id, _ = await insert_audit(conn, operation="UPDATE")
     await conn.execute("UPDATE audit_log SET old_data = '{}'::jsonb WHERE audit_id = $1", pending_id)
     already_undone_id, _ = await insert_undone_audit(conn, operation="UPDATE")
-    assert await _post_bulk(client, admin_headers, "/studio/admin/change-review/bulk/undo", [pending_id, already_undone_id]) == 1
+    await _post_bulk_conflict(client, admin_headers, "/studio/admin/change-review/bulk/undo", [pending_id, already_undone_id])
 
 
 async def test_bulk_undo_empty_list_returns_zero(client, admin_headers):

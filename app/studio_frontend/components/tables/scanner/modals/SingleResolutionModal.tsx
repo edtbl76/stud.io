@@ -40,8 +40,8 @@ function collectRulePromises(fields: Field[], sources: ResolutionState): Promise
   const promises: Promise<RuleCreationResult>[] = []
   for (const f of fields) {
     if (f.diskValue === f.catalogValue || sources[f.sourceKey] !== 'catalog') continue
-    if (f.key === 'vendor') promises.push(api.scanner.createVendorRule({ disk_vendor: f.diskValue, catalog_vendor: f.catalogValue! }))
-    else if (f.key === 'name') promises.push(api.scanner.createNameRule({ disk_name: f.diskValue, catalog_name: f.catalogValue! }))
+    if (f.key === 'vendor' && f.catalogValue != null) promises.push(api.scanner.createVendorRule({ disk_vendor: f.diskValue, catalog_vendor: f.catalogValue }))
+    else if (f.key === 'name' && f.catalogValue != null) promises.push(api.scanner.createNameRule({ disk_name: f.diskValue, catalog_name: f.catalogValue }))
   }
   return promises
 }

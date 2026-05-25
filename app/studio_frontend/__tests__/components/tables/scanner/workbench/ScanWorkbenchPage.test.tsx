@@ -83,6 +83,14 @@ it('calls api.scanner.softReset and fires toast on Soft Reset click', async () =
   expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/soft reset/i))
 })
 
+it('shows error toast and skips invalidate when softReset fails', async () => {
+  ;(mockApi.scanner.softReset as jest.Mock).mockRejectedValue(new Error('Network error'))
+  render(<ScanWorkbenchPage />)
+  fireEvent.click(screen.getByRole('button', { name: /soft reset/i }))
+  await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('Network error'))
+  expect(mockInvalidate).not.toHaveBeenCalled()
+})
+
 // Step 82
 it('opens Hard Reset dialog with disabled Confirm until correct text entered', () => {
   render(<ScanWorkbenchPage />)
@@ -91,6 +99,28 @@ it('opens Hard Reset dialog with disabled Confirm until correct text entered', (
   expect(screen.getByRole('button', { name: /confirm/i })).toBeDisabled()
   fireEvent.change(screen.getByRole('textbox'), { target: { value: 'RESET ALL SCANNER DATA' } })
   expect(screen.getByRole('button', { name: /confirm/i })).not.toBeDisabled()
+})
+
+it('calls api.scanner.hardReset, fires success toast, and closes dialog on Confirm', async () => {
+  ;(mockApi.scanner.hardReset as jest.Mock).mockResolvedValue({})
+  render(<ScanWorkbenchPage />)
+  fireEvent.click(screen.getByRole('button', { name: /hard reset/i }))
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'RESET ALL SCANNER DATA' } })
+  fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+  await waitFor(() => expect(mockApi.scanner.hardReset).toHaveBeenCalledWith('RESET ALL SCANNER DATA'))
+  expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/hard reset/i))
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+})
+
+it('shows error toast and keeps dialog open when hardReset fails', async () => {
+  ;(mockApi.scanner.hardReset as jest.Mock).mockRejectedValue(new Error('Server error'))
+  render(<ScanWorkbenchPage />)
+  fireEvent.click(screen.getByRole('button', { name: /hard reset/i }))
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'RESET ALL SCANNER DATA' } })
+  fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+  await waitFor(() => expect(mockToast.error).toHaveBeenCalledWith('Server error'))
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+  expect(mockInvalidate).not.toHaveBeenCalled()
 })
 
 // Step 83

@@ -46,7 +46,8 @@ export interface ChangeReviewTableProps {
   selectedIds: Set<string>
   onRowClick: (auditId: string) => void
   onAction: (auditId: string, action: EntryAction) => Promise<void>
-  onToggle: (id: string, shiftKey: boolean) => void
+  onToggle: (id: string) => void
+  onShiftToggle: (id: string, allIds: string[]) => void
   onSelectAll: (ids: string[]) => void
 }
 
@@ -79,7 +80,7 @@ function EntryActionsCell({ entry, rowError, isPending, isAdmin, onAction }: Rea
   )
 }
 
-export function ChangeReviewTable({ data, loadingDetail, rowErrors, pendingActions, isAdmin, selectedIds, onRowClick, onAction, onToggle, onSelectAll }: Readonly<ChangeReviewTableProps>) {
+export function ChangeReviewTable({ data, loadingDetail, rowErrors, pendingActions, isAdmin, selectedIds, onRowClick, onAction, onToggle, onShiftToggle, onSelectAll }: Readonly<ChangeReviewTableProps>) {
   const allIds = data.entries.map((e) => e.audit_id)
   const allSelected = allIds.length > 0 && allIds.every((id) => selectedIds.has(id))
   return (
@@ -102,7 +103,7 @@ export function ChangeReviewTable({ data, loadingDetail, rowErrors, pendingActio
           {data.entries.map((entry) => (
             <tr key={entry.audit_id} className="border-b border-border/50 cursor-pointer hover:bg-muted/30 transition-colors" tabIndex={0} aria-label={`View details for ${entry.record_display_name ?? entry.record_id.slice(0, 8)}`} onClick={() => onRowClick(entry.audit_id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowClick(entry.audit_id) } }}>
               <td className="py-1.5 pr-2" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
-                <input type="checkbox" checked={selectedIds.has(entry.audit_id)} onChange={(e) => onToggle(entry.audit_id, (e.nativeEvent as MouseEvent).shiftKey)} />
+                <input type="checkbox" checked={selectedIds.has(entry.audit_id)} onChange={(e) => (e.nativeEvent as MouseEvent).shiftKey ? onShiftToggle(entry.audit_id, allIds) : onToggle(entry.audit_id)} />
               </td>
               <td className="py-1.5 pr-4 text-muted-foreground">{timeAgo(entry.performed_at)}</td>
               <td className="py-1.5 pr-4">{entry.table_name}</td>

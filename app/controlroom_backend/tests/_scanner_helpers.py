@@ -1,13 +1,22 @@
 """Shared DB helpers for scanner test modules."""
 from __future__ import annotations
 
+from datetime import datetime
+from typing import Optional
 
-async def insert_scan(conn, status: str = "untracked") -> tuple:
+
+async def insert_scan(conn, status: str = "untracked", scanned_at: Optional[datetime] = None) -> tuple:
     """Insert a plugin_scan + one plugin_scan_result; return (scan_id, result_id)."""
-    scan_id = await conn.fetchval(
-        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1, $2) RETURNING scan_id",
-        "test-machine", 1,
-    )
+    if scanned_at is not None:
+        scan_id = await conn.fetchval(
+            "INSERT INTO plugin_scans (source_machine, total_count, scanned_at) VALUES ($1, $2, $3) RETURNING scan_id",
+            "test-machine", 1, scanned_at,
+        )
+    else:
+        scan_id = await conn.fetchval(
+            "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1, $2) RETURNING scan_id",
+            "test-machine", 1,
+        )
     result_id = await conn.fetchval(
         "INSERT INTO plugin_scan_results "
         "(scan_id, name, vendor, version, format, path, status) "

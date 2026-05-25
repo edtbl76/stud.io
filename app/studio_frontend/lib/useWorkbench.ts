@@ -122,14 +122,12 @@ export function useWorkbench() {
   function shiftSelect(id: string) {
     const toIdx = visibleRows.findIndex((r) => r.result_id === id)
     if (toIdx < 0) return
-    const fromIdx = lastClickedIndex.current ?? toIdx
+    const lastIdx = lastClickedIndex.current
+    const fromIdx = lastIdx === null ? toIdx : Math.max(0, Math.min(lastIdx, visibleRows.length - 1))
     const lo = Math.min(fromIdx, toIdx)
     const hi = Math.max(fromIdx, toIdx)
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      for (let i = lo; i <= hi; i++) next.add(visibleRows[i].result_id)
-      return next
-    })
+    const rangeIds = visibleRows.slice(lo, hi + 1).map((r) => r.result_id)
+    setSelectedIds((prev) => new Set([...prev, ...rangeIds]))
   }
 
   function selectAll() {
