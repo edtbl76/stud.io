@@ -93,7 +93,7 @@ it('skips rule creation when catalog vendor value is null', async () => {
   render(<CollisionModal rowA={a} rowB={b} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
   const radios = screen.getAllByRole('radio')
   fireEvent.click(radios[0]) // name → A
-  fireEvent.click(radios[4]) // vendor → catalog (null)
+  fireEvent.click(radios[5]) // vendor → catalog (null)
   fireEvent.click(radios[6]) // version → A
   fireEvent.click(screen.getByRole('button', { name: /save/i }))
   await waitFor(() => expect(mockApi.update).toHaveBeenCalled())

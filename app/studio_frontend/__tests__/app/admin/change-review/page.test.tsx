@@ -568,6 +568,21 @@ describe('ChangeReviewPage', () => {
     await confirmBulkEndpointCall(/bulk reject/i, '/bulk/undo', { count: 2 })
   })
 
+  it('refetches the list after a successful bulk action', async () => {
+    const refreshedResponse = { total: 0, page: 1, page_size: 50, entries: [] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok({ count: 2 }))
+      .mockResolvedValueOnce(ok(refreshedResponse))
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }))
+    fireEvent.click(screen.getByRole('button', { name: /bulk approve/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    expect(mockFetch.mock.calls[2][0]).toBe(mockFetch.mock.calls[0][0])
+  })
+
   // Step 93
   it('bulk action failure keeps selection and shows error', async () => {
     mockFetch

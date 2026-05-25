@@ -186,6 +186,7 @@ function useChangeReview() {
     tableFilter, setTableFilter,
     operationFilter, setOperationFilter,
     statusFilter, setStatusFilter,
+    triggerRefresh: () => setRefreshKey((k) => k + 1),
     ...actions,
   }
 }
@@ -294,6 +295,7 @@ export default function ChangeReviewPage() {
     rowErrors, pendingActions,
     detailEntry, setDetailEntry,
     loadingDetail, handleRowClick, handleAction,
+    triggerRefresh,
   } = useChangeReview()
   const {
     selectedIds, bulkAction, bulkError,
@@ -339,7 +341,7 @@ export default function ChangeReviewPage() {
           bulkAction={bulkAction}
           onBulkApprove={() => openBulkAction('approve')}
           onBulkReject={() => openBulkAction('reject')}
-          onConfirm={() => { void confirmBulk() }}
+          onConfirm={() => { void confirmBulk(triggerRefresh) }}
           onCancelBulk={closeBulkAction}
         />
       )}

@@ -18,7 +18,7 @@ export interface UseChangeReviewBulkReturn {
   selectAll: (ids: string[]) => void
   openBulkAction: (action: BulkAction) => void
   closeBulkAction: () => void
-  confirmBulk: () => Promise<void>
+  confirmBulk: (onSuccess?: () => void) => Promise<void>
 }
 
 export function useChangeReviewBulk(): UseChangeReviewBulkReturn {
@@ -76,7 +76,7 @@ export function useChangeReviewBulk(): UseChangeReviewBulkReturn {
     setBulkAction(null)
   }
 
-  async function confirmBulk() {
+  async function confirmBulk(onSuccess?: () => void) {
     const ids = Array.from(selectedIds)
     setBulkError(false)
     try {
@@ -88,6 +88,7 @@ export function useChangeReviewBulk(): UseChangeReviewBulkReturn {
       if (!res.ok) throw new Error('Bulk action failed')
       closeBulkAction()
       clearSelection()
+      onSuccess?.()
     } catch {
       setBulkError(true)
     }

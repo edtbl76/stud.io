@@ -15,12 +15,13 @@ const HARD_RESET_CONFIRMATION = 'RESET ALL SCANNER DATA'
 interface HardResetDialogProps {
   isOpen: boolean
   confirmText: string
+  isSubmitting: boolean
   onConfirmTextChange: (text: string) => void
   onConfirm: () => void
   onCancel: () => void
 }
 
-function HardResetDialog({ isOpen, confirmText, onConfirmTextChange, onConfirm, onCancel }: Readonly<HardResetDialogProps>) {
+function HardResetDialog({ isOpen, confirmText, isSubmitting, onConfirmTextChange, onConfirm, onCancel }: Readonly<HardResetDialogProps>) {
   if (!isOpen) return null
   return (
     <dialog open className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -37,7 +38,7 @@ function HardResetDialog({ isOpen, confirmText, onConfirmTextChange, onConfirm, 
         />
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="button" onClick={onConfirm} disabled={confirmText !== HARD_RESET_CONFIRMATION}>
+          <button type="button" onClick={onConfirm} disabled={confirmText !== HARD_RESET_CONFIRMATION || isSubmitting}>
             Confirm
           </button>
         </div>
@@ -55,6 +56,7 @@ export function ScanWorkbenchPage() {
 
   const [hardResetOpen, setHardResetOpen] = useState(false)
   const [hardResetText, setHardResetText] = useState('')
+  const [hardResetSubmitting, setHardResetSubmitting] = useState(false)
   const [bulkResolveQueue, setBulkResolveQueue] = useState<WorkbenchRow[]>([])
 
   const selectedRows = rows.filter((r) => selectedIds.has(r.result_id))
@@ -70,6 +72,8 @@ export function ScanWorkbenchPage() {
   }
 
   async function handleHardReset() {
+    if (hardResetSubmitting) return
+    setHardResetSubmitting(true)
     try {
       await api.scanner.hardReset(hardResetText)
       toast.success('Hard reset complete')
@@ -78,6 +82,8 @@ export function ScanWorkbenchPage() {
       invalidate()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Hard reset failed. Please try again.')
+    } finally {
+      setHardResetSubmitting(false)
     }
   }
 
@@ -152,6 +158,7 @@ export function ScanWorkbenchPage() {
       <HardResetDialog
         isOpen={hardResetOpen}
         confirmText={hardResetText}
+        isSubmitting={hardResetSubmitting}
         onConfirmTextChange={setHardResetText}
         onConfirm={handleHardReset}
         onCancel={handleHardResetCancel}

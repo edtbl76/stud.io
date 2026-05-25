@@ -112,6 +112,15 @@ it('calls api.scanner.hardReset, fires success toast, and closes dialog on Confi
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
 })
 
+it('disables Confirm button while hard reset is in-flight', async () => {
+  ;(mockApi.scanner.hardReset as jest.Mock).mockImplementation(() => new Promise(() => {}))
+  render(<ScanWorkbenchPage />)
+  fireEvent.click(screen.getByRole('button', { name: /hard reset/i }))
+  fireEvent.change(screen.getByRole('textbox'), { target: { value: 'RESET ALL SCANNER DATA' } })
+  fireEvent.click(screen.getByRole('button', { name: /confirm/i }))
+  await waitFor(() => expect(screen.getByRole('button', { name: /confirm/i })).toBeDisabled())
+})
+
 it('shows error toast and keeps dialog open when hardReset fails', async () => {
   ;(mockApi.scanner.hardReset as jest.Mock).mockRejectedValue(new Error('Server error'))
   render(<ScanWorkbenchPage />)
