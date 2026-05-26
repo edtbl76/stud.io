@@ -5,6 +5,7 @@ The existing test_scanner_report.py covers the OLD /scanner/report endpoint — 
 """
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
@@ -28,8 +29,10 @@ async def test_scans_recent_returns_empty_list_when_no_scans(client, admin_heade
 
 @pytest.mark.asyncio
 async def test_scans_recent_returns_scans_newest_first(client, conn, admin_headers):
-    scan_id_1, _ = await insert_scan(conn)
-    scan_id_2, _ = await insert_scan(conn)
+    older = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    newer = datetime(2020, 1, 2, tzinfo=timezone.utc)
+    scan_id_1, _ = await insert_scan(conn, scanned_at=older)
+    scan_id_2, _ = await insert_scan(conn, scanned_at=newer)
     resp = await client.get(
         "/scanner/scans/recent",
         headers=admin_headers,

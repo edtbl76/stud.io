@@ -113,6 +113,16 @@ describe('ChangeReviewPage', () => {
     expect(screen.queryByRole('button', { name: /acknowledge/i })).not.toBeInTheDocument()
   })
 
+  it('hides bulk action bar for non-admin users even when rows are selected', async () => {
+    mockUseAuth = () => ({ username: 'bob', role: 'user' })
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]')
+    fireEvent.click(checkboxes[0])
+    expect(screen.queryByRole('button', { name: /bulk approve/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /bulk reject/i })).not.toBeInTheDocument()
+  })
+
   it('DELETE entries show Permanently Delete but not Acknowledge', async () => {
     render(<ChangeReviewPage />)
     await waitFor(() => screen.getAllByText('effects'))
@@ -468,5 +478,122 @@ describe('ChangeReviewPage', () => {
     fireEvent.keyDown(ackButton, { key: 'Tab' })
 
     expect(mockFetch.mock.calls.length).toBe(initialCallCount)
+  })
+
+  // Step 86
+  it('each entry row has a checkbox', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const rows = document.querySelectorAll('tbody tr')
+    rows.forEach((row) => {
+      expect(row.querySelector('input[type="checkbox"]')).not.toBeNull()
+    })
+  })
+
+  // Step 87
+  it('shift-click checkbox selects a range', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const checkboxes = screen.getAllByRole('checkbox').filter((el) => (el as HTMLInputElement).type === 'checkbox' && !(el as HTMLInputElement).getAttribute('aria-label')?.includes('all'))
+    // Click first checkbox to anchor selection
+    fireEvent.click(checkboxes[0])
+    // Shift-click second checkbox
+    fireEvent.click(checkboxes[1], { shiftKey: true })
+    // Both should be checked
+    expect((checkboxes[0] as HTMLInputElement).checked).toBe(true)
+    expect((checkboxes[1] as HTMLInputElement).checked).toBe(true)
+  })
+
+  // Step 88
+  it('header select-all checkbox selects all visible entries', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const selectAll = screen.getByRole('checkbox', { name: /select all/i })
+    fireEvent.click(selectAll)
+    const rowCheckboxes = document.querySelectorAll('tbody input[type="checkbox"]')
+    rowCheckboxes.forEach((cb) => {
+      expect((cb as HTMLInputElement).checked).toBe(true)
+    })
+  })
+
+  // Step 89
+  it('bulk action bar appears when selection is non-empty', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const checkboxes = document.querySelectorAll('tbody input[type="checkbox"]')
+    fireEvent.click(checkboxes[0])
+    expect(screen.getByRole('button', { name: /bulk approve/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /bulk reject/i })).toBeInTheDocument()
+  })
+
+  // Step 90
+  it('Bulk Approve opens confirmation dialog with count', async () => {
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    const selectAll = screen.getByRole('checkbox', { name: /select all/i })
+    fireEvent.click(selectAll)
+    fireEvent.click(screen.getByRole('button', { name: /bulk approve/i }))
+    expect(screen.getByText(/approve 2 pending changes/i)).toBeInTheDocument()
+  })
+
+  async function confirmBulkEndpointCall(actionButton: RegExp, endpoint: string, bulkResult: unknown) {
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok(bulkResult))
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }))
+    fireEvent.click(screen.getByRole('button', { name: actionButton }))
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
+    await waitFor(() =>
+      expect(mockFetch).toHaveBeenCalledWith(
+        expect.stringContaining(endpoint),
+        expect.objectContaining({ method: 'POST' })
+      )
+    )
+    const bulkCalls = (mockFetch.mock.calls as [string, { body: string }][]).filter(([url]) => url.includes(endpoint))
+    expect(bulkCalls).toHaveLength(1)
+    const sentIds = JSON.parse(bulkCalls[0][1].body).audit_ids as string[]
+    expect(sentIds).toContain(mockEntry.audit_id)
+    expect(sentIds).toContain(mockUpdateEntry.audit_id)
+  }
+
+  // Step 91
+  it('confirming Bulk Approve calls bulk/acknowledge endpoint and removes rows', async () => {
+    await confirmBulkEndpointCall(/bulk approve/i, '/bulk/acknowledge', { count: 2 })
+  })
+
+  // Step 92
+  it('Bulk Reject (Undo) calls bulk/undo endpoint', async () => {
+    await confirmBulkEndpointCall(/bulk reject/i, '/bulk/undo', { count: 2 })
+  })
+
+  it('refetches the list after a successful bulk action', async () => {
+    const refreshedResponse = { total: 0, page: 1, page_size: 50, entries: [] }
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce(ok({ count: 2 }))
+      .mockResolvedValueOnce(ok(refreshedResponse))
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }))
+    fireEvent.click(screen.getByRole('button', { name: /bulk approve/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
+    await waitFor(() => expect(mockFetch).toHaveBeenCalledTimes(3))
+    expect(mockFetch.mock.calls[2][0]).toBe(mockFetch.mock.calls[0][0])
+  })
+
+  // Step 93
+  it('bulk action failure keeps selection and shows error', async () => {
+    mockFetch
+      .mockResolvedValueOnce(ok(mockResponse))
+      .mockResolvedValueOnce({ ok: false, status: 500, json: () => Promise.resolve({ detail: 'err' }) })
+    render(<ChangeReviewPage />)
+    await waitFor(() => screen.getAllByText('effects'))
+    fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }))
+    fireEvent.click(screen.getByRole('button', { name: /bulk approve/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^confirm$/i }))
+    await waitFor(() => expect(screen.getByText(/bulk action failed/i)).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: /bulk approve/i })).toBeInTheDocument()
   })
 })

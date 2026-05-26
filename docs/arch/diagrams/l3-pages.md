@@ -12,6 +12,8 @@ graph LR
         session_pages["Session Pages\neffects · instruments · libraries · workstations"]
         tools_pages["Tools Pages\nadmin · composition · measurement · reference · workflow"]
         scanner_pages["Scanner Pages\nknown · matched · conflicted · unconfirmed\nuntracked · orphaned · absent · exclusions"]
+        rules_pages["Rules Page\nvendor · name · pattern rule management"]
+        workbench_page["Scan Workbench\nfive-bucket unified triage\nScanWorkbenchPage"]
     end
 
     backend(["FastAPI Backend"])
@@ -19,6 +21,8 @@ graph LR
     session_pages -->|"/studio/session/*"| backend
     tools_pages -->|"/studio/tools/{category}"| backend
     scanner_pages -->|"/scanner/report · /scanner/confirm · ..."| backend
+    rules_pages -->|"/scanner/rules/*"| backend
+    workbench_page -->|"/scanner/workbench · /scanner/links · /scanner/results"| backend
 ```
 
 ---

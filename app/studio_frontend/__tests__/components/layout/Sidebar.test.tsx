@@ -117,6 +117,15 @@ describe('Sidebar', () => {
     expect(link.getAttribute('href')).toBe('/controlroom/scanner/rules')
   })
 
+  // Step 85
+  it('renders Scan Workbench link pointing to /controlroom/scanner/workbench', () => {
+    mockPathname = '/controlroom/scanner/workbench'
+    render(<Sidebar />)
+    const link = screen.getByRole('link', { name: 'Scan Workbench' })
+    expect(link).toBeInTheDocument()
+    expect(link.getAttribute('href')).toBe('/controlroom/scanner/workbench')
+  })
+
   it('does not apply active link styling when path does not match', () => {
     mockPathname = '/unrelated'
     render(<Sidebar />)

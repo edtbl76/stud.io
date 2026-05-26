@@ -1,9 +1,10 @@
 import json
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from database import get_conn
 from routers.auth import require_admin, get_current_user, UserOut
@@ -19,7 +20,33 @@ from routers._helpers import (
 from routers.change_review_undo import apply_undo_operation, UndoTarget
 from routers.change_review_list import _build_filter_clause, _batch_display_names, _build_entries
 
+
+class BulkAuditRequest(BaseModel):
+    audit_ids: list[UUID]
+
+
+class BulkActionResult(BaseModel):
+    count: int
+
 router = APIRouter()
+
+_ACKNOWLEDGE_SQL = (
+    "UPDATE audit_log SET acknowledged_at = NOW(), acknowledged_by = $2"
+    " WHERE audit_id = ANY($1) AND acknowledged_at IS NULL AND undone_at IS NULL"
+    " RETURNING audit_id"
+)
+
+_UNDO_SQL = (
+    "UPDATE audit_log SET undone_at = NOW(), undone_by = $2"
+    " WHERE audit_id = ANY($1) AND acknowledged_at IS NULL AND undone_at IS NULL"
+    " RETURNING audit_id"
+)
+
+
+async def _bulk_update_audit(ids: list[UUID], username: str, conn: asyncpg.Connection, sql: str) -> list[asyncpg.Record]:
+    if not ids:
+        return []
+    return await conn.fetch(sql, ids, username)
 
 
 @router.get(
@@ -96,6 +123,32 @@ async def get_change_detail(
         if isinstance(val, str):
             row_dict[field] = json.loads(val)
     return AuditEntryWithData(**row_dict, record_display_name=None)
+
+
+_BULK_SQL: dict[str, str] = {
+    'acknowledge': _ACKNOWLEDGE_SQL,
+    'undo': _UNDO_SQL,
+}
+
+
+@router.post(
+    "/change-review/bulk/{action}",
+    responses={401: {"description": "Unauthorized"}, 403: {"description": "Forbidden"}, 409: {"description": "Conflict"}},
+)
+async def bulk_action(
+    action: Literal['acknowledge', 'undo'],
+    body: BulkAuditRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[asyncpg.Connection, Depends(get_conn)],
+) -> BulkActionResult:
+    """Mark multiple audit entries as acknowledged or undone, raising 409 on conflict."""
+    if not body.audit_ids:
+        return BulkActionResult(count=0)
+    async with conn.transaction():
+        updated = await _bulk_update_audit(body.audit_ids, user.username, conn, _BULK_SQL[action])
+        if len(updated) < len(body.audit_ids):
+            raise HTTPException(status_code=409, detail="One or more entries are already resolved")
+    return BulkActionResult(count=len(updated))
 
 
 @router.post(
