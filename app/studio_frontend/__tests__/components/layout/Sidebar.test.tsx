@@ -126,6 +126,28 @@ describe('Sidebar', () => {
     expect(link.getAttribute('href')).toBe('/controlroom/scanner/workbench')
   })
 
+  // Step 20 (U-05a)
+  it('renders Scan Report link pointing to /controlroom/scanner/report', () => {
+    mockPathname = '/controlroom/scanner/report'
+    render(<Sidebar />)
+    const link = screen.getByRole('link', { name: 'Scan Report' })
+    expect(link).toBeInTheDocument()
+    expect(link.getAttribute('href')).toBe('/controlroom/scanner/report')
+  })
+
+  it('lists scanner nav items in FR-01 order: Report, Workbench, Rules', () => {
+    mockPathname = '/controlroom/scanner/report'
+    render(<Sidebar />)
+    const links = screen.getAllByRole('link').filter(l =>
+      ['/controlroom/scanner/report', '/controlroom/scanner/workbench', '/controlroom/scanner/rules'].includes(
+        l.getAttribute('href') ?? ''
+      )
+    )
+    expect(links[0].getAttribute('href')).toBe('/controlroom/scanner/report')
+    expect(links[1].getAttribute('href')).toBe('/controlroom/scanner/workbench')
+    expect(links[2].getAttribute('href')).toBe('/controlroom/scanner/rules')
+  })
+
   it('does not apply active link styling when path does not match', () => {
     mockPathname = '/unrelated'
     render(<Sidebar />)

@@ -14,6 +14,7 @@ graph LR
         scanner_pages["Scanner Pages\nknown · matched · conflicted · unconfirmed\nuntracked · orphaned · absent · exclusions"]
         rules_pages["Rules Page\nvendor · name · pattern rule management"]
         workbench_page["Scan Workbench\nfive-bucket unified triage\nScanWorkbenchPage"]
+        report_page["Scan Report\nraw scan results by status\nScanReportPage (U-05a, 1.17.0)"]
     end
 
     backend(["FastAPI Backend"])
@@ -23,6 +24,7 @@ graph LR
     scanner_pages -->|"/scanner/report · /scanner/confirm · ..."| backend
     rules_pages -->|"/scanner/rules/*"| backend
     workbench_page -->|"/scanner/workbench · /scanner/links · /scanner/results"| backend
+    report_page -->|"/scanner/scans/recent · /scanner/scans/{id}/report"| backend
 ```
 
 ---

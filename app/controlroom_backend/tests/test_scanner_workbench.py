@@ -91,8 +91,12 @@ async def test_workbench_returns_rows_and_orphaned(client, conn, admin_headers):
 async def test_workbench_uses_latest_scan_by_default(client, conn, admin_headers):
     scan_id_1 = await insert_scan(conn)
     await insert_result(conn, scan_id_1)
+    # Use an explicit future scanned_at: within a transaction NOW() is constant,
+    # so both inserts would otherwise share the same timestamp and the ORDER BY
+    # would be non-deterministic.
     scan_id_2 = await conn.fetchval(
-        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1,$2) RETURNING scan_id",
+        "INSERT INTO plugin_scans (source_machine, total_count, scanned_at)"
+        " VALUES ($1, $2, NOW() + interval '1 second') RETURNING scan_id",
         "test-machine", 0,
     )
     resp = await client.get("/scanner/workbench", headers=admin_headers)
