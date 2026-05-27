@@ -5,7 +5,7 @@ import { NativeSelect } from '@/components/ui/NativeSelect'
 import { Skeleton } from '@/components/ui/skeleton'
 import { api } from '@/lib/api'
 import { ReportRow } from './ReportRow'
-import type { RawScanReport, ScanListItem } from '@/lib/types'
+import type { RawScanReport, RawScanResult, ScanListItem } from '@/lib/types'
 
 const CANONICAL_STATUS_ORDER = [
   'known',
@@ -40,6 +40,46 @@ function sortedStatusKeys(keys: string[]): string[] {
     if (aOrder !== bOrder) return aOrder - bOrder
     return a.localeCompare(b)
   })
+}
+
+interface StatusSectionProps {
+  readonly status: string
+  readonly rows: RawScanResult[]
+  readonly isOpen: boolean
+  readonly onToggle: () => void
+}
+
+function StatusSection({ status, rows, isOpen, onToggle }: StatusSectionProps) {
+  return (
+    <div className="border rounded-md">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-left hover:bg-muted/50"
+        onClick={onToggle}
+      >
+        <span>{formatStatusLabel(status)} ({rows.length})</span>
+        <span className="text-muted-foreground">{isOpen ? '▲' : '▼'}</span>
+      </button>
+      {isOpen && (
+        <div className="border-t">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b bg-muted/30">
+                <th className="px-3 py-2 text-left font-medium">Name</th>
+                <th className="px-3 py-2 text-left font-medium">Vendor</th>
+                <th className="px-3 py-2 text-left font-medium">Version</th>
+                <th className="px-3 py-2 text-left font-medium">Format</th>
+                <th className="px-3 py-2 text-left font-medium">Path</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(row => <ReportRow key={row.result_id} row={row} />)}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function ScanReportPage() {
@@ -120,40 +160,15 @@ export function ScanReportPage() {
 
       {report && !loadingReport && (
         <div className="space-y-1">
-          {orderedKeys.map(status => {
-            const rows = report.results_by_status[status]
-            const isOpen = openSections.has(status)
-            return (
-              <div key={status} className="border rounded-md">
-                <button
-                  type="button"
-                  className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-left hover:bg-muted/50"
-                  onClick={() => handleToggleSection(status)}
-                >
-                  <span>{formatStatusLabel(status)} ({rows.length})</span>
-                  <span className="text-muted-foreground">{isOpen ? '▲' : '▼'}</span>
-                </button>
-                {isOpen && (
-                  <div className="border-t">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b bg-muted/30">
-                          <th className="px-3 py-2 text-left font-medium">Name</th>
-                          <th className="px-3 py-2 text-left font-medium">Vendor</th>
-                          <th className="px-3 py-2 text-left font-medium">Version</th>
-                          <th className="px-3 py-2 text-left font-medium">Format</th>
-                          <th className="px-3 py-2 text-left font-medium">Path</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map(row => <ReportRow key={row.result_id} row={row} />)}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          {orderedKeys.map(status => (
+            <StatusSection
+              key={status}
+              status={status}
+              rows={report.results_by_status[status]}
+              isOpen={openSections.has(status)}
+              onToggle={() => handleToggleSection(status)}
+            />
+          ))}
         </div>
       )}
     </div>
