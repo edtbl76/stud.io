@@ -82,7 +82,19 @@ function StatusSection({ status, rows, isOpen, onToggle }: StatusSectionProps) {
   )
 }
 
-export function ScanReportPage() {
+interface ReportState {
+  scans: ScanListItem[]
+  selectedScanId: string | null
+  setSelectedScanId: (id: string) => void
+  report: RawScanReport | null
+  loadingScans: boolean
+  loadingReport: boolean
+  error: string | null
+  openSections: Set<string>
+  handleToggleSection: (status: string) => void
+}
+
+function useReportPage(): ReportState {
   const [scans, setScans] = useState<ScanListItem[]>([])
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null)
   const [report, setReport] = useState<RawScanReport | null>(null)
@@ -122,6 +134,47 @@ export function ScanReportPage() {
     })
   }
 
+  return { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection }
+}
+
+interface ReportBodyProps {
+  readonly report: RawScanReport | null
+  readonly loadingReport: boolean
+  readonly error: string | null
+  readonly openSections: Set<string>
+  readonly onToggleSection: (status: string) => void
+}
+
+function ReportBody({ report, loadingReport, error, openSections, onToggleSection }: ReportBodyProps) {
+  const orderedKeys = report ? sortedStatusKeys(Object.keys(report.results_by_status)) : []
+  return (
+    <>
+      {loadingReport && <Skeleton data-testid="report-loading" className="h-48 w-full" />}
+      {error && (
+        <div data-testid="report-error" role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
+      {report && !loadingReport && (
+        <div className="space-y-1">
+          {orderedKeys.map(status => (
+            <StatusSection
+              key={status}
+              status={status}
+              rows={report.results_by_status[status]}
+              isOpen={openSections.has(status)}
+              onToggle={() => onToggleSection(status)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+export function ScanReportPage() {
+  const { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection } = useReportPage()
+
   if (loadingScans) return <Skeleton className="h-10 w-full" />
 
   if (scans.length === 0) {
@@ -131,8 +184,6 @@ export function ScanReportPage() {
       </div>
     )
   }
-
-  const orderedKeys = report ? sortedStatusKeys(Object.keys(report.results_by_status)) : []
 
   return (
     <div className="px-6 py-6 space-y-4">
@@ -149,28 +200,13 @@ export function ScanReportPage() {
           ))}
         </NativeSelect>
       </div>
-
-      {loadingReport && <Skeleton data-testid="report-loading" className="h-48 w-full" />}
-
-      {error && (
-        <div data-testid="report-error" role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
-
-      {report && !loadingReport && (
-        <div className="space-y-1">
-          {orderedKeys.map(status => (
-            <StatusSection
-              key={status}
-              status={status}
-              rows={report.results_by_status[status]}
-              isOpen={openSections.has(status)}
-              onToggle={() => handleToggleSection(status)}
-            />
-          ))}
-        </div>
-      )}
+      <ReportBody
+        report={report}
+        loadingReport={loadingReport}
+        error={error}
+        openSections={openSections}
+        onToggleSection={handleToggleSection}
+      />
     </div>
   )
 }
