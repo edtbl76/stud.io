@@ -50,6 +50,18 @@ describe('ScanListItem', () => {
     const roundTripped: ScanListItem = JSON.parse(JSON.stringify(item))
     expect(roundTripped).toEqual(item)
   })
+
+  it('scanned_at "not-a-date" produces an invalid Date', () => {
+    const invalid = { ...item, scanned_at: 'not-a-date' }
+    expect(isNaN(new Date(invalid.scanned_at).getTime())).toBe(true)
+  })
+
+  it('missing scan_id is undefined after JSON.parse', () => {
+    const invalid = JSON.parse(
+      JSON.stringify({ scanned_at: item.scanned_at, source_machine: item.source_machine, total_count: item.total_count })
+    ) as ScanListItem
+    expect(invalid.scan_id).toBeUndefined()
+  })
 })
 
 describe('RawScanResult', () => {
@@ -67,6 +79,13 @@ describe('RawScanResult', () => {
   it('JSON round-trip preserves all fields', () => {
     const roundTripped: RawScanResult = JSON.parse(JSON.stringify(result))
     expect(roundTripped).toEqual(result)
+  })
+
+  it('null result_id is detectable at runtime', () => {
+    const invalid = JSON.parse(
+      JSON.stringify({ ...result, result_id: null })
+    ) as RawScanResult
+    expect(invalid.result_id).toBeNull()
   })
 })
 
@@ -91,5 +110,10 @@ describe('RawScanReport', () => {
   it('JSON round-trip preserves results_by_status structure', () => {
     const roundTripped: RawScanReport = JSON.parse(JSON.stringify(report))
     expect(roundTripped.results_by_status).toEqual({ matched: [], known: [] })
+  })
+
+  it('results_by_status with a null value fails the array check', () => {
+    const invalid = { ...report, results_by_status: { matched: null } } as unknown as RawScanReport
+    expect(Object.values(invalid.results_by_status).every(Array.isArray)).toBe(false)
   })
 })

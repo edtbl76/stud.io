@@ -17,7 +17,8 @@ export function formatPickerLabel(scan: ScanListItem): string {
   const d = new Date(scan.scanned_at)
   const date = d.toLocaleDateString('en-CA')
   const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  return `${date} ${time} · ${scan.source_machine} (${scan.total_count} results)`
+  const unit = scan.total_count === 1 ? 'result' : 'results'
+  return `${date} ${time} · ${scan.source_machine} (${scan.total_count} ${unit})`
 }
 
 export function formatStatusLabel(status: string): string {
