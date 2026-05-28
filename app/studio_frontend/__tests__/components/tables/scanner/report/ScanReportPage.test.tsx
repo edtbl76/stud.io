@@ -82,6 +82,16 @@ describe('empty state', () => {
   })
 })
 
+describe('scan list error', () => {
+  it('shows error alert when recentScans fails', async () => {
+    mockRecentScans.mockRejectedValue(new Error('Network error'))
+    render(<ScanReportPage />)
+    await waitFor(() => expect(screen.getByTestId('report-error')).toBeInTheDocument())
+    expect(screen.queryByTestId('report-empty-state')).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument()
+  })
+})
+
 // Step 10: Picker label format
 describe('picker label format', () => {
   it('includes source_machine and total_count in picker option', async () => {

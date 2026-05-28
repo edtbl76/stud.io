@@ -115,14 +115,16 @@ function useReportPage(): ReportState {
 
   useEffect(() => {
     if (!selectedScanId) return
+    let stale = false
     setLoadingReport(true)
     setReport(null)
     setError(null)
     setOpenSections(new Set())
     api.scanner.rawReport(selectedScanId)
-      .then(data => setReport(data))
-      .catch(() => setError('Failed to load scan report'))
-      .finally(() => setLoadingReport(false))
+      .then(data => { if (!stale) setReport(data) })
+      .catch(() => { if (!stale) setError('Failed to load scan report') })
+      .finally(() => { if (!stale) setLoadingReport(false) })
+    return () => { stale = true }
   }, [selectedScanId])
 
   function handleToggleSection(status: string) {
@@ -176,6 +178,14 @@ export function ScanReportPage() {
   const { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection } = useReportPage()
 
   if (loadingScans) return <Skeleton className="h-10 w-full" />
+
+  if (error && scans.length === 0) {
+    return (
+      <div data-testid="report-error" role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+        {error}
+      </div>
+    )
+  }
 
   if (scans.length === 0) {
     return (

@@ -34,40 +34,62 @@ describe('api.scanner.rawReport', () => {
   })
 })
 
-describe('scan report types', () => {
-  it('ScanListItem is assignable', () => {
-    const item: ScanListItem = {
-      scan_id: 'scan-1',
-      scanned_at: '2026-05-25T14:32:00Z',
-      source_machine: "Edward's Mac Studio",
-      total_count: 847,
-    }
-    expect(item.scan_id).toBe('scan-1')
+describe('ScanListItem', () => {
+  const item: ScanListItem = {
+    scan_id: 'scan-1',
+    scanned_at: '2026-05-25T14:32:00Z',
+    source_machine: "Edward's Mac Studio",
+    total_count: 847,
+  }
+
+  it('scanned_at is a valid ISO date', () => {
+    expect(isNaN(new Date(item.scanned_at).getTime())).toBe(false)
   })
 
-  it('RawScanResult is assignable', () => {
-    const result: RawScanResult = {
-      result_id: 'r-1',
-      name: 'Surge XT',
-      vendor: 'Surge Synth Team',
-      version: '3.3.4',
-      format: 'VST3',
-      path: '/Library/Audio/Plug-Ins/VST3/Surge XT.vst3',
-      status: 'matched',
-      confidence: 'exact',
-    }
-    expect(result.result_id).toBe('r-1')
+  it('JSON round-trip preserves all fields', () => {
+    const roundTripped: ScanListItem = JSON.parse(JSON.stringify(item))
+    expect(roundTripped).toEqual(item)
+  })
+})
+
+describe('RawScanResult', () => {
+  const result: RawScanResult = {
+    result_id: 'r-1',
+    name: 'Surge XT',
+    vendor: 'Surge Synth Team',
+    version: '3.3.4',
+    format: 'VST3',
+    path: '/Library/Audio/Plug-Ins/VST3/Surge XT.vst3',
+    status: 'matched',
+    confidence: 'exact',
+  }
+
+  it('JSON round-trip preserves all fields', () => {
+    const roundTripped: RawScanResult = JSON.parse(JSON.stringify(result))
+    expect(roundTripped).toEqual(result)
+  })
+})
+
+describe('RawScanReport', () => {
+  const report: RawScanReport = {
+    scan_id: 'scan-1',
+    scanned_at: '2026-05-25T14:32:00Z',
+    results_by_status: {
+      matched: [],
+      known: [],
+    },
+  }
+
+  it('scanned_at is a valid ISO date', () => {
+    expect(isNaN(new Date(report.scanned_at).getTime())).toBe(false)
   })
 
-  it('RawScanReport is assignable', () => {
-    const report: RawScanReport = {
-      scan_id: 'scan-1',
-      scanned_at: '2026-05-25T14:32:00Z',
-      results_by_status: {
-        matched: [],
-        known: [],
-      },
-    }
-    expect(report.scan_id).toBe('scan-1')
+  it('results_by_status values are all arrays', () => {
+    expect(Object.values(report.results_by_status).every(Array.isArray)).toBe(true)
+  })
+
+  it('JSON round-trip preserves results_by_status structure', () => {
+    const roundTripped: RawScanReport = JSON.parse(JSON.stringify(report))
+    expect(roundTripped.results_by_status).toEqual({ matched: [], known: [] })
   })
 })
