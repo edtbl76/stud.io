@@ -1,46 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { NativeSelect } from '@/components/ui/NativeSelect'
 import { Skeleton } from '@/components/ui/skeleton'
-import { api } from '@/lib/api'
 import { ReportRow } from './ReportRow'
-import type { RawScanReport, RawScanResult, ScanListItem } from '@/lib/types'
-
-const CANONICAL_STATUS_ORDER = [
-  'known',
-  'unlinked',
-  'matched',
-  'needs_review',
-  'unconfirmed',
-  'conflicted',
-  'orphaned',
-  'untracked',
-  'excluded',
-  'ignored',
-]
-
-function formatPickerLabel(scan: ScanListItem): string {
-  const d = new Date(scan.scanned_at)
-  const date = d.toLocaleDateString('en-CA')
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-  return `${date} ${time} · ${scan.source_machine} (${scan.total_count} results)`
-}
-
-function formatStatusLabel(status: string): string {
-  return status.charAt(0).toUpperCase() + status.slice(1).replaceAll('_', ' ')
-}
-
-function sortedStatusKeys(keys: string[]): string[] {
-  return [...keys].sort((a, b) => {
-    const ai = CANONICAL_STATUS_ORDER.indexOf(a)
-    const bi = CANONICAL_STATUS_ORDER.indexOf(b)
-    const aOrder = ai === -1 ? Infinity : ai
-    const bOrder = bi === -1 ? Infinity : bi
-    if (aOrder !== bOrder) return aOrder - bOrder
-    return a.localeCompare(b)
-  })
-}
+import { useReportPage } from './useReportPage'
+import { formatPickerLabel, formatStatusLabel, sortedStatusKeys } from './reportUtils'
+import type { RawScanReport, RawScanResult } from '@/lib/types'
 
 interface StatusSectionProps {
   readonly status: string
@@ -82,63 +47,6 @@ function StatusSection({ status, rows, isOpen, onToggle }: StatusSectionProps) {
   )
 }
 
-interface ReportState {
-  scans: ScanListItem[]
-  selectedScanId: string | null
-  setSelectedScanId: (id: string) => void
-  report: RawScanReport | null
-  loadingScans: boolean
-  loadingReport: boolean
-  error: string | null
-  openSections: Set<string>
-  handleToggleSection: (status: string) => void
-}
-
-function useReportPage(): ReportState {
-  const [scans, setScans] = useState<ScanListItem[]>([])
-  const [selectedScanId, setSelectedScanId] = useState<string | null>(null)
-  const [report, setReport] = useState<RawScanReport | null>(null)
-  const [loadingScans, setLoadingScans] = useState(true)
-  const [loadingReport, setLoadingReport] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set())
-
-  useEffect(() => {
-    api.scanner.recentScans()
-      .then(data => {
-        setScans(data)
-        if (data.length > 0) setSelectedScanId(data[0].scan_id)
-      })
-      .catch(() => setError('Failed to load scan list'))
-      .finally(() => setLoadingScans(false))
-  }, [])
-
-  useEffect(() => {
-    if (!selectedScanId) return
-    let stale = false
-    setLoadingReport(true)
-    setReport(null)
-    setError(null)
-    setOpenSections(new Set())
-    api.scanner.rawReport(selectedScanId)
-      .then(data => { if (!stale) setReport(data) })
-      .catch(() => { if (!stale) setError('Failed to load scan report') })
-      .finally(() => { if (!stale) setLoadingReport(false) })
-    return () => { stale = true }
-  }, [selectedScanId])
-
-  function handleToggleSection(status: string) {
-    setOpenSections(prev => {
-      const next = new Set(prev)
-      if (next.has(status)) next.delete(status)
-      else next.add(status)
-      return next
-    })
-  }
-
-  return { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection }
-}
-
 interface ReportBodyProps {
   readonly report: RawScanReport | null
   readonly loadingReport: boolean
@@ -174,17 +82,15 @@ function ReportBody({ report, loadingReport, error, openSections, onToggleSectio
   )
 }
 
+const ERROR_CLASS = 'rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive'
+
 export function ScanReportPage() {
   const { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection } = useReportPage()
 
   if (loadingScans) return <Skeleton className="h-10 w-full" />
 
   if (error && scans.length === 0) {
-    return (
-      <div data-testid="report-error" role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-        {error}
-      </div>
-    )
+    return <div data-testid="report-error" role="alert" className={ERROR_CLASS}>{error}</div>
   }
 
   if (scans.length === 0) {

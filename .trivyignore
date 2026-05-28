@@ -59,3 +59,21 @@ CVE-2026-24842
 CVE-2026-26960
 CVE-2026-29786
 CVE-2026-31802
+
+# Perl CVEs in controlroom_backend — no fix available in debian trixie
+# Perl is not used by the application (Python/FastAPI backend). The Dockerfile
+# explicitly purges perl, perl-modules-5.40, and libperl5.40; perl-base may
+# survive as an indirect OS dep but is not reachable from the application.
+# Revisit when debian trixie ships patched perl 5.40 packages.
+
+# CVE-2026-42496 (CRITICAL): Archive::Tar < 3.08 — symlink extraction attack
+CVE-2026-42496
+
+# CVE-2026-8376 (CRITICAL): Perl <= 5.43.10 — heap buffer overflow during compilation
+CVE-2026-8376
+
+# CVE-2026-42497 (HIGH): Archive::Tar < 3.08 — hardlink extraction attack
+CVE-2026-42497
+
+# CVE-2026-9538 (HIGH): Archive::Tar < 3.10 — memory exhaustion via crafted archive
+CVE-2026-9538
