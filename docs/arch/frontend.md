@@ -40,6 +40,7 @@ app/studio_frontend/
 │   │   ├── session/        # Effects, Instruments, Libraries, Workstations
 │   │   ├── tools/          # Admin, Composition, Measurement, Reference, Workflow tools
 │   │   └── scanner/        # Plugin Scanner — bucket triage pages + rules management
+│   │       ├── report/     # Scan Report — raw scan results grouped by status (U-05a, 1.17.0)
 │   │       ├── workbench/  # Scan Workbench — five-bucket unified triage UI (U-04, 1.17.0)
 │   │       ├── known/      # Known (matched + catalog has disk_paths)
 │   │       ├── matched/    # Matched, awaiting acknowledgement
@@ -90,7 +91,8 @@ app/studio_frontend/
 │   │   ├── tools/          # ToolModal, columns (shared by all 5 tool tables)
 │   │   ├── config/         # ConfigModal, columns (shared by all config lookup tables)
 │   │   ├── gear/           # GearModal, columns, guitarColumns
-│   │   ├── scanner/rules/  # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
+│   │   ├── scanner/report/    # ScanReportPage, ReportRow — raw scan results accordion with scan picker
+│   │   ├── scanner/rules/     # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
 │   │   └── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag; modals: SingleResolutionModal, CollisionModal, FindLinkModal, CreateRecordModal
 │   ├── admin/              # Shared admin components
 │   │   └── ChangeReviewBulkBar.tsx  # Bulk approve/reject bar + confirmation dialog for Change Review page

@@ -434,16 +434,6 @@ export interface ScannerApiKeyCreated extends ScannerApiKeyResponse {
   key: string
 }
 
-export interface ScanRun {
-  scan_id: string
-  scanned_at: string
-  source_machine: string
-  total_count: number
-  status?: 'in_progress' | 'completed'
-  status_counts: StatusCounts
-  confirmation_counts: { confirmed: number; rejected: number; ignored: number }
-}
-
 export interface MatchMeta {
   confidence: string
   score: number | null
@@ -485,19 +475,6 @@ export interface AbsentRecord {
   disk_paths: PluginPathEntry[]
 }
 
-export interface ScanReport {
-  scan_id: string
-  scanned_at: string
-  known: ScanResult[]
-  matched: ScanResult[]
-  conflicted: ScanResult[]
-  unconfirmed: ScanResult[]
-  untracked: ScanResult[]
-  orphaned: ScanResult[]
-  ignored: ScanResult[]
-  absent: AbsentRecord[]
-}
-
 export type ConfirmDecision =
   | { result_id: string; action: 'confirm' | 'reject' | 'ignore' }
   | { result_id: string; action: 'acknowledge' }
@@ -510,7 +487,29 @@ export interface Exclusion {
   excluded_at: string
 }
 
-export type ScanSection = 'known' | 'matched' | 'conflicted' | 'unconfirmed' | 'untracked' | 'orphaned' | 'absent' | 'exclusions'
+export interface ScanListItem {
+  scan_id: string
+  scanned_at: string
+  source_machine: string
+  total_count: number
+}
+
+export interface RawScanResult {
+  result_id: string
+  name: string
+  vendor: string
+  version: string
+  format: string
+  path: string
+  status: string
+  confidence: string
+}
+
+export interface RawScanReport {
+  scan_id: string
+  scanned_at: string
+  results_by_status: Record<string, RawScanResult[]>
+}
 
 export const SCANNER_TABLE_OPTIONS = [
   { value: 'effects',            label: 'Effects' },

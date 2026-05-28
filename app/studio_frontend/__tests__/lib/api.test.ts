@@ -149,27 +149,6 @@ describe('api.searchEntities', () => {
 })
 
 describe('api.scanner', () => {
-  it('runs: calls GET /scanner/scans', async () => {
-    const spy = mockFetch(200, [])
-    await api.scanner.runs()
-    expect(spy).toHaveBeenCalledWith(`${BASE}/scanner/scans`, expect.anything())
-  })
-
-  it('report: calls /scanner/report without scanId', async () => {
-    const spy = mockFetch(200, {})
-    await api.scanner.report()
-    const url = spy.mock.calls[0][0] as string
-    expect(url).toContain('/scanner/report')
-    expect(url).not.toContain('scan_id')
-  })
-
-  it('report: appends scan_id when provided', async () => {
-    const spy = mockFetch(200, {})
-    await api.scanner.report('scan-abc')
-    const url = spy.mock.calls[0][0] as string
-    expect(url).toContain('scan_id=scan-abc')
-  })
-
   it('confirm: POSTs decisions to /scanner/confirm', async () => {
     const spy = mockFetch(200, { applied: 1, errors: [] })
     const decisions = [{ result_id: 'r1', action: 'acknowledge' as const }]

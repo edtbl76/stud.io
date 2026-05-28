@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RuleCreationResult, RuleType, ScannerApiKeyCreated, ScannerApiKeyResponse, ScanReport, ScanRun, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -63,11 +63,8 @@ export const api = {
     return req<{ results: Array<{ table_name: string; id: string; name: string; brand_name: string | null }> }>(`/search/entities?${p}`)
   },
   scanner: {
-    runs: () => req<ScanRun[]>('/scanner/scans'),
-    report: (scanId?: string) => {
-      const qs = scanId ? `?scan_id=${encodeURIComponent(scanId)}` : ''
-      return req<ScanReport>(`/scanner/report${qs}`)
-    },
+    recentScans: () => req<ScanListItem[]>('/scanner/scans/recent'),
+    rawReport: (scanId: string) => req<RawScanReport>(`/scanner/scans/${scanId}/report`),
     confirm: (decisions: ConfirmDecision[]) =>
       req<{ applied: number; errors: unknown[] }>('/scanner/confirm', {
         method: 'POST', body: JSON.stringify({ confirmations: decisions }),
