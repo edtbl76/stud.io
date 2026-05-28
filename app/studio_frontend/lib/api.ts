@@ -143,8 +143,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ confirmation_text: confirmationText }),
       }),
-    exclude: (vendor: string, name: string) =>
-      req<void>('/scanner/exclude', { method: 'POST', body: JSON.stringify({ vendor, name }) }),
+    exclude: (vendor: string, name: string, format: string) =>
+      req<void>('/scanner/exclude', { method: 'POST', body: JSON.stringify({ vendor, name, format }) }),
   },
   studio: {
     bulkAcknowledgeChangeReview: (auditIds: string[]) =>

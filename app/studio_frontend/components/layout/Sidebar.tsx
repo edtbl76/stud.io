@@ -30,6 +30,8 @@ const navGroups: NavGroup[] = [
       { label: 'Scan Report', href: '/controlroom/scanner/report' },
       { label: 'Scan Workbench', href: '/controlroom/scanner/workbench' },
       { label: 'Plugin Scanner Rules', href: '/controlroom/scanner/rules' },
+      { label: 'Known', href: '/controlroom/scanner/known' },
+      { label: 'Exclusions', href: '/controlroom/scanner/exclusions' },
     ],
   },
 ]

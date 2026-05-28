@@ -485,6 +485,8 @@ export interface Exclusion {
   vendor: string
   name: string
   excluded_at: string
+  excluded_by: string | null
+  format: string | null
 }
 
 export interface ScanListItem {

@@ -274,14 +274,14 @@ describe('api.scanner.hardReset', () => {
 
 // Step 11
 describe('api.scanner.exclude', () => {
-  it('calls POST /scanner/exclude with vendor and name', async () => {
+  it('calls POST /scanner/exclude with vendor, name, and format', async () => {
     const spy = mockFetch(undefined, 204)
-    await api.scanner.exclude('MNTRA', 'Surge XT')
+    await api.scanner.exclude('MNTRA', 'Surge XT', 'VST3')
     expect(spy).toHaveBeenCalledWith(
       `${BASE}/scanner/exclude`,
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ vendor: 'MNTRA', name: 'Surge XT' }),
+        body: JSON.stringify({ vendor: 'MNTRA', name: 'Surge XT', format: 'VST3' }),
       })
     )
   })

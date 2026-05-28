@@ -1,4 +1,4 @@
-import type { ScanListItem, RawScanResult, RawScanReport } from '@/lib/types'
+import type { ScanListItem, RawScanResult, RawScanReport, Exclusion } from '@/lib/types'
 import { api } from '@/lib/api'
 
 const BASE = '/api'
@@ -115,5 +115,39 @@ describe('RawScanReport', () => {
   it('results_by_status with a null value fails the array check', () => {
     const invalid = { ...report, results_by_status: { matched: null } } as unknown as RawScanReport
     expect(Object.values(invalid.results_by_status).every(Array.isArray)).toBe(false)
+  })
+})
+
+describe('Exclusion', () => {
+  const exclusion: Exclusion = {
+    exclusion_id: 'e1',
+    vendor: 'Acme Audio',
+    name: 'Reverb Pro',
+    excluded_at: '2026-05-28T10:00:00Z',
+    excluded_by: 'adminuser',
+    format: 'VST3',
+  }
+
+  it('has excluded_by field', () => {
+    expect(exclusion.excluded_by).toBe('adminuser')
+  })
+
+  it('has format field', () => {
+    expect(exclusion.format).toBe('VST3')
+  })
+
+  it('excluded_by accepts null', () => {
+    const withNull: Exclusion = { ...exclusion, excluded_by: null }
+    expect(withNull.excluded_by).toBeNull()
+  })
+
+  it('format accepts null', () => {
+    const withNull: Exclusion = { ...exclusion, format: null }
+    expect(withNull.format).toBeNull()
+  })
+
+  it('JSON round-trip preserves all fields including new ones', () => {
+    const roundTripped: Exclusion = JSON.parse(JSON.stringify(exclusion))
+    expect(roundTripped).toEqual(exclusion)
   })
 })

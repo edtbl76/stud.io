@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { RecordModalLeadingAction } from '@/components/RecordModal'
 import { api } from '@/lib/api'
 import { SEARCH_TABLE_META } from '@/lib/searchMeta'
+import { catalogRecordPath } from '@/lib/catalogNavigation'
 import type {
   Brand, Model, Effect, Instrument, Library, Workstation, Tool, SearchResult,
 } from '@/lib/types'
@@ -72,9 +73,11 @@ export function SearchRecordModal({ result, onClose, onMutate }: Readonly<Search
   }, [isError, onClose])
 
   const handleNavigate = React.useCallback(() => {
+    const path = catalogRecordPath(result.table, result.id)
+    if (!path) return
     onClose()
-    router.push(`${meta?.path}?open=${result.id}`)
-  }, [onClose, router, meta, result.id])
+    router.push(path)
+  }, [onClose, router, result.table, result.id])
 
   const goToButton = React.useMemo(() => (
     <Button variant="outline" size="sm" onClick={handleNavigate}>

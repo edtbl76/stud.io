@@ -93,7 +93,9 @@ app/studio_frontend/
 │   │   ├── gear/           # GearModal, columns, guitarColumns
 │   │   ├── scanner/report/    # ScanReportPage, ReportRow — raw scan results accordion with scan picker
 │   │   ├── scanner/rules/     # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
-│   │   └── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag; modals: SingleResolutionModal, CollisionModal, FindLinkModal, CreateRecordModal
+│   │   ├── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag; modals: SingleResolutionModal, CollisionModal, FindLinkModal, CreateRecordModal
+│   │   ├── scanner/KnownPage.tsx      # KnownPage — known bucket list, sorted by catalog type then name, catalog links via catalogRecordPath (U-05b)
+│   │   └── scanner/ExclusionsPage.tsx # ExclusionsPage — exclusion list with remove confirmation dialog; shows excluded_by + format (U-05b)
 │   ├── admin/              # Shared admin components
 │   │   └── ChangeReviewBulkBar.tsx  # Bulk approve/reject bar + confirmation dialog for Change Review page
 │   ├── scanner/            # Cross-cutting scanner utilities
@@ -104,7 +106,8 @@ app/studio_frontend/
 │   ├── auth.tsx                 # AuthContext, useAuth hook, session management
 │   ├── bulkEdit.ts              # BulkEditField interface — type union: multiselect, singleselect, text, parentsearch
 │   ├── columnMeta.ts            # TypeScript module augmentation — adds filterParam and defaultHidden to TanStack ColumnMeta
-│   ├── searchMeta.ts            # SEARCH_TABLE_META registry — maps entity keys to display labels, frontend paths, and API endpoints
+│   ├── catalogNavigation.ts         # CATALOG_ROUTES registry + catalogRecordPath(table, id) — shared navigation utility for catalog record links (U-05b)
+│   ├── searchMeta.ts            # SEARCH_TABLE_META registry — maps entity keys to display labels, frontend paths, and API endpoints; derives path from CATALOG_ROUTES
 │   ├── computeDiff.ts           # Field-level diff between two JSON snapshots (for history view)
 │   ├── parentSelectRecents.ts   # localStorage utility for recent ParentSelect picks — max 10, deduplicated by (table_name, id)
 │   ├── types.ts                 # TypeScript interfaces for all API response shapes
