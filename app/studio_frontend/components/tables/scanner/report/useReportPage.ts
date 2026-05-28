@@ -14,14 +14,11 @@ export interface ReportState {
   handleToggleSection: (status: string) => void
 }
 
-export function useReportPage(): ReportState {
+function useRecentScans() {
   const [scans, setScans] = useState<ScanListItem[]>([])
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null)
-  const [report, setReport] = useState<RawScanReport | null>(null)
-  const [loadingScans, setLoadingScans] = useState(true)
-  const [loadingReport, setLoadingReport] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     api.scanner.recentScans()
@@ -30,31 +27,57 @@ export function useReportPage(): ReportState {
         if (data.length > 0) setSelectedScanId(data[0].scan_id)
       })
       .catch(() => setError('Failed to load scan list'))
-      .finally(() => setLoadingScans(false))
+      .finally(() => setLoading(false))
   }, [])
+
+  return { scans, selectedScanId, setSelectedScanId, loadingScans: loading, scansError: error }
+}
+
+function useRawReport(selectedScanId: string | null) {
+  const [report, setReport] = useState<RawScanReport | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!selectedScanId) return
     let stale = false
-    setLoadingReport(true)
+    setLoading(true)
     setReport(null)
     setError(null)
-    setOpenSections(new Set())
     api.scanner.rawReport(selectedScanId)
       .then(data => { if (!stale) setReport(data) })
       .catch(() => { if (!stale) setError('Failed to load scan report') })
-      .finally(() => { if (!stale) setLoadingReport(false) })
+      .finally(() => { if (!stale) setLoading(false) })
     return () => { stale = true }
   }, [selectedScanId])
+
+  return { report, loadingReport: loading, reportError: error }
+}
+
+export function useReportPage(): ReportState {
+  const { scans, selectedScanId, setSelectedScanId, loadingScans, scansError } = useRecentScans()
+  const { report, loadingReport, reportError } = useRawReport(selectedScanId)
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set())
+
+  useEffect(() => { setOpenSections(new Set()) }, [selectedScanId])
 
   function handleToggleSection(status: string) {
     setOpenSections(prev => {
       const next = new Set(prev)
-      if (next.has(status)) next.delete(status)
-      else next.add(status)
+      if (!next.delete(status)) next.add(status)
       return next
     })
   }
 
-  return { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection }
+  return {
+    scans,
+    selectedScanId,
+    setSelectedScanId,
+    report,
+    loadingScans,
+    loadingReport,
+    error: scansError ?? reportError,
+    openSections,
+    handleToggleSection,
+  }
 }
