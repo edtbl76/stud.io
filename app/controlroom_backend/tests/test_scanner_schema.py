@@ -455,6 +455,10 @@ async def _assert_exclusions_new_columns(conn) -> None:
 
 @pytest.mark.asyncio
 async def test_u05b_migration_adds_columns_and_is_idempotent(conn):
+    await conn.execute(
+        "ALTER TABLE scanner_exclusions DROP COLUMN IF EXISTS excluded_by, "
+        "DROP COLUMN IF EXISTS format"
+    )
     await conn.execute(MIGRATION_U05B)
     await _assert_exclusions_new_columns(conn)
     await conn.execute(MIGRATION_U05B)

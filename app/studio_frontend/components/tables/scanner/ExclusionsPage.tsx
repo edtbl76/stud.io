@@ -15,6 +15,7 @@ export function ExclusionsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [pendingRemoveId, setPendingRemoveId] = useState<string | null>(null)
+  const [removeError, setRemoveError] = useState<string | null>(null)
 
   const fetchExclusions = useCallback(() => {
     setLoading(true)
@@ -28,9 +29,13 @@ export function ExclusionsPage() {
 
   const handleConfirmRemove = useCallback(async () => {
     if (!pendingRemoveId) return
-    await api.scanner.removeExclusion(pendingRemoveId)
-    setPendingRemoveId(null)
-    fetchExclusions()
+    try {
+      await api.scanner.removeExclusion(pendingRemoveId)
+      setPendingRemoveId(null)
+      fetchExclusions()
+    } catch {
+      setRemoveError('Failed to remove exclusion')
+    }
   }, [pendingRemoveId, fetchExclusions])
 
   if (loading) {
@@ -47,6 +52,9 @@ export function ExclusionsPage() {
 
   return (
     <div className="overflow-x-auto">
+      {removeError && (
+        <div data-testid="exclusion-remove-error" className="mb-4 rounded border border-destructive p-3 text-sm text-destructive">{removeError}</div>
+      )}
       {pendingRemoveId && (
         <div data-testid="exclusion-remove-confirm" className="mb-4 flex items-center gap-3 rounded border border-destructive p-3 text-sm">
           <span>Remove this exclusion?</span>

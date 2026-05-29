@@ -123,6 +123,20 @@ describe('ExclusionsPage confirm remove', () => {
     })
   })
 
+  it('shows error and keeps row when removeExclusion rejects', async () => {
+    mockExclusions.mockResolvedValueOnce([makeExclusion({ exclusion_id: 'ex-1' })])
+    mockRemoveExclusion.mockRejectedValueOnce(new Error('remove failed'))
+    render(<ExclusionsPage />)
+    await waitFor(() => screen.getByTestId('exclusion-remove-ex-1'))
+    fireEvent.click(screen.getByTestId('exclusion-remove-ex-1'))
+    fireEvent.click(screen.getByTestId('exclusion-remove-confirm-ok'))
+    await waitFor(() => expect(mockRemoveExclusion).toHaveBeenCalledWith('ex-1'))
+    await waitFor(() => {
+      expect(screen.getByTestId('exclusion-row')).toBeInTheDocument()
+      expect(screen.getByTestId('exclusion-remove-error')).toBeInTheDocument()
+    })
+  })
+
   it('row disappears from list after successful removal', async () => {
     mockExclusions
       .mockResolvedValueOnce([makeExclusion({ exclusion_id: 'ex-1' })])
