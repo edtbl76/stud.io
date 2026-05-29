@@ -47,7 +47,7 @@ steps:
   # sonar · trivy · secrets · headers — no DB contact
   - name: scan
     image: /bin/bash
-    depends_on: [npm-install]
+    depends_on: [npm-install, unit-pbt]
     commands:
       - '[ -n "$SONAR_TOKEN" ] || { echo "SONAR_TOKEN is empty — secret may be blocked (forked PR?) or not configured in Woodpecker."; exit 1; }'
       - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run ''roadie start --dev''."; exit 1; }
