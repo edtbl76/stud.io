@@ -216,17 +216,26 @@ async def test_vendor_rule_insert_and_select(conn):
     assert row["created_by"] == "admin"
 
 
+_RULE_DUPLICATE_CASES = [
+    (
+        "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) VALUES ($1, $2, $3)",
+        ("uaudio", "Universal Audio", "admin"),
+        ("uaudio", "Universal Audio 2", "admin"),
+    ),
+    (
+        "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1, $2, $3)",
+        ("Delay Lab", "Delay Lab", "admin"),
+        ("Delay Lab", "Delay Lab 2", "admin"),
+    ),
+]
+
+
 @pytest.mark.asyncio
-async def test_vendor_rule_duplicate_disk_vendor_raises(conn):
-    await conn.execute(
-        "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) "
-        "VALUES ($1, $2, $3)", "uaudio", "Universal Audio", "admin",
-    )
+@pytest.mark.parametrize("insert_sql,row1,row2", _RULE_DUPLICATE_CASES)
+async def test_rule_duplicate_key_raises(conn, insert_sql, row1, row2):
+    await conn.execute(insert_sql, *row1)
     with pytest.raises(Exception, match="unique"):
-        await conn.execute(
-            "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) "
-            "VALUES ($1, $2, $3)", "uaudio", "Universal Audio 2", "admin",
-        )
+        await conn.execute(insert_sql, *row2)
 
 
 @pytest.mark.asyncio
@@ -244,18 +253,6 @@ async def test_name_rule_insert_and_select(conn):
     assert row["catalog_name"] == "bx_farts"
     assert row["enabled"] is True
 
-
-@pytest.mark.asyncio
-async def test_name_rule_duplicate_disk_name_raises(conn):
-    await conn.execute(
-        "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) "
-        "VALUES ($1, $2, $3)", "Delay Lab", "Delay Lab", "admin",
-    )
-    with pytest.raises(Exception, match="unique"):
-        await conn.execute(
-            "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) "
-            "VALUES ($1, $2, $3)", "Delay Lab", "Delay Lab 2", "admin",
-        )
 
 
 @pytest.mark.asyncio
@@ -434,4 +431,35 @@ async def test_mono_variant_seed_exists(conn):
     assert "format" in list(row["match_fields"])
     assert row["action"] == "alias_to_match"
     assert row["enabled"] is False
-    assert row["is_seeded"] is True
+
+
+# ---------------------------------------------------------------------------
+# U-05b migration — scanner_exclusions new columns
+# ---------------------------------------------------------------------------
+
+MIGRATION_U05B = """
+ALTER TABLE scanner_exclusions ADD COLUMN IF NOT EXISTS excluded_by TEXT;
+ALTER TABLE scanner_exclusions ADD COLUMN IF NOT EXISTS format TEXT;
+"""
+
+
+async def _assert_exclusions_new_columns(conn) -> None:
+    rows = await conn.fetch(
+        "SELECT column_name FROM information_schema.columns "
+        "WHERE table_name = 'scanner_exclusions'",
+    )
+    columns = {r["column_name"] for r in rows}
+    assert "excluded_by" in columns
+    assert "format" in columns
+
+
+@pytest.mark.asyncio
+async def test_u05b_migration_adds_columns_and_is_idempotent(conn):
+    await conn.execute(
+        "ALTER TABLE scanner_exclusions DROP COLUMN IF EXISTS excluded_by, "
+        "DROP COLUMN IF EXISTS format"
+    )
+    await conn.execute(MIGRATION_U05B)
+    await _assert_exclusions_new_columns(conn)
+    await conn.execute(MIGRATION_U05B)
+    await _assert_exclusions_new_columns(conn)

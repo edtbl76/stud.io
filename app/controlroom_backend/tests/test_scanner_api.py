@@ -236,6 +236,64 @@ async def test_add_and_remove_exclusion(client, conn, admin_headers):
     assert r_del.status_code == 204
 
 
+@pytest.mark.asyncio
+async def test_list_exclusions_returns_excluded_by_and_format(client, conn, auth_headers):
+    await conn.execute(
+        "INSERT INTO scanner_exclusions (vendor, name, excluded_by, format) "
+        "VALUES ($1, $2, $3, $4)",
+        "Acme Audio", "Reverb Pro", "adminuser", "VST3",
+    )
+    response = await client.get("/scanner/exclusions", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["excluded_by"] == "adminuser"
+    assert data[0]["format"] == "VST3"
+
+
+@pytest.mark.asyncio
+async def test_list_exclusions_null_fields_for_legacy_rows(client, conn, auth_headers):
+    await conn.execute(
+        "INSERT INTO scanner_exclusions (vendor, name) VALUES ($1, $2)",
+        "Legacy Vendor", "Old Plugin",
+    )
+    response = await client.get("/scanner/exclusions", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["excluded_by"] is None
+    assert data[0]["format"] is None
+
+
+@pytest.mark.asyncio
+async def test_add_exclusion_stores_format_and_excluded_by(client, conn, admin_headers):
+    r = await client.post(
+        "/scanner/exclude",
+        json={"vendor": "Acme Audio", "name": "Reverb Pro", "format": "VST3"},
+        headers=admin_headers,
+    )
+    assert r.status_code == 204
+    row = await conn.fetchrow(
+        "SELECT excluded_by, format FROM scanner_exclusions "
+        "WHERE vendor='Acme Audio' AND name='Reverb Pro'"
+    )
+    assert row["excluded_by"] == "adminuser"
+    assert row["format"] == "VST3"
+
+
+@pytest.mark.asyncio
+async def test_add_exclusion_idempotent_on_duplicate(client, conn, admin_headers):
+    payload = {"vendor": "Acme Audio", "name": "Reverb Pro", "format": "VST3"}
+    r1 = await client.post("/scanner/exclude", json=payload, headers=admin_headers)
+    r2 = await client.post("/scanner/exclude", json=payload, headers=admin_headers)
+    assert r1.status_code == 204
+    assert r2.status_code == 204
+    count = await conn.fetchval(
+        "SELECT COUNT(*) FROM scanner_exclusions WHERE vendor='Acme Audio' AND name='Reverb Pro'"
+    )
+    assert count == 1
+
+
 # ---------------------------------------------------------------------------
 # Scan history / purge
 # ---------------------------------------------------------------------------

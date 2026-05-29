@@ -116,7 +116,7 @@ async def list_exclusions(
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[ExclusionOut]:
     rows = await conn.fetch(
-        "SELECT exclusion_id, vendor, name, excluded_at "
+        "SELECT exclusion_id, vendor, name, excluded_at, excluded_by, format "
         "FROM scanner_exclusions ORDER BY excluded_at DESC"
     )
     return [ExclusionOut(**dict(r)) for r in rows]
@@ -129,8 +129,9 @@ async def add_exclusion(
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> None:
     await conn.execute(
-        "INSERT INTO scanner_exclusions (vendor, name) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-        payload.vendor, payload.name,
+        "INSERT INTO scanner_exclusions (vendor, name, excluded_by, format) "
+        "VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
+        payload.vendor, payload.name, _user.username, payload.format,
     )
 
 

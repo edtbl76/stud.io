@@ -97,6 +97,18 @@ export function ScanWorkbenchPage() {
     setBulkResolveQueue(queue)
   }
 
+  async function handleBulkExclude() {
+    try {
+      await Promise.all(
+        selectedRows.map((r) => api.scanner.exclude(r.disk_vendor, r.disk_name, r.disk_format))
+      )
+      clearSelection()
+      invalidate()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Bulk exclude failed. Please try again.')
+    }
+  }
+
   function handleModalSaved() {
     invalidate()
     setBulkResolveQueue((prev) => prev.slice(1))
@@ -126,7 +138,7 @@ export function ScanWorkbenchPage() {
           onResolveCollision={() => undefined}
           onBulkResolve={handleBulkResolve}
           onBulkReject={() => undefined}
-          onBulkExclude={() => undefined}
+          onBulkExclude={handleBulkExclude}
           onClearSelection={clearSelection}
         />
       )}

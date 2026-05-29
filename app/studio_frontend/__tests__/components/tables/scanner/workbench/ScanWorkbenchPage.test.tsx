@@ -10,6 +10,7 @@ jest.mock('@/lib/api', () => ({
     scanner: {
       softReset: jest.fn(),
       hardReset: jest.fn(),
+      exclude: jest.fn(),
     },
   },
 }))
@@ -169,4 +170,60 @@ it('advances to second row after first modal saved (BLM-14)', async () => {
   await waitFor(() =>
     expect(screen.getByTestId('single-resolution-modal')).toHaveAttribute('data-row-id', 'r2')
   )
+})
+
+// Step 21 — handleBulkExclude happy path
+describe('handleBulkExclude', () => {
+  it('calls api.scanner.exclude for each selected row', async () => {
+    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
+    const r2 = makeRow('r2', { disk_vendor: 'Arturia', disk_name: 'Pigments', disk_format: 'AU' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    await waitFor(() => {
+      expect(mockApi.scanner.exclude).toHaveBeenCalledWith('MNTRA', 'Surge XT', 'VST3')
+      expect(mockApi.scanner.exclude).toHaveBeenCalledWith('Arturia', 'Pigments', 'AU')
+    })
+  })
+
+  it('clears selection after successful bulk exclude', async () => {
+    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    await waitFor(() => expect(mockClearSelection).toHaveBeenCalled())
+  })
+
+  it('calls invalidate after successful bulk exclude', async () => {
+    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    await waitFor(() => expect(mockInvalidate).toHaveBeenCalled())
+  })
+})
+
+// Step 22 — handleBulkExclude error path
+describe('handleBulkExclude error path', () => {
+  it('shows error toast when exclude rejects', async () => {
+    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
+  })
+
+  it('does NOT clear selection when exclude rejects', async () => {
+    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
+    expect(mockClearSelection).not.toHaveBeenCalled()
+  })
 })

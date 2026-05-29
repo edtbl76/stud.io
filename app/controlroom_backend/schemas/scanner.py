@@ -168,6 +168,7 @@ class ConfirmResult(BaseModel):
 class CreateExclusionRequest(BaseModel):
     vendor: str
     name: str
+    format: str | None = None
 
 
 class ExclusionOut(BaseModel):
@@ -175,6 +176,8 @@ class ExclusionOut(BaseModel):
     vendor: str
     name: str
     excluded_at: datetime
+    excluded_by: str | None = None
+    format: str | None = None
 
 
 class PurgeResult(BaseModel):

@@ -135,17 +135,40 @@ describe('Sidebar', () => {
     expect(link.getAttribute('href')).toBe('/controlroom/scanner/report')
   })
 
-  it('lists scanner nav items in FR-01 order: Report, Workbench, Rules', () => {
+  it('lists scanner nav items in order: Report, Workbench, Rules, Known, Exclusions', () => {
     mockPathname = '/controlroom/scanner/report'
     render(<Sidebar />)
+    const scannerHrefs = [
+      '/controlroom/scanner/report',
+      '/controlroom/scanner/workbench',
+      '/controlroom/scanner/rules',
+      '/controlroom/scanner/known',
+      '/controlroom/scanner/exclusions',
+    ]
     const links = screen.getAllByRole('link').filter(l =>
-      ['/controlroom/scanner/report', '/controlroom/scanner/workbench', '/controlroom/scanner/rules'].includes(
-        l.getAttribute('href') ?? ''
-      )
+      scannerHrefs.includes(l.getAttribute('href') ?? '')
     )
     expect(links[0].getAttribute('href')).toBe('/controlroom/scanner/report')
     expect(links[1].getAttribute('href')).toBe('/controlroom/scanner/workbench')
     expect(links[2].getAttribute('href')).toBe('/controlroom/scanner/rules')
+    expect(links[3].getAttribute('href')).toBe('/controlroom/scanner/known')
+    expect(links[4].getAttribute('href')).toBe('/controlroom/scanner/exclusions')
+  })
+
+  it('renders Known link pointing to /controlroom/scanner/known', () => {
+    mockPathname = '/controlroom/scanner/known'
+    render(<Sidebar />)
+    const link = screen.getByRole('link', { name: 'Known' })
+    expect(link).toBeInTheDocument()
+    expect(link.getAttribute('href')).toBe('/controlroom/scanner/known')
+  })
+
+  it('renders Exclusions link pointing to /controlroom/scanner/exclusions', () => {
+    mockPathname = '/controlroom/scanner/exclusions'
+    render(<Sidebar />)
+    const link = screen.getByRole('link', { name: 'Exclusions' })
+    expect(link).toBeInTheDocument()
+    expect(link.getAttribute('href')).toBe('/controlroom/scanner/exclusions')
   })
 
   it('does not apply active link styling when path does not match', () => {

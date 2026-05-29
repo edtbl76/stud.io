@@ -358,7 +358,9 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 #### Exclusion Management (admin only)
 
-`POST /scanner/exclude` — add a plugin to the exclusion list. Body: `{vendor, name}`. Idempotent (ON CONFLICT DO NOTHING).
+`POST /scanner/exclude` — add a plugin to the exclusion list. Body: `{vendor, name, format?}`. `excluded_by` is set server-side from the authenticated user's username. Idempotent (ON CONFLICT DO NOTHING).
+
+`GET /scanner/exclusions` — list all exclusions. Returns array of `ExclusionOut`: `{exclusion_id, vendor, name, excluded_at, excluded_by: string|null, format: string|null}`.
 
 `DELETE /scanner/exclude/{exclusion_id}` — remove an exclusion. Returns 404 if not found.
 

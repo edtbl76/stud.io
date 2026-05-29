@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS scanner_exclusions (
     vendor       TEXT        NOT NULL,
     name         TEXT        NOT NULL,
     excluded_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    excluded_by  TEXT,
+    format       TEXT,
     UNIQUE (vendor, name)
 );
 

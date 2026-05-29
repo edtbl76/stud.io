@@ -15,6 +15,8 @@ graph LR
         rules_pages["Rules Page\nvendor · name · pattern rule management"]
         workbench_page["Scan Workbench\nfive-bucket unified triage\nScanWorkbenchPage"]
         report_page["Scan Report\nraw scan results by status\nScanReportPage (U-05a, 1.17.0)"]
+        known_page["Known\n/controlroom/scanner/known\nKnownPage — catalog links via catalogRecordPath (U-05b)"]
+        exclusions_page["Exclusions\n/controlroom/scanner/exclusions\nExclusionsPage — remove with confirmation (U-05b)"]
     end
 
     backend(["FastAPI Backend"])
@@ -25,6 +27,8 @@ graph LR
     rules_pages -->|"/scanner/rules/*"| backend
     workbench_page -->|"/scanner/workbench · /scanner/links · /scanner/results"| backend
     report_page -->|"/scanner/scans/recent · /scanner/scans/{id}/report"| backend
+    known_page -->|"/scanner/workbench?bucket=known"| backend
+    exclusions_page -->|"/scanner/exclusions · /scanner/exclude/{id}"| backend
 ```
 
 ---
