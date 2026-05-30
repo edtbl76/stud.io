@@ -37,12 +37,10 @@ type ScanRun struct {
 type ServerSummary struct {
 	ScanID      string `json:"scan_id"`
 	Known       int    `json:"known"`
-	Matched     int    `json:"matched"`
-	Conflicted  int    `json:"conflicted"`
-	Unconfirmed int    `json:"unconfirmed"`
-	Untracked   int    `json:"untracked"`
+	Unlinked    int    `json:"unlinked"`
 	Orphaned    int    `json:"orphaned"`
-	Ignored     int    `json:"ignored"`
+	NeedsReview int    `json:"needs_review"`
+	Excluded    int    `json:"excluded"`
 }
 
 // Scanner discovers plugins across configured scan paths.
@@ -215,12 +213,10 @@ func (r *Renderer) renderTerminal(run ScanRun, dryRun bool) error {
 	if run.Summary != nil {
 		s := run.Summary
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Known", s.Known)
-		fmt.Fprintf(r.out, "  %-25s %d\n", "Matched", s.Matched)
-		fmt.Fprintf(r.out, "  %-25s %d\n", "Conflicted", s.Conflicted)
-		fmt.Fprintf(r.out, "  %-25s %d\n", "Unconfirmed (fuzzy)", s.Unconfirmed)
-		fmt.Fprintf(r.out, "  %-25s %d\n", "Untracked", s.Untracked)
+		fmt.Fprintf(r.out, "  %-25s %d\n", "Unlinked", s.Unlinked)
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Orphaned", s.Orphaned)
-		fmt.Fprintf(r.out, "  %-25s %d\n", "Ignored", s.Ignored)
+		fmt.Fprintf(r.out, "  %-25s %d\n", "Needs Review", s.NeedsReview)
+		fmt.Fprintf(r.out, "  %-25s %d\n", "Excluded", s.Excluded)
 	} else {
 		fmt.Fprintf(r.out, "  %-25s %d\n", "Discovered", len(run.Discovered))
 	}

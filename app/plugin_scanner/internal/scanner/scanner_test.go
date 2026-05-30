@@ -12,6 +12,42 @@ import (
 	"github.com/studiocontrolroom/plugin_scanner/internal/metadata"
 )
 
+func assertJSONKeysPresent(t *testing.T, obj map[string]any, keys []string) {
+	t.Helper()
+	for _, key := range keys {
+		if _, ok := obj[key]; !ok {
+			t.Errorf("expected key %q in JSON object", key)
+		}
+	}
+}
+
+func assertJSONKeysAbsent(t *testing.T, obj map[string]any, keys []string) {
+	t.Helper()
+	for _, key := range keys {
+		if _, ok := obj[key]; ok {
+			t.Errorf("stale key %q must not appear in JSON object", key)
+		}
+	}
+}
+
+func assertTerminalLabelsPresent(t *testing.T, out string, labels []string) {
+	t.Helper()
+	for _, label := range labels {
+		if !strings.Contains(out, label) {
+			t.Errorf("expected label %q in terminal output", label)
+		}
+	}
+}
+
+func assertTerminalLabelsAbsent(t *testing.T, out string, labels []string) {
+	t.Helper()
+	for _, label := range labels {
+		if strings.Contains(out, label) {
+			t.Errorf("stale label %q must not appear in terminal output", label)
+		}
+	}
+}
+
 func makeBundle(t *testing.T, dir, name, ext string) string {
 	t.Helper()
 	bundle := filepath.Join(dir, name+ext)
@@ -101,8 +137,7 @@ func TestRenderer_TerminalOutput(t *testing.T) {
 		ScanID:     "abc12345-0000-0000-0000-000000000000",
 		Discovered: []metadata.DiscoveredPlugin{{Name: "Reverb", Format: "vst3"}},
 		Summary: &ServerSummary{
-			Known: 0, Matched: 1, Conflicted: 0, Unconfirmed: 0,
-			Untracked: 0, Orphaned: 0, Ignored: 0,
+			Known: 0, Unlinked: 2, Orphaned: 0, NeedsReview: 1, Excluded: 0,
 		},
 	}
 	if err := r.Render(run, RenderModeTerminal); err != nil {
@@ -112,9 +147,8 @@ func TestRenderer_TerminalOutput(t *testing.T) {
 	if !strings.Contains(out, "abc12345") {
 		t.Error("expected scan ID in output")
 	}
-	if !strings.Contains(out, "Matched") {
-		t.Error("expected Matched in output")
-	}
+	assertTerminalLabelsPresent(t, out, []string{"Known", "Unlinked", "Orphaned", "Needs Review", "Excluded", "Total on disk"})
+	assertTerminalLabelsAbsent(t, out, []string{"Matched", "Conflicted", "Unconfirmed", "Untracked", "Ignored"})
 }
 
 func TestRenderer_DryRunPrefix(t *testing.T) {
@@ -134,7 +168,7 @@ func TestRenderer_JSONOutput(t *testing.T) {
 		ScanID:       "test-id",
 		Discovered:   []metadata.DiscoveredPlugin{{Name: "Synth", Format: "vst3"}},
 		SkippedPaths: []string{},
-		Summary:      &ServerSummary{Matched: 1},
+		Summary:      &ServerSummary{Unlinked: 3, NeedsReview: 1},
 	}
 	if err := r.Render(run, RenderModeJSON); err != nil {
 		t.Fatal(err)
@@ -146,9 +180,33 @@ func TestRenderer_JSONOutput(t *testing.T) {
 	if _, ok := out["discovered"]; !ok {
 		t.Error("expected discovered field in JSON")
 	}
-	if _, ok := out["summary"]; !ok {
-		t.Error("expected summary field in JSON")
+	summary, ok := out["summary"].(map[string]any)
+	if !ok {
+		t.Fatal("expected summary to be a JSON object")
 	}
+	assertJSONKeysPresent(t, summary, []string{"unlinked", "orphaned", "needs_review", "excluded"})
+	assertJSONKeysAbsent(t, summary, []string{"matched", "conflicted"})
+}
+
+func TestServerSummary_JSONRoundTrip(t *testing.T) {
+	s := ServerSummary{
+		ScanID:      "test-scan-id",
+		Known:       5,
+		Unlinked:    3,
+		Orphaned:    1,
+		NeedsReview: 2,
+		Excluded:    4,
+	}
+	data, err := json.Marshal(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got map[string]any
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	assertJSONKeysPresent(t, got, []string{"known", "unlinked", "orphaned", "needs_review", "excluded"})
+	assertJSONKeysAbsent(t, got, []string{"matched", "conflicted", "unconfirmed", "untracked", "ignored"})
 }
 
 func TestRenderer_SkippedPathsShown(t *testing.T) {

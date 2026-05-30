@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/studiocontrolroom/plugin_scanner/internal/metadata"
-	"github.com/studiocontrolroom/plugin_scanner/internal/scanner"
 )
 
 func newTestClient(t *testing.T, handler http.HandlerFunc) (*APIClient, *httptest.Server) {
@@ -23,13 +21,12 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) (*APIClient, *httptes
 }
 
 func TestPostScan_SuccessReturnsSummary(t *testing.T) {
-	summary := scanner.ServerSummary{Matched: 3, Untracked: 1}
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test-key" {
 			t.Error("missing or wrong Authorization header")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(summary)
+		fmt.Fprint(w, `{"known":1,"unlinked":4,"orphaned":0,"needs_review":2,"excluded":1}`)
 	})
 
 	plugins := []metadata.DiscoveredPlugin{{Name: "Synth", Format: "vst3"}}
@@ -37,8 +34,11 @@ func TestPostScan_SuccessReturnsSummary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got.Matched != 3 || got.Untracked != 1 {
-		t.Errorf("unexpected summary: %+v", got)
+	if got.Unlinked != 4 {
+		t.Errorf("expected Unlinked=4, got %d", got.Unlinked)
+	}
+	if got.NeedsReview != 2 {
+		t.Errorf("expected NeedsReview=2, got %d", got.NeedsReview)
 	}
 }
 
