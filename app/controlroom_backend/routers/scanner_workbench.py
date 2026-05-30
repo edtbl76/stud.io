@@ -17,7 +17,8 @@ from routers.scanner_match import (
     load_exclusions,
     match_plugin,
 )
-from schemas.scanner_workbench import OrphanedRecord, WorkbenchResponse, WorkbenchRow
+from routers._helpers import log_audit
+from schemas.scanner_workbench import BulkUpdateRequest, BulkUpdateResult, OrphanedRecord, WorkbenchResponse, WorkbenchRow
 
 router = APIRouter()
 
@@ -197,3 +198,35 @@ async def get_workbench(
     orphaned = await _fetch_orphaned(conn, scan_paths)
     orphaned.sort(key=lambda o: (o.catalog_record_table, o.name))
     return WorkbenchResponse(rows=workbench_rows, orphaned=orphaned, scan_id=resolved_scan_id)
+
+
+@router.post("/workbench/bulk-update")
+async def bulk_update_versions(
+    body: BulkUpdateRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> BulkUpdateResult:
+    if not body.result_ids:
+        return BulkUpdateResult(updated=0)
+    rows = await conn.fetch(
+        "SELECT result_id, version AS disk_version, record_id, record_table "
+        "FROM plugin_scan_results WHERE result_id = ANY($1::uuid[]) "
+        "AND record_id IS NOT NULL AND record_table IS NOT NULL",
+        body.result_ids,
+    )
+    updated = 0
+    for r in rows:
+        table = r["record_table"]
+        if table not in CATALOG_TABLES:
+            continue
+        pk, _ = CATALOG_TABLES[table]
+        old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", r["record_id"])  # noqa: S608 — pk/table from constants
+        await conn.execute(
+            f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
+            r["disk_version"], r["record_id"],
+        )
+        await log_audit(conn, table, r["record_id"], "UPDATE", user.username,
+                        old_data=dict(old) if old else None,
+                        new_data={"version": r["disk_version"]})
+        updated += 1
+    return BulkUpdateResult(updated=updated)

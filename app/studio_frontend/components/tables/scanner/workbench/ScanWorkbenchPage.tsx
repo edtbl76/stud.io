@@ -8,7 +8,10 @@ import { WorkbenchFilterBar } from './WorkbenchFilterBar'
 import { WorkbenchBulkBar } from './WorkbenchBulkBar'
 import { WorkbenchTable } from './WorkbenchTable'
 import { SingleResolutionModal } from '../modals/SingleResolutionModal'
-import type { WorkbenchRow } from '@/lib/types'
+import { CollisionModal } from '../modals/CollisionModal'
+import { FindLinkModal } from '../modals/FindLinkModal'
+import { CreateRecordModal } from '../modals/CreateRecordModal'
+import type { OrphanedRecord, WorkbenchRow } from '@/lib/types'
 
 const HARD_RESET_CONFIRMATION = 'RESET ALL SCANNER DATA'
 
@@ -47,10 +50,18 @@ function HardResetDialog({ isOpen, confirmText, isSubmitting, onConfirmTextChang
   )
 }
 
+type ActiveModal =
+  | { type: 'single-resolution'; row: WorkbenchRow }
+  | { type: 'collision'; rowA: WorkbenchRow; rowB: WorkbenchRow }
+  | { type: 'find-link-unlinked'; sourceId: string }
+  | { type: 'find-link-orphaned'; sourceId: string }
+  | { type: 'create-record'; row: WorkbenchRow }
+  | null
+
 export function ScanWorkbenchPage() {
   const {
     rows, orphaned, isLoading, clientFilters, setClientFilter,
-    selectedIds, toggleSelect, shiftSelect, clearSelection, invalidate,
+    selectedIds, toggleSelect, shiftSelect, selectAll, clearSelection, invalidate,
     rowSubStates,
   } = useWorkbench()
 
@@ -58,6 +69,7 @@ export function ScanWorkbenchPage() {
   const [hardResetText, setHardResetText] = useState('')
   const [hardResetSubmitting, setHardResetSubmitting] = useState(false)
   const [bulkResolveQueue, setBulkResolveQueue] = useState<WorkbenchRow[]>([])
+  const [activeModal, setActiveModal] = useState<ActiveModal>(null)
 
   const selectedRows = rows.filter((r) => selectedIds.has(r.result_id))
 
@@ -95,6 +107,80 @@ export function ScanWorkbenchPage() {
   function handleBulkResolve() {
     const queue = selectedRows.filter((r) => r.bucket === 'needs_review')
     setBulkResolveQueue(queue)
+  }
+
+  // Step 18: single-row reject
+  async function handleReject(row: WorkbenchRow) {
+    try {
+      await api.scanner.rejectMatch(row.result_id)
+      toast.success('Match rejected')
+      invalidate()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Reject failed. Please try again.')
+    }
+  }
+
+  // Step 19: Find Link
+  function handleFindLink(row: WorkbenchRow) {
+    setActiveModal({ type: 'find-link-unlinked', sourceId: row.result_id })
+  }
+
+  function handleOrphanFindLink(record: OrphanedRecord) {
+    setActiveModal({ type: 'find-link-orphaned', sourceId: record.catalog_record_id })
+  }
+
+  // Step 20: Create Record
+  function handleCreateRecord(row: WorkbenchRow) {
+    setActiveModal({ type: 'create-record', row })
+  }
+
+  // Step 21: single-row exclude
+  async function handleExclude(row: WorkbenchRow) {
+    try {
+      await api.scanner.exclude(row.disk_vendor, row.disk_name, row.disk_format)
+      toast.success('Entry excluded')
+      invalidate()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Exclude failed. Please try again.')
+    }
+  }
+
+  // Step 22: resolve collision (replace stub)
+  function handleResolveCollision() {
+    const pair = selectedRows.filter((r) => r.catalog_record_id !== null)
+    if (pair.length === 2) {
+      setActiveModal({ type: 'collision', rowA: pair[0], rowB: pair[1] })
+    }
+  }
+
+  // Step 23: bulk reject (replace stub)
+  async function handleBulkReject() {
+    const queue = selectedRows.filter((r) => r.bucket === 'needs_review' || r.bucket === 'known')
+    let completed = 0
+    try {
+      for (const row of queue) {
+        await api.scanner.rejectMatch(row.result_id)
+        completed++
+      }
+      toast.success(`${completed} matches rejected`)
+    } catch (err) {
+      toast.error(err instanceof Error ? `${completed} of ${queue.length} rejected — stopped on error` : 'Bulk reject failed.')
+    } finally {
+      clearSelection()
+      invalidate()
+    }
+  }
+
+  async function handleBulkUpdate() {
+    const qualifying = selectedRows.filter((r) => rowSubStates.get(r.result_id) === 'mismatch')
+    try {
+      const result = await api.scanner.bulkUpdate(qualifying.map((r) => r.result_id))
+      toast.success(`${result.updated} record(s) updated`)
+      clearSelection()
+      invalidate()
+    } catch {
+      toast.error('Bulk update failed. Please try again.')
+    }
   }
 
   async function handleBulkExclude() {
@@ -135,9 +221,11 @@ export function ScanWorkbenchPage() {
       {selectedIds.size > 0 && (
         <WorkbenchBulkBar
           selectedRows={selectedRows}
-          onResolveCollision={() => undefined}
+          rowSubStates={rowSubStates}
+          onResolveCollision={handleResolveCollision}
           onBulkResolve={handleBulkResolve}
-          onBulkReject={() => undefined}
+          onBulkUpdate={handleBulkUpdate}
+          onBulkReject={handleBulkReject}
           onBulkExclude={handleBulkExclude}
           onClearSelection={clearSelection}
         />
@@ -152,6 +240,12 @@ export function ScanWorkbenchPage() {
         onToggleSelect={toggleSelect}
         onShiftSelect={shiftSelect}
         onRowClick={() => undefined}
+        onSelectAll={selectAll}
+        onOrphanFindLink={handleOrphanFindLink}
+        onReject={handleReject}
+        onFindLink={handleFindLink}
+        onCreateRecord={handleCreateRecord}
+        onExclude={handleExclude}
       />
 
       {currentModalRow && (
@@ -165,6 +259,33 @@ export function ScanWorkbenchPage() {
             />
           </div>
         </div>
+      )}
+
+      {activeModal?.type === 'collision' && (
+        <CollisionModal
+          rowA={activeModal.rowA}
+          rowB={activeModal.rowB}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { setActiveModal(null); invalidate() }}
+          onFireRuleToasts={() => undefined}
+        />
+      )}
+
+      {(activeModal?.type === 'find-link-unlinked' || activeModal?.type === 'find-link-orphaned') && (
+        <FindLinkModal
+          mode={activeModal.type === 'find-link-unlinked' ? 'unlinked-to-orphaned' : 'orphaned-to-unlinked'}
+          sourceId={activeModal.sourceId}
+          onClose={() => setActiveModal(null)}
+          onLinked={() => { setActiveModal(null); invalidate() }}
+        />
+      )}
+
+      {activeModal?.type === 'create-record' && (
+        <CreateRecordModal
+          row={activeModal.row}
+          onClose={() => setActiveModal(null)}
+          onSaved={() => { setActiveModal(null); invalidate() }}
+        />
       )}
 
       <HardResetDialog

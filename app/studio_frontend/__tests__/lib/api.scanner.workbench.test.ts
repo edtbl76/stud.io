@@ -107,7 +107,7 @@ describe('WorkbenchServerParams / WorkbenchClientFilters / NeedsReviewSubState t
 
   it('NeedsReviewSubState union is assignable', () => {
     const s1: NeedsReviewSubState = 'collision'
-    const s2: NeedsReviewSubState = 'version mismatch'
+    const s2: NeedsReviewSubState = 'mismatch'
     const s3: NeedsReviewSubState = 'unconfirmed'
     expect([s1, s2, s3]).toHaveLength(3)
   })
@@ -282,6 +282,21 @@ describe('api.scanner.exclude', () => {
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ vendor: 'MNTRA', name: 'Surge XT', format: 'VST3' }),
+      })
+    )
+  })
+})
+
+// Step 5 — Gap 1
+describe('api.scanner.bulkUpdate', () => {
+  it('calls POST /scanner/workbench/bulk-update with result_ids body', async () => {
+    const spy = mockFetch({ updated: 3 })
+    await api.scanner.bulkUpdate(['id-1', 'id-2', 'id-3'])
+    expect(spy).toHaveBeenCalledWith(
+      `${BASE}/scanner/workbench/bulk-update`,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ result_ids: ['id-1', 'id-2', 'id-3'] }),
       })
     )
   })

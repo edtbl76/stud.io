@@ -1,7 +1,7 @@
 import * as React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { WorkbenchBulkBar } from '@/components/tables/scanner/workbench/WorkbenchBulkBar'
-import type { WorkbenchRow } from '@/lib/types'
+import type { NeedsReviewSubState, WorkbenchRow } from '@/lib/types'
 
 function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
   return {
@@ -16,7 +16,8 @@ function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
 
 const noop = jest.fn()
 const DEFAULT_PROPS = {
-  onResolveCollision: noop, onBulkResolve: noop,
+  rowSubStates: new Map<string, NeedsReviewSubState>(),
+  onResolveCollision: noop, onBulkResolve: noop, onBulkUpdate: noop,
   onBulkReject: noop, onBulkExclude: noop, onClearSelection: noop,
 }
 
@@ -88,4 +89,33 @@ it('does not show Reject for purely unlinked selection', () => {
   const rows = [makeRow({ result_id: 'r1', bucket: 'unlinked' })]
   render(<WorkbenchBulkBar selectedRows={rows} {...DEFAULT_PROPS} />)
   expect(screen.queryByRole('button', { name: /reject/i })).not.toBeInTheDocument()
+})
+
+// Step 6 — Gap 1: Bulk Update
+it('shows Bulk Update button when a selected row has mismatch substate', () => {
+  const rows = [makeRow({ result_id: 'r-m', bucket: 'needs_review', catalog_record_id: 'c1' })]
+  const rowSubStates = new Map<string, NeedsReviewSubState>([['r-m', 'mismatch']])
+  render(<WorkbenchBulkBar selectedRows={rows} {...DEFAULT_PROPS} rowSubStates={rowSubStates} />)
+  expect(screen.getByRole('button', { name: /bulk update/i })).toBeInTheDocument()
+})
+
+it('does not show Bulk Update button when no selected row has mismatch substate', () => {
+  const rows = [makeRow({ result_id: 'r-u', bucket: 'needs_review', catalog_record_id: 'c1' })]
+  const rowSubStates = new Map<string, NeedsReviewSubState>([['r-u', 'unconfirmed']])
+  render(<WorkbenchBulkBar selectedRows={rows} {...DEFAULT_PROPS} rowSubStates={rowSubStates} />)
+  expect(screen.queryByRole('button', { name: /bulk update/i })).not.toBeInTheDocument()
+})
+
+it('Bulk Update button fires onBulkUpdate', () => {
+  const onBulkUpdate = jest.fn()
+  const rows = [makeRow({ result_id: 'r-m', bucket: 'needs_review', catalog_record_id: 'c1' })]
+  const rowSubStates = new Map<string, NeedsReviewSubState>([['r-m', 'mismatch']])
+  render(
+    <WorkbenchBulkBar
+      selectedRows={rows} {...DEFAULT_PROPS}
+      rowSubStates={rowSubStates} onBulkUpdate={onBulkUpdate}
+    />
+  )
+  fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
+  expect(onBulkUpdate).toHaveBeenCalledTimes(1)
 })

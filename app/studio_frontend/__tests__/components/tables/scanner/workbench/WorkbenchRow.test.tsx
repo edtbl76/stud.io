@@ -73,6 +73,45 @@ it('shows Reject only for known row', () => {
   expect(screen.queryByRole('button', { name: /find link/i })).not.toBeInTheDocument()
 })
 
+// Step 11 — Gap 2: Reject fires onReject
+it('Reject button on needs_review row fires onReject', () => {
+  const onReject = jest.fn()
+  render(<WorkbenchRow row={makeRow({ bucket: 'needs_review', catalog_record_id: 'c1' })} {...DEFAULT_PROPS} onReject={onReject} />)
+  fireEvent.click(screen.getByRole('button', { name: /reject/i }))
+  expect(onReject).toHaveBeenCalledTimes(1)
+})
+
+it('Reject button on known row fires onReject', () => {
+  const onReject = jest.fn()
+  render(<WorkbenchRow row={makeRow({ bucket: 'known', catalog_record_id: 'c1' })} {...DEFAULT_PROPS} onReject={onReject} />)
+  fireEvent.click(screen.getByRole('button', { name: /reject/i }))
+  expect(onReject).toHaveBeenCalledTimes(1)
+})
+
+// Step 12 — Find Link fires onFindLink for unlinked
+it('Find Link button on unlinked row fires onFindLink', () => {
+  const onFindLink = jest.fn()
+  render(<WorkbenchRow row={makeRow({ bucket: 'unlinked' })} {...DEFAULT_PROPS} onFindLink={onFindLink} />)
+  fireEvent.click(screen.getByRole('button', { name: /find link/i }))
+  expect(onFindLink).toHaveBeenCalledTimes(1)
+})
+
+// Step 13 — Create Record fires onCreateRecord for unlinked
+it('Create Record button on unlinked row fires onCreateRecord', () => {
+  const onCreateRecord = jest.fn()
+  render(<WorkbenchRow row={makeRow({ bucket: 'unlinked' })} {...DEFAULT_PROPS} onCreateRecord={onCreateRecord} />)
+  fireEvent.click(screen.getByRole('button', { name: /create record/i }))
+  expect(onCreateRecord).toHaveBeenCalledTimes(1)
+})
+
+// Step 14 — Exclude fires onExclude for unlinked
+it('Exclude button on unlinked row fires onExclude', () => {
+  const onExclude = jest.fn()
+  render(<WorkbenchRow row={makeRow({ bucket: 'unlinked' })} {...DEFAULT_PROPS} onExclude={onExclude} />)
+  fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+  expect(onExclude).toHaveBeenCalledTimes(1)
+})
+
 // Step 50
 it('checkbox click calls onToggleSelect', () => {
   const onToggle = jest.fn()
@@ -88,6 +127,22 @@ it('row body click calls onRowClick, not onToggleSelect', () => {
   fireEvent.click(screen.getByText('Serum'))
   expect(onRowClick).toHaveBeenCalled()
   expect(onToggle).not.toHaveBeenCalled()
+})
+
+// Step 9 — Gap 1: subState prop renders BucketTag secondary pill
+it('renders BucketTag secondary pill when subState prop is provided on needs_review row', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'needs_review', catalog_record_id: 'c1' })} subState="mismatch" {...DEFAULT_PROPS} />)
+  expect(screen.getByTestId('bucket-tag-pill-sub')).toHaveTextContent('mismatch')
+})
+
+it('does not render secondary pill when subState is undefined', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'needs_review', catalog_record_id: 'c1' })} {...DEFAULT_PROPS} />)
+  expect(screen.queryByTestId('bucket-tag-pill-sub')).not.toBeInTheDocument()
+})
+
+it('does not render secondary pill for non-needs_review row even with subState', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'unlinked' })} subState="mismatch" {...DEFAULT_PROPS} />)
+  expect(screen.queryByTestId('bucket-tag-pill-sub')).not.toBeInTheDocument()
 })
 
 // Step 51

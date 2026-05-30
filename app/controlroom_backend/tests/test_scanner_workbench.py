@@ -267,3 +267,53 @@ async def test_workbench_requires_auth(client):
 @pytest.mark.asyncio
 async def test_workbench_requires_admin(client, auth_headers):
     assert (await client.get("/scanner/workbench", headers=auth_headers)).status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Step 8 — Gap 1: POST /scanner/workbench/bulk-update
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_bulk_update_writes_disk_version_to_catalog(client, conn, admin_headers):
+    record_id = await insert_effect(conn, "BulkUpdatePlugin")
+    await conn.execute("UPDATE effects SET version='1.0' WHERE effect_id=$1", record_id)
+    scan_id = await insert_scan(conn)
+    result_id = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "ZZZTESTVENDOR_XYZ", "2.0", "vst3",
+        "/path/zzztest.vst3", "matched", record_id, "effects", "exact",
+    )
+
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": [str(result_id)]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+
+    new_version = await conn.fetchval("SELECT version FROM effects WHERE effect_id=$1", record_id)
+    assert new_version == "2.0"
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_empty_result_ids_returns_zero(client, conn, admin_headers):
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": []},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_requires_auth(client):
+    assert (await client.post("/scanner/workbench/bulk-update", json={"result_ids": []})).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_requires_admin(client, auth_headers):
+    assert (await client.post("/scanner/workbench/bulk-update", json={"result_ids": []}, headers=auth_headers)).status_code == 403

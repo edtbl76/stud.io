@@ -333,7 +333,7 @@ export interface WorkbenchServerParams {
   show_confirmed?: boolean
 }
 
-export type NeedsReviewSubState = 'version mismatch' | 'unconfirmed' | 'collision'
+export type NeedsReviewSubState = 'mismatch' | 'unconfirmed' | 'collision'
 
 export interface WorkbenchClientFilters {
   bucket: WorkbenchBucket | ''
@@ -406,6 +406,14 @@ export interface BulkAuditActionRequest {
 
 export interface BulkActionResult {
   count: number
+}
+
+export interface BulkUpdateRequest {
+  result_ids: string[]
+}
+
+export interface BulkUpdateResult {
+  updated: number
 }
 
 // ---------------------------------------------------------------------------

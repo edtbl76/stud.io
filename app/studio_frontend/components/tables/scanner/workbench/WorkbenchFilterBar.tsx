@@ -14,7 +14,7 @@ const BUCKET_OPTIONS: Array<{ value: WorkbenchBucket | ''; label: string }> = [
 
 const SUB_STATE_OPTIONS: Array<{ value: NeedsReviewSubState | ''; label: string }> = [
   { value: '', label: 'All Sub-states' },
-  { value: 'version mismatch', label: 'Version Mismatch' },
+  { value: 'mismatch', label: 'Mismatch' },
   { value: 'unconfirmed', label: 'Unconfirmed' },
   { value: 'collision', label: 'Collision' },
 ]

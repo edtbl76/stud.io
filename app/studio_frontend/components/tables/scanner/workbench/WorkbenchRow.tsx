@@ -1,16 +1,22 @@
 'use client'
 
-import type { WorkbenchRow as WorkbenchRowType } from '@/lib/types'
+import type { NeedsReviewSubState, WorkbenchRow as WorkbenchRowType } from '@/lib/types'
+import { BucketTag } from './BucketTag'
 
 interface WorkbenchRowProps {
   row: WorkbenchRowType
   isSelected: boolean
+  subState?: NeedsReviewSubState
   onToggleSelect: (id: string) => void
   onShiftSelect: (id: string) => void
   onRowClick: (row: WorkbenchRowType) => void
+  onReject?: () => void
+  onFindLink?: () => void
+  onCreateRecord?: () => void
+  onExclude?: () => void
 }
 
-export function WorkbenchRow({ row, isSelected, onToggleSelect, onShiftSelect, onRowClick }: Readonly<WorkbenchRowProps>) {
+export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShiftSelect, onRowClick, onReject, onFindLink, onCreateRecord, onExclude }: Readonly<WorkbenchRowProps>) {
   const { bucket, result_id, display_name, disk_name, display_vendor, disk_version, disk_format } = row
 
   function handleCheckboxClick(e: React.MouseEvent<HTMLInputElement>) {
@@ -42,24 +48,27 @@ export function WorkbenchRow({ row, isSelected, onToggleSelect, onShiftSelect, o
         >
           {display_name}
         </span>
+        {bucket === 'needs_review' && subState && (
+          <BucketTag bucket={bucket} subState={subState} />
+        )}
         <span className="text-sm text-muted-foreground w-36 truncate">{display_vendor}</span>
         <span className="text-sm text-muted-foreground w-16 truncate">{disk_version}</span>
         <span className="text-sm text-muted-foreground w-12">{disk_format}</span>
       </button>
 
       <div className="flex items-center gap-1 ml-auto">
-        {(bucket === 'unlinked') && (
+        {bucket === 'unlinked' && (
           <>
-            <button type="button">Find Link</button>
-            <button type="button">Create Record</button>
-            <button type="button">Exclude</button>
+            <button type="button" onClick={onFindLink}>Find Link</button>
+            <button type="button" onClick={onCreateRecord}>Create Record</button>
+            <button type="button" onClick={onExclude}>Exclude</button>
           </>
         )}
-        {(bucket === 'orphaned') && (
-          <button type="button">Find Link</button>
+        {bucket === 'orphaned' && (
+          <button type="button" onClick={onFindLink}>Find Link</button>
         )}
         {(bucket === 'needs_review' || bucket === 'known') && (
-          <button type="button">Reject</button>
+          <button type="button" onClick={onReject}>Reject</button>
         )}
       </div>
     </div>

@@ -112,7 +112,7 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | **Acknowledge** | Known | Confirms you've reviewed the match and records a persistent link. |
 | **Bulk Acknowledge** | Known section header | Acknowledges all results in the Known section at once. |
 | **Override** | Unlinked, Needs Review | Opens a catalog search modal to manually link the plugin to any catalog record. |
-| **Bulk Update** | Needs Review section header | Updates the catalog version for all selected rows to match the disk version. |
+| **Bulk Update** | Needs Review section header | Updates the catalog version for all user-selected rows in the Needs Review section to match the disk version. |
 | **Confirm / Reject** | Needs Review | Confirm accepts the match; Reject returns the plugin to Unlinked. |
 | **Create Record** | Unlinked | Creates a new catalog record from the scanned plugin data. |
 
