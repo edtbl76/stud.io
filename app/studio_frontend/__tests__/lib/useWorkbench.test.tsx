@@ -213,22 +213,32 @@ it('Step 25a: mismatch — disk_version differs from catalog_record_version', as
   expect(result.current.rowSubStates.get('r-vm')).toBe('mismatch')
 })
 
-it('Step 25b: mismatch — disk_name differs from catalog_record_name', async () => {
+it('Step 25b: mismatch — display_name differs from catalog_record_name', async () => {
   const result = await setupWorkbenchWithRow({
     result_id: 'r-nm', bucket: 'needs_review', catalog_record_id: 'cat-nm',
-    disk_name: 'Surge XT', catalog_record_name: 'Surge',
+    display_name: 'Surge XT', catalog_record_name: 'Surge',
     disk_version: '1.0', catalog_record_version: '1.0',
   })
   expect(result.current.rowSubStates.get('r-nm')).toBe('mismatch')
 })
 
-it('Step 25c: mismatch — disk_vendor differs from catalog_record_vendor', async () => {
+it('Step 25c: mismatch — display_vendor differs from catalog_record_vendor', async () => {
   const result = await setupWorkbenchWithRow({
     result_id: 'r-vd', bucket: 'needs_review', catalog_record_id: 'cat-vd',
-    disk_vendor: 'xfer', catalog_record_vendor: 'Xfer Records',
+    display_vendor: 'Xfer', catalog_record_vendor: 'Xfer Records',
     disk_version: '1.0', catalog_record_version: '1.0',
   })
   expect(result.current.rowSubStates.get('r-vd')).toBe('mismatch')
+})
+
+it('Step 25d: unconfirmed — disk_vendor differs but display_vendor matches catalog (rule normalized)', async () => {
+  const result = await setupWorkbenchWithRow({
+    result_id: 'r-norm', bucket: 'needs_review', catalog_record_id: 'cat-norm',
+    disk_vendor: 'ikmultimedia', display_vendor: 'IK Multimedia',
+    catalog_record_vendor: 'IK Multimedia',
+    disk_version: '1.0', catalog_record_version: '1.0',
+  })
+  expect(result.current.rowSubStates.get('r-norm')).toBe('unconfirmed')
 })
 
 it('Step 26: unconfirmed — fallback when no field differs', async () => {

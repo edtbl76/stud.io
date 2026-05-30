@@ -299,6 +299,36 @@ async def test_bulk_update_writes_disk_version_to_catalog(client, conn, admin_he
 
 
 @pytest.mark.asyncio
+async def test_bulk_update_two_results_same_target_counts_once(client, conn, admin_headers):
+    """Two result_ids pointing at the same catalog record → updated == 1, not 2."""
+    record_id = await insert_effect(conn, "BulkUpdateShared")
+    await conn.execute("UPDATE effects SET version='1.0' WHERE effect_id=$1", record_id)
+    scan_id = await insert_scan(conn)
+    rid1 = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.0", "vst3", "/p1.vst3", "matched", record_id, "effects", "exact",
+    )
+    rid2 = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.1", "au", "/p1.au", "matched", record_id, "effects", "exact",
+    )
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": [str(rid1), str(rid2)]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+
+    new_version = await conn.fetchval("SELECT version FROM effects WHERE effect_id=$1", record_id)
+    assert new_version == "2.1"  # max("2.0", "2.1") wins
+
+
+@pytest.mark.asyncio
 async def test_bulk_update_empty_result_ids_returns_zero(client, conn, admin_headers):
     resp = await client.post(
         "/scanner/workbench/bulk-update",

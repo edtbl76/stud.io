@@ -22,8 +22,8 @@ const DEFAULT_CLIENT_FILTERS: WorkbenchClientFilters = {
 }
 
 function hasFieldMismatch(r: WorkbenchRow): boolean {
-  return (r.catalog_record_name !== null && r.disk_name !== r.catalog_record_name)
-    || (r.catalog_record_vendor !== null && r.disk_vendor !== r.catalog_record_vendor)
+  return (r.catalog_record_name !== null && r.display_name !== r.catalog_record_name)
+    || (r.catalog_record_vendor !== null && r.display_vendor !== r.catalog_record_vendor)
     || (r.catalog_record_version !== null && r.disk_version !== r.catalog_record_version)
 }
 

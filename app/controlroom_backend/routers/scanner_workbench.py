@@ -214,19 +214,25 @@ async def bulk_update_versions(
         "AND record_id IS NOT NULL AND record_table IS NOT NULL",
         body.result_ids,
     )
-    updated = 0
+    targets: dict[tuple, list[str]] = {}
     for r in rows:
         table = r["record_table"]
         if table not in CATALOG_TABLES:
             continue
+        key = (table, r["record_id"])
+        targets.setdefault(key, []).append(r["disk_version"])
+
+    updated = 0
+    for (table, record_id), versions in targets.items():
         pk, _ = CATALOG_TABLES[table]
-        old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", r["record_id"])  # noqa: S608 — pk/table from constants
+        chosen = max(versions)
+        old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", record_id)  # noqa: S608 — pk/table from constants
         await conn.execute(
             f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
-            r["disk_version"], r["record_id"],
+            chosen, record_id,
         )
-        await log_audit(conn, table, r["record_id"], "UPDATE", user.username,
+        await log_audit(conn, table, record_id, "UPDATE", user.username,
                         old_data=dict(old) if old else None,
-                        new_data={"version": r["disk_version"]})
+                        new_data={"version": chosen})
         updated += 1
     return BulkUpdateResult(updated=updated)
