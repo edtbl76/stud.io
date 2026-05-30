@@ -289,14 +289,15 @@ describe('handleBulkExclude error path', () => {
     await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
   })
 
-  it('does NOT clear selection when exclude rejects', async () => {
+  it('still clears selection and invalidates when exclude rejects', async () => {
     const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
     ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
     await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
-    expect(mockClearSelection).not.toHaveBeenCalled()
+    expect(mockClearSelection).toHaveBeenCalled()
+    expect(mockInvalidate).toHaveBeenCalled()
   })
 })
 

@@ -138,12 +138,17 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
   }
 
   async function handleBulkExclude() {
-    try {
-      await Promise.all(selectedRows.map((r) => api.scanner.exclude(r.disk_vendor, r.disk_name, r.disk_format)))
-      clearSelection()
-      invalidate()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Bulk exclude failed. Please try again.')
+    const results = await Promise.allSettled(
+      selectedRows.map((r) => api.scanner.exclude(r.disk_vendor, r.disk_name, r.disk_format))
+    )
+    clearSelection()
+    invalidate()
+    const failed = results
+      .map((res, i) => ({ res, row: selectedRows[i] }))
+      .filter(({ res }) => res.status === 'rejected')
+    if (failed.length > 0) {
+      const names = failed.map(({ row }) => row.disk_name).join(', ')
+      toast.error(`Failed to exclude: ${names}`)
     }
   }
 

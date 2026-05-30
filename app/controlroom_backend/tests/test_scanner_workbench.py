@@ -329,6 +329,28 @@ async def test_bulk_update_two_results_same_target_counts_once(client, conn, adm
 
 
 @pytest.mark.asyncio
+async def test_bulk_update_missing_catalog_record_not_counted(client, conn, admin_headers):
+    """result_id pointing at a deleted catalog record is skipped — updated == 0."""
+    record_id = await insert_effect(conn, "BulkUpdateGhost")
+    scan_id = await insert_scan(conn)
+    result_id = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V", "2.0", "vst3", "/p.vst3", "matched", record_id, "effects", "exact",
+    )
+    await conn.execute("DELETE FROM effects WHERE effect_id=$1", record_id)
+
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": [str(result_id)]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+@pytest.mark.asyncio
 async def test_bulk_update_empty_result_ids_returns_zero(client, conn, admin_headers):
     resp = await client.post(
         "/scanner/workbench/bulk-update",

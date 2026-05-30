@@ -213,17 +213,20 @@ def _build_update_targets(rows: list) -> dict[tuple, str]:
 
 async def _write_version_updates(
     conn: Connection, targets: dict[tuple, str], username: str,
-) -> None:
+) -> int:
+    updated = 0
     for (table, record_id), version in targets.items():
         pk, _ = CATALOG_TABLES[table]
         old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", record_id)  # noqa: S608 — pk/table from constants
-        await conn.execute(
-            f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
-            version, record_id,
-        )
-        await log_audit(conn, table, record_id, "UPDATE", username,
-                        old_data=dict(old) if old else None,
-                        new_data={"version": version})
+        if old:
+            await conn.execute(
+                f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
+                version, record_id,
+            )
+            await log_audit(conn, table, record_id, "UPDATE", username,
+                            old_data=dict(old), new_data={"version": version})
+            updated += 1
+    return updated
 
 
 @router.post("/workbench/bulk-update")
@@ -241,5 +244,5 @@ async def bulk_update_versions(
         body.result_ids,
     )
     targets = _build_update_targets(rows)
-    await _write_version_updates(conn, targets, user.username)
-    return BulkUpdateResult(updated=len(targets))
+    updated = await _write_version_updates(conn, targets, user.username)
+    return BulkUpdateResult(updated=updated)

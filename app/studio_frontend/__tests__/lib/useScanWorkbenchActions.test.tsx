@@ -84,6 +84,23 @@ it('handleBulkUpdate calls bulkUpdate with mismatch ids and invalidates', async 
   expect(invalidate).toHaveBeenCalled()
 })
 
+it('handleBulkExclude always calls clearSelection and invalidate, toasts only failed rows', async () => {
+  const r1 = makeRow({ result_id: 'r1', disk_vendor: 'V', disk_name: 'Good', disk_format: 'VST3' })
+  const r2 = makeRow({ result_id: 'r2', disk_vendor: 'V', disk_name: 'Bad', disk_format: 'VST3' })
+  const clearSelection = jest.fn()
+  const invalidate = jest.fn()
+  ;(mockApi.scanner.exclude as jest.Mock)
+    .mockResolvedValueOnce(undefined)
+    .mockRejectedValueOnce(new Error('server error'))
+  const { result } = renderHook(() => useScanWorkbenchActions(
+    makeHookArgs({ rows: [r1, r2], selectedIds: new Set(['r1', 'r2']), clearSelection, invalidate })
+  ))
+  await act(async () => { await result.current.handleBulkExclude() })
+  expect(clearSelection).toHaveBeenCalled()
+  expect(invalidate).toHaveBeenCalled()
+  expect(mockToast.error).toHaveBeenCalledWith(expect.stringContaining('Bad'))
+})
+
 it('hardReset state: setHardResetOpen controls dialog visibility', () => {
   const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
   expect(result.current.hardResetOpen).toBe(false)
