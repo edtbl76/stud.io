@@ -223,55 +223,38 @@ describe('handleBulkExclude', () => {
     })
   })
 
-  it('clears selection after successful bulk exclude', async () => {
+  it('clears selection and invalidates after successful bulk exclude', async () => {
     const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
     ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
     await waitFor(() => expect(mockClearSelection).toHaveBeenCalled())
-  })
-
-  it('calls invalidate after successful bulk exclude', async () => {
-    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
-    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
-    render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
-    await waitFor(() => expect(mockInvalidate).toHaveBeenCalled())
+    expect(mockInvalidate).toHaveBeenCalled()
   })
 })
 
 // Step 7 — Gap 1: handleBulkUpdate
 describe('handleBulkUpdate', () => {
-  it('calls api.scanner.bulkUpdate with mismatch row ids and shows success toast', async () => {
-    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
-    const r2 = makeRow('r2', { bucket: 'needs_review', catalog_record_id: 'c2' })
-    const rowSubStates = new Map([['r1', 'mismatch' as const], ['r2', 'unconfirmed' as const]])
+  const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
+  const rowSubStates = new Map([['r1', 'mismatch' as const]])
+
+  beforeEach(() => {
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']), rowSubStates })
+  })
+
+  it('calls bulkUpdate with mismatch ids, toasts success, clears selection and invalidates', async () => {
     ;(mockApi.scanner.bulkUpdate as jest.Mock).mockResolvedValue({ updated: 1 })
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']), rowSubStates })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
     await waitFor(() => expect(mockApi.scanner.bulkUpdate).toHaveBeenCalledWith(['r1']))
     expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/1 record/i))
-  })
-
-  it('clears selection and invalidates after successful bulk update', async () => {
-    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
-    const rowSubStates = new Map([['r1', 'mismatch' as const]])
-    ;(mockApi.scanner.bulkUpdate as jest.Mock).mockResolvedValue({ updated: 1 })
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']), rowSubStates })
-    render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
-    await waitFor(() => expect(mockClearSelection).toHaveBeenCalled())
+    expect(mockClearSelection).toHaveBeenCalled()
     expect(mockInvalidate).toHaveBeenCalled()
   })
 
-  it('shows error toast when bulk update fails', async () => {
-    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
-    const rowSubStates = new Map([['r1', 'mismatch' as const]])
+  it('shows error toast on failure', async () => {
     ;(mockApi.scanner.bulkUpdate as jest.Mock).mockRejectedValue(new Error('update failed'))
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']), rowSubStates })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
     await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
@@ -280,16 +263,7 @@ describe('handleBulkUpdate', () => {
 
 // Step 22 — handleBulkExclude error path
 describe('handleBulkExclude error path', () => {
-  it('shows error toast when exclude rejects', async () => {
-    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
-    ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
-    render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
-    await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
-  })
-
-  it('still clears selection and invalidates when exclude rejects', async () => {
+  it('shows error toast and still clears selection and invalidates when exclude rejects', async () => {
     const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
     ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
