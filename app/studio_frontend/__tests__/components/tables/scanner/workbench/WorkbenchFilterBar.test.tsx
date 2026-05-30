@@ -42,6 +42,17 @@ it('sub-state select is present when bucket is needs_review', () => {
   expect(screen.getByRole('combobox', { name: /sub.?state/i })).toBeInTheDocument()
 })
 
+it('sub-state select shows Mismatch option, not Version Mismatch', () => {
+  render(
+    <WorkbenchFilterBar
+      filters={{ ...BLANK_FILTERS, bucket: 'needs_review' }}
+      onFiltersChange={jest.fn()}
+    />
+  )
+  expect(screen.getByRole('option', { name: 'Mismatch' })).toBeInTheDocument()
+  expect(screen.queryByRole('option', { name: /version mismatch/i })).not.toBeInTheDocument()
+})
+
 // Step 40
 it('catalog type change calls onFiltersChange with catalog_type patch', () => {
   const onChange = jest.fn()

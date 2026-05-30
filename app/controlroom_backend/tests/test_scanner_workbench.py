@@ -267,3 +267,105 @@ async def test_workbench_requires_auth(client):
 @pytest.mark.asyncio
 async def test_workbench_requires_admin(client, auth_headers):
     assert (await client.get("/scanner/workbench", headers=auth_headers)).status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Step 8 — Gap 1: POST /scanner/workbench/bulk-update
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_bulk_update_writes_disk_version_to_catalog(client, conn, admin_headers):
+    record_id = await insert_effect(conn, "BulkUpdatePlugin")
+    await conn.execute("UPDATE effects SET version='1.0' WHERE effect_id=$1", record_id)
+    scan_id = await insert_scan(conn)
+    result_id = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "ZZZTESTVENDOR_XYZ", "2.0", "vst3",
+        "/path/zzztest.vst3", "matched", record_id, "effects", "exact",
+    )
+
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": [str(result_id)]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+
+    new_version = await conn.fetchval("SELECT version FROM effects WHERE effect_id=$1", record_id)
+    assert new_version == "2.0"
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_two_results_same_target_counts_once(client, conn, admin_headers):
+    """Two result_ids pointing at the same catalog record → updated == 1, not 2."""
+    record_id = await insert_effect(conn, "BulkUpdateShared")
+    await conn.execute("UPDATE effects SET version='1.0' WHERE effect_id=$1", record_id)
+    scan_id = await insert_scan(conn)
+    rid1 = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.0", "vst3", "/p1.vst3", "matched", record_id, "effects", "exact",
+    )
+    rid2 = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.1", "au", "/p1.au", "matched", record_id, "effects", "exact",
+    )
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": [str(rid1), str(rid2)]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+
+    new_version = await conn.fetchval("SELECT version FROM effects WHERE effect_id=$1", record_id)
+    assert new_version == "2.1"  # max("2.0", "2.1") wins
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_missing_catalog_record_not_counted(client, conn, admin_headers):
+    """result_id pointing at a deleted catalog record is skipped — updated == 0."""
+    record_id = await insert_effect(conn, "BulkUpdateGhost")
+    scan_id = await insert_scan(conn)
+    result_id = await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
+        "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V", "2.0", "vst3", "/p.vst3", "matched", record_id, "effects", "exact",
+    )
+    await conn.execute("DELETE FROM effects WHERE effect_id=$1", record_id)
+
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": [str(result_id)]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_empty_result_ids_returns_zero(client, conn, admin_headers):
+    resp = await client.post(
+        "/scanner/workbench/bulk-update",
+        json={"result_ids": []},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_requires_auth(client):
+    assert (await client.post("/scanner/workbench/bulk-update", json={"result_ids": []})).status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_bulk_update_requires_admin(client, auth_headers):
+    assert (await client.post("/scanner/workbench/bulk-update", json={"result_ids": []}, headers=auth_headers)).status_code == 403

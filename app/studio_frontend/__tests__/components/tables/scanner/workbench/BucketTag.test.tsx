@@ -20,8 +20,8 @@ it('renders "Known" for known bucket', () => {
 
 // Step 35
 it('renders secondary sub-state pill when subState is provided', () => {
-  render(<BucketTag bucket="needs_review" subState="version mismatch" />)
-  expect(screen.getByText('version mismatch')).toBeInTheDocument()
+  render(<BucketTag bucket="needs_review" subState="mismatch" />)
+  expect(screen.getByText('mismatch')).toBeInTheDocument()
 })
 
 it('renders collision sub-state pill', () => {

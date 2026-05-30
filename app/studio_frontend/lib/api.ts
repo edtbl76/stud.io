@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -145,6 +145,11 @@ export const api = {
       }),
     exclude: (vendor: string, name: string, format: string) =>
       req<void>('/scanner/exclude', { method: 'POST', body: JSON.stringify({ vendor, name, format }) }),
+    bulkUpdate: (resultIds: string[]) =>
+      req<BulkUpdateResult>('/scanner/workbench/bulk-update', {
+        method: 'POST',
+        body: JSON.stringify({ result_ids: resultIds }),
+      }),
   },
   studio: {
     bulkAcknowledgeChangeReview: (auditIds: string[]) =>

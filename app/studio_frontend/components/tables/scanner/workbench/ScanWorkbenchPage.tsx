@@ -1,14 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { api } from '@/lib/api'
 import { useWorkbench } from '@/lib/useWorkbench'
+import { useScanWorkbenchActions } from '@/lib/useScanWorkbenchActions'
 import { WorkbenchFilterBar } from './WorkbenchFilterBar'
 import { WorkbenchBulkBar } from './WorkbenchBulkBar'
 import { WorkbenchTable } from './WorkbenchTable'
 import { SingleResolutionModal } from '../modals/SingleResolutionModal'
-import type { WorkbenchRow } from '@/lib/types'
+import { CollisionModal } from '../modals/CollisionModal'
+import { FindLinkModal } from '../modals/FindLinkModal'
+import { CreateRecordModal } from '../modals/CreateRecordModal'
 
 const HARD_RESET_CONFIRMATION = 'RESET ALL SCANNER DATA'
 
@@ -47,84 +47,74 @@ function HardResetDialog({ isOpen, confirmText, isSubmitting, onConfirmTextChang
   )
 }
 
+interface WorkbenchModalsProps {
+  activeModal: ReturnType<typeof useScanWorkbenchActions>['activeModal']
+  setActiveModal: ReturnType<typeof useScanWorkbenchActions>['setActiveModal']
+  currentModalRow: ReturnType<typeof useScanWorkbenchActions>['currentModalRow']
+  setBulkResolveQueue: ReturnType<typeof useScanWorkbenchActions>['setBulkResolveQueue']
+  handleModalSaved: () => void
+  invalidate: () => void
+}
+
+type RenderModalProps = {
+  modal: WorkbenchModalsProps['activeModal']
+  onClose: () => void
+  onCloseAndInvalidate: () => void
+}
+
+function renderActiveModal({ modal, onClose, onCloseAndInvalidate }: RenderModalProps) {
+  if (!modal) return null
+  if (modal.type === 'collision') {
+    return <CollisionModal rowA={modal.rowA} rowB={modal.rowB}
+      onClose={onClose} onSaved={onCloseAndInvalidate} onFireRuleToasts={() => undefined} />
+  }
+  if (modal.type === 'find-link-unlinked' || modal.type === 'find-link-orphaned') {
+    const mode = modal.type === 'find-link-unlinked' ? 'unlinked-to-orphaned' : 'orphaned-to-unlinked'
+    return <FindLinkModal mode={mode} sourceId={modal.sourceId} onClose={onClose} onLinked={onCloseAndInvalidate} />
+  }
+  if (modal.type === 'create-record') {
+    return <CreateRecordModal row={modal.row} onClose={onClose} onSaved={onCloseAndInvalidate} />
+  }
+  return null
+}
+
+function WorkbenchModals({ activeModal, setActiveModal, currentModalRow, setBulkResolveQueue, handleModalSaved, invalidate }: Readonly<WorkbenchModalsProps>) {
+  const onClose = () => setActiveModal(null)
+  const onCloseAndInvalidate = () => { setActiveModal(null); invalidate() }
+  return (
+    <>
+      {currentModalRow && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 w-full max-w-lg shadow-xl">
+            <SingleResolutionModal row={currentModalRow}
+              onClose={() => setBulkResolveQueue([])} onSaved={handleModalSaved} onFireRuleToasts={() => undefined} />
+          </div>
+        </div>
+      )}
+      {renderActiveModal({ modal: activeModal, onClose, onCloseAndInvalidate })}
+    </>
+  )
+}
+
 export function ScanWorkbenchPage() {
   const {
     rows, orphaned, isLoading, clientFilters, setClientFilter,
-    selectedIds, toggleSelect, shiftSelect, clearSelection, invalidate,
+    selectedIds, toggleSelect, shiftSelect, selectAll, clearSelection, invalidate,
     rowSubStates,
   } = useWorkbench()
 
-  const [hardResetOpen, setHardResetOpen] = useState(false)
-  const [hardResetText, setHardResetText] = useState('')
-  const [hardResetSubmitting, setHardResetSubmitting] = useState(false)
-  const [bulkResolveQueue, setBulkResolveQueue] = useState<WorkbenchRow[]>([])
-
-  const selectedRows = rows.filter((r) => selectedIds.has(r.result_id))
-
-  async function handleSoftReset() {
-    try {
-      await api.scanner.softReset()
-      toast.success('Soft reset complete')
-      invalidate()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Soft reset failed. Please try again.')
-    }
-  }
-
-  async function handleHardReset() {
-    if (hardResetSubmitting) return
-    setHardResetSubmitting(true)
-    try {
-      await api.scanner.hardReset(hardResetText)
-      toast.success('Hard reset complete')
-      setHardResetOpen(false)
-      setHardResetText('')
-      invalidate()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Hard reset failed. Please try again.')
-    } finally {
-      setHardResetSubmitting(false)
-    }
-  }
-
-  function handleHardResetCancel() {
-    setHardResetOpen(false)
-    setHardResetText('')
-  }
-
-  function handleBulkResolve() {
-    const queue = selectedRows.filter((r) => r.bucket === 'needs_review')
-    setBulkResolveQueue(queue)
-  }
-
-  async function handleBulkExclude() {
-    try {
-      await Promise.all(
-        selectedRows.map((r) => api.scanner.exclude(r.disk_vendor, r.disk_name, r.disk_format))
-      )
-      clearSelection()
-      invalidate()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Bulk exclude failed. Please try again.')
-    }
-  }
-
-  function handleModalSaved() {
-    invalidate()
-    setBulkResolveQueue((prev) => prev.slice(1))
-  }
-
-  const currentModalRow = bulkResolveQueue[0] ?? null
+  const actions = useScanWorkbenchActions({ rows, selectedIds, rowSubStates, invalidate, clearSelection })
+  const { selectedRows, currentModalRow, activeModal, setActiveModal } = actions
 
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Scan Workbench</h1>
         <div className="flex gap-2">
-          <button type="button" onClick={handleSoftReset} className="text-sm border rounded px-3 py-1">
+          <button type="button" onClick={actions.handleSoftReset} className="text-sm border rounded px-3 py-1">
             Soft Reset
           </button>
-          <button type="button" onClick={() => setHardResetOpen(true)} className="text-sm border rounded px-3 py-1">
+          <button type="button" onClick={() => actions.setHardResetOpen(true)} className="text-sm border rounded px-3 py-1">
             Hard Reset
           </button>
         </div>
@@ -135,10 +125,12 @@ export function ScanWorkbenchPage() {
       {selectedIds.size > 0 && (
         <WorkbenchBulkBar
           selectedRows={selectedRows}
-          onResolveCollision={() => undefined}
-          onBulkResolve={handleBulkResolve}
-          onBulkReject={() => undefined}
-          onBulkExclude={handleBulkExclude}
+          rowSubStates={rowSubStates}
+          onResolveCollision={actions.handleResolveCollision}
+          onBulkResolve={actions.handleBulkResolve}
+          onBulkUpdate={actions.handleBulkUpdate}
+          onBulkReject={actions.handleBulkReject}
+          onBulkExclude={actions.handleBulkExclude}
           onClearSelection={clearSelection}
         />
       )}
@@ -152,28 +144,30 @@ export function ScanWorkbenchPage() {
         onToggleSelect={toggleSelect}
         onShiftSelect={shiftSelect}
         onRowClick={() => undefined}
+        onSelectAll={selectAll}
+        onOrphanFindLink={actions.handleOrphanFindLink}
+        onReject={actions.handleReject}
+        onFindLink={actions.handleFindLink}
+        onCreateRecord={actions.handleCreateRecord}
+        onExclude={actions.handleExclude}
       />
 
-      {currentModalRow && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background rounded-lg p-6 w-full max-w-lg shadow-xl">
-            <SingleResolutionModal
-              row={currentModalRow}
-              onClose={() => setBulkResolveQueue([])}
-              onSaved={handleModalSaved}
-              onFireRuleToasts={() => undefined}
-            />
-          </div>
-        </div>
-      )}
+      <WorkbenchModals
+        activeModal={activeModal}
+        setActiveModal={setActiveModal}
+        currentModalRow={currentModalRow}
+        setBulkResolveQueue={actions.setBulkResolveQueue}
+        handleModalSaved={actions.handleModalSaved}
+        invalidate={invalidate}
+      />
 
       <HardResetDialog
-        isOpen={hardResetOpen}
-        confirmText={hardResetText}
-        isSubmitting={hardResetSubmitting}
-        onConfirmTextChange={setHardResetText}
-        onConfirm={handleHardReset}
-        onCancel={handleHardResetCancel}
+        isOpen={actions.hardResetOpen}
+        confirmText={actions.hardResetText}
+        isSubmitting={actions.hardResetSubmitting}
+        onConfirmTextChange={actions.setHardResetText}
+        onConfirm={actions.handleHardReset}
+        onCancel={actions.handleHardResetCancel}
       />
     </div>
   )

@@ -21,28 +21,33 @@ const DEFAULT_CLIENT_FILTERS: WorkbenchClientFilters = {
   format: '',
 }
 
+function hasFieldMismatch(r: WorkbenchRow): boolean {
+  return (r.catalog_record_name !== null && r.display_name !== r.catalog_record_name)
+    || (r.catalog_record_vendor !== null && r.display_vendor !== r.catalog_record_vendor)
+    || (r.catalog_record_version !== null && r.disk_version !== r.catalog_record_version)
+}
+
+function classifySubState(r: WorkbenchRow, collisionIds: Set<string>): NeedsReviewSubState {
+  if (collisionIds.has(r.catalog_record_id as string)) return 'collision'
+  if (hasFieldMismatch(r)) return 'mismatch'
+  return 'unconfirmed'
+}
+
 function deriveSubStates(rows: WorkbenchRow[]): Map<string, NeedsReviewSubState> {
   const reviewRows = rows.filter((r) => r.bucket === 'needs_review' && r.catalog_record_id !== null)
 
-  const catalogIdCounts = new Map<string, number>()
+  const idCounts = new Map<string, number>()
   for (const r of reviewRows) {
     const id = r.catalog_record_id as string
-    catalogIdCounts.set(id, (catalogIdCounts.get(id) ?? 0) + 1)
+    idCounts.set(id, (idCounts.get(id) ?? 0) + 1)
   }
+  const collisionIds = new Set(
+    [...idCounts.entries()].filter(([, n]) => n > 1).map(([id]) => id)
+  )
 
   const subStates = new Map<string, NeedsReviewSubState>()
   for (const r of reviewRows) {
-    const id = r.catalog_record_id as string
-    if ((catalogIdCounts.get(id) ?? 0) > 1) {
-      subStates.set(r.result_id, 'collision')
-    } else if (
-      r.catalog_record_version !== null &&
-      r.disk_version !== r.catalog_record_version
-    ) {
-      subStates.set(r.result_id, 'version mismatch')
-    } else {
-      subStates.set(r.result_id, 'unconfirmed')
-    }
+    subStates.set(r.result_id, classifySubState(r, collisionIds))
   }
   return subStates
 }

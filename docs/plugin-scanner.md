@@ -73,31 +73,48 @@ plugin-scanner scan --dry-run
 
 The scanner walks all default macOS plugin paths (VST3, AU, VST2 — user and system) and uploads results to ControlRoom. A progress indicator updates in place during the upload.
 
-## 5. Review Results
+## 5. JSON Output
 
-Open **ControlRoom → Plugin Scanner** to review the scan report. Results are grouped into eight sections:
+Pass `--json` to receive machine-readable output instead of the terminal report:
+
+```bash
+plugin-scanner scan --json
+```
+
+The top-level object contains `discovered`, `skipped_paths`, and `summary`. The `summary` field mirrors the `POST /api/scanner/scan` response and uses the same field names:
+
+| Field | JSON key | Description |
+|---|---|---|
+| Known | `known` | Fully resolved entries |
+| Unlinked | `unlinked` | Disk entries with no catalog match |
+| Orphaned | `orphaned` | Catalog records with no disk entry in this scan |
+| Needs Review | `needs_review` | Matches requiring user action |
+| Excluded | `excluded` | Explicitly ignored disk entries |
+
+Fields are emitted in this order. Zero-count buckets are always included.
+
+## 6. Review Results
+
+Open **ControlRoom → Plugin Scanner** to review the scan report. Results are grouped into five sections:
 
 | Section | Description |
 |---|---|
-| Known | Matched against a catalog record that has known disk paths — click Acknowledge to confirm the link |
-| Matched | Matched against a catalog record with no disk paths recorded — click Acknowledge to confirm, or edit the catalog record to add disk paths |
-| Conflicted | Matched but the disk version differs from the catalog version — use Bulk Update to update the catalog, or Override to remap to a different record |
-| Unconfirmed | Fuzzy match found — review and confirm, reject, or ignore |
-| Untracked | No catalog match found — create a new record or ignore |
-| Orphaned | Previously confirmed but no longer found on disk |
-| Absent | Catalog records with known disk paths that were not found in this scan — the plugin may have been uninstalled or moved |
-| Exclusions | Plugins intentionally excluded from triage — remove here to restore a plugin to active scanning |
+| Known | Fully resolved — plugin is matched and confirmed in the catalog |
+| Unlinked | On disk but has no catalog match — create a record or exclude |
+| Orphaned | In the catalog but not found on disk in this scan — may have been moved or uninstalled |
+| Needs Review | Matched but requires user action (e.g. version mismatch or fuzzy match) |
+| Excluded | Intentionally excluded from triage — remove here to restore active scanning |
 
 ## Triage Actions
 
 | Action | Available on | What it does |
 |---|---|---|
-| **Acknowledge** | Known, Matched | Confirms you've reviewed the match and records a persistent link. The row shows a confirmed indicator. |
+| **Acknowledge** | Known | Confirms you've reviewed the match and records a persistent link. |
 | **Bulk Acknowledge** | Known section header | Acknowledges all results in the Known section at once. |
-| **Override** | Unconfirmed, Untracked | Opens a catalog search modal to manually link the plugin to any catalog record. The result reclassifies to Known or Matched after linking. |
-| **Bulk Update** | Conflicted section header | Updates the catalog version for all selected Conflicted rows to match the disk version. |
-| **Confirm / Reject / Ignore** | Unconfirmed | Standard triage actions — Confirm accepts the fuzzy match, Reject sends the plugin back to Untracked, Ignore permanently excludes it. |
-| **Create Record** | Untracked | Creates a new catalog record from the scanned plugin data. |
+| **Override** | Unlinked, Needs Review | Opens a catalog search modal to manually link the plugin to any catalog record. |
+| **Bulk Update** | Needs Review section header | Updates the catalog version for all user-selected rows in the Needs Review section to match the disk version. |
+| **Confirm / Reject** | Needs Review | Confirm accepts the match; Reject returns the plugin to Unlinked. |
+| **Create Record** | Unlinked | Creates a new catalog record from the scanned plugin data. |
 
 ## Custom Scan Paths
 

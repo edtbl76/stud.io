@@ -205,15 +205,43 @@ it('Step 24: collision — two needs_review rows sharing catalog_record_id get s
   expect(result.current.rowSubStates.get('r-b')).toBe('collision')
 })
 
-it('Step 25: version mismatch — disk_version differs from catalog_record_version', async () => {
+it('Step 25a: mismatch — disk_version differs from catalog_record_version', async () => {
   const result = await setupWorkbenchWithRow({
     result_id: 'r-vm', bucket: 'needs_review', catalog_record_id: 'cat-vm',
     disk_version: '1.0', catalog_record_version: '2.0',
   })
-  expect(result.current.rowSubStates.get('r-vm')).toBe('version mismatch')
+  expect(result.current.rowSubStates.get('r-vm')).toBe('mismatch')
 })
 
-it('Step 26: unconfirmed — fallback when not collision or version mismatch', async () => {
+it('Step 25b: mismatch — display_name differs from catalog_record_name', async () => {
+  const result = await setupWorkbenchWithRow({
+    result_id: 'r-nm', bucket: 'needs_review', catalog_record_id: 'cat-nm',
+    display_name: 'Surge XT', catalog_record_name: 'Surge',
+    disk_version: '1.0', catalog_record_version: '1.0',
+  })
+  expect(result.current.rowSubStates.get('r-nm')).toBe('mismatch')
+})
+
+it('Step 25c: mismatch — display_vendor differs from catalog_record_vendor', async () => {
+  const result = await setupWorkbenchWithRow({
+    result_id: 'r-vd', bucket: 'needs_review', catalog_record_id: 'cat-vd',
+    display_vendor: 'Xfer', catalog_record_vendor: 'Xfer Records',
+    disk_version: '1.0', catalog_record_version: '1.0',
+  })
+  expect(result.current.rowSubStates.get('r-vd')).toBe('mismatch')
+})
+
+it('Step 25d: unconfirmed — disk_vendor differs but display_vendor matches catalog (rule normalized)', async () => {
+  const result = await setupWorkbenchWithRow({
+    result_id: 'r-norm', bucket: 'needs_review', catalog_record_id: 'cat-norm',
+    disk_vendor: 'ikmultimedia', display_vendor: 'IK Multimedia',
+    catalog_record_vendor: 'IK Multimedia',
+    disk_version: '1.0', catalog_record_version: '1.0',
+  })
+  expect(result.current.rowSubStates.get('r-norm')).toBe('unconfirmed')
+})
+
+it('Step 26: unconfirmed — fallback when no field differs', async () => {
   const result = await setupWorkbenchWithRow({
     result_id: 'r-uc', bucket: 'needs_review', catalog_record_id: 'cat-uc',
     disk_version: '1.0', catalog_record_version: '1.0',

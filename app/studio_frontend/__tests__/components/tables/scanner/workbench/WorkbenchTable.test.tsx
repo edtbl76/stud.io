@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { WorkbenchTable } from '@/components/tables/scanner/workbench/WorkbenchTable'
 import type { WorkbenchRow, OrphanedRecord } from '@/lib/types'
 
@@ -77,4 +77,38 @@ it('renders orphaned section with label when orphaned records present', () => {
 it('does not render orphaned section when orphaned list is empty', () => {
   render(<WorkbenchTable rows={[makeRow('r1')]} orphaned={[]} {...DEFAULT_PROPS} />)
   expect(screen.queryByText(/orphaned catalog records/i)).not.toBeInTheDocument()
+})
+
+// Step 10 — Gap 1: subState threading
+it('passes mismatch subState from rowSubStates to WorkbenchRow showing secondary pill', () => {
+  const row = makeRow('r-m', { bucket: 'needs_review', catalog_record_id: 'c1' })
+  const rowSubStates = new Map([['r-m', 'mismatch' as const]])
+  render(<WorkbenchTable rows={[row]} orphaned={[]} {...DEFAULT_PROPS} rowSubStates={rowSubStates} />)
+  expect(screen.getByTestId('bucket-tag-pill-sub')).toHaveTextContent('mismatch')
+})
+
+// Step 15 — Gap 2: select-all checkbox
+it('select-all checkbox fires onSelectAll when clicked', () => {
+  const onSelectAll = jest.fn()
+  render(<WorkbenchTable rows={[makeRow('r1')]} orphaned={[]} {...DEFAULT_PROPS} onSelectAll={onSelectAll} />)
+  fireEvent.click(screen.getByRole('checkbox', { name: /select all/i }))
+  expect(onSelectAll).toHaveBeenCalledTimes(1)
+})
+
+// Step 16 — Gap 2: orphaned Find Link
+it('Find Link in orphaned section fires onOrphanFindLink with the record', () => {
+  const onOrphanFindLink = jest.fn()
+  const orphan = makeOrphaned('o1')
+  render(<WorkbenchTable rows={[]} orphaned={[orphan]} {...DEFAULT_PROPS} onOrphanFindLink={onOrphanFindLink} />)
+  fireEvent.click(screen.getByRole('button', { name: /find link/i }))
+  expect(onOrphanFindLink).toHaveBeenCalledWith(orphan)
+})
+
+// Step 17 — Gap 2: row action callback threading
+it('Reject button on a needs_review row fires onReject callback', () => {
+  const onReject = jest.fn()
+  const row = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
+  render(<WorkbenchTable rows={[row]} orphaned={[]} {...DEFAULT_PROPS} onReject={onReject} />)
+  fireEvent.click(screen.getByRole('button', { name: /reject/i }))
+  expect(onReject).toHaveBeenCalledWith(row)
 })

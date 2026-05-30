@@ -17,7 +17,8 @@ from routers.scanner_match import (
     load_exclusions,
     match_plugin,
 )
-from schemas.scanner_workbench import OrphanedRecord, WorkbenchResponse, WorkbenchRow
+from routers._helpers import log_audit
+from schemas.scanner_workbench import BulkUpdateRequest, BulkUpdateResult, OrphanedRecord, WorkbenchResponse, WorkbenchRow
 
 router = APIRouter()
 
@@ -197,3 +198,51 @@ async def get_workbench(
     orphaned = await _fetch_orphaned(conn, scan_paths)
     orphaned.sort(key=lambda o: (o.catalog_record_table, o.name))
     return WorkbenchResponse(rows=workbench_rows, orphaned=orphaned, scan_id=resolved_scan_id)
+
+
+def _build_update_targets(rows: list) -> dict[tuple, str]:
+    """Group scan rows by (table, record_id); resolve version conflicts with max()."""
+    targets: dict[tuple, str] = {}
+    for r in rows:
+        if r["record_table"] not in CATALOG_TABLES:
+            continue
+        key = (r["record_table"], r["record_id"])
+        targets[key] = max(targets.get(key, ""), r["disk_version"])
+    return targets
+
+
+async def _write_version_updates(
+    conn: Connection, targets: dict[tuple, str], username: str,
+) -> int:
+    updated = 0
+    for (table, record_id), version in targets.items():
+        pk, _ = CATALOG_TABLES[table]
+        old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", record_id)  # noqa: S608 — pk/table from constants
+        if old:
+            await conn.execute(
+                f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
+                version, record_id,
+            )
+            await log_audit(conn, table, record_id, "UPDATE", username,
+                            old_data=dict(old), new_data={"version": version})
+            updated += 1
+    return updated
+
+
+@router.post("/workbench/bulk-update")
+async def bulk_update_versions(
+    body: BulkUpdateRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> BulkUpdateResult:
+    if not body.result_ids:
+        return BulkUpdateResult(updated=0)
+    rows = await conn.fetch(
+        "SELECT result_id, version AS disk_version, record_id, record_table "
+        "FROM plugin_scan_results WHERE result_id = ANY($1::uuid[]) "
+        "AND record_id IS NOT NULL AND record_table IS NOT NULL",
+        body.result_ids,
+    )
+    targets = _build_update_targets(rows)
+    updated = await _write_version_updates(conn, targets, user.username)
+    return BulkUpdateResult(updated=updated)

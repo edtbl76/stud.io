@@ -8,6 +8,25 @@ import type { WorkbenchRow, OrphanedRecord, NeedsReviewSubState } from '@/lib/ty
 const SKELETON_COUNT = 8
 const WORKBENCH_HEIGHT = '600px'
 
+function OrphanedSection({ orphaned, onOrphanFindLink }: Readonly<{ orphaned: OrphanedRecord[]; onOrphanFindLink?: (r: OrphanedRecord) => void }>) {
+  if (orphaned.length === 0) return null
+  return (
+    <div className="mt-6">
+      <h3 className="px-3 py-2 text-sm font-semibold text-muted-foreground">Orphaned Catalog Records</h3>
+      {orphaned.map((o) => (
+        <div key={o.catalog_record_id} className="px-3 py-2 text-sm flex gap-3 items-center">
+          <span>{o.name}</span>
+          {o.vendor && <span className="text-muted-foreground">{o.vendor}</span>}
+          {o.version && <span className="text-muted-foreground">{o.version}</span>}
+          {onOrphanFindLink && (
+            <button type="button" onClick={() => onOrphanFindLink(o)}>Find Link</button>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 interface WorkbenchTableProps {
   rows: WorkbenchRow[]
   orphaned: OrphanedRecord[]
@@ -17,11 +36,18 @@ interface WorkbenchTableProps {
   onToggleSelect: (id: string) => void
   onShiftSelect: (id: string) => void
   onRowClick: (row: WorkbenchRow) => void
+  onSelectAll?: () => void
+  onOrphanFindLink?: (record: OrphanedRecord) => void
+  onReject?: (row: WorkbenchRow) => void
+  onFindLink?: (row: WorkbenchRow) => void
+  onCreateRecord?: (row: WorkbenchRow) => void
+  onExclude?: (row: WorkbenchRow) => void
 }
 
 export function WorkbenchTable({
   rows, orphaned, isLoading, selectedIds, rowSubStates,
   onToggleSelect, onShiftSelect, onRowClick,
+  onSelectAll, onOrphanFindLink, onReject, onFindLink, onCreateRecord, onExclude,
 }: Readonly<WorkbenchTableProps>) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -52,6 +78,14 @@ export function WorkbenchTable({
 
   return (
     <div>
+      <div className="flex items-center px-3 py-1 border-b border-border">
+        <input
+          type="checkbox"
+          aria-label="Select all"
+          checked={rows.length > 0 && rows.every((r) => selectedIds.has(r.result_id))}
+          onChange={onSelectAll}
+        />
+      </div>
       <div ref={parentRef} className="overflow-y-auto" style={{ height: WORKBENCH_HEIGHT }}>
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map((vItem) => {
@@ -64,9 +98,14 @@ export function WorkbenchTable({
                 <WorkbenchRowComponent
                   row={row}
                   isSelected={selectedIds.has(row.result_id)}
+                  subState={rowSubStates.get(row.result_id)}
                   onToggleSelect={onToggleSelect}
                   onShiftSelect={onShiftSelect}
                   onRowClick={onRowClick}
+                  onReject={onReject ? () => onReject(row) : undefined}
+                  onFindLink={onFindLink ? () => onFindLink(row) : undefined}
+                  onCreateRecord={onCreateRecord ? () => onCreateRecord(row) : undefined}
+                  onExclude={onExclude ? () => onExclude(row) : undefined}
                 />
               </div>
             )
@@ -74,18 +113,7 @@ export function WorkbenchTable({
         </div>
       </div>
 
-      {orphaned.length > 0 && (
-        <div className="mt-6">
-          <h3 className="px-3 py-2 text-sm font-semibold text-muted-foreground">Orphaned Catalog Records</h3>
-          {orphaned.map((o) => (
-            <div key={o.catalog_record_id} className="px-3 py-2 text-sm flex gap-3">
-              <span>{o.name}</span>
-              {o.vendor && <span className="text-muted-foreground">{o.vendor}</span>}
-              {o.version && <span className="text-muted-foreground">{o.version}</span>}
-            </div>
-          ))}
-        </div>
-      )}
+      <OrphanedSection orphaned={orphaned} onOrphanFindLink={onOrphanFindLink} />
     </div>
   )
 }

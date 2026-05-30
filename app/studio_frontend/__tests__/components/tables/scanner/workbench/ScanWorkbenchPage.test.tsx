@@ -11,6 +11,8 @@ jest.mock('@/lib/api', () => ({
       softReset: jest.fn(),
       hardReset: jest.fn(),
       exclude: jest.fn(),
+      bulkUpdate: jest.fn(),
+      rejectMatch: jest.fn(),
     },
   },
 }))
@@ -48,14 +50,48 @@ jest.mock('@/lib/useWorkbench', () => ({
 }))
 
 // Mock sub-components so tests focus on page wiring only
+import type { OrphanedRecord } from '@/lib/types'
+type TableProps = {
+  rows: WorkbenchRow[]; orphaned: OrphanedRecord[]; onReject?: (r: WorkbenchRow) => void;
+  onFindLink?: (r: WorkbenchRow) => void; onCreateRecord?: (r: WorkbenchRow) => void;
+  onExclude?: (r: WorkbenchRow) => void; onOrphanFindLink?: (o: OrphanedRecord) => void;
+  onSelectAll?: () => void;
+}
+function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord, onExclude, onOrphanFindLink, onSelectAll }: TableProps) {
+  return (
+    <div data-testid="workbench-table">
+      <button type="button" onClick={() => onReject?.(rows[0])}>RowAction:Reject</button>
+      <button type="button" onClick={() => onFindLink?.(rows[0])}>RowAction:FindLink</button>
+      <button type="button" onClick={() => onCreateRecord?.(rows[0])}>RowAction:CreateRecord</button>
+      <button type="button" onClick={() => onExclude?.(rows[0])}>RowAction:Exclude</button>
+      <button type="button" onClick={() => onOrphanFindLink?.(orphaned[0])}>RowAction:OrphanFindLink</button>
+      <button type="button" onClick={() => onSelectAll?.()}>RowAction:SelectAll</button>
+    </div>
+  )
+}
 jest.mock('@/components/tables/scanner/workbench/WorkbenchTable', () => ({
-  WorkbenchTable: () => <div data-testid="workbench-table" />,
+  WorkbenchTable: (props: TableProps) => <MockTableActions {...props} />,
 }))
 jest.mock('@/components/tables/scanner/modals/SingleResolutionModal', () => ({
   SingleResolutionModal: ({ onSaved, row }: { onSaved: () => void; row: WorkbenchRow }) => (
     <div data-testid="single-resolution-modal" data-row-id={row.result_id}>
       <button type="button" onClick={onSaved}>MockSave</button>
     </div>
+  ),
+}))
+jest.mock('@/components/tables/scanner/modals/CollisionModal', () => ({
+  CollisionModal: ({ rowA, rowB }: { rowA: WorkbenchRow; rowB: WorkbenchRow }) => (
+    <div data-testid="collision-modal" data-row-a={rowA.result_id} data-row-b={rowB.result_id} />
+  ),
+}))
+jest.mock('@/components/tables/scanner/modals/FindLinkModal', () => ({
+  FindLinkModal: ({ mode, sourceId }: { mode: string; sourceId: string }) => (
+    <div data-testid="find-link-modal" data-mode={mode} data-source-id={sourceId} />
+  ),
+}))
+jest.mock('@/components/tables/scanner/modals/CreateRecordModal', () => ({
+  CreateRecordModal: ({ row }: { row: WorkbenchRow }) => (
+    <div data-testid="create-record-modal" data-row-id={row.result_id} />
   ),
 }))
 
@@ -180,50 +216,160 @@ describe('handleBulkExclude', () => {
     ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
     await waitFor(() => {
       expect(mockApi.scanner.exclude).toHaveBeenCalledWith('MNTRA', 'Surge XT', 'VST3')
       expect(mockApi.scanner.exclude).toHaveBeenCalledWith('Arturia', 'Pigments', 'AU')
     })
   })
 
-  it('clears selection after successful bulk exclude', async () => {
+  it('clears selection and invalidates after successful bulk exclude', async () => {
     const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
     ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
     await waitFor(() => expect(mockClearSelection).toHaveBeenCalled())
+    expect(mockInvalidate).toHaveBeenCalled()
+  })
+})
+
+// Step 7 — Gap 1: handleBulkUpdate
+describe('handleBulkUpdate', () => {
+  const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
+  const rowSubStates = new Map([['r1', 'mismatch' as const]])
+
+  beforeEach(() => {
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']), rowSubStates })
   })
 
-  it('calls invalidate after successful bulk exclude', async () => {
-    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
-    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+  it('calls bulkUpdate with mismatch ids, toasts success, clears selection and invalidates', async () => {
+    ;(mockApi.scanner.bulkUpdate as jest.Mock).mockResolvedValue({ updated: 1 })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
-    await waitFor(() => expect(mockInvalidate).toHaveBeenCalled())
+    fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
+    await waitFor(() => expect(mockApi.scanner.bulkUpdate).toHaveBeenCalledWith(['r1']))
+    expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/1 record/i))
+    expect(mockClearSelection).toHaveBeenCalled()
+    expect(mockInvalidate).toHaveBeenCalled()
+  })
+
+  it('shows error toast on failure', async () => {
+    ;(mockApi.scanner.bulkUpdate as jest.Mock).mockRejectedValue(new Error('update failed'))
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
+    await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
   })
 })
 
 // Step 22 — handleBulkExclude error path
 describe('handleBulkExclude error path', () => {
-  it('shows error toast when exclude rejects', async () => {
+  it('shows error toast and still clears selection and invalidates when exclude rejects', async () => {
     const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
     ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
+    fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
     await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
+    expect(mockClearSelection).toHaveBeenCalled()
+    expect(mockInvalidate).toHaveBeenCalled()
+  })
+})
+
+// Steps 18-24 — Gap 2: row-level handlers and stubs
+
+// Step 18 — handleReject (single row)
+describe('handleReject', () => {
+  it('calls api.scanner.rejectMatch and invalidates', async () => {
+    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
+    ;(mockApi.scanner.rejectMatch as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:Reject' }))
+    await waitFor(() => expect(mockApi.scanner.rejectMatch).toHaveBeenCalledWith('r1'))
+    expect(mockInvalidate).toHaveBeenCalled()
+  })
+})
+
+// Step 19 — handleFindLink and handleOrphanFindLink
+describe('handleFindLink', () => {
+  it('opens FindLinkModal in unlinked-to-orphaned mode for unlinked row', () => {
+    const r1 = makeRow('r1', { bucket: 'unlinked' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:FindLink' }))
+    expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-mode', 'unlinked-to-orphaned')
+    expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-source-id', 'r1')
   })
 
-  it('does NOT clear selection when exclude rejects', async () => {
-    const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
-    ;(mockApi.scanner.exclude as jest.Mock).mockRejectedValue(new Error('exclude failed'))
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+  it('opens FindLinkModal in orphaned-to-unlinked mode for orphaned record', () => {
+    const orphan = { catalog_record_id: 'cat-1', catalog_record_table: 'instruments', name: 'X', vendor: null, version: null, disk_paths: [] }
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, orphaned: [orphan] })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /exclude/i }))
-    await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
-    expect(mockClearSelection).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:OrphanFindLink' }))
+    expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-mode', 'orphaned-to-unlinked')
+    expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-source-id', 'cat-1')
+  })
+})
+
+// Step 20 — handleCreateRecord
+describe('handleCreateRecord', () => {
+  it('opens CreateRecordModal with the row', () => {
+    const r1 = makeRow('r1', { bucket: 'unlinked' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:CreateRecord' }))
+    expect(screen.getByTestId('create-record-modal')).toHaveAttribute('data-row-id', 'r1')
+  })
+})
+
+// Step 21 — handleExclude (single row)
+describe('handleExclude (single row)', () => {
+  it('calls api.scanner.exclude and invalidates', async () => {
+    const r1 = makeRow('r1', { bucket: 'unlinked', disk_vendor: 'V', disk_name: 'P', disk_format: 'VST3' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:Exclude' }))
+    await waitFor(() => expect(mockApi.scanner.exclude).toHaveBeenCalledWith('V', 'P', 'VST3'))
+    expect(mockInvalidate).toHaveBeenCalled()
+  })
+})
+
+// Step 22 — handleResolveCollision (replace stub)
+describe('handleResolveCollision', () => {
+  it('opens CollisionModal with the two selected rows', () => {
+    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
+    const r2 = makeRow('r2', { bucket: 'needs_review', catalog_record_id: 'c2' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /resolve collision/i }))
+    const modal = screen.getByTestId('collision-modal')
+    expect(modal).toHaveAttribute('data-row-a', 'r1')
+    expect(modal).toHaveAttribute('data-row-b', 'r2')
+  })
+})
+
+// Step 23 — handleBulkReject (replace stub)
+describe('handleBulkReject', () => {
+  it('calls rejectMatch serially for each needs_review and known row', async () => {
+    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
+    const r2 = makeRow('r2', { bucket: 'known', catalog_record_id: 'c2' })
+    ;(mockApi.scanner.rejectMatch as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getAllByRole('button', { name: /reject/i })[0])
+    await waitFor(() => expect(mockApi.scanner.rejectMatch).toHaveBeenCalledTimes(2))
+    expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/2/))
+  })
+})
+
+// Step 24 — selectAll wired
+describe('selectAll wiring', () => {
+  it('MockSelectAll button triggers selectAll from useWorkbench', () => {
+    const mockSelectAll = jest.fn()
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, selectAll: mockSelectAll })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:SelectAll' }))
+    expect(mockSelectAll).toHaveBeenCalledTimes(1)
   })
 })
