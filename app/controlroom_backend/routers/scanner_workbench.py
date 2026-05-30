@@ -200,6 +200,32 @@ async def get_workbench(
     return WorkbenchResponse(rows=workbench_rows, orphaned=orphaned, scan_id=resolved_scan_id)
 
 
+def _build_update_targets(rows: list) -> dict[tuple, str]:
+    """Group scan rows by (table, record_id); resolve version conflicts with max()."""
+    targets: dict[tuple, str] = {}
+    for r in rows:
+        if r["record_table"] not in CATALOG_TABLES:
+            continue
+        key = (r["record_table"], r["record_id"])
+        targets[key] = max(targets.get(key, ""), r["disk_version"])
+    return targets
+
+
+async def _write_version_updates(
+    conn: Connection, targets: dict[tuple, str], username: str,
+) -> None:
+    for (table, record_id), version in targets.items():
+        pk, _ = CATALOG_TABLES[table]
+        old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", record_id)  # noqa: S608 — pk/table from constants
+        await conn.execute(
+            f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
+            version, record_id,
+        )
+        await log_audit(conn, table, record_id, "UPDATE", username,
+                        old_data=dict(old) if old else None,
+                        new_data={"version": version})
+
+
 @router.post("/workbench/bulk-update")
 async def bulk_update_versions(
     body: BulkUpdateRequest,
@@ -214,25 +240,6 @@ async def bulk_update_versions(
         "AND record_id IS NOT NULL AND record_table IS NOT NULL",
         body.result_ids,
     )
-    targets: dict[tuple, list[str]] = {}
-    for r in rows:
-        table = r["record_table"]
-        if table not in CATALOG_TABLES:
-            continue
-        key = (table, r["record_id"])
-        targets.setdefault(key, []).append(r["disk_version"])
-
-    updated = 0
-    for (table, record_id), versions in targets.items():
-        pk, _ = CATALOG_TABLES[table]
-        chosen = max(versions)
-        old = await conn.fetchrow(f"SELECT version FROM {table} WHERE {pk}=$1", record_id)  # noqa: S608 — pk/table from constants
-        await conn.execute(
-            f"UPDATE {table} SET version=$1, updated_at=NOW() WHERE {pk}=$2",  # noqa: S608
-            chosen, record_id,
-        )
-        await log_audit(conn, table, record_id, "UPDATE", user.username,
-                        old_data=dict(old) if old else None,
-                        new_data={"version": chosen})
-        updated += 1
-    return BulkUpdateResult(updated=updated)
+    targets = _build_update_targets(rows)
+    await _write_version_updates(conn, targets, user.username)
+    return BulkUpdateResult(updated=len(targets))
