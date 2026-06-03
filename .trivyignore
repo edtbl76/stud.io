@@ -77,3 +77,6 @@ CVE-2026-42497
 
 # CVE-2026-9538 (HIGH): Archive::Tar < 3.10 — memory exhaustion via crafted archive
 CVE-2026-9538
+
+# CVE-2026-48962 (HIGH): perl-IO-Compress — arbitrary code execution via attacker-controlled output glob
+CVE-2026-48962

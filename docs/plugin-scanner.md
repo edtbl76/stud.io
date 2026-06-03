@@ -73,7 +73,29 @@ plugin-scanner scan --dry-run
 
 The scanner walks all default macOS plugin paths (VST3, AU, VST2 — user and system) and uploads results to ControlRoom. A progress indicator updates in place during the upload.
 
-## 5. JSON Output
+## 5. Exclusion Pre-filter
+
+Before uploading, the binary fetches your exclusion list from ControlRoom and removes matching plugins from the upload payload. Excluded plugins are never sent to the server.
+
+**Matching** is exact and case-sensitive on both vendor and name. A plugin is only excluded when both fields match an exclusion entry exactly.
+
+**Terminal output** shows an `Excluded (pre-upload)` line below "Total on disk":
+
+```
+─────────────────────────────
+  Total on disk            12
+  Excluded (pre-upload)     3
+```
+
+This line is always shown, even when the count is 0.
+
+**Dry-run behaviour**:
+- If `server_url` and `api_key` are configured, exclusions are fetched and the filter is applied — the terminal output shows what would have been excluded without uploading anything.
+- If `server_url` or `api_key` is empty (offline dry-run), the exclusion fetch is skipped and `Excluded (pre-upload)` shows 0.
+
+**Failure behaviour**: If the exclusion fetch fails (network error, 4xx, 5xx), the scan aborts before upload. Nothing is uploaded. Re-run after resolving connectivity to the server.
+
+## 6. JSON Output
 
 Pass `--json` to receive machine-readable output instead of the terminal report:
 
@@ -81,15 +103,17 @@ Pass `--json` to receive machine-readable output instead of the terminal report:
 plugin-scanner scan --json
 ```
 
-The top-level object contains `discovered`, `skipped_paths`, and `summary`. The `summary` field mirrors the `POST /api/scanner/scan` response and uses the same field names:
+The top-level object contains `discovered`, `skipped_paths`, `pre_filter_excluded`, and `summary`. The `summary` field mirrors the `POST /api/scanner/scan` response and uses the same field names:
 
 | Field | JSON key | Description |
 |---|---|---|
-| Known | `known` | Fully resolved entries |
-| Unlinked | `unlinked` | Disk entries with no catalog match |
-| Orphaned | `orphaned` | Catalog records with no disk entry in this scan |
-| Needs Review | `needs_review` | Matches requiring user action |
-| Excluded | `excluded` | Explicitly ignored disk entries |
+| Discovered | `discovered` | All plugins found on disk |
+| Pre-filter excluded | `pre_filter_excluded` | Plugins removed before upload (full objects); always an array, empty when none |
+| Known | `summary.known` | Fully resolved entries |
+| Unlinked | `summary.unlinked` | Disk entries with no catalog match |
+| Orphaned | `summary.orphaned` | Catalog records with no disk entry in this scan |
+| Needs Review | `summary.needs_review` | Matches requiring user action |
+| Excluded | `summary.excluded` | Explicitly ignored disk entries (server bucket) |
 
 Fields are emitted in this order. Zero-count buckets are always included.
 
