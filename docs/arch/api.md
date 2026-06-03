@@ -6,7 +6,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 
 - Base URL: `https://localhost:5150`
 - Interactive docs: `https://localhost:5150/docs` (Swagger UI)
-- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, `/health`, and `/scanner/scan` (which uses API key auth: `Authorization: Bearer psc_...`)
+- All endpoints require a JWT bearer token except `/auth/token`, `/auth/google`, `/health`, `/scanner/scan` (API key auth only), and `/scanner/exclusions` (accepts either a user JWT or a scanner API key)
 
 ---
 
@@ -430,5 +430,6 @@ Plugin scanner release downloads are handled entirely by the Next.js server. The
 | `/api/scanner/download/history` | GET | JWT session cookie | Returns all releases from that prefix, sorted newest-first. |
 | `/api/scanner/download/url` | GET | JWT session cookie | Query param `key=<object-key>`. Streams the object directly from MinIO as a binary download. |
 | `/api/scanner/scan` | POST | API key (`Authorization: Bearer psc_...`) | Passes the scan payload directly to FastAPI `POST /scanner/scan`. Does **not** use the httpOnly cookie — the binary's API key is forwarded as-is. Also forwards `X-Idempotency-Key` if present. |
+| `/api/scanner/exclusions` | GET | API key **or** session cookie | Fetches the exclusion list from FastAPI `GET /scanner/exclusions`. When an `Authorization` header is present (plugin-scanner binary) it is forwarded as-is. When absent (browser UI) the `controlroom_token` session cookie is used instead. FastAPI accepts either a valid user JWT or a valid scanner API key. |
 
 The `studio-downloads` bucket and `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, and `SCANNER_DOWNLOADS_BUCKET` env vars must be set in the Next.js container for these routes to work. See `app/studio_frontend/app/api/scanner/download/_s3.ts`.

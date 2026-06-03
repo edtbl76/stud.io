@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/studiocontrolroom/plugin_scanner/internal/client"
 	"github.com/studiocontrolroom/plugin_scanner/internal/config"
+	"github.com/studiocontrolroom/plugin_scanner/internal/metadata"
 	"github.com/studiocontrolroom/plugin_scanner/internal/scanner"
 )
 
@@ -76,17 +77,50 @@ func runScan(noColor *bool, jsonOut, dryRun bool, timeoutSecs int) error {
 	if err != nil {
 		return err
 	}
+	kept, excluded, err := fetchAndFilterExclusions(ctx, cfg, run.Discovered)
+	if err != nil {
+		return err
+	}
+	run.ExcludedPlugins = excluded
 	if !dryRun {
-		if err := uploadScan(ctx, cfg, s, &run); err != nil {
+		p := uploadParams{
+			ctx:      ctx,
+			cfg:      cfg,
+			kept:     kept,
+			progress: func(cur, total int) { s.PrintUploadProgress(cur, total) },
+		}
+		if err := uploadScan(s, &run, p); err != nil {
 			return err
 		}
 	}
 	return scanner.NewRenderer(os.Stdout, *noColor).Render(run, renderMode(jsonOut, dryRun))
 }
 
+func fetchAndFilterExclusions(ctx context.Context, cfg *config.Config, discovered []metadata.DiscoveredPlugin) (kept, excluded []metadata.DiscoveredPlugin, err error) {
+	if cfg.ServerURL == "" || cfg.APIKey == "" {
+		return discovered, nil, nil
+	}
+	resolved, err := config.ResolveCA(cfg.CACertPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	apiClient := client.NewAPIClient(cfg.ServerURL, cfg.APIKey, resolved.TLSConfig, nil)
+	exclusions, err := apiClient.GetExclusions(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetching exclusions: %w", err)
+	}
+	kept, excluded = scanner.FilterExcluded(discovered, exclusions)
+	return kept, excluded, nil
+}
+
 func validateScanConfig(cfg *config.Config, dryRun bool) error {
-	if cfg.APIKey == "" && !dryRun {
-		return fmt.Errorf("no API key configured. Run: plugin-scanner auth set-key <key>")
+	if !dryRun {
+		if cfg.APIKey == "" {
+			return fmt.Errorf("no API key configured. Run: plugin-scanner auth set-key <key>")
+		}
+		if cfg.ServerURL == "" {
+			return fmt.Errorf("no server URL configured. Run: plugin-scanner config set server_url <url>")
+		}
 	}
 	return nil
 }
@@ -110,20 +144,20 @@ type uploadParams struct {
 	ctx      context.Context
 	cfg      *config.Config
 	progress func(int, int)
+	kept     []metadata.DiscoveredPlugin
 }
 
-func uploadScan(ctx context.Context, cfg *config.Config, s *scanner.Scanner, run *scanner.ScanRun) error {
-	resolved, err := config.ResolveCA(cfg.CACertPath)
+func uploadScan(s *scanner.Scanner, run *scanner.ScanRun, p uploadParams) error {
+	resolved, err := config.ResolveCA(p.cfg.CACertPath)
 	if err != nil {
 		return err
 	}
-	p := uploadParams{ctx: ctx, cfg: cfg, progress: func(cur, total int) { s.PrintUploadProgress(cur, total) }}
 	apiClient := client.NewAPIClient(p.cfg.ServerURL, p.cfg.APIKey, resolved.TLSConfig, p.progress)
-	summary, err := apiClient.PostScan(p.ctx, run.Discovered, p.cfg.MachineName)
-	s.PrintUploadDone()
+	summary, err := apiClient.PostScan(p.ctx, p.kept, p.cfg.MachineName)
 	if err != nil {
 		return err
 	}
+	s.PrintUploadDone()
 	run.Summary = summary
 	run.ScanID = summary.ScanID
 	return nil

@@ -64,6 +64,91 @@ func makeBundle(t *testing.T, dir, name, ext string) string {
 	return bundle
 }
 
+// ---------------------------------------------------------------------------
+// FilterExcluded
+// ---------------------------------------------------------------------------
+
+func assertPluginSliceEqual(t *testing.T, label string, got, want []metadata.DiscoveredPlugin) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Errorf("%s: got %d plugins, want %d", label, len(got), len(want))
+		return
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("%s[%d]: got %+v, want %+v", label, i, got[i], want[i])
+		}
+	}
+}
+
+func p(vendor, name string) metadata.DiscoveredPlugin {
+	return metadata.DiscoveredPlugin{Vendor: vendor, Name: name}
+}
+
+func ex(vendor, name string) Exclusion {
+	return Exclusion{Vendor: vendor, Name: name}
+}
+
+func TestFilterExcluded_EmptyExclusions(t *testing.T) {
+	kept, excluded := FilterExcluded(
+		[]metadata.DiscoveredPlugin{p("Waves", "SSL"), p("FabFilter", "Pro-Q")},
+		[]Exclusion{},
+	)
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{p("Waves", "SSL"), p("FabFilter", "Pro-Q")})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{})
+}
+
+func TestFilterExcluded_EmptyPlugins(t *testing.T) {
+	kept, excluded := FilterExcluded([]metadata.DiscoveredPlugin{}, []Exclusion{ex("Waves", "SSL")})
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{})
+}
+
+func TestFilterExcluded_AllMatch(t *testing.T) {
+	kept, excluded := FilterExcluded(
+		[]metadata.DiscoveredPlugin{p("Waves", "SSL"), p("Waves", "CLA")},
+		[]Exclusion{ex("Waves", "SSL"), ex("Waves", "CLA")},
+	)
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{p("Waves", "SSL"), p("Waves", "CLA")})
+}
+
+func TestFilterExcluded_NoMatch(t *testing.T) {
+	kept, excluded := FilterExcluded(
+		[]metadata.DiscoveredPlugin{p("Waves", "SSL"), p("FabFilter", "Pro-Q")},
+		[]Exclusion{ex("Ozone", "Imager")},
+	)
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{p("Waves", "SSL"), p("FabFilter", "Pro-Q")})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{})
+}
+
+func TestFilterExcluded_Mixed(t *testing.T) {
+	kept, excluded := FilterExcluded(
+		[]metadata.DiscoveredPlugin{p("Waves", "SSL"), p("FabFilter", "Pro-Q"), p("Waves", "CLA")},
+		[]Exclusion{ex("Waves", "SSL"), ex("Waves", "CLA")},
+	)
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{p("FabFilter", "Pro-Q")})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{p("Waves", "SSL"), p("Waves", "CLA")})
+}
+
+func TestFilterExcluded_CaseSensitive(t *testing.T) {
+	kept, excluded := FilterExcluded(
+		[]metadata.DiscoveredPlugin{p("waves", "ssl"), p("Waves", "SSL")},
+		[]Exclusion{ex("Waves", "SSL")},
+	)
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{p("waves", "ssl")})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{p("Waves", "SSL")})
+}
+
+func TestFilterExcluded_EmptyVendorMatchesOnly(t *testing.T) {
+	kept, excluded := FilterExcluded(
+		[]metadata.DiscoveredPlugin{p("", "NoVendor"), p("Waves", "NoVendor")},
+		[]Exclusion{ex("", "NoVendor")},
+	)
+	assertPluginSliceEqual(t, "kept", kept, []metadata.DiscoveredPlugin{p("Waves", "NoVendor")})
+	assertPluginSliceEqual(t, "excluded", excluded, []metadata.DiscoveredPlugin{p("", "NoVendor")})
+}
+
 func TestScan_DiscoversBundlesAcrossPaths(t *testing.T) {
 	dir := t.TempDir()
 	path1 := filepath.Join(dir, "vst3")
@@ -147,8 +232,45 @@ func TestRenderer_TerminalOutput(t *testing.T) {
 	if !strings.Contains(out, "abc12345") {
 		t.Error("expected scan ID in output")
 	}
-	assertTerminalLabelsPresent(t, out, []string{"Known", "Unlinked", "Orphaned", "Needs Review", "Excluded", "Total on disk"})
+	assertTerminalLabelsPresent(t, out, []string{"Known", "Unlinked", "Orphaned", "Needs Review", "Excluded", "Total on disk", "Excluded (pre-upload)"})
 	assertTerminalLabelsAbsent(t, out, []string{"Matched", "Conflicted", "Unconfirmed", "Untracked", "Ignored"})
+}
+
+func TestRenderer_TerminalOutput_ExcludedPreUpload_ShowsWhenZero(t *testing.T) {
+	var buf bytes.Buffer
+	r := NewRenderer(&buf, true)
+	run := ScanRun{
+		ScanID:          "x",
+		Discovered:      []metadata.DiscoveredPlugin{{Name: "Synth", Format: "vst3"}},
+		ExcludedPlugins: []metadata.DiscoveredPlugin{},
+		Summary:         &ServerSummary{},
+	}
+	r.Render(run, RenderModeTerminal) //nolint:errcheck
+	out := buf.String()
+	assertTerminalLabelsPresent(t, out, []string{"Excluded (pre-upload)"})
+	if !strings.Contains(out, "Excluded (pre-upload)") || !strings.Contains(out, "0") {
+		t.Error("expected Excluded (pre-upload) line with count 0")
+	}
+}
+
+func TestRenderer_TerminalOutput_ExcludedPreUpload_ShowsCount(t *testing.T) {
+	var buf bytes.Buffer
+	r := NewRenderer(&buf, true)
+	run := ScanRun{
+		ScanID:     "x",
+		Discovered: []metadata.DiscoveredPlugin{{Name: "A"}, {Name: "B"}, {Name: "C"}},
+		ExcludedPlugins: []metadata.DiscoveredPlugin{
+			{Name: "A", Vendor: "Waves"},
+			{Name: "B", Vendor: "Waves"},
+		},
+		Summary: &ServerSummary{},
+	}
+	r.Render(run, RenderModeTerminal) //nolint:errcheck
+	out := buf.String()
+	if !strings.Contains(out, "2") {
+		t.Error("expected count 2 in output")
+	}
+	assertTerminalLabelsPresent(t, out, []string{"Excluded (pre-upload)"})
 }
 
 func TestRenderer_DryRunPrefix(t *testing.T) {
@@ -180,12 +302,78 @@ func TestRenderer_JSONOutput(t *testing.T) {
 	if _, ok := out["discovered"]; !ok {
 		t.Error("expected discovered field in JSON")
 	}
+	assertJSONKeysPresent(t, out, []string{"pre_filter_excluded"})
 	summary, ok := out["summary"].(map[string]any)
 	if !ok {
 		t.Fatal("expected summary to be a JSON object")
 	}
 	assertJSONKeysPresent(t, summary, []string{"unlinked", "orphaned", "needs_review", "excluded"})
 	assertJSONKeysAbsent(t, summary, []string{"matched", "conflicted"})
+}
+
+func TestRenderer_JSONOutput_PreFilterExcluded_EmptyArrayWhenNone(t *testing.T) {
+	var buf bytes.Buffer
+	r := NewRenderer(&buf, true)
+	run := ScanRun{
+		ScanID:          "test-id",
+		Discovered:      []metadata.DiscoveredPlugin{{Name: "Synth", Format: "vst3"}},
+		SkippedPaths:    []string{},
+		ExcludedPlugins: nil,
+	}
+	if err := r.Render(run, RenderModeJSON); err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &out); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	val, ok := out["pre_filter_excluded"]
+	if !ok {
+		t.Fatal("expected pre_filter_excluded key in JSON")
+	}
+	arr, ok := val.([]any)
+	if !ok {
+		t.Fatalf("expected pre_filter_excluded to be an array, got %T", val)
+	}
+	if len(arr) != 0 {
+		t.Errorf("expected empty array, got %d elements", len(arr))
+	}
+}
+
+func TestRenderer_JSONOutput_PreFilterExcluded_FullObjects(t *testing.T) {
+	var buf bytes.Buffer
+	r := NewRenderer(&buf, true)
+	run := ScanRun{
+		ScanID:     "test-id",
+		Discovered: []metadata.DiscoveredPlugin{{Name: "Synth"}, {Name: "EQ"}},
+		ExcludedPlugins: []metadata.DiscoveredPlugin{
+			{Name: "Synth", Vendor: "Waves", Format: "vst3", Version: "14.0"},
+		},
+	}
+	if err := r.Render(run, RenderModeJSON); err != nil {
+		t.Fatal(err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &out); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	arr, ok := out["pre_filter_excluded"].([]any)
+	if !ok {
+		t.Fatal("expected pre_filter_excluded to be an array")
+	}
+	if len(arr) != 1 {
+		t.Fatalf("expected 1 excluded plugin, got %d", len(arr))
+	}
+	obj, ok := arr[0].(map[string]any)
+	if !ok {
+		t.Fatal("expected excluded entry to be a JSON object")
+	}
+	if obj["Name"] != "Synth" {
+		t.Errorf("expected Name=Synth, got %v", obj["Name"])
+	}
+	if obj["Vendor"] != "Waves" {
+		t.Errorf("expected Vendor=Waves, got %v", obj["Vendor"])
+	}
 }
 
 func TestServerSummary_JSONRoundTrip(t *testing.T) {

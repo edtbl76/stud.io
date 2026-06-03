@@ -74,25 +74,82 @@ func (c *APIClient) PostScan(ctx context.Context, plugins []metadata.DiscoveredP
 	return summary, nil
 }
 
-func (c *APIClient) postWithRetry(ctx context.Context, body []byte, idempotencyKey string) (*scanner.ServerSummary, error) {
+func withRetry[T any](ctx context.Context, attempt func(context.Context) (T, error)) (T, error) {
+	var zero T
 	var lastErr error
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for i := 0; i < maxRetries; i++ {
 		if ctx.Err() != nil {
-			return nil, ctx.Err()
+			return zero, ctx.Err()
 		}
-		if err := waitBackoff(ctx, attempt); err != nil {
-			return nil, err
+		if err := waitBackoff(ctx, i); err != nil {
+			return zero, err
 		}
-		summary, err := c.doPost(ctx, body, idempotencyKey)
+		result, err := attempt(ctx)
 		if err == nil {
-			return summary, nil
+			return result, nil
 		}
 		if isTerminalError(err) {
-			return nil, err
+			return zero, err
 		}
 		lastErr = err
 	}
-	return nil, fmt.Errorf("upload failed after %d attempts: %w", maxRetries, lastErr)
+	return zero, fmt.Errorf("request failed after %d attempts: %w", maxRetries, lastErr)
+}
+
+func (c *APIClient) postWithRetry(ctx context.Context, body []byte, idempotencyKey string) (*scanner.ServerSummary, error) {
+	return withRetry(ctx, func(ctx context.Context) (*scanner.ServerSummary, error) {
+		return c.doPost(ctx, body, idempotencyKey)
+	})
+}
+
+// GetExclusions fetches the server's exclusion list. Used to pre-filter plugins before upload.
+func (c *APIClient) GetExclusions(ctx context.Context) ([]scanner.Exclusion, error) {
+	type exclusionDTO struct {
+		Vendor string `json:"vendor"`
+		Name   string `json:"name"`
+	}
+	base := strings.TrimRight(c.serverURL, "/")
+	url := base + "/api/scanner/exclusions"
+	var dtos []exclusionDTO
+	if _, err := withRetry(ctx, func(ctx context.Context) (struct{}, error) {
+		data, err := c.doGet(ctx, url)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := json.Unmarshal(data, &dtos); err != nil {
+			return struct{}{}, fmt.Errorf("decoding exclusions: %w", err)
+		}
+		return struct{}{}, nil
+	}); err != nil {
+		return nil, err
+	}
+	exclusions := make([]scanner.Exclusion, len(dtos))
+	for i, d := range dtos {
+		exclusions[i] = scanner.Exclusion{Vendor: d.Vendor, Name: d.Name}
+	}
+	return exclusions, nil
+}
+
+func (c *APIClient) doGet(ctx context.Context, url string) ([]byte, error) {
+	attemptCtx, cancel := context.WithTimeout(ctx, perAttemptTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(attemptCtx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.apiKey)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if err := checkStatus(resp); err != nil {
+		return nil, err
+	}
+	return io.ReadAll(resp.Body)
 }
 
 func waitBackoff(ctx context.Context, attempt int) error {

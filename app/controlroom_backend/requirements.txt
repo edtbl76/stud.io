@@ -1,9 +1,9 @@
-fastapi==0.135.1
+fastapi==0.136.3
 uvicorn[standard]==0.32.0
 asyncpg==0.30.0
 pydantic==2.10.1
 pydantic-settings==2.6.1
-PyJWT[crypto]==2.12.1
+PyJWT[crypto]==2.13.0
 bcrypt==5.0.0
 google-auth>=2.38.0
 requests>=2.32.0
@@ -12,6 +12,11 @@ python-multipart==0.0.27
 openpyxl>=3.1.5
 rapidfuzz>=3.0.0
 slowapi==0.1.9
+# explicit transitive pins to satisfy pip-audit CVE fix versions
+starlette>=1.0.1
+cryptography>=46.0.7
+idna>=3.15
+Pygments>=2.20.0
 
 # dev tools
 ruff==0.9.10

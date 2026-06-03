@@ -22,6 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from database import get_conn
 from limiter import limiter
 from routers.auth import UserOut, get_current_user, require_admin
+from routers.scanner import get_scanner_auth_or_user
 from schemas.scanner import (
     APIKeyCreated, APIKeyResponse,
     ConfirmationCounts, CreateExclusionRequest,
@@ -112,7 +113,7 @@ async def revoke_key(
 
 @router.get("/exclusions")
 async def list_exclusions(
-    _user: Annotated[UserOut, Depends(get_current_user)],
+    _auth: Annotated[None, Depends(get_scanner_auth_or_user)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> list[ExclusionOut]:
     rows = await conn.fetch(

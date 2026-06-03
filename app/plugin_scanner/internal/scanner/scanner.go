@@ -27,10 +27,41 @@ const (
 
 // ScanRun holds the full result of a scan operation.
 type ScanRun struct {
-	Discovered   []metadata.DiscoveredPlugin
-	SkippedPaths []string
-	Summary      *ServerSummary
-	ScanID       string
+	Discovered      []metadata.DiscoveredPlugin
+	SkippedPaths    []string
+	Summary         *ServerSummary
+	ScanID          string
+	ExcludedPlugins []metadata.DiscoveredPlugin
+}
+
+// Exclusion is a vendor+name pair fetched from the server used to pre-filter plugins before upload.
+type Exclusion struct {
+	Vendor string
+	Name   string
+}
+
+type exclusionKey struct {
+	Vendor string
+	Name   string
+}
+
+// FilterExcluded splits plugins into those matching an exclusion entry and those that don't.
+// Input slices are not mutated. Order within each output slice mirrors the input order.
+func FilterExcluded(plugins []metadata.DiscoveredPlugin, exclusions []Exclusion) (kept, excluded []metadata.DiscoveredPlugin) {
+	set := make(map[exclusionKey]struct{}, len(exclusions))
+	for _, e := range exclusions {
+		set[exclusionKey{Vendor: e.Vendor, Name: e.Name}] = struct{}{}
+	}
+	kept = make([]metadata.DiscoveredPlugin, 0, len(plugins))
+	excluded = make([]metadata.DiscoveredPlugin, 0)
+	for _, p := range plugins {
+		if _, match := set[exclusionKey{Vendor: p.Vendor, Name: p.Name}]; match {
+			excluded = append(excluded, p)
+		} else {
+			kept = append(kept, p)
+		}
+	}
+	return kept, excluded
 }
 
 // ServerSummary mirrors the ScanSummary returned by the API.
@@ -180,16 +211,22 @@ func (r *Renderer) Render(run ScanRun, mode RenderMode) error {
 
 func (r *Renderer) renderJSON(run ScanRun) error {
 	type output struct {
-		ScanID       string                      `json:"scan_id,omitempty"`
-		Discovered   []metadata.DiscoveredPlugin `json:"discovered"`
-		SkippedPaths []string                    `json:"skipped_paths"`
-		Summary      *ServerSummary              `json:"summary,omitempty"`
+		ScanID            string                      `json:"scan_id,omitempty"`
+		Discovered        []metadata.DiscoveredPlugin `json:"discovered"`
+		SkippedPaths      []string                    `json:"skipped_paths"`
+		PreFilterExcluded []metadata.DiscoveredPlugin `json:"pre_filter_excluded"`
+		Summary           *ServerSummary              `json:"summary,omitempty"`
+	}
+	excluded := run.ExcludedPlugins
+	if excluded == nil {
+		excluded = []metadata.DiscoveredPlugin{}
 	}
 	out := output{
-		ScanID:       run.ScanID,
-		Discovered:   run.Discovered,
-		SkippedPaths: run.SkippedPaths,
-		Summary:      run.Summary,
+		ScanID:            run.ScanID,
+		Discovered:        run.Discovered,
+		SkippedPaths:      run.SkippedPaths,
+		PreFilterExcluded: excluded,
+		Summary:           run.Summary,
 	}
 	enc := json.NewEncoder(r.out)
 	enc.SetIndent("", "  ")
@@ -223,6 +260,7 @@ func (r *Renderer) renderTerminal(run ScanRun, dryRun bool) error {
 
 	fmt.Fprintln(r.out, "─────────────────────────────")
 	fmt.Fprintf(r.out, "  %-25s %d\n", "Total on disk", len(run.Discovered))
+	fmt.Fprintf(r.out, "  %-25s %d\n", "Excluded (pre-upload)", len(run.ExcludedPlugins))
 
 	if len(run.SkippedPaths) > 0 {
 		fmt.Fprintf(r.out, "\n%sSkipped paths:\n", prefix)
