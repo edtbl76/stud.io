@@ -23,34 +23,102 @@ func newTestClient(t *testing.T, handler http.HandlerFunc) (*APIClient, *httptes
 // clientOp is a uniform operation type used by shared retry/error assertion helpers.
 type clientOp func(c *APIClient, ctx context.Context) error
 
-// assertRetryBehavior verifies the retry and terminal-error contract for any client operation.
-// codes: HTTP status codes to test; wantAttempts: expected number of server hits; errFragment:
-// substring that must appear in the error when non-empty.
-func assertRetryBehavior(t *testing.T, codes []int, wantAttempts int, errFragment string, op clientOp) {
+// retrySpec bundles the parameters for assertRetryBehavior.
+type retrySpec struct {
+	codes        []int
+	wantAttempts int
+	errFragment  string
+}
+
+func assertRetryBehavior(t *testing.T, spec retrySpec, op clientOp) {
 	t.Helper()
 	orig := retryBackoff
 	retryBackoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
 	defer func() { retryBackoff = orig }()
-
-	for _, code := range codes {
+	for _, code := range spec.codes {
 		code := code
 		t.Run(fmt.Sprintf("%d", code), func(t *testing.T) {
-			attempts := 0
-			c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
-				attempts++
-				w.WriteHeader(code)
-			})
-			err := op(c, context.Background())
-			if err == nil {
-				t.Fatalf("expected error on %d", code)
-			}
-			if errFragment != "" && !strings.Contains(err.Error(), errFragment) {
-				t.Errorf("expected error containing %q, got: %v", errFragment, err)
-			}
-			if attempts != wantAttempts {
-				t.Errorf("expected %d attempts on %d, got %d", wantAttempts, code, attempts)
-			}
+			checkRetryAttempts(t, code, spec, op)
 		})
+	}
+}
+
+func checkRetryAttempts(t *testing.T, code int, spec retrySpec, op clientOp) {
+	t.Helper()
+	attempts := 0
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		w.WriteHeader(code)
+	})
+	err := op(c, context.Background())
+	if err == nil {
+		t.Fatalf("expected error on %d", code)
+	}
+	if spec.errFragment != "" && !strings.Contains(err.Error(), spec.errFragment) {
+		t.Errorf("expected error containing %q, got: %v", spec.errFragment, err)
+	}
+	if attempts != spec.wantAttempts {
+		t.Errorf("expected %d attempts on %d, got %d", spec.wantAttempts, code, attempts)
+	}
+}
+
+func assertContextCancels(t *testing.T, op clientOp) {
+	t.Helper()
+	orig := retryBackoff
+	retryBackoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
+	defer func() { retryBackoff = orig }()
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := op(c, ctx); err == nil {
+		t.Fatal("expected error on cancelled context")
+	}
+}
+
+// clientOps returns PostScan and GetExclusions as a named slice for shared scenario tests.
+func clientOps() []struct {
+	name string
+	op   clientOp
+} {
+	return []struct {
+		name string
+		op   clientOp
+	}{
+		{"PostScan", func(c *APIClient, ctx context.Context) error { _, err := c.PostScan(ctx, nil, "mac"); return err }},
+		{"GetExclusions", func(c *APIClient, ctx context.Context) error { _, err := c.GetExclusions(ctx); return err }},
+	}
+}
+
+// Shared retry/error contract tests cover both PostScan and GetExclusions in one pass.
+
+func TestClientOps_401_NoRetry(t *testing.T) {
+	spec := retrySpec{codes: []int{http.StatusUnauthorized}, wantAttempts: 1, errFragment: "invalid or revoked"}
+	for _, o := range clientOps() {
+		o := o
+		t.Run(o.name, func(t *testing.T) { assertRetryBehavior(t, spec, o.op) })
+	}
+}
+
+func TestClientOps_4xx_NoRetry(t *testing.T) {
+	spec := retrySpec{codes: []int{400, 403, 404, 422}, wantAttempts: 1}
+	for _, o := range clientOps() {
+		o := o
+		t.Run(o.name, func(t *testing.T) { assertRetryBehavior(t, spec, o.op) })
+	}
+}
+
+func TestClientOps_5xx_Retries(t *testing.T) {
+	spec := retrySpec{codes: []int{http.StatusInternalServerError}, wantAttempts: maxRetries}
+	for _, o := range clientOps() {
+		o := o
+		t.Run(o.name, func(t *testing.T) { assertRetryBehavior(t, spec, o.op) })
+	}
+}
+
+func TestClientOps_ContextCancellation(t *testing.T) {
+	for _, o := range clientOps() {
+		o := o
+		t.Run(o.name, func(t *testing.T) { assertContextCancels(t, o.op) })
 	}
 }
 
@@ -73,34 +141,6 @@ func TestPostScan_SuccessReturnsSummary(t *testing.T) {
 	}
 	if got.NeedsReview != 2 {
 		t.Errorf("expected NeedsReview=2, got %d", got.NeedsReview)
-	}
-}
-
-func TestPostScan_401_NoRetry(t *testing.T) {
-	postScan := func(c *APIClient, ctx context.Context) error { _, err := c.PostScan(ctx, nil, "mac"); return err }
-	assertRetryBehavior(t, []int{http.StatusUnauthorized}, 1, "invalid or revoked", postScan)
-}
-
-func TestPostScan_4xx_NoRetry(t *testing.T) {
-	postScan := func(c *APIClient, ctx context.Context) error { _, err := c.PostScan(ctx, nil, "mac"); return err }
-	assertRetryBehavior(t, []int{400, 403, 404, 422}, 1, "", postScan)
-}
-
-func TestPostScan_5xx_Retries(t *testing.T) {
-	postScan := func(c *APIClient, ctx context.Context) error { _, err := c.PostScan(ctx, nil, "mac"); return err }
-	assertRetryBehavior(t, []int{http.StatusInternalServerError}, maxRetries, "", postScan)
-}
-
-func TestPostScan_ContextCancellation(t *testing.T) {
-	orig := retryBackoff
-	retryBackoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
-	defer func() { retryBackoff = orig }()
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err := c.PostScan(ctx, nil, "mac")
-	if err == nil {
-		t.Fatal("expected error on cancelled context")
 	}
 }
 
@@ -188,34 +228,6 @@ func TestGetExclusions_EmptyArray_ReturnsEmpty(t *testing.T) {
 	}
 	if len(got) != 0 {
 		t.Errorf("expected empty slice, got %d elements", len(got))
-	}
-}
-
-func TestGetExclusions_401_NoRetry(t *testing.T) {
-	getExcl := func(c *APIClient, ctx context.Context) error { _, err := c.GetExclusions(ctx); return err }
-	assertRetryBehavior(t, []int{http.StatusUnauthorized}, 1, "invalid or revoked", getExcl)
-}
-
-func TestGetExclusions_4xx_NoRetry(t *testing.T) {
-	getExcl := func(c *APIClient, ctx context.Context) error { _, err := c.GetExclusions(ctx); return err }
-	assertRetryBehavior(t, []int{400, 403, 404, 422}, 1, "", getExcl)
-}
-
-func TestGetExclusions_5xx_Retries(t *testing.T) {
-	getExcl := func(c *APIClient, ctx context.Context) error { _, err := c.GetExclusions(ctx); return err }
-	assertRetryBehavior(t, []int{http.StatusInternalServerError}, maxRetries, "", getExcl)
-}
-
-func TestGetExclusions_ContextCancellation(t *testing.T) {
-	orig := retryBackoff
-	retryBackoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
-	defer func() { retryBackoff = orig }()
-	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_, err := c.GetExclusions(ctx)
-	if err == nil {
-		t.Fatal("expected error on cancelled context")
 	}
 }
 
