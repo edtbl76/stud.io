@@ -78,6 +78,9 @@ func partitionBySet(plugins []metadata.DiscoveredPlugin, set map[exclusionKey]st
 
 func assertOrderMatches(t *rapid.T, label string, got, want []metadata.DiscoveredPlugin) {
 	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("order preservation violated in %s: len(got)=%d, len(want)=%d", label, len(got), len(want))
+	}
 	for i := range want {
 		if got[i] != want[i] {
 			t.Fatalf("order preservation violated in %s at index %d: got %+v, want %+v", label, i, got[i], want[i])
