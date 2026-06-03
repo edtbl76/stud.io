@@ -110,15 +110,18 @@ func (c *APIClient) GetExclusions(ctx context.Context) ([]scanner.Exclusion, err
 	}
 	base := strings.TrimRight(c.serverURL, "/")
 	url := base + "/api/scanner/exclusions"
-	data, err := withRetry(ctx, func(ctx context.Context) ([]byte, error) {
-		return c.doGet(ctx, url)
-	})
-	if err != nil {
-		return nil, err
-	}
 	var dtos []exclusionDTO
-	if err := json.Unmarshal(data, &dtos); err != nil {
-		return nil, fmt.Errorf("decoding exclusions: %w", err)
+	if _, err := withRetry(ctx, func(ctx context.Context) (struct{}, error) {
+		data, err := c.doGet(ctx, url)
+		if err != nil {
+			return struct{}{}, err
+		}
+		if err := json.Unmarshal(data, &dtos); err != nil {
+			return struct{}{}, fmt.Errorf("decoding exclusions: %w", err)
+		}
+		return struct{}{}, nil
+	}); err != nil {
+		return nil, err
 	}
 	exclusions := make([]scanner.Exclusion, len(dtos))
 	for i, d := range dtos {

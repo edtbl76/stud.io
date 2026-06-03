@@ -114,8 +114,13 @@ func fetchAndFilterExclusions(ctx context.Context, cfg *config.Config, discovere
 }
 
 func validateScanConfig(cfg *config.Config, dryRun bool) error {
-	if cfg.APIKey == "" && !dryRun {
-		return fmt.Errorf("no API key configured. Run: plugin-scanner auth set-key <key>")
+	if !dryRun {
+		if cfg.APIKey == "" {
+			return fmt.Errorf("no API key configured. Run: plugin-scanner auth set-key <key>")
+		}
+		if cfg.ServerURL == "" {
+			return fmt.Errorf("no server URL configured. Run: plugin-scanner config set server_url <url>")
+		}
 	}
 	return nil
 }
@@ -149,10 +154,10 @@ func uploadScan(s *scanner.Scanner, run *scanner.ScanRun, p uploadParams) error 
 	}
 	apiClient := client.NewAPIClient(p.cfg.ServerURL, p.cfg.APIKey, resolved.TLSConfig, p.progress)
 	summary, err := apiClient.PostScan(p.ctx, p.kept, p.cfg.MachineName)
-	s.PrintUploadDone()
 	if err != nil {
 		return err
 	}
+	s.PrintUploadDone()
 	run.Summary = summary
 	run.ScanID = summary.ScanID
 	return nil

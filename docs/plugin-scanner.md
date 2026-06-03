@@ -81,7 +81,7 @@ Before uploading, the binary fetches your exclusion list from ControlRoom and re
 
 **Terminal output** shows an `Excluded (pre-upload)` line below "Total on disk":
 
-```
+```text
 ─────────────────────────────
   Total on disk            12
   Excluded (pre-upload)     3

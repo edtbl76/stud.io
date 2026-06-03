@@ -102,7 +102,7 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 | `CVE-2025-64756` | `glob` | npm devDep. Not in the HTTP request path. |
 | `CVE-2026-26996`, `CVE-2026-27903`, `CVE-2026-27904` | `minimatch` | npm devDeps. Not in the HTTP request path. |
 | `CVE-2026-23745`, `CVE-2026-23950`, `CVE-2026-24842`, `CVE-2026-26960`, `CVE-2026-29786`, `CVE-2026-31802` | `node-tar` | npm devDep. Not in the HTTP request path. |
-| `CVE-2026-48962` | `perl`, `libperl5.40`, `perl-base`, `perl-modules-5.40` | No fix available in debian trixie. Perl is not used by the application; Dockerfile purges perl packages. Not reachable. |
+| `CVE-2026-42496`, `CVE-2026-8376`, `CVE-2026-42497`, `CVE-2026-9538`, `CVE-2026-48962` | `perl`, `libperl5.40`, `perl-base`, `perl-modules-5.40` | No fix available in debian trixie. Perl is a runtime dependency required by pg backup tooling. Suppression accepted pending an upstream patch. |
 
 **When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a suppression with justification. Revisit existing suppressions whenever the affected package is upgraded — a suppression that was justified by "no fix available" may no longer apply.
 

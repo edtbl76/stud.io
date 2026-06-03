@@ -247,6 +247,34 @@ func TestGetExclusions_BearerTokenSet(t *testing.T) {
 	}
 }
 
+func TestGetExclusions_MalformedBodyIsRetried(t *testing.T) {
+	orig := retryBackoff
+	retryBackoff = []time.Duration{time.Millisecond, time.Millisecond, time.Millisecond}
+	defer func() { retryBackoff = orig }()
+
+	attempts := 0
+	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		w.Header().Set("Content-Type", "application/json")
+		if attempts == 1 {
+			fmt.Fprint(w, `{not valid json}`)
+		} else {
+			fmt.Fprint(w, `[]`)
+		}
+	})
+
+	got, err := c.GetExclusions(context.Background())
+	if err != nil {
+		t.Fatalf("expected success after retry, got: %v", err)
+	}
+	if attempts < 2 {
+		t.Errorf("expected at least 2 attempts, got %d", attempts)
+	}
+	if len(got) != 0 {
+		t.Errorf("expected empty slice, got %d elements", len(got))
+	}
+}
+
 func TestGetExclusions_FormatFieldDiscarded(t *testing.T) {
 	c, _ := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

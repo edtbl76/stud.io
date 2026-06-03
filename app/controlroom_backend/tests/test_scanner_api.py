@@ -295,6 +295,33 @@ async def test_add_exclusion_idempotent_on_duplicate(client, conn, admin_headers
 
 
 # ---------------------------------------------------------------------------
+# GET /scanner/exclusions — auth variants
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_list_exclusions_accepts_api_key_auth(client, conn, scanner_key):
+    _, raw = scanner_key
+    await conn.execute(
+        "INSERT INTO scanner_exclusions (vendor, name, excluded_by, format) VALUES ($1, $2, $3, $4)",
+        "Waves", "SSL", "adminuser", "VST3",
+    )
+    response = await client.get("/scanner/exclusions", headers={"Authorization": f"Bearer {raw}"})
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["vendor"] == "Waves"
+    assert data[0]["name"] == "SSL"
+
+
+@pytest.mark.asyncio
+async def test_list_exclusions_rejects_revoked_api_key(client, conn, scanner_key):
+    key_id, raw = scanner_key
+    await conn.execute("UPDATE scanner_api_keys SET revoked_at=NOW() WHERE key_id=$1", key_id)
+    response = await client.get("/scanner/exclusions", headers={"Authorization": f"Bearer {raw}"})
+    assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
 # Scan history / purge
 # ---------------------------------------------------------------------------
 
