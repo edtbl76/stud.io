@@ -2,7 +2,8 @@
 set -euo pipefail
 
 VERSION="__VERSION__"
-INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
+INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin/stud.io/plugin-scanner}"
+SYMLINK_PATH="/usr/local/bin/plugin-scanner"
 CA_CERT="rootCA.pem"
 
 case "$(uname -m)" in
@@ -11,6 +12,8 @@ case "$(uname -m)" in
   *) echo "Error: unsupported architecture $(uname -m)" >&2; exit 1 ;;
 esac
 
+TARGET="$INSTALL_DIR/plugin-scanner"
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 usage() {
@@ -18,61 +21,22 @@ usage() {
   cat <<EOF
 Usage: $(basename "$0") [--uninstall] [--help]
 
-Installs plugin-scanner $VERSION to \$INSTALL_DIR (default: ~/.local/bin).
-Also installs the ControlRoom CA certificate and configures shell completion.
+Installs plugin-scanner $VERSION to $INSTALL_DIR (requires sudo).
+Also installs the ControlRoom CA certificate, sets ca_cert_path, and
+configures shell completion. Creates a convenience symlink at $SYMLINK_PATH.
 
 Options:
-  --uninstall   Remove plugin-scanner from INSTALL_DIR
+  --uninstall   Remove plugin-scanner (binary, symlink, and cert config)
   --help        Show this help message
 
 Environment:
-  INSTALL_DIR   Override the install location (default: ~/.local/bin)
+  INSTALL_DIR   Override the install location (default: /usr/local/bin/stud.io/plugin-scanner)
 EOF
   exit "$code"
 }
 
 detect_shell() {
   basename "${SHELL:-/bin/sh}"
-}
-
-shell_rc() {
-  case "$(detect_shell)" in
-    zsh)  echo "${HOME}/.zshrc" ;;
-    bash) echo "${HOME}/.bash_profile" ;;
-    fish) echo "fish" ;;
-    *)    echo "" ;;
-  esac
-}
-
-add_to_path() {
-  local rc
-  rc=$(shell_rc)
-  local export_line="export PATH=\"\$PATH:${INSTALL_DIR}\""
-
-  if echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
-    echo "  PATH: $INSTALL_DIR already active."
-    return
-  fi
-
-  if [ "$rc" = "fish" ]; then
-    if fish -c "fish_add_path ${INSTALL_DIR}" 2>/dev/null; then
-      echo "  PATH: added $INSTALL_DIR via fish_add_path."
-    else
-      echo "  PATH: could not update fish — add manually: fish_add_path ${INSTALL_DIR}"
-    fi
-    return
-  fi
-
-  if [ -n "$rc" ]; then
-    if ! grep -qF "$INSTALL_DIR" "$rc" 2>/dev/null; then
-      printf '\n# Added by plugin-scanner installer\n%s\n' "$export_line" >> "$rc"
-      echo "  PATH: added $INSTALL_DIR to $rc — restart shell or: source $rc"
-    else
-      echo "  PATH: $INSTALL_DIR already in $rc."
-    fi
-  else
-    echo "  PATH: unknown shell ($SHELL) — add manually: $export_line"
-  fi
 }
 
 setup_completion() {
@@ -120,10 +84,21 @@ install_ca() {
     return
   fi
   echo "Installing ControlRoom CA certificate (requires sudo)..."
+  # Copy cert alongside the binary so the binary can load it explicitly
+  sudo cp "$CA_CERT" "$INSTALL_DIR/rootCA.pem"
+  sudo chmod 644 "$INSTALL_DIR/rootCA.pem"
+  # Also trust it in the system keychain for browsers and curl
   if sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain "$CA_CERT"; then
     echo "  CA: trusted in system keychain."
   else
-    echo "  CA: install failed — set ca_cert_path in ~/.plugin-scanner.yml manually." >&2
+    echo "  CA: keychain install failed — binary will load cert from $INSTALL_DIR/rootCA.pem." >&2
+  fi
+  # Set ca_cert_path so the binary explicitly loads the cert (bypasses keychain access issues)
+  if "$TARGET" config set ca_cert_path "$INSTALL_DIR/rootCA.pem" 2>/dev/null; then
+    echo "  CA: ca_cert_path set → $INSTALL_DIR/rootCA.pem"
+  else
+    echo "  CA: could not set ca_cert_path automatically." >&2
+    echo "      Run manually: plugin-scanner config set ca_cert_path $INSTALL_DIR/rootCA.pem"
   fi
 }
 
@@ -141,13 +116,27 @@ done
 # ── Uninstall ─────────────────────────────────────────────────────────────────
 
 if [ "$UNINSTALL" = true ]; then
-  TARGET="$INSTALL_DIR/plugin-scanner"
+  # Clear ca_cert_path before removing the binary (needs binary present to run config set)
   if [ -f "$TARGET" ]; then
-    rm "$TARGET"
-    echo "plugin-scanner removed from $INSTALL_DIR"
+    "$TARGET" config set ca_cert_path "" 2>/dev/null && echo "  Config: ca_cert_path cleared." || true
+    sudo rm "$TARGET"
+    echo "plugin-scanner removed from $TARGET"
   else
     echo "plugin-scanner not found at $TARGET — nothing to remove."
   fi
+  if [ -L "$SYMLINK_PATH" ]; then
+    sudo rm "$SYMLINK_PATH"
+    echo "Symlink removed: $SYMLINK_PATH"
+  fi
+  # Revert system keychain trust and remove cert file before attempting rmdir
+  if [ -f "$INSTALL_DIR/rootCA.pem" ]; then
+    sudo security remove-trusted-cert -d "$INSTALL_DIR/rootCA.pem" 2>/dev/null \
+      && echo "  CA: trust removed from system keychain." \
+      || echo "  CA: could not remove keychain trust — remove manually if needed." >&2
+    sudo rm "$INSTALL_DIR/rootCA.pem"
+    echo "  CA: $INSTALL_DIR/rootCA.pem removed."
+  fi
+  sudo rmdir "$INSTALL_DIR" 2>/dev/null && echo "Removed $INSTALL_DIR" || true
   exit 0
 fi
 
@@ -159,22 +148,13 @@ if [ ! -f "$BINARY" ]; then
   exit 1
 fi
 
-mkdir -p "$INSTALL_DIR"
-
-if [ ! -w "$INSTALL_DIR" ]; then
-  echo "Error: $INSTALL_DIR is not writable." >&2
-  echo "Set INSTALL_DIR to a writable path, or run with sudo for system-wide install." >&2
-  exit 1
-fi
-
 # Detect existing installation
-TARGET="$INSTALL_DIR/plugin-scanner"
 if [ -f "$TARGET" ]; then
   EXISTING=$("$TARGET" version 2>/dev/null || echo "unknown")
   if [ "$EXISTING" = "$VERSION" ]; then
     echo "plugin-scanner $VERSION is already installed at $TARGET — nothing to do."
+    sudo ln -sf "$TARGET" "$SYMLINK_PATH"
     install_ca
-    add_to_path
     setup_completion
     exit 0
   else
@@ -182,18 +162,25 @@ if [ -f "$TARGET" ]; then
   fi
 fi
 
-# Remove macOS quarantine flag
+# Remove macOS quarantine flag from the source binary before copying
 if xattr -d com.apple.quarantine "$BINARY" 2>/dev/null; then
   echo "Removed macOS quarantine flag."
 fi
-
 chmod +x "$BINARY"
-cp "$BINARY" "$TARGET"
+
+echo "Installing to $TARGET (requires sudo)..."
+sudo mkdir -p "$INSTALL_DIR"
+sudo cp "$BINARY" "$TARGET"
+sudo chmod 755 "$TARGET"
+
+# Symlink at /usr/local/bin so the binary is in PATH without shell rc changes
+sudo ln -sf "$TARGET" "$SYMLINK_PATH"
 
 echo ""
 echo "plugin-scanner $VERSION installed to $TARGET"
+echo "Symlinked: $SYMLINK_PATH → $TARGET"
 
-# Smoke test
+# Smoke test via full path (symlink may not be in PATH in current shell yet)
 if "$TARGET" version >/dev/null 2>&1; then
   echo "Smoke test passed: $("$TARGET" version)"
 else
@@ -203,12 +190,11 @@ fi
 echo ""
 echo "Configuring environment..."
 install_ca
-add_to_path
 setup_completion
 echo ""
 case "$(detect_shell)" in
-  zsh)  echo "Done. To activate now: source ~/.zshrc  (or restart your shell)" ;;
-  bash) echo "Done. To activate now: source ~/.bash_profile  (or restart your shell)" ;;
-  fish) echo "Done. To activate now: source ~/.config/fish/config.fish  (or restart your shell)" ;;
-  *)    echo "Done. Restart your shell to activate PATH and completion changes." ;;
+  zsh)  echo "Done. To activate completion now: source ~/.zshrc  (or restart your shell)" ;;
+  bash) echo "Done. To activate completion now: source ~/.bash_profile  (or restart your shell)" ;;
+  fish) echo "Done. To activate completion now: source ~/.config/fish/config.fish  (or restart your shell)" ;;
+  *)    echo "Done. Restart your shell to activate completion changes." ;;
 esac
