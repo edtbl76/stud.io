@@ -75,7 +75,7 @@ The scanner walks all default macOS plugin paths (VST3, AU, VST2 — user and sy
 
 ## 5. Exclusion Pre-filter
 
-Before uploading, the binary fetches your exclusion list from ControlRoom and removes matching plugins from the upload payload. Excluded plugins are never sent to the server.
+Before uploading, the binary fetches your exclusion list from ControlRoom and removes matching plugins from the upload payload. When the exclusion fetch succeeds, excluded plugins are not sent to the server. If the fetch fails (network error or HTTP 4xx/5xx), the binary falls back to uploading the full discovered list and the server applies exclusions during ingest (see **Failure behaviour** below).
 
 **Matching** is exact and case-sensitive on both vendor and name. A plugin is only excluded when both fields match an exclusion entry exactly.
 

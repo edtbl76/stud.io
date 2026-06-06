@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -47,8 +48,8 @@ func TestValidateScanConfig_BothEmpty_DryRun(t *testing.T) {
 func TestFetchAndFilterExclusions_NoServer_ReturnsFullList(t *testing.T) {
 	discovered := []metadata.DiscoveredPlugin{{Name: "A", Vendor: "V"}}
 	kept, excluded := fetchAndFilterExclusions(t.Context(), &config.Config{}, discovered)
-	if len(kept) != 1 {
-		t.Fatalf("expected full discovered list, got %d", len(kept))
+	if !reflect.DeepEqual(kept, discovered) {
+		t.Fatalf("expected kept to equal discovered, got %+v", kept)
 	}
 	if excluded != nil {
 		t.Errorf("expected nil excluded, got %v", excluded)
@@ -66,8 +67,8 @@ func TestFetchAndFilterExclusions_FetchFailure_FallsBackToFullList(t *testing.T)
 	cfg := &config.Config{ServerURL: srv.URL, APIKey: "psc_test"}
 
 	kept, excluded := fetchAndFilterExclusions(t.Context(), cfg, discovered)
-	if len(kept) != len(discovered) {
-		t.Fatalf("expected full discovered list kept on fetch failure, got %d", len(kept))
+	if !reflect.DeepEqual(kept, discovered) {
+		t.Fatalf("expected kept to equal discovered on fetch failure, got %+v", kept)
 	}
 	if excluded != nil {
 		t.Errorf("expected nil excluded on fetch failure, got %v", excluded)
