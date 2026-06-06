@@ -232,4 +232,15 @@ describe('Export XLSX button', () => {
     fireEvent.click(screen.getByRole('button', { name: /export xlsx/i }))
     expect(mockExportXlsx).toHaveBeenCalledWith(report1, 'scan-report-2026-05-25')
   })
+
+  it('falls back to scan-report-report filename when scanned_at is malformed', async () => {
+    const badScan = { ...scan1, scanned_at: 'not-a-date' }
+    const badReport = { ...report1, scanned_at: 'not-a-date' }
+    mockRecentScans.mockResolvedValue([badScan])
+    mockRawReport.mockResolvedValue(badReport)
+    render(<ScanReportPage />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: /export xlsx/i }))
+    expect(mockExportXlsx).toHaveBeenCalledWith(badReport, 'scan-report-report')
+  })
 })

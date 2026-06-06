@@ -56,4 +56,20 @@ describe('buildReportWorkbook', () => {
     const names = wb.worksheets.map(ws => ws.name)
     expect(names.indexOf('Known')).toBeLessThan(names.indexOf('Unlinked'))
   })
+
+  it('produces unique sheet names when labels collide after 31-char truncation', async () => {
+    const long = 'a'.repeat(32)
+    const report: RawScanReport = {
+      scan_id: 'scan-1',
+      scanned_at: '2026-05-25T14:00:00Z',
+      results_by_status: {
+        [long]: [makeResult('X')],
+        [`${long}z`]: [makeResult('Y')],
+      },
+    }
+    const wb = await buildReportWorkbook(report)
+    const names = wb.worksheets.map(ws => ws.name)
+    expect(new Set(names).size).toBe(2)
+    expect(names.every(n => n.length <= 31)).toBe(true)
+  })
 })

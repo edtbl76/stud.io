@@ -2,6 +2,17 @@ import ExcelJS from 'exceljs'
 import { sortedStatusKeys, formatStatusLabel } from './reportUtils'
 import type { RawScanReport } from '@/lib/types'
 
+const MAX_SHEET_NAME_LENGTH = 31
+
+function uniqueSheetName(wb: ExcelJS.Workbook, label: string): string {
+  const base = label.slice(0, MAX_SHEET_NAME_LENGTH)
+  if (!wb.worksheets.some((ws) => ws.name === base)) return base
+  const truncated = label.slice(0, MAX_SHEET_NAME_LENGTH - 2)
+  let n = 2
+  while (wb.worksheets.some((ws) => ws.name === `${truncated}_${n}`)) n++
+  return `${truncated}_${n}`
+}
+
 const COLUMNS: Partial<ExcelJS.Column>[] = [
   { header: 'Name',       key: 'name',       width: 30 },
   { header: 'Vendor',     key: 'vendor',      width: 24 },
@@ -19,7 +30,7 @@ export async function buildReportWorkbook(report: RawScanReport): Promise<ExcelJ
     const rows = report.results_by_status[status]
     if (!rows?.length) continue
 
-    const sheetName = formatStatusLabel(status).slice(0, 31)
+    const sheetName = uniqueSheetName(wb, formatStatusLabel(status))
     const ws = wb.addWorksheet(sheetName)
     ws.columns = COLUMNS
 

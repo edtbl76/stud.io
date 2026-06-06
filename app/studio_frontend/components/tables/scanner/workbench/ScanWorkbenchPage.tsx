@@ -105,7 +105,12 @@ export function ScanWorkbenchPage() {
 
   function handleFiltersChange(patch: Partial<typeof clientFilters>) {
     if ('bucket' in patch) {
+      const merged: Partial<typeof clientFilters> = patch.bucket === 'needs_review'
+        ? patch
+        : { ...patch, needs_review_substate: '' }
       setServerBucket(patch.bucket || undefined)
+      setClientFilter(merged)
+      return
     }
     setClientFilter(patch)
   }

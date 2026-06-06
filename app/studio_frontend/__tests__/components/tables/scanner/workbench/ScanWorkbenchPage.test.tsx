@@ -178,6 +178,20 @@ it('wires WorkbenchFilterBar bucket change to both setClientFilter and setServer
   expect(mockSetServerBucket).toHaveBeenCalledWith('needs_review')
 })
 
+it('clearing bucket filter resets needs_review_substate and calls setServerBucket with undefined', () => {
+  render(<ScanWorkbenchPage />)
+  fireEvent.change(screen.getByRole('combobox', { name: /bucket/i }), { target: { value: '' } })
+  expect(mockSetClientFilter).toHaveBeenCalledWith({ bucket: '', needs_review_substate: '' })
+  expect(mockSetServerBucket).toHaveBeenCalledWith(undefined)
+})
+
+it('changing bucket to a non-needs_review value clears needs_review_substate', () => {
+  render(<ScanWorkbenchPage />)
+  fireEvent.change(screen.getByRole('combobox', { name: /bucket/i }), { target: { value: 'known' } })
+  expect(mockSetClientFilter).toHaveBeenCalledWith({ bucket: 'known', needs_review_substate: '' })
+  expect(mockSetServerBucket).toHaveBeenCalledWith('known')
+})
+
 // Step 84
 it('shows WorkbenchBulkBar when selection is non-empty', () => {
   const rows = [
