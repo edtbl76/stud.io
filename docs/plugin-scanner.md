@@ -75,7 +75,7 @@ The scanner walks all default macOS plugin paths (VST3, AU, VST2 — user and sy
 
 ## 5. Exclusion Pre-filter
 
-Before uploading, the binary fetches your exclusion list from ControlRoom and removes matching plugins from the upload payload. Excluded plugins are never sent to the server.
+Before uploading, the binary fetches your exclusion list from ControlRoom and removes matching plugins from the upload payload. When the exclusion fetch succeeds, excluded plugins are not sent to the server. If the fetch fails (network error or HTTP 4xx/5xx), the binary falls back to uploading the full discovered list and the server applies exclusions during ingest (see **Failure behaviour** below).
 
 **Matching** is exact and case-sensitive on both vendor and name. A plugin is only excluded when both fields match an exclusion entry exactly.
 
@@ -93,7 +93,7 @@ This line is always shown, even when the count is 0.
 - If `server_url` and `api_key` are configured, exclusions are fetched and the filter is applied — the terminal output shows what would have been excluded without uploading anything.
 - If `server_url` or `api_key` is empty (offline dry-run), the exclusion fetch is skipped and `Excluded (pre-upload)` shows 0.
 
-**Failure behaviour**: If the exclusion fetch fails (network error, 4xx, 5xx), the scan aborts before upload. Nothing is uploaded. Re-run after resolving connectivity to the server.
+**Failure behaviour**: The pre-filter is an optimization, not a correctness requirement — the server applies exclusions during ingest regardless. If the exclusion fetch fails (network error, 4xx, 5xx), the binary prints a warning to stderr and uploads the full discovered list. Excluded plugins are still filtered server-side, so the scan completes normally.
 
 ## 6. JSON Output
 

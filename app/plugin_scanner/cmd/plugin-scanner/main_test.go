@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/studiocontrolroom/plugin_scanner/internal/config"
+	"github.com/studiocontrolroom/plugin_scanner/internal/metadata"
 	"github.com/studiocontrolroom/plugin_scanner/internal/scanner"
 )
 
@@ -40,6 +42,36 @@ func TestValidateScanConfig_BothEmpty_DryRun(t *testing.T) {
 	cfg := &config.Config{}
 	if err := validateScanConfig(cfg, true); err != nil {
 		t.Fatalf("unexpected error in dry-run mode: %v", err)
+	}
+}
+
+func TestFetchAndFilterExclusions_NoServer_ReturnsFullList(t *testing.T) {
+	discovered := []metadata.DiscoveredPlugin{{Name: "A", Vendor: "V"}}
+	kept, excluded := fetchAndFilterExclusions(t.Context(), &config.Config{}, discovered)
+	if !reflect.DeepEqual(kept, discovered) {
+		t.Fatalf("expected kept to equal discovered, got %+v", kept)
+	}
+	if excluded != nil {
+		t.Errorf("expected nil excluded, got %v", excluded)
+	}
+}
+
+func TestFetchAndFilterExclusions_FetchFailure_FallsBackToFullList(t *testing.T) {
+	// 401 is a terminal error — GetExclusions fails fast without retry delay.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	defer srv.Close()
+
+	discovered := []metadata.DiscoveredPlugin{{Name: "A", Vendor: "V"}, {Name: "B", Vendor: "V"}}
+	cfg := &config.Config{ServerURL: srv.URL, APIKey: "psc_test"}
+
+	kept, excluded := fetchAndFilterExclusions(t.Context(), cfg, discovered)
+	if !reflect.DeepEqual(kept, discovered) {
+		t.Fatalf("expected kept to equal discovered on fetch failure, got %+v", kept)
+	}
+	if excluded != nil {
+		t.Errorf("expected nil excluded on fetch failure, got %v", excluded)
 	}
 }
 

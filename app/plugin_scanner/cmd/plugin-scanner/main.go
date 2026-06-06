@@ -77,10 +77,7 @@ func runScan(noColor *bool, jsonOut, dryRun bool, timeoutSecs int) error {
 	if err != nil {
 		return err
 	}
-	kept, excluded, err := fetchAndFilterExclusions(ctx, cfg, run.Discovered)
-	if err != nil {
-		return err
-	}
+	kept, excluded := fetchAndFilterExclusions(ctx, cfg, run.Discovered)
 	run.ExcludedPlugins = excluded
 	if !dryRun {
 		p := uploadParams{
@@ -96,21 +93,26 @@ func runScan(noColor *bool, jsonOut, dryRun bool, timeoutSecs int) error {
 	return scanner.NewRenderer(os.Stdout, *noColor).Render(run, renderMode(jsonOut, dryRun))
 }
 
-func fetchAndFilterExclusions(ctx context.Context, cfg *config.Config, discovered []metadata.DiscoveredPlugin) (kept, excluded []metadata.DiscoveredPlugin, err error) {
+// fetchAndFilterExclusions pre-filters excluded plugins before upload. The
+// pre-filter is an optimization only — the server applies exclusions during
+// ingest regardless — so any failure here is non-fatal: it warns and falls
+// back to uploading the full discovered list.
+func fetchAndFilterExclusions(ctx context.Context, cfg *config.Config, discovered []metadata.DiscoveredPlugin) (kept, excluded []metadata.DiscoveredPlugin) {
 	if cfg.ServerURL == "" || cfg.APIKey == "" {
-		return discovered, nil, nil
+		return discovered, nil
 	}
 	resolved, err := config.ResolveCA(cfg.CACertPath)
 	if err != nil {
-		return nil, nil, err
+		fmt.Fprintf(os.Stderr, "warning: skipping exclusion pre-filter: %v\n", err)
+		return discovered, nil
 	}
 	apiClient := client.NewAPIClient(cfg.ServerURL, cfg.APIKey, resolved.TLSConfig, nil)
 	exclusions, err := apiClient.GetExclusions(ctx)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching exclusions: %w", err)
+		fmt.Fprintf(os.Stderr, "warning: skipping exclusion pre-filter: %v\n", err)
+		return discovered, nil
 	}
-	kept, excluded = scanner.FilterExcluded(discovered, exclusions)
-	return kept, excluded, nil
+	return scanner.FilterExcluded(discovered, exclusions)
 }
 
 func validateScanConfig(cfg *config.Config, dryRun bool) error {
