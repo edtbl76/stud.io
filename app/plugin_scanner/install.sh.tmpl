@@ -116,7 +116,9 @@ done
 # ── Uninstall ─────────────────────────────────────────────────────────────────
 
 if [ "$UNINSTALL" = true ]; then
+  # Clear ca_cert_path before removing the binary (needs binary present to run config set)
   if [ -f "$TARGET" ]; then
+    "$TARGET" config set ca_cert_path "" 2>/dev/null && echo "  Config: ca_cert_path cleared." || true
     sudo rm "$TARGET"
     echo "plugin-scanner removed from $TARGET"
   else
@@ -125,6 +127,14 @@ if [ "$UNINSTALL" = true ]; then
   if [ -L "$SYMLINK_PATH" ]; then
     sudo rm "$SYMLINK_PATH"
     echo "Symlink removed: $SYMLINK_PATH"
+  fi
+  # Revert system keychain trust and remove cert file before attempting rmdir
+  if [ -f "$INSTALL_DIR/rootCA.pem" ]; then
+    sudo security remove-trusted-cert -d "$INSTALL_DIR/rootCA.pem" 2>/dev/null \
+      && echo "  CA: trust removed from system keychain." \
+      || echo "  CA: could not remove keychain trust — remove manually if needed." >&2
+    sudo rm "$INSTALL_DIR/rootCA.pem"
+    echo "  CA: $INSTALL_DIR/rootCA.pem removed."
   fi
   sudo rmdir "$INSTALL_DIR" 2>/dev/null && echo "Removed $INSTALL_DIR" || true
   exit 0
@@ -143,6 +153,7 @@ if [ -f "$TARGET" ]; then
   EXISTING=$("$TARGET" version 2>/dev/null || echo "unknown")
   if [ "$EXISTING" = "$VERSION" ]; then
     echo "plugin-scanner $VERSION is already installed at $TARGET — nothing to do."
+    sudo ln -sf "$TARGET" "$SYMLINK_PATH"
     install_ca
     setup_completion
     exit 0
