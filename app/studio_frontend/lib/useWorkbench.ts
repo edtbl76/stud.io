@@ -52,21 +52,34 @@ function deriveSubStates(rows: WorkbenchRow[]): Map<string, NeedsReviewSubState>
   return subStates
 }
 
+function matchesBucket(r: WorkbenchRow, f: WorkbenchClientFilters): boolean {
+  return !f.bucket || r.bucket === f.bucket
+}
+
+function matchesCatalogType(r: WorkbenchRow, f: WorkbenchClientFilters): boolean {
+  return !f.catalog_type || r.catalog_record_table === f.catalog_type
+}
+
+function matchesFormat(r: WorkbenchRow, f: WorkbenchClientFilters): boolean {
+  return !f.format || r.disk_format === f.format
+}
+
+function matchesSubState(r: WorkbenchRow, subStates: Map<string, NeedsReviewSubState>, f: WorkbenchClientFilters): boolean {
+  if (!f.needs_review_substate) return true
+  return r.bucket === 'needs_review' && subStates.get(r.result_id) === f.needs_review_substate
+}
+
 function applyFilters(
   rows: WorkbenchRow[],
   subStates: Map<string, NeedsReviewSubState>,
   filters: WorkbenchClientFilters,
 ): WorkbenchRow[] {
-  return rows.filter((r) => {
-    if (filters.bucket && r.bucket !== filters.bucket) return false
-    if (filters.catalog_type && r.catalog_record_table !== filters.catalog_type) return false
-    if (filters.format && r.disk_format !== filters.format) return false
-    if (filters.needs_review_substate) {
-      if (r.bucket !== 'needs_review') return false
-      if (subStates.get(r.result_id) !== filters.needs_review_substate) return false
-    }
-    return true
-  })
+  return rows.filter((r) =>
+    matchesBucket(r, filters) &&
+    matchesCatalogType(r, filters) &&
+    matchesFormat(r, filters) &&
+    matchesSubState(r, subStates, filters)
+  )
 }
 
 function isActiveRow(r: WorkbenchRow): boolean {

@@ -158,21 +158,25 @@ def _build_workbench_row(r, ctx: _WorkbenchCtx) -> WorkbenchRow:
     )
 
 
+def _workbench_sort_key(row: WorkbenchRow) -> tuple:
+    return (row.catalog_record_table or "zzz", row.catalog_record_name or row.display_name, _BUCKET_ORDER.get(row.bucket, 99))
+
+
+def _known_suppressed(wb_row: WorkbenchRow, show_confirmed: bool, bucket_filter: str | None) -> bool:
+    return not show_confirmed and wb_row.bucket == "known" and bucket_filter != "known"
+
+
+def _row_passes_filter(wb_row: WorkbenchRow, bucket_filter: str | None, show_confirmed: bool) -> bool:
+    if bucket_filter is not None and wb_row.bucket != bucket_filter:
+        return False
+    return not _known_suppressed(wb_row, show_confirmed, bucket_filter)
+
+
 def _process_workbench_rows(raw_rows, ctx: _WorkbenchCtx, bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
-    rows: list[WorkbenchRow] = []
-    for r in raw_rows:
-        wb_row = _build_workbench_row(r, ctx)
-        if bucket_filter is not None and wb_row.bucket != bucket_filter:
-            continue
-        if not show_confirmed and wb_row.bucket == "known" and bucket_filter != "known":
-            continue
-        rows.append(wb_row)
-    rows.sort(key=lambda row: (
-        row.catalog_record_table or "zzz",
-        row.catalog_record_name or row.display_name,
-        _BUCKET_ORDER.get(row.bucket, 99),
-    ))
-    return rows
+    built = [_build_workbench_row(r, ctx) for r in raw_rows]
+    filtered = [r for r in built if _row_passes_filter(r, bucket_filter, show_confirmed)]
+    filtered.sort(key=_workbench_sort_key)
+    return filtered
 
 
 @router.get("/workbench")
