@@ -50,3 +50,40 @@ async def test_report_with_scan_id_returns_that_run(client, auth_headers, conn):
 async def test_report_with_unknown_scan_id_returns_404(client, auth_headers):
     r = await client.get(f"/scanner/report?scan_id={uuid.uuid4()}", headers=auth_headers)
     assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# GET /scanner/scans/{scan_id}/report  (newer endpoint used by frontend)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_scans_report_returns_results_sorted_by_name_then_format(client, conn, admin_headers):
+    """Results within each status group must be sorted alphabetically by name then format."""
+    scan_id = await conn.fetchval(
+        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ($1, $2) RETURNING scan_id",
+        "test-machine", 3,
+    )
+    for name, fmt in [("Zebra Synth", "vst3"), ("Analog Lab", "au"), ("Zebra Synth", "au")]:
+        await conn.execute(
+            "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
+            "VALUES ($1, $2, $3, $4, $5, $6, $7)",
+            scan_id, name, "Acme", "1.0", fmt, f"/p/{name}.{fmt}", "untracked",
+        )
+    r = await client.get(f"/scanner/scans/{scan_id}/report", headers=admin_headers)
+    assert r.status_code == 200
+    items = r.json()["results_by_status"]["untracked"]
+    names_formats = [(i["name"], i["format"]) for i in items]
+    assert names_formats == sorted(names_formats, key=lambda x: (x[0].casefold(), x[1].casefold()))
+
+
+@pytest.mark.asyncio
+async def test_scans_report_unknown_scan_id_returns_404(client, admin_headers):
+    r = await client.get(f"/scanner/scans/{uuid.uuid4()}/report", headers=admin_headers)
+    assert r.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_scans_report_requires_auth(client, conn):
+    scan_id, _ = await insert_scan(conn)
+    r = await client.get(f"/scanner/scans/{scan_id}/report")
+    assert r.status_code == 401

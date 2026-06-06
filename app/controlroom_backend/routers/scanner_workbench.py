@@ -164,7 +164,7 @@ def _process_workbench_rows(raw_rows, ctx: _WorkbenchCtx, bucket_filter: str | N
         wb_row = _build_workbench_row(r, ctx)
         if bucket_filter is not None and wb_row.bucket != bucket_filter:
             continue
-        if not show_confirmed and wb_row.bucket == "known":
+        if not show_confirmed and wb_row.bucket == "known" and bucket_filter != "known":
             continue
         rows.append(wb_row)
     rows.sort(key=lambda row: (

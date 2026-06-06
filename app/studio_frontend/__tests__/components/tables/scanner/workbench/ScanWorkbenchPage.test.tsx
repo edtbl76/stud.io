@@ -18,6 +18,7 @@ jest.mock('@/lib/api', () => ({
 }))
 
 const mockSetClientFilter = jest.fn()
+const mockSetServerBucket = jest.fn()
 const mockClearSelection = jest.fn()
 const mockInvalidate = jest.fn()
 const mockToggleSelect = jest.fn()
@@ -38,7 +39,7 @@ function makeRow(id: string, overrides: Partial<WorkbenchRow> = {}): WorkbenchRo
 
 const BASE_HOOK = {
   rows: [], orphaned: [], isLoading: false, scanId: null,
-  serverParams: { show_confirmed: true }, setServerBucket: jest.fn(),
+  serverParams: { show_confirmed: true }, setServerBucket: mockSetServerBucket,
   clientFilters: BLANK_FILTERS, setClientFilter: mockSetClientFilter,
   selectedIds: new Set<string>(), toggleSelect: mockToggleSelect,
   shiftSelect: mockShiftSelect, selectAll: jest.fn(), clearSelection: mockClearSelection,
@@ -170,10 +171,11 @@ it('shows error toast and keeps dialog open when hardReset fails', async () => {
 })
 
 // Step 83
-it('wires WorkbenchFilterBar to setClientFilter', () => {
+it('wires WorkbenchFilterBar bucket change to both setClientFilter and setServerBucket', () => {
   render(<ScanWorkbenchPage />)
   fireEvent.change(screen.getByRole('combobox', { name: /bucket/i }), { target: { value: 'needs_review' } })
   expect(mockSetClientFilter).toHaveBeenCalledWith({ bucket: 'needs_review' })
+  expect(mockSetServerBucket).toHaveBeenCalledWith('needs_review')
 })
 
 // Step 84

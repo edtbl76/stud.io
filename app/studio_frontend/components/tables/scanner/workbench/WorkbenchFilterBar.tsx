@@ -34,11 +34,9 @@ const CATALOG_TYPE_OPTIONS = [
 
 const FORMAT_OPTIONS = [
   { value: '', label: 'All Formats' },
-  { value: 'VST3', label: 'VST3' },
-  { value: 'AU', label: 'AU' },
-  { value: 'VST2', label: 'VST2' },
-  { value: 'CLAP', label: 'CLAP' },
-  { value: 'AAX', label: 'AAX' },
+  { value: 'vst3', label: 'VST3' },
+  { value: 'au', label: 'AU' },
+  { value: 'vst2', label: 'VST2' },
 ]
 
 const BLANK_FILTERS: WorkbenchClientFilters = {

@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ReportRow } from './ReportRow'
 import { useReportPage } from './useReportPage'
 import { formatPickerLabel, formatStatusLabel, sortedStatusKeys } from './reportUtils'
+import { exportReportToXlsx } from './exportReportToXlsx'
 import type { RawScanReport, RawScanResult } from '@/lib/types'
 
 interface StatusSectionProps {
@@ -87,6 +88,13 @@ const ERROR_CLASS = 'rounded-md border border-destructive/50 bg-destructive/10 p
 export function ScanReportPage() {
   const { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection } = useReportPage()
 
+  function handleExport() {
+    if (!report || !selectedScanId) return
+    const scan = scans.find(s => s.scan_id === selectedScanId)
+    const date = scan ? new Date(scan.scanned_at).toISOString().slice(0, 10) : 'report'
+    void exportReportToXlsx(report, `scan-report-${date}`)
+  }
+
   if (loadingScans) return <Skeleton className="h-10 w-full" />
 
   if (error && scans.length === 0) {
@@ -115,6 +123,15 @@ export function ScanReportPage() {
             <option key={s.scan_id} value={s.scan_id}>{formatPickerLabel(s)}</option>
           ))}
         </NativeSelect>
+        <button
+          type="button"
+          aria-label="Export XLSX"
+          onClick={handleExport}
+          disabled={!report || loadingReport}
+          className="text-xs border border-border rounded px-3 py-1 text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+        >
+          Export XLSX
+        </button>
       </div>
       <ReportBody
         report={report}

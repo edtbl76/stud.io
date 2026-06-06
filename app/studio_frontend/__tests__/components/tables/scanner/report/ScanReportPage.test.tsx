@@ -13,6 +13,12 @@ jest.mock('@/lib/api', () => ({
     },
   },
 }))
+jest.mock('@/components/tables/scanner/report/exportReportToXlsx', () => ({
+  exportReportToXlsx: jest.fn().mockResolvedValue(undefined),
+}))
+
+import { exportReportToXlsx } from '@/components/tables/scanner/report/exportReportToXlsx'
+const mockExportXlsx = exportReportToXlsx as jest.Mock
 
 const mockRecentScans = api.scanner.recentScans as jest.Mock
 const mockRawReport = api.scanner.rawReport as jest.Mock
@@ -199,5 +205,31 @@ describe('error state', () => {
     render(<ScanReportPage />)
     await waitFor(() => expect(screen.getByTestId('report-error')).toBeInTheDocument())
     expect(screen.queryByTestId('report-loading')).not.toBeInTheDocument()
+  })
+})
+
+// Step 19: Export XLSX button
+describe('Export XLSX button', () => {
+  it('renders Export XLSX button when report is loaded', async () => {
+    mockRecentScans.mockResolvedValue([scan1])
+    mockRawReport.mockResolvedValue(report1)
+    render(<ScanReportPage />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).toBeInTheDocument())
+  })
+
+  it('Export XLSX button is disabled while report is loading', async () => {
+    mockRecentScans.mockResolvedValue([scan1])
+    mockRawReport.mockReturnValue(new Promise(() => {}))
+    render(<ScanReportPage />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).toBeDisabled())
+  })
+
+  it('clicking Export XLSX calls exportReportToXlsx with report and date-based filename', async () => {
+    mockRecentScans.mockResolvedValue([scan1])
+    mockRawReport.mockResolvedValue(report1)
+    render(<ScanReportPage />)
+    await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).not.toBeDisabled())
+    fireEvent.click(screen.getByRole('button', { name: /export xlsx/i }))
+    expect(mockExportXlsx).toHaveBeenCalledWith(report1, 'scan-report-2026-05-25')
   })
 })

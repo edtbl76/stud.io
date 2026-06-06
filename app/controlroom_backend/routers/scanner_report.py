@@ -87,8 +87,13 @@ async def get_scan_report(
             "confidence": r["confidence"],
         })
 
+    sorted_by_status = {
+        status: sorted(items, key=lambda x: (x["name"].casefold(), x["format"].casefold()))
+        for status, items in by_status.items()
+    }
+
     return RawScanReport(
         scan_id=scan["scan_id"],
         scanned_at=scan["scanned_at"].isoformat(),
-        results_by_status=dict(by_status),
+        results_by_status=sorted_by_status,
     )

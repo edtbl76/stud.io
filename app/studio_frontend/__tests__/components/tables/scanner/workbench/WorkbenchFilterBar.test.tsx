@@ -64,8 +64,8 @@ it('catalog type change calls onFiltersChange with catalog_type patch', () => {
 it('format change calls onFiltersChange with format patch', () => {
   const onChange = jest.fn()
   render(<WorkbenchFilterBar filters={BLANK_FILTERS} onFiltersChange={onChange} />)
-  fireEvent.change(screen.getByRole('combobox', { name: /format/i }), { target: { value: 'VST3' } })
-  expect(onChange).toHaveBeenCalledWith({ format: 'VST3' })
+  fireEvent.change(screen.getByRole('combobox', { name: /format/i }), { target: { value: 'vst3' } })
+  expect(onChange).toHaveBeenCalledWith({ format: 'vst3' })
 })
 
 // Step 41

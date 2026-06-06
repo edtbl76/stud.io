@@ -76,11 +76,11 @@ describe('KnownPage row rendering and sort order', () => {
     })
   })
 
-  it('calls workbench with bucket known', async () => {
+  it('calls workbench with bucket known and show_confirmed true', async () => {
     mockWorkbench.mockResolvedValue(response([]))
     render(<KnownPage />)
     await waitFor(() => {
-      expect(mockWorkbench).toHaveBeenCalledWith(expect.objectContaining({ bucket: 'known' }))
+      expect(mockWorkbench).toHaveBeenCalledWith(expect.objectContaining({ bucket: 'known', show_confirmed: true }))
     })
   })
 })

@@ -58,6 +58,7 @@ function applyFilters(
   filters: WorkbenchClientFilters,
 ): WorkbenchRow[] {
   return rows.filter((r) => {
+    if (filters.bucket && r.bucket !== filters.bucket) return false
     if (filters.catalog_type && r.catalog_record_table !== filters.catalog_type) return false
     if (filters.format && r.disk_format !== filters.format) return false
     if (filters.needs_review_substate) {
