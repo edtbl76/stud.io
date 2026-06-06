@@ -242,6 +242,15 @@ async def test_workbench_show_confirmed_true_includes_known(client, conn, admin_
     assert any(r["bucket"] == "known" for r in resp.json()["rows"])
 
 
+@pytest.mark.asyncio
+async def test_workbench_bucket_known_filter_returns_known_items_despite_show_confirmed_false(client, conn, admin_headers):
+    """bucket=known must override the show_confirmed=false guard — the caller is explicitly asking for known items."""
+    await _make_confirmed_scan(conn, [{"path": "/p/reverb.vst3", "format": "vst3", "version": "1.0.0"}])
+    resp = await client.get("/scanner/workbench?bucket=known&show_confirmed=false", headers=admin_headers)
+    assert resp.status_code == 200
+    assert any(r["bucket"] == "known" for r in resp.json()["rows"])
+
+
 # ---------------------------------------------------------------------------
 # Orphaned records
 # ---------------------------------------------------------------------------

@@ -98,10 +98,22 @@ function WorkbenchModals({ activeModal, setActiveModal, currentModalRow, setBulk
 
 export function ScanWorkbenchPage() {
   const {
-    rows, orphaned, isLoading, clientFilters, setClientFilter,
+    rows, orphaned, isLoading, clientFilters, setClientFilter, setServerBucket,
     selectedIds, toggleSelect, shiftSelect, selectAll, clearSelection, invalidate,
     rowSubStates,
   } = useWorkbench()
+
+  function handleFiltersChange(patch: Partial<typeof clientFilters>) {
+    if ('bucket' in patch) {
+      const merged: Partial<typeof clientFilters> = patch.bucket === 'needs_review'
+        ? patch
+        : { ...patch, needs_review_substate: '' }
+      setServerBucket(patch.bucket || undefined)
+      setClientFilter(merged)
+      return
+    }
+    setClientFilter(patch)
+  }
 
   const actions = useScanWorkbenchActions({ rows, selectedIds, rowSubStates, invalidate, clearSelection })
   const { selectedRows, currentModalRow, activeModal, setActiveModal } = actions
@@ -120,7 +132,7 @@ export function ScanWorkbenchPage() {
         </div>
       </div>
 
-      <WorkbenchFilterBar filters={clientFilters} onFiltersChange={setClientFilter} />
+      <WorkbenchFilterBar filters={clientFilters} onFiltersChange={handleFiltersChange} />
 
       {selectedIds.size > 0 && (
         <WorkbenchBulkBar

@@ -36,7 +36,7 @@ export function KnownPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    api.scanner.workbench({ bucket: 'known' })
+    api.scanner.workbench({ bucket: 'known', show_confirmed: true })
       .then(data => setRows(sortKnownRows(data.rows)))
       .catch(() => setError('Failed to load known records'))
       .finally(() => setLoading(false))
