@@ -16,10 +16,14 @@ export const XLSX_COLUMNS: Partial<ExcelJS.Column>[] = [
 export function uniqueSheetName(wb: ExcelJS.Workbook, label: string): string {
   const base = label.slice(0, MAX_SHEET_NAME_LENGTH)
   if (!wb.worksheets.some((ws) => ws.name === base)) return base
-  const truncated = label.slice(0, MAX_SHEET_NAME_LENGTH - 2)
   let n = 2
-  while (wb.worksheets.some((ws) => ws.name === `${truncated}_${n}`)) n++
-  return `${truncated}_${n}`
+  while (true) {
+    const suffix = `_${n}`
+    const truncated = label.slice(0, MAX_SHEET_NAME_LENGTH - suffix.length)
+    const candidate = truncated + suffix
+    if (!wb.worksheets.some((ws) => ws.name === candidate)) return candidate
+    n++
+  }
 }
 
 function addRow(ws: ExcelJS.Worksheet, r: RawScanResult): void {

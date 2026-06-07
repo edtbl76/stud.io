@@ -5,6 +5,7 @@ import type { RawScanReport } from '@/lib/types'
 
 const BACKEND = process.env.BACKEND_URL ?? 'http://controlroom_backend:5150'
 const DATE_SLICE_LENGTH = 10
+const REPORT_TIMEOUT_MS = 15_000
 
 function safeDate(scannedAt: string): string {
   const d = new Date(scannedAt)
@@ -22,7 +23,20 @@ export async function GET(
   const authHeaders: Record<string, string> = {}
   if (token) authHeaders['authorization'] = `Bearer ${token}`
 
-  const res = await fetch(`${BACKEND}/scanner/scans/${scanId}/report`, { headers: authHeaders })
+  let res: Response
+  try {
+    res = await fetch(`${BACKEND}/scanner/scans/${scanId}/report`, {
+      headers: authHeaders,
+      cache: 'no-store',
+      signal: AbortSignal.timeout(REPORT_TIMEOUT_MS),
+    })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      return NextResponse.json({ error: 'Report fetch timed out' }, { status: 504 })
+    }
+    throw err
+  }
+
   if (!res.ok) {
     return NextResponse.json({ error: 'Failed to fetch report' }, { status: res.status })
   }
@@ -36,6 +50,9 @@ export async function GET(
     headers: {
       'content-type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'content-disposition': `attachment; filename="${filename}"`,
+      'cache-control': 'no-store',
+      'pragma': 'no-cache',
+      'expires': '0',
     },
   })
 }
