@@ -14,7 +14,7 @@ jest.mock('@/lib/api', () => ({
   },
 }))
 jest.mock('@/components/tables/scanner/report/exportReportToXlsx', () => ({
-  exportReportToXlsx: jest.fn().mockResolvedValue(undefined),
+  exportReportToXlsx: jest.fn(),
 }))
 
 import { exportReportToXlsx } from '@/components/tables/scanner/report/exportReportToXlsx'
@@ -44,14 +44,14 @@ const report1: RawScanReport = {
     known: [
       { result_id: 'r-1', name: 'Surge XT', vendor: 'Surge Synth Team', version: '3.3.4', format: 'VST3', path: '/plug-ins/Surge XT.vst3', status: 'known', confidence: 'exact' },
     ],
-    untracked: [],
+    unlinked: [],
   },
 }
 
 const report2: RawScanReport = {
   scan_id: 'scan-2',
   scanned_at: '2026-05-24T10:00:00.000Z',
-  results_by_status: { matched: [] },
+  results_by_status: { needs_review: [] },
 }
 
 beforeEach(() => {
@@ -130,17 +130,17 @@ describe('accordion sections', () => {
     mockRawReport.mockResolvedValue(report1)
     render(<ScanReportPage />)
     await waitFor(() => screen.getByText(/Known/i))
-    expect(screen.getByText(/Untracked/i)).toBeInTheDocument()
+    expect(screen.getByText(/Unlinked/i)).toBeInTheDocument()
   })
 })
 
 // Step 13: Canonical status order
 describe('canonical order', () => {
-  it('displays known before untracked regardless of dict order', async () => {
+  it('displays known before unlinked regardless of dict order', async () => {
     const reportUnordered: RawScanReport = {
       scan_id: 'scan-1',
       scanned_at: '2026-05-25T14:32:00.000Z',
-      results_by_status: { untracked: [], known: [] },
+      results_by_status: { unlinked: [], known: [] },
     }
     mockRecentScans.mockResolvedValue([scan1])
     mockRawReport.mockResolvedValue(reportUnordered)
@@ -148,8 +148,8 @@ describe('canonical order', () => {
     await waitFor(() => screen.getByText(/Known/i))
     const sections = screen.getAllByRole('button')
     const knownIdx = sections.findIndex(b => b.textContent?.includes('Known'))
-    const untrackedIdx = sections.findIndex(b => b.textContent?.includes('Untracked'))
-    expect(knownIdx).toBeLessThan(untrackedIdx)
+    const unlinkedIdx = sections.findIndex(b => b.textContent?.includes('Unlinked'))
+    expect(knownIdx).toBeLessThan(unlinkedIdx)
   })
 })
 
@@ -159,8 +159,8 @@ describe('zero-count sections', () => {
     mockRecentScans.mockResolvedValue([scan1])
     mockRawReport.mockResolvedValue(report1)
     render(<ScanReportPage />)
-    await waitFor(() => screen.getByText(/Untracked/i))
-    expect(screen.getByText(/Untracked \(0\)/i)).toBeInTheDocument()
+    await waitFor(() => screen.getByText(/Unlinked/i))
+    expect(screen.getByText(/Unlinked \(0\)/i)).toBeInTheDocument()
   })
 })
 
@@ -224,23 +224,12 @@ describe('Export XLSX button', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).toBeDisabled())
   })
 
-  it('clicking Export XLSX calls exportReportToXlsx with report and date-based filename', async () => {
+  it('clicking Export XLSX calls exportReportToXlsx with the selected scan id', async () => {
     mockRecentScans.mockResolvedValue([scan1])
     mockRawReport.mockResolvedValue(report1)
     render(<ScanReportPage />)
     await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).not.toBeDisabled())
     fireEvent.click(screen.getByRole('button', { name: /export xlsx/i }))
-    expect(mockExportXlsx).toHaveBeenCalledWith(report1, 'scan-report-2026-05-25')
-  })
-
-  it('falls back to scan-report-report filename when scanned_at is malformed', async () => {
-    const badScan = { ...scan1, scanned_at: 'not-a-date' }
-    const badReport = { ...report1, scanned_at: 'not-a-date' }
-    mockRecentScans.mockResolvedValue([badScan])
-    mockRawReport.mockResolvedValue(badReport)
-    render(<ScanReportPage />)
-    await waitFor(() => expect(screen.getByRole('button', { name: /export xlsx/i })).not.toBeDisabled())
-    fireEvent.click(screen.getByRole('button', { name: /export xlsx/i }))
-    expect(mockExportXlsx).toHaveBeenCalledWith(badReport, 'scan-report-report')
+    expect(mockExportXlsx).toHaveBeenCalledWith('scan-1')
   })
 })

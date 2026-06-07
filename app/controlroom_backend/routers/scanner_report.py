@@ -16,6 +16,20 @@ router = APIRouter()
 
 _SCAN_RETENTION = 10
 
+_STATUS_TO_BUCKET: dict[str, str] = {
+    "known":       "known",
+    "matched":     "known",
+    "unconfirmed": "needs_review",
+    "conflicted":  "needs_review",
+    "untracked":   "unlinked",
+    "orphaned":    "orphaned",
+    "ignored":     "excluded",
+}
+
+
+def _remap_status(status: str) -> str:
+    return _STATUS_TO_BUCKET.get(status, status)
+
 
 class ScanListItem(BaseModel):
     scan_id: UUID
@@ -76,7 +90,7 @@ async def get_scan_report(
 
     by_status: dict[str, list[dict]] = defaultdict(list)
     for r in results:
-        by_status[r["status"]].append({
+        by_status[_remap_status(r["status"])].append({
             "result_id": str(r["result_id"]),
             "name": r["name"],
             "vendor": r["vendor"],

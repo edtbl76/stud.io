@@ -86,8 +86,8 @@ async def test_scan_report_returns_raw_results_by_status(client, conn, admin_hea
     data = resp.json()
     assert data["scan_id"] == str(scan_id)
     assert "results_by_status" in data
-    # untracked result should appear — raw ingest-time status, no rules applied
-    assert len(data["results_by_status"].get("untracked", [])) == 1
+    # "untracked" old status remaps to new bucket "unlinked"
+    assert len(data["results_by_status"].get("unlinked", [])) == 1
 
 
 @pytest.mark.asyncio
@@ -101,9 +101,9 @@ async def test_scan_report_404_for_unknown_scan(client, admin_headers):
 
 @pytest.mark.asyncio
 async def test_scan_report_applies_no_rules(client, conn, admin_headers):
-    """Report shows raw stored status — not recomputed with rules."""
+    """Report maps old status to new bucket vocabulary but does not re-run catalog rules."""
     scan_id, _ = await insert_scan(conn, status="untracked")
-    # Add a vendor rule that would normalize this result
+    # Add a vendor rule that would change classification if rules were re-applied
     await conn.execute(
         "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) "
         "VALUES ($1, $2, $3)", "acme audio", "Acme Corp", "admin",
@@ -112,9 +112,10 @@ async def test_scan_report_applies_no_rules(client, conn, admin_headers):
         f"/scanner/scans/{scan_id}/report",
         headers=admin_headers,
     )
-    # Report shows raw "untracked" — not recomputed as unlinked/needs_review
+    # "untracked" remapped to "unlinked" — catalog rules are NOT re-applied
     data = resp.json()
-    assert "untracked" in data["results_by_status"]
+    assert "unlinked" in data["results_by_status"]
+    assert "untracked" not in data["results_by_status"]
 
 
 @pytest.mark.asyncio

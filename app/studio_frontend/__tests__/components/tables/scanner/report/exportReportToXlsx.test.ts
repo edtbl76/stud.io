@@ -1,4 +1,4 @@
-import { buildReportWorkbook } from '@/components/tables/scanner/report/exportReportToXlsx'
+import { buildReportWorkbook } from '@/app/api/scanner/scans/[scanId]/export/_workbookUtils'
 import type { RawScanReport } from '@/lib/types'
 
 function makeResult(name: string, format = 'vst3') {

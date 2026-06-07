@@ -84,21 +84,13 @@ function ReportBody({ report, loadingReport, error, openSections, onToggleSectio
 }
 
 const ERROR_CLASS = 'rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive'
-const DATE_SLICE_LENGTH = 10
-
-function scanDateString(scannedAt: string): string {
-  const d = new Date(scannedAt)
-  return Number.isNaN(d.getTime()) ? 'report' : d.toISOString().slice(0, DATE_SLICE_LENGTH)
-}
 
 export function ScanReportPage() {
   const { scans, selectedScanId, setSelectedScanId, report, loadingScans, loadingReport, error, openSections, handleToggleSection } = useReportPage()
 
   function handleExport() {
-    if (!report || !selectedScanId) return
-    const scan = scans.find(s => s.scan_id === selectedScanId)
-    const date = scan ? scanDateString(scan.scanned_at) : 'report'
-    void exportReportToXlsx(report, `scan-report-${date}`)
+    if (!selectedScanId) return
+    exportReportToXlsx(selectedScanId)
   }
 
   if (loadingScans) return <Skeleton className="h-10 w-full" />
