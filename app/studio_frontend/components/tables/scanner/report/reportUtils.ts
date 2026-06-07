@@ -3,14 +3,9 @@ import type { ScanListItem } from '@/lib/types'
 export const CANONICAL_STATUS_ORDER = [
   'known',
   'unlinked',
-  'matched',
-  'needs_review',
-  'unconfirmed',
-  'conflicted',
   'orphaned',
-  'untracked',
+  'needs_review',
   'excluded',
-  'ignored',
 ]
 
 export function formatPickerLabel(scan: ScanListItem): string {
@@ -21,8 +16,16 @@ export function formatPickerLabel(scan: ScanListItem): string {
   return `${date} ${time} · ${scan.source_machine} (${scan.total_count} ${unit})`
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  known:        'Known',
+  unlinked:     'Unlinked',
+  orphaned:     'Orphaned',
+  needs_review: 'Needs Review',
+  excluded:     'Excluded',
+}
+
 export function formatStatusLabel(status: string): string {
-  return status.charAt(0).toUpperCase() + status.slice(1).replaceAll('_', ' ')
+  return STATUS_LABELS[status] ?? (status.charAt(0).toUpperCase() + status.slice(1).replaceAll('_', ' '))
 }
 
 export function sortedStatusKeys(keys: string[]): string[] {
