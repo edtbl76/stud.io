@@ -196,20 +196,22 @@ def _rec(name, vendor, version):
     return types.SimpleNamespace(name=name, vendor=vendor, version=version)
 
 
-@pytest.mark.parametrize(
-    "dname, dvendor, dver, record, expected",
-    [
-        ("Reverb", "ACME", "1.0", _rec("Reverb", "ACME", "1.0"), True),
-        ("reverb", "acme", "1.0", _rec("Reverb", "ACME", "1.0"), True),   # case-insensitive
-        ("Reverb", "ACME", "1.0", _rec("Delay", "ACME", "1.0"), False),   # name differs
-        ("Reverb", "ACME", "1.0", _rec("Reverb", "Moog", "1.0"), False),  # vendor differs
-        ("Reverb", "ACME", "1.0", _rec("Reverb", "ACME", "2.0"), False),  # version differs
-        ("Reverb", "ACME", None, _rec("Reverb", "ACME", None), True),     # both versions None
-        ("Reverb", "ACME", None, _rec("Reverb", "ACME", ""), True),       # None vs "" coalesce
-    ],
-)
-def test_is_clean_match_parity(dname, dvendor, dver, record, expected) -> None:
-    assert is_clean_match(dname, dvendor, dver, record) is expected
+# Each case: (display_name, display_vendor, version, record, expected)
+_CLEAN_MATCH_CASES = [
+    ("Reverb", "ACME", "1.0", _rec("Reverb", "ACME", "1.0"), True),
+    ("reverb", "acme", "1.0", _rec("Reverb", "ACME", "1.0"), True),   # case-insensitive
+    ("Reverb", "ACME", "1.0", _rec("Delay", "ACME", "1.0"), False),   # name differs
+    ("Reverb", "ACME", "1.0", _rec("Reverb", "Moog", "1.0"), False),  # vendor differs
+    ("Reverb", "ACME", "1.0", _rec("Reverb", "ACME", "2.0"), False),  # version differs
+    ("Reverb", "ACME", None, _rec("Reverb", "ACME", None), True),     # both versions None
+    ("Reverb", "ACME", None, _rec("Reverb", "ACME", ""), True),       # None vs "" coalesce
+]
+
+
+@pytest.mark.parametrize("case", _CLEAN_MATCH_CASES)
+def test_is_clean_match_parity(case) -> None:
+    display_name, display_vendor, version, record, expected = case
+    assert is_clean_match(display_name, display_vendor, version, record) is expected
 
 
 # ---------------------------------------------------------------------------
