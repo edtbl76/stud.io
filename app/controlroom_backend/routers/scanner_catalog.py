@@ -12,6 +12,7 @@ factory live below the matching algorithm without an import cycle.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypedDict
 
 from asyncpg import Connection
 
@@ -134,7 +135,7 @@ async def load_exclusions(conn: Connection) -> set[str]:
 
 async def load_rejection_set(
     conn: Connection, fingerprints: list[str] | None = None,
-) -> set[tuple]:
+) -> set[tuple[str, str]]:
     """Load (fingerprint, record_id) rejection pairs.
 
     Tri-state on ``fingerprints`` (BR-U07-03):
@@ -162,7 +163,12 @@ def _norm(s: str | None) -> str:
     return (s or "").lower()
 
 
-def is_clean_match(display_name, display_vendor, version, record) -> bool:
+def is_clean_match(
+    display_name: str | None,
+    display_vendor: str | None,
+    version: str | None,
+    record: CatalogRecord,
+) -> bool:
     """True when display name/vendor/version match the catalog record exactly.
 
     Name and vendor compare case-insensitively; version compares with None/""
@@ -179,15 +185,23 @@ def is_clean_match(display_name, display_vendor, version, record) -> bool:
 # Replaces scanner_workbench._WorkbenchCtx and scanner_rules._CatalogCtx.
 # ---------------------------------------------------------------------------
 
+class CatalogMeta(TypedDict):
+    """Per-record catalog metadata, keyed by record_id in the meta map."""
+    record_name: str | None
+    record_vendor: str | None
+    record_version: str | None
+    disk_paths: list[dict]
+
+
 @dataclass(frozen=True)
 class MatchingContext:
     catalog_index: list[CatalogRecord]
     exclusions: set[str]
-    rejection_set: set[tuple]
-    catalog_meta: dict[str, dict] | None = None
+    rejection_set: set[tuple[str, str]]
+    catalog_meta: dict[str, CatalogMeta] | None = None
 
 
-async def _fetch_catalog_meta(conn: Connection) -> dict[str, dict]:
+async def _fetch_catalog_meta(conn: Connection) -> dict[str, CatalogMeta]:
     rows = await conn.fetch(catalog_meta_query())
     return {
         str(r["record_id"]): {

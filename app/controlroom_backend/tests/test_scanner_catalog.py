@@ -110,39 +110,38 @@ def test_query_wrapper_matches_legacy(wrapper, legacy) -> None:
 
 
 # ---------------------------------------------------------------------------
-# build_catalog_index (BLM-U07-03)
+# build_catalog_index — real-DB mapping (BLM-U07-03)
+# Uses the `conn` fixture: real catalog UNION query, transaction-rolled-back per
+# test. Exercises the row->CatalogRecord mapping against actual SQL output.
 # ---------------------------------------------------------------------------
 
-async def test_build_catalog_index_maps_rows() -> None:
-    """Rows map to CatalogRecord with a precomputed lowercased search_key."""
-    conn = _FakeConn([
-        {
-            "record_id": 123,
-            "record_table": "effects",
-            "name": "BigReverb",
-            "vendor": "ACME",
-            "version": "1.0",
-            "disk_paths": [{"path": "/x"}],
-        },
-        {
-            "record_id": 456,
-            "record_table": "instruments",
-            "name": None,
-            "vendor": None,
-            "version": None,
-            "disk_paths": None,
-        },
-    ])
-    index = await build_catalog_index(conn)
+async def test_build_catalog_index_maps_real_rows(conn) -> None:
+    """build_catalog_index runs the real UNION and maps rows to CatalogRecord."""
+    brand_id = await conn.fetchval(
+        "INSERT INTO brands (legal_name, brand_name) VALUES ('Test Labs LLC', 'TestLabs') RETURNING brand_id"
+    )
+    with_brand = await conn.fetchval(
+        "INSERT INTO effects (effect_name, brand_id, version) VALUES ('UnitTestVerb', $1, '9.9') RETURNING effect_id",
+        brand_id,
+    )
+    no_brand = await conn.fetchval(
+        "INSERT INTO effects (effect_name) VALUES ('NoBrandVerb') RETURNING effect_id"
+    )
 
-    assert [r.record_id for r in index] == ["123", "456"]
-    assert index[0].search_key == "acme bigreverb"
-    assert index[0].disk_paths == [{"path": "/x"}]
-    # None name/vendor coalesce to "" (name) and pass through (vendor)
-    assert index[1].name == ""
-    assert index[1].vendor is None
-    assert index[1].search_key == ""
-    assert index[1].disk_paths == []
+    by_id = {r.record_id: r for r in await build_catalog_index(conn)}
+
+    rec = by_id[str(with_brand)]
+    assert rec.record_table == "effects"
+    assert rec.name == "UnitTestVerb"
+    assert rec.vendor == "TestLabs"
+    assert rec.version == "9.9"
+    assert rec.disk_paths == []                        # effects.disk_paths NOT NULL DEFAULT '[]'
+    assert rec.search_key == "testlabs unittestverb"   # "{vendor} {name}" lowercased
+
+    # brand_id NULL -> vendor is None and the search_key drops the empty vendor
+    orphan = by_id[str(no_brand)]
+    assert orphan.vendor is None
+    assert orphan.search_key == "nobrandverb"
 
 
 # ---------------------------------------------------------------------------
