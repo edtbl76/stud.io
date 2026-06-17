@@ -12,7 +12,7 @@ from uuid import UUID
 from asyncpg import Connection
 
 from routers._helpers import log_audit
-from routers.scanner_match import CATALOG_TABLES
+from routers.scanner_catalog import CATALOG_TABLES
 from schemas.scanner import Confirmation
 
 

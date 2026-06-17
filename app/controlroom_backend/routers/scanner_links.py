@@ -10,7 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
-from routers.scanner_match import CATALOG_TABLES
+from routers.scanner_catalog import CATALOG_TABLES, orphaned_query
+from routers.scanner_rejections import optimistic_purge
 from schemas.scanner_workbench import (
     BulkCreateLinkRequest,
     BulkLinkResult,
@@ -27,15 +28,6 @@ class _CatalogRef:
     record_id: UUID
     record_table: str
 
-_ORPHANED_QUERY = " UNION ALL ".join(
-    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-    f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
-    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
-    f"WHERE t.deleted_at IS NULL AND jsonb_array_length(t.disk_paths) > 0"
-    for tbl, (pk, name) in CATALOG_TABLES.items()
-)
-
-
 class _LinkQuery:
     def __init__(
         self,
@@ -50,13 +42,6 @@ class _LinkQuery:
 
 def _name_matches(name: str | None, q_lower: str | None) -> bool:
     return q_lower is None or q_lower in (name or "").lower()
-
-
-async def _optimistic_purge(conn: Connection, fingerprint: str, record_id: UUID) -> None:
-    await conn.execute(
-        "DELETE FROM scanner_rejections WHERE fingerprint=$1 AND record_id=$2",
-        fingerprint, record_id,
-    )
 
 
 async def _create_link_for_result(
@@ -85,7 +70,7 @@ async def _create_link_for_result(
         "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_name) DO NOTHING",
         row["name"].lower(), catalog["name"], username,
     )
-    await _optimistic_purge(conn, fp, catalog_ref.record_id)
+    await optimistic_purge(conn, fp, catalog_ref.record_id)
     return True
 
 
@@ -105,7 +90,7 @@ async def _candidates_for_unlinked(conn: Connection, source_id: UUID, q_lower: s
     if not result_row:
         raise HTTPException(status_code=404, detail="Scan result not found")
     already_linked = await _confirmed_record_ids(conn, result_row["scan_id"])
-    orphaned_rows = await conn.fetch(_ORPHANED_QUERY)
+    orphaned_rows = await conn.fetch(orphaned_query())
     candidates: list[OrphanedRecord] = [
         OrphanedRecord(
             catalog_record_id=UUID(r["record_id"]),

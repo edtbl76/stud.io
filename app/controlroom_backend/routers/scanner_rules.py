@@ -11,7 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
-from routers.scanner_match import build_catalog_index, load_exclusions, match_plugin
+from routers.scanner_catalog import MatchingContext, build_matching_context, is_clean_match
+from routers.scanner_match import match_plugin
 from schemas.scanner_rules import (
     AcknowledgeCleanResult,
     AllRules,
@@ -78,13 +79,6 @@ _NAME = _RuleConfig(
 
 
 @dataclass(frozen=True)
-class _CatalogCtx:
-    catalog_index: object
-    exclusions: set
-    rejection_set: set
-
-
-@dataclass(frozen=True)
 class _RuleApp:
     rule_type: str
     catalog_value: str
@@ -126,18 +120,7 @@ async def _toggle_rule(conn: Connection, cfg: _RuleConfig, rule_id: UUID, enable
     return row
 
 
-def _norm(s: str | None) -> str:
-    return (s or "").lower()
-
-
-def _is_clean_match(display_name, display_vendor, version, record) -> bool:
-    name_ok = _norm(display_name) == _norm(record.name)
-    vendor_ok = _norm(display_vendor) == _norm(record.vendor)
-    version_ok = (version or "") == (record.version or "")
-    return name_ok and vendor_ok and version_ok
-
-
-def _collect_clean_ids(rows, cfg: _RuleConfig, catalog_value: str, ctx: _CatalogCtx) -> list:
+def _collect_clean_ids(rows, cfg: _RuleConfig, catalog_value: str, ctx: MatchingContext) -> list:
     clean_ids = []
     for row in rows:
         is_vendor = cfg.scan_col == "vendor"
@@ -146,7 +129,7 @@ def _collect_clean_ids(rows, cfg: _RuleConfig, catalog_value: str, ctx: _Catalog
         _, match = match_plugin(display_name, display_vendor, ctx.catalog_index, ctx.exclusions)
         if match.record is None:
             continue
-        if _is_clean_match(display_name, display_vendor, row["version"], match.record):
+        if is_clean_match(display_name, display_vendor, row["version"], match.record):
             clean_ids.append(row["result_id"])
     return clean_ids
 
@@ -166,11 +149,9 @@ async def _ack_clean(conn: Connection, cfg: _RuleConfig, rule_id: UUID, username
     rule = await conn.fetchrow(cfg.ack_fetch_sql, rule_id)
     if not rule:
         raise HTTPException(status_code=404, detail=cfg.not_found)
-    ctx = _CatalogCtx(
-        catalog_index=await build_catalog_index(conn),
-        exclusions=await load_exclusions(conn),
-        rejection_set=set(),
-    )
+    # fingerprints=[] preserves the original empty rejection set (acknowledge
+    # ignores rejections), taking the no-query short-circuit.
+    ctx = await build_matching_context(conn, fingerprints=[])
     rows = await conn.fetch(cfg.ack_scan_sql, rule[cfg.disk_col])
     clean_ids = _collect_clean_ids(rows, cfg, rule[cfg.catalog_col], ctx)
     return await _bulk_confirm(conn, clean_ids, username)
@@ -190,12 +171,7 @@ async def _fetch_candidates(conn: Connection, rule_type: str, disk_field: str):
     )
 
 
-async def _load_rejection_set(conn: Connection) -> set[tuple]:
-    rows = await conn.fetch("SELECT fingerprint, record_id::text FROM scanner_rejections")
-    return {(r["fingerprint"], r["record_id"]) for r in rows}
-
-
-def _score_row(row, rule_app: _RuleApp, ctx: _CatalogCtx) -> tuple[int, int]:
+def _score_row(row, rule_app: _RuleApp, ctx: MatchingContext) -> tuple[int, int]:
     display_vendor = rule_app.catalog_value if rule_app.rule_type == "vendor" else row["vendor"]
     display_name = rule_app.catalog_value if rule_app.rule_type == "name" else row["name"]
     _, match = match_plugin(display_name, display_vendor, ctx.catalog_index, ctx.exclusions)
@@ -204,17 +180,13 @@ def _score_row(row, rule_app: _RuleApp, ctx: _CatalogCtx) -> tuple[int, int]:
     fp = f"{display_vendor} {display_name}".lower().strip()
     if (fp, str(match.record.record_id)) in ctx.rejection_set:
         return 0, 0
-    return 1, int(_is_clean_match(display_name, display_vendor, row["version"], match.record))
+    return 1, int(is_clean_match(display_name, display_vendor, row["version"], match.record))
 
 
 async def count_affected_with_clean_split(
     conn: Connection, *, rule_type: str, disk_field: str, catalog_value: str,
 ) -> dict[str, int]:
-    ctx = _CatalogCtx(
-        catalog_index=await build_catalog_index(conn),
-        exclusions=await load_exclusions(conn),
-        rejection_set=await _load_rejection_set(conn),
-    )
+    ctx = await build_matching_context(conn)
     rule_app = _RuleApp(rule_type=rule_type, catalog_value=catalog_value)
     rows = await _fetch_candidates(conn, rule_type, disk_field)
     affected, clean = 0, 0
@@ -225,7 +197,7 @@ async def count_affected_with_clean_split(
     return {"affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean}
 
 
-async def _count_rules(conn: Connection, rules: list, rule_type: str, ctx: _CatalogCtx) -> dict:
+async def _count_rules(conn: Connection, rules: list, rule_type: str, ctx: MatchingContext) -> dict:
     disk_col = "disk_vendor" if rule_type == "vendor" else "disk_name"
     cat_col = "catalog_vendor" if rule_type == "vendor" else "catalog_name"
     counts: dict = {}
@@ -258,11 +230,7 @@ async def list_rules(
         "SELECT rule_id, label, pattern, match_fields, action, enabled, is_seeded, "
         "created_by, created_at FROM scanner_name_patterns ORDER BY label"
     )
-    ctx = _CatalogCtx(
-        catalog_index=await build_catalog_index(conn),
-        exclusions=await load_exclusions(conn),
-        rejection_set=await _load_rejection_set(conn),
-    )
+    ctx = await build_matching_context(conn)
     vendor_counts = await _count_rules(conn, vendor_rows, "vendor", ctx)
     name_counts = await _count_rules(conn, name_rows, "name", ctx)
     return AllRules(

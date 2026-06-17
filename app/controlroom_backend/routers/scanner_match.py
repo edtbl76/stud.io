@@ -6,6 +6,10 @@ from dataclasses import dataclass
 from asyncpg import Connection, Record
 from rapidfuzz import fuzz
 
+# Re-exported from scanner_catalog so existing importers of routers.scanner_match
+# keep working during the U-07 migration.
+from routers.scanner_catalog import CATALOG_TABLES, CatalogRecord
+
 # ---------------------------------------------------------------------------
 # Score thresholds (named constants — no magic numbers in match_plugin)
 # ---------------------------------------------------------------------------
@@ -15,45 +19,10 @@ TIER2_MEDIUM = 65.0
 TIER2_LOW    = 45.0
 TIER3_LOW    = 65.0
 
-# ---------------------------------------------------------------------------
-# Catalog tables included in the matching index
-# Maps table name → (pk_column, name_column)
-# ---------------------------------------------------------------------------
-
-CATALOG_TABLES: dict[str, tuple[str, str]] = {
-    "effects":           ("effect_id",          "effect_name"),
-    "instruments":       ("instrument_id",       "instrument_name"),
-    "workstations":      ("workstation_id",      "tool_name"),
-    "workflow_tools":    ("workflow_tool_id",    "tool_name"),
-    "measurement_tools": ("measurement_tool_id", "tool_name"),
-    "reference_tools":   ("reference_tool_id",  "tool_name"),
-    "composition_tools": ("composition_tool_id", "tool_name"),
-    "admin_tools":       ("admin_tool_id",       "tool_name"),
-}
-
-_CATALOG_UNION = " UNION ALL ".join(
-    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-    f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
-    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
-    f"WHERE t.deleted_at IS NULL"
-    for tbl, (pk, name) in CATALOG_TABLES.items()
-)
-
 
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
-
-@dataclass
-class CatalogRecord:
-    record_id: str
-    record_table: str
-    name: str
-    vendor: str | None
-    version: str | None
-    disk_paths: list[dict]
-    search_key: str  # precomputed: f"{vendor or ''} {name}".lower().strip()
-
 
 @dataclass
 class MatchResult:
@@ -65,29 +34,6 @@ class MatchResult:
 # ---------------------------------------------------------------------------
 # DB loaders (accept asyncpg Connection)
 # ---------------------------------------------------------------------------
-
-async def build_catalog_index(conn: Connection) -> list[CatalogRecord]:
-    rows = await conn.fetch(_CATALOG_UNION)
-    return [
-        CatalogRecord(
-            record_id=str(r["record_id"]),
-            record_table=r["record_table"],
-            name=r["name"] or "",
-            vendor=r["vendor"],
-            version=r["version"],
-            disk_paths=r["disk_paths"] or [],
-            search_key=f"{r['vendor'] or ''} {r['name'] or ''}".lower().strip(),
-        )
-        for r in rows
-    ]
-
-
-async def load_exclusions(conn: Connection) -> set[str]:
-    rows = await conn.fetch(
-        "SELECT vendor, name FROM scanner_exclusions"
-    )
-    return {f"{r['vendor']} {r['name']}".lower().strip() for r in rows}
-
 
 async def load_persistent_links(conn: Connection) -> dict[str, tuple[str, str]]:
     rows = await conn.fetch(
