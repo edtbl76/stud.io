@@ -60,6 +60,16 @@ CVE-2026-26960
 CVE-2026-29786
 CVE-2026-31802
 
+# CVE-2026-48779 (HIGH): ws — memory-exhaustion DoS from tiny fragments / data chunks.
+# Audit (2026-06-16): `npm ls ws` shows ws is pulled ONLY by build/test tooling, never the
+# runtime/request path — ws@7.5.10 via @next/bundle-analyzer (webpack-bundle-analyzer) and
+# lighthouse; ws@8.19.0 via jest-environment-jsdom (jsdom) and lighthouse (puppeteer-core).
+# These run at build/test/perf-audit time in the dev container only; the production Next.js
+# server does not depend on ws. Fixed upstream in ws 7.5.11 / 8.21.0 — not adopted here to
+# avoid forcing a major bump on the 7.x consumers; revisit when bundle-analyzer/jsdom/puppeteer
+# widen their ws ranges. Consistent with the dev-tooling suppression rationale above.
+CVE-2026-48779
+
 # Perl CVEs in controlroom_backend — no fix available in debian trixie
 # Perl is a runtime dependency required by pg backup tooling.
 # Suppression accepted pending an upstream patch.
@@ -79,3 +89,18 @@ CVE-2026-9538
 
 # CVE-2026-48962 (HIGH): perl-IO-Compress — arbitrary code execution via attacker-controlled output glob
 CVE-2026-48962
+
+# CVE-2026-48959 (HIGH): perl IO::Uncompress::Unzip < 2.220 — CPU exhaustion via crafted zip.
+# No fix available in debian trixie. perl is a runtime dep of pg backup tooling; the affected
+# Unzip path is not invoked by the application. Revisit when trixie ships patched perl 5.40.
+CVE-2026-48959
+
+# SQLite CVEs in controlroom_backend — no fix available in debian trixie
+# libsqlite3-0 is an indirect OS dependency only; the application uses PostgreSQL (asyncpg)
+# exclusively and never opens a SQLite database. Revisit when trixie ships sqlite3 >= 3.53.2.
+
+# CVE-2026-11822 (HIGH): libsqlite3-0 < 3.53.2 — memory corruption
+CVE-2026-11822
+
+# CVE-2026-11824 (HIGH): libsqlite3-0 < 3.53.2 — heap-based buffer overflow
+CVE-2026-11824

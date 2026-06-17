@@ -21,12 +21,16 @@ from config import settings
 from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
 from routers.scanner_actions import apply_confirmation, insert_orphans
-from routers.scanner_match import (
+from routers.scanner_catalog import (
     CATALOG_TABLES,
     CatalogRecord,
+    absent_query,
     build_catalog_index,
-    fetch_match_meta,
+    catalog_search_query,
     load_exclusions,
+)
+from routers.scanner_match import (
+    fetch_match_meta,
     load_persistent_links,
     match_plugin,
 )
@@ -204,7 +208,7 @@ async def _fetch_scan(conn: Connection, scan_id: UUID | None) -> Mapping[str, An
 
 async def _fetch_absent_records(conn: Connection, scan_id: UUID) -> list[AbsentRecord]:
     rows = await conn.fetch(
-        f"SELECT * FROM ({_ABSENT_UNION}) c "
+        f"SELECT * FROM ({absent_query()}) c "
         f"WHERE c.record_id::uuid NOT IN ("
         f"  SELECT record_id FROM plugin_scan_results "
         f"  WHERE scan_id=$1 AND record_id IS NOT NULL "
@@ -222,13 +226,6 @@ async def _fetch_absent_records(conn: Connection, scan_id: UUID) -> list[AbsentR
     ]
 
 
-_ABSENT_UNION = " UNION ALL ".join(
-    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-    f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
-    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
-    f"WHERE t.deleted_at IS NULL AND t.disk_paths != '[]'::jsonb"
-    for tbl, (pk, name) in CATALOG_TABLES.items()
-)
 
 
 @router.get("/report", responses={404: {"description": "No scans found"}})
@@ -264,15 +261,6 @@ async def get_report(
 # GET /catalog/search
 # ---------------------------------------------------------------------------
 
-_CATALOG_SEARCH_UNION = " UNION ALL ".join(
-    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-    f"{name} AS name, b.brand_name AS vendor, t.version "
-    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
-    f"WHERE t.deleted_at IS NULL"
-    for tbl, (pk, name) in CATALOG_TABLES.items()
-)
-
-
 @router.get("/catalog/search", responses={400: {"description": "Unknown table"}})
 async def catalog_search(
     q: str,
@@ -295,7 +283,7 @@ async def catalog_search(
         )
     else:
         sql = (
-            f"SELECT * FROM ({_CATALOG_SEARCH_UNION}) u "
+            f"SELECT * FROM ({catalog_search_query()}) u "
             f"WHERE (name ILIKE $1 OR vendor ILIKE $1) "
             f"ORDER BY name LIMIT 20"
         )

@@ -1,7 +1,6 @@
 """GET /scanner/workbench — rules-applied, bucket-classified scan view."""
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
@@ -10,13 +9,13 @@ from fastapi import APIRouter, Depends, Query
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
-from routers.scanner_match import (
+from routers.scanner_catalog import (
     CATALOG_TABLES,
-    MatchResult,
-    build_catalog_index,
-    load_exclusions,
-    match_plugin,
+    MatchingContext,
+    build_matching_context,
+    catalog_meta_query,
 )
+from routers.scanner_match import MatchResult, match_plugin
 from routers._helpers import log_audit
 from schemas.scanner_workbench import BulkUpdateRequest, BulkUpdateResult, OrphanedRecord, WorkbenchResponse, WorkbenchRow
 
@@ -45,22 +44,7 @@ LEFT JOIN scanner_name_rules nr
 WHERE psr.scan_id = $1
 """
 
-_CATALOG_NAME_QUERY = " UNION ALL ".join(
-    f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-    f"{name} AS record_name, b.brand_name AS record_vendor, t.version AS record_version, t.disk_paths "
-    f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id WHERE t.deleted_at IS NULL"
-    for tbl, (pk, name) in CATALOG_TABLES.items()
-)
-
 _BUCKET_ORDER = {"excluded": 0, "known": 1, "needs_review": 2, "unlinked": 3}
-
-
-@dataclass
-class _WorkbenchCtx:
-    exclusions: set[str]
-    catalog_index: object
-    catalog_meta: dict[str, dict]
-    rejections: set[tuple]
 
 
 class _WorkbenchQuery:
@@ -75,30 +59,7 @@ class _WorkbenchQuery:
         self.show_confirmed = show_confirmed
 
 
-async def _build_rejection_set(conn: Connection, fingerprints: list[str]) -> set[tuple]:
-    if not fingerprints:
-        return set()
-    rows = await conn.fetch(
-        "SELECT fingerprint, record_id::text FROM scanner_rejections WHERE fingerprint = ANY($1::text[])",
-        fingerprints,
-    )
-    return {(r["fingerprint"], r["record_id"]) for r in rows}
-
-
-async def _fetch_catalog_meta(conn: Connection) -> dict[str, dict]:
-    rows = await conn.fetch(_CATALOG_NAME_QUERY)
-    return {
-        str(r["record_id"]): {
-            "record_name": r["record_name"],
-            "record_vendor": r["record_vendor"],
-            "record_version": r["record_version"],
-            "disk_paths": r["disk_paths"] or [],
-        }
-        for r in rows
-    }
-
-
-def _classify_bucket(fingerprint: str, confirmed_at, match: MatchResult, ctx: _WorkbenchCtx) -> str:
+def _classify_bucket(fingerprint: str, confirmed_at, match: MatchResult, ctx: MatchingContext) -> str:
     if fingerprint in ctx.exclusions:
         return "excluded"
     if match.confidence == "none" or match.record is None:
@@ -116,7 +77,7 @@ async def _resolve_scan_id(conn: Connection, scan_id: UUID | None) -> UUID | Non
 
 
 async def _fetch_orphaned(conn: Connection, scan_paths: set[str]) -> list[OrphanedRecord]:
-    rows = await conn.fetch(_CATALOG_NAME_QUERY)
+    rows = await conn.fetch(catalog_meta_query())
     result: list[OrphanedRecord] = []
     for r in rows:
         paths: list[dict] = r["disk_paths"] or []
@@ -133,12 +94,12 @@ async def _fetch_orphaned(conn: Connection, scan_paths: set[str]) -> list[Orphan
     return result
 
 
-def _build_workbench_row(r, ctx: _WorkbenchCtx) -> WorkbenchRow:
+def _build_workbench_row(r, ctx: MatchingContext) -> WorkbenchRow:
     display_vendor: str = r["display_vendor"]
     display_name: str = r["display_name"]
     fingerprint = f"{display_vendor} {display_name}".lower().strip()
     _, match = match_plugin(display_name, display_vendor, ctx.catalog_index, ctx.exclusions)
-    if match.record is not None and (fingerprint, str(match.record.record_id)) in ctx.rejections:
+    if match.record is not None and (fingerprint, str(match.record.record_id)) in ctx.rejection_set:
         match = MatchResult("none", None, None)
     bucket = _classify_bucket(fingerprint, r["confirmed_at"], match, ctx)
     record_meta = ctx.catalog_meta.get(str(match.record.record_id)) if match.record else None
@@ -172,7 +133,7 @@ def _row_passes_filter(wb_row: WorkbenchRow, bucket_filter: str | None, show_con
     return not _known_suppressed(wb_row, show_confirmed, bucket_filter)
 
 
-def _process_workbench_rows(raw_rows, ctx: _WorkbenchCtx, bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
+def _process_workbench_rows(raw_rows, ctx: MatchingContext, bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
     built = [_build_workbench_row(r, ctx) for r in raw_rows]
     filtered = [r for r in built if _row_passes_filter(r, bucket_filter, show_confirmed)]
     filtered.sort(key=_workbench_sort_key)
@@ -191,12 +152,7 @@ async def get_workbench(
 
     raw_rows = await conn.fetch(_WORKBENCH_QUERY, resolved_scan_id)
     fingerprints = [f"{r['display_vendor']} {r['display_name']}".lower().strip() for r in raw_rows]
-    ctx = _WorkbenchCtx(
-        exclusions=await load_exclusions(conn),
-        catalog_index=await build_catalog_index(conn),
-        catalog_meta=await _fetch_catalog_meta(conn),
-        rejections=await _build_rejection_set(conn, fingerprints),
-    )
+    ctx = await build_matching_context(conn, with_meta=True, fingerprints=fingerprints)
     scan_paths = {r["disk_path"] for r in raw_rows}
     workbench_rows = _process_workbench_rows(raw_rows, ctx, q.bucket, q.show_confirmed)
     orphaned = await _fetch_orphaned(conn, scan_paths)
