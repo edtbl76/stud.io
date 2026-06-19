@@ -2,6 +2,13 @@
 
 import { useState } from 'react'
 import { api } from '@/lib/api'
+import {
+  Dialog,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 import type { WorkbenchRow } from '@/lib/types'
 
 const CATALOG_TYPE_OPTIONS = [
@@ -46,9 +53,13 @@ export function CreateRecordModal({ row, onClose, onSaved }: Readonly<CreateReco
   }
 
   return (
-    <dialog open>
-      <h2 className="text-base font-semibold mb-4">Create New Record</h2>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <ScannerModalContent>
+        <DialogHeader>
+          <DialogTitle>Create New Record</DialogTitle>
+        </DialogHeader>
 
+        <div className="px-6 py-4">
       <div className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           <span>Name</span>
@@ -83,11 +94,13 @@ export function CreateRecordModal({ row, onClose, onSaved }: Readonly<CreateReco
       </div>
 
       {error && <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>}
+        </div>
 
-      <div className="mt-4 flex justify-end gap-2">
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button type="button" onClick={handleSave} disabled={!catalogType || isSaving}>Save</button>
-      </div>
-    </dialog>
+        <DialogFooter>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="button" onClick={handleSave} disabled={!catalogType || isSaving}>Save</button>
+        </DialogFooter>
+      </ScannerModalContent>
+    </Dialog>
   )
 }

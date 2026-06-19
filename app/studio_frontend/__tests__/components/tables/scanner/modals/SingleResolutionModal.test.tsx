@@ -163,3 +163,19 @@ it('calls onClose on Cancel without calling onSaved', () => {
   expect(onClose).toHaveBeenCalled()
   expect(onSaved).not.toHaveBeenCalled()
 })
+
+// U-17: shared Dialog migration + close policy (BR-U17-02)
+it('renders via the shared Dialog with a built-in Close (X) that calls onClose', () => {
+  const onClose = jest.fn()
+  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /close/i }))
+  expect(onClose).toHaveBeenCalled()
+})
+
+it('closes on Escape', () => {
+  const onClose = jest.fn()
+  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} onFireRuleToasts={noop} />)
+  fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
+  expect(onClose).toHaveBeenCalled()
+})

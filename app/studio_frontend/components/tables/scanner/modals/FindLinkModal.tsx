@@ -1,6 +1,13 @@
 'use client'
 
 import { useFindLink } from '@/lib/useFindLink'
+import {
+  Dialog,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 import type { WorkbenchRow } from '@/lib/types'
 
 type Mode = 'unlinked-to-orphaned' | 'orphaned-to-unlinked'
@@ -33,9 +40,13 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
   }
 
   return (
-    <dialog open>
-      <h2 className="text-base font-semibold mb-4">Find Link</h2>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <ScannerModalContent>
+        <DialogHeader>
+          <DialogTitle>Find Link</DialogTitle>
+        </DialogHeader>
 
+        <div className="px-6 py-4">
       <label className="sr-only" htmlFor="find-link-search">Search</label>
       <input
         id="find-link-search"
@@ -64,16 +75,19 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
         </ul>
       )}
 
-      <div className="mt-4 flex justify-end gap-2">
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button
-          type="button"
-          onClick={handleConfirm}
-          disabled={selectedIds.size === 0 || isSubmitting}
-        >
-          {confirmLabel}
-        </button>
-      </div>
-    </dialog>
+        </div>
+
+        <DialogFooter>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={selectedIds.size === 0 || isSubmitting}
+          >
+            {confirmLabel}
+          </button>
+        </DialogFooter>
+      </ScannerModalContent>
+    </Dialog>
   )
 }

@@ -9,43 +9,7 @@ import { SingleResolutionModal } from '../modals/SingleResolutionModal'
 import { CollisionModal } from '../modals/CollisionModal'
 import { FindLinkModal } from '../modals/FindLinkModal'
 import { CreateRecordModal } from '../modals/CreateRecordModal'
-
-const HARD_RESET_CONFIRMATION = 'RESET ALL SCANNER DATA'
-
-interface HardResetDialogProps {
-  isOpen: boolean
-  confirmText: string
-  isSubmitting: boolean
-  onConfirmTextChange: (text: string) => void
-  onConfirm: () => void
-  onCancel: () => void
-}
-
-function HardResetDialog({ isOpen, confirmText, isSubmitting, onConfirmTextChange, onConfirm, onCancel }: Readonly<HardResetDialogProps>) {
-  if (!isOpen) return null
-  return (
-    <dialog open className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-background rounded-lg p-6 w-full max-w-md shadow-xl">
-        <h2 className="text-base font-semibold mb-4">Hard Reset</h2>
-        <p className="text-sm text-muted-foreground mb-4">
-          Type <strong>{HARD_RESET_CONFIRMATION}</strong> to confirm.
-        </p>
-        <input
-          type="text"
-          value={confirmText}
-          onChange={(e) => onConfirmTextChange(e.target.value)}
-          className="w-full border rounded px-2 py-1 text-sm mb-4"
-        />
-        <div className="flex justify-end gap-2">
-          <button type="button" onClick={onCancel}>Cancel</button>
-          <button type="button" onClick={onConfirm} disabled={confirmText !== HARD_RESET_CONFIRMATION || isSubmitting}>
-            Confirm
-          </button>
-        </div>
-      </div>
-    </dialog>
-  )
-}
+import { HardResetDialog } from '../modals/HardResetDialog'
 
 interface WorkbenchModalsProps {
   activeModal: ReturnType<typeof useScanWorkbenchActions>['activeModal']

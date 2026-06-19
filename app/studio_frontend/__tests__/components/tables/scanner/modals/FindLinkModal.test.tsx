@@ -73,3 +73,19 @@ it('shows "Link 2 entries" for orphaned-to-unlinked mode with 2 selected', () =>
   render(<FindLinkModal mode="orphaned-to-unlinked" sourceId="s1" onClose={jest.fn()} onLinked={jest.fn()} />)
   expect(screen.getByRole('button', { name: /link 2 entries/i })).not.toBeDisabled()
 })
+
+// U-17: shared Dialog migration + close policy (BR-U17-02)
+it('renders via the shared Dialog with a built-in Close (X) that calls onClose', () => {
+  const onClose = jest.fn()
+  render(<FindLinkModal mode="orphaned-to-unlinked" sourceId="s1" onClose={onClose} onLinked={jest.fn()} />)
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /close/i }))
+  expect(onClose).toHaveBeenCalled()
+})
+
+it('closes on Escape', () => {
+  const onClose = jest.fn()
+  render(<FindLinkModal mode="orphaned-to-unlinked" sourceId="s1" onClose={onClose} onLinked={jest.fn()} />)
+  fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
+  expect(onClose).toHaveBeenCalled()
+})

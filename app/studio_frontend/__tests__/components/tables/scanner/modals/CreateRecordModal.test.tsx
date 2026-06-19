@@ -97,3 +97,19 @@ it('calls onSaved after successful save', async () => {
   fireEvent.click(screen.getByRole('button', { name: /save/i }))
   await waitFor(() => expect(onSaved).toHaveBeenCalled())
 })
+
+// U-17: shared Dialog migration + close policy (BR-U17-02)
+it('renders via the shared Dialog with a built-in Close (X) that calls onClose', () => {
+  const onClose = jest.fn()
+  render(<CreateRecordModal row={makeRow()} onClose={onClose} onSaved={noop} />)
+  expect(screen.getByRole('dialog')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /close/i }))
+  expect(onClose).toHaveBeenCalled()
+})
+
+it('closes on Escape', () => {
+  const onClose = jest.fn()
+  render(<CreateRecordModal row={makeRow()} onClose={onClose} onSaved={noop} />)
+  fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
+  expect(onClose).toHaveBeenCalled()
+})

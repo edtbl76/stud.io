@@ -2,6 +2,13 @@
 
 import { useState } from 'react'
 import { api } from '@/lib/api'
+import {
+  Dialog,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 import type { FieldSource, RuleCreationResult, WorkbenchRow } from '@/lib/types'
 
 interface Field {
@@ -86,9 +93,13 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
   }
 
   return (
-    <dialog open>
-      <h2 className="text-base font-semibold mb-4">Resolve Match</h2>
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <ScannerModalContent>
+        <DialogHeader>
+          <DialogTitle>Resolve Match</DialogTitle>
+        </DialogHeader>
 
+        <div className="px-6 py-4">
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr>
@@ -142,11 +153,13 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
       {error && (
         <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>
       )}
+        </div>
 
-      <div className="mt-4 flex justify-end gap-2">
-        <button type="button" onClick={onClose}>Cancel</button>
-        <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>
-      </div>
-    </dialog>
+        <DialogFooter>
+          <button type="button" onClick={onClose}>Cancel</button>
+          <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>
+        </DialogFooter>
+      </ScannerModalContent>
+    </Dialog>
   )
 }
