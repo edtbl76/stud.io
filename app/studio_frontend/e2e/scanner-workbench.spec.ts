@@ -26,6 +26,23 @@ test('needs_review row click opens SingleResolutionModal', async ({ page }) => {
   }
 })
 
+// U-17 (Q1=B): backdrop click must NOT dismiss scanner modals; ESC still closes.
+// Real-browser pointer events make this meaningful (the jsdom unit equivalent is vacuous).
+test('Hard Reset dialog ignores backdrop click but closes on Escape', async ({ page }) => {
+  await page.goto(BASE)
+  await page.getByRole('button', { name: /hard reset/i }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible({ timeout: 10000 })
+
+  // Click the overlay (top-left corner, outside the centered content): must NOT close.
+  await page.mouse.click(5, 5)
+  await expect(dialog).toBeVisible()
+
+  // ESC is a preserved close affordance: it DOES close.
+  await page.keyboard.press('Escape')
+  await expect(dialog).not.toBeVisible({ timeout: 5000 })
+})
+
 // Step 95
 test('Soft Reset button fires and shows toast', async ({ page }) => {
   await page.route('**/api/scanner/admin/reset/soft', async (route) => {

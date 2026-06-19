@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { api } from '@/lib/api'
 import {
   Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 import type { FieldSource, RuleCreationResult, WorkbenchRow } from '@/lib/types'
 
 interface Field {
@@ -94,7 +94,7 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
 
   return (
     <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+      <ScannerModalContent>
         <DialogHeader>
           <DialogTitle>Resolve Match</DialogTitle>
         </DialogHeader>
@@ -159,7 +159,7 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
           <button type="button" onClick={onClose}>Cancel</button>
           <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>
         </DialogFooter>
-      </DialogContent>
+      </ScannerModalContent>
     </Dialog>
   )
 }

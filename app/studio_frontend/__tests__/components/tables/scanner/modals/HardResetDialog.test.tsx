@@ -64,3 +64,9 @@ it('closes on Escape via onCancel', () => {
   fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
   expect(onCancel).toHaveBeenCalled()
 })
+
+it('the confirmation input has an accessible name for screen readers', () => {
+  render(<HardResetDialog {...baseProps} />)
+  // queryable by accessible name → screen readers announce its purpose
+  expect(screen.getByRole('textbox', { name: /confirm/i })).toBeInTheDocument()
+})

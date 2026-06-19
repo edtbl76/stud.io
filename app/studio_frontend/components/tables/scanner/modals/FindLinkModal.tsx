@@ -3,11 +3,11 @@
 import { useFindLink } from '@/lib/useFindLink'
 import {
   Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 import type { WorkbenchRow } from '@/lib/types'
 
 type Mode = 'unlinked-to-orphaned' | 'orphaned-to-unlinked'
@@ -41,7 +41,7 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
 
   return (
     <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+      <ScannerModalContent>
         <DialogHeader>
           <DialogTitle>Find Link</DialogTitle>
         </DialogHeader>
@@ -87,7 +87,7 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
             {confirmLabel}
           </button>
         </DialogFooter>
-      </DialogContent>
+      </ScannerModalContent>
     </Dialog>
   )
 }

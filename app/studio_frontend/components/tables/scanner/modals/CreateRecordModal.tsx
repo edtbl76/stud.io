@@ -4,11 +4,11 @@ import { useState } from 'react'
 import { api } from '@/lib/api'
 import {
   Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 import type { WorkbenchRow } from '@/lib/types'
 
 const CATALOG_TYPE_OPTIONS = [
@@ -54,7 +54,7 @@ export function CreateRecordModal({ row, onClose, onSaved }: Readonly<CreateReco
 
   return (
     <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()}>
+      <ScannerModalContent>
         <DialogHeader>
           <DialogTitle>Create New Record</DialogTitle>
         </DialogHeader>
@@ -100,7 +100,7 @@ export function CreateRecordModal({ row, onClose, onSaved }: Readonly<CreateReco
           <button type="button" onClick={onClose}>Cancel</button>
           <button type="button" onClick={handleSave} disabled={!catalogType || isSaving}>Save</button>
         </DialogFooter>
-      </DialogContent>
+      </ScannerModalContent>
     </Dialog>
   )
 }

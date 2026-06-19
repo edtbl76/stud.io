@@ -2,11 +2,11 @@
 
 import {
   Dialog,
-  DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { ScannerModalContent } from './ScannerModalContent'
 
 export const HARD_RESET_CONFIRMATION = 'RESET ALL SCANNER DATA'
 
@@ -29,7 +29,7 @@ export function HardResetDialog({
 }: Readonly<HardResetDialogProps>) {
   return (
     <Dialog open={isOpen} onOpenChange={(next) => { if (!next) onCancel() }}>
-      <DialogContent onInteractOutside={(e) => e.preventDefault()} className="max-w-md">
+      <ScannerModalContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Hard Reset</DialogTitle>
         </DialogHeader>
@@ -40,6 +40,7 @@ export function HardResetDialog({
           </p>
           <input
             type="text"
+            aria-label={`Type ${HARD_RESET_CONFIRMATION} to confirm`}
             value={confirmText}
             onChange={(e) => onConfirmTextChange(e.target.value)}
             className="w-full border rounded px-2 py-1 text-sm"
@@ -56,7 +57,7 @@ export function HardResetDialog({
             Confirm
           </button>
         </DialogFooter>
-      </DialogContent>
+      </ScannerModalContent>
     </Dialog>
   )
 }
