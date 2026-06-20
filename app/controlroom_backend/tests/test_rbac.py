@@ -346,3 +346,40 @@ async def test_unauthenticated_cannot_hard_reset(client):
         json={"confirmation_text": "RESET ALL SCANNER DATA"},
     )
     assert response.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# Scanner pattern rules (U-12) — admin-only
+# ---------------------------------------------------------------------------
+
+_PATTERN_BODY = {"label": "x", "pattern": "{name}(m)", "match_fields": ["vendor"], "action": "alias_to_match"}
+
+
+async def test_user_cannot_create_pattern_rule(client, auth_headers):
+    response = await client.post("/scanner/rules/pattern", json=_PATTERN_BODY, headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_create_pattern_rule(client):
+    response = await client.post("/scanner/rules/pattern", json=_PATTERN_BODY)
+    assert response.status_code == 401
+
+
+async def test_user_cannot_delete_pattern_rule(client, auth_headers):
+    response = await client.delete(f"/scanner/rules/pattern/{DUMMY_UUID}", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_delete_pattern_rule(client):
+    response = await client.delete(f"/scanner/rules/pattern/{DUMMY_UUID}")
+    assert response.status_code == 401
+
+
+async def test_user_cannot_acknowledge_clean_pattern(client, auth_headers):
+    response = await client.post(f"/scanner/rules/pattern/{DUMMY_UUID}/acknowledge-clean", headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_acknowledge_clean_pattern(client):
+    response = await client.post(f"/scanner/rules/pattern/{DUMMY_UUID}/acknowledge-clean")
+    assert response.status_code == 401
