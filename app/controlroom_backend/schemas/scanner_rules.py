@@ -79,6 +79,9 @@ class PatternRuleOut(BaseModel):
     is_seeded: bool
     created_by: str
     created_at: datetime
+    affected_count: int
+    clean_count: int
+    needs_review_count: int
 
 
 # ---------------------------------------------------------------------------

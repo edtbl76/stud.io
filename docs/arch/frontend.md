@@ -93,7 +93,8 @@ app/studio_frontend/
 │   │   ├── gear/           # GearModal, columns, guitarColumns
 │   │   ├── scanner/report/    # ScanReportPage, ReportRow — raw scan results accordion with scan picker
 │   │   ├── scanner/rules/     # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
-│   │   ├── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag; modals: SingleResolutionModal, CollisionModal, FindLinkModal, CreateRecordModal
+│   │   ├── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag
+│   │   ├── scanner/modals/    # SingleResolutionModal, FindLinkModal, CreateRecordModal, HardResetDialog — all via shared Dialog through ScannerModalContent (enforces ESC/X close, backdrop blocked; U-17). CollisionModal still bare <dialog> pending U-18 rebuild
 │   │   ├── scanner/KnownPage.tsx      # KnownPage — known bucket list, sorted by catalog type then name, catalog links via catalogRecordPath (U-05b)
 │   │   └── scanner/ExclusionsPage.tsx # ExclusionsPage — exclusion list with remove confirmation dialog; shows excluded_by + format (U-05b)
 │   ├── admin/              # Shared admin components
