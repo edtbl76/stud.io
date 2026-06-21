@@ -383,3 +383,15 @@ async def test_user_cannot_acknowledge_clean_pattern(client, auth_headers):
 async def test_unauthenticated_cannot_acknowledge_clean_pattern(client):
     response = await client.post(f"/scanner/rules/pattern/{DUMMY_UUID}/acknowledge-clean")
     assert response.status_code == 401
+
+
+async def test_user_cannot_toggle_pattern_rule(client, auth_headers):
+    response = await client.patch(
+        f"/scanner/rules/pattern/{DUMMY_UUID}/toggle", json={"enabled": True}, headers=auth_headers
+    )
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_toggle_pattern_rule(client):
+    response = await client.patch(f"/scanner/rules/pattern/{DUMMY_UUID}/toggle", json={"enabled": True})
+    assert response.status_code == 401
