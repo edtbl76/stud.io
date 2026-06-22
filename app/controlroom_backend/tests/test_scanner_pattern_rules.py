@@ -20,15 +20,19 @@ from ._scanner_helpers import insert_scan
 # U-13 resolver — pure unit tests (no DB)
 # ---------------------------------------------------------------------------
 
-def _rec(name, vendor=None, version=None, fmt_ids=None, rid="c1", table="effects"):
+def _rec(name, **kw):
     return CatalogRecord(
-        record_id=rid, record_table=table, name=name, vendor=vendor, version=version,
-        disk_paths=[], plugin_format_ids=fmt_ids or [], search_key="",
+        record_id=kw.get("rid", "c1"), record_table="effects", name=name,
+        vendor=kw.get("vendor"), version=kw.get("version"), disk_paths=[],
+        plugin_format_ids=kw.get("fmt_ids") or [], search_key="",
     )
 
 
-def _row(name, vendor=None, version=None, fmt=None, rid="r1"):
-    return {"result_id": rid, "name": name, "vendor": vendor, "version": version, "format": fmt}
+def _row(name, **kw):
+    return {
+        "result_id": kw.get("rid", "r1"), "name": name, "vendor": kw.get("vendor"),
+        "version": kw.get("version"), "format": kw.get("fmt"),
+    }
 
 
 def _ctx(*recs):

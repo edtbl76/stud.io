@@ -4,6 +4,8 @@ This re-derives the contract independently (direct field comparison), rather tha
 `_honors_match_fields`, so it actually exercises `resolve_variant`'s behavior rather than
 restating its implementation.
 """
+from types import SimpleNamespace
+
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -28,25 +30,32 @@ def _parents(draw):
     return out
 
 
+@st.composite
+def _scenarios(draw):
+    """One drawn scenario, bundled so the property takes a single argument."""
+    return SimpleNamespace(
+        suffix=draw(_word), base=draw(_word), vendor=draw(_word), version=draw(_word),
+        fmt=draw(st.sampled_from(["vst3", "au"])), match_fields=draw(_match_fields),
+        parents=draw(_parents()), fmt_id=draw(_fmt_id),
+    )
+
+
 @settings(max_examples=300)
-@given(
-    suffix=_word, vendor=_word, version=_word, fmt=st.sampled_from(["vst3", "au"]),
-    match_fields=_match_fields, parents=_parents(), fmt_id=_fmt_id, base=_word,
-)
-def test_resolution_honors_match_fields(suffix, vendor, version, fmt, match_fields, parents, fmt_id, base) -> None:
-    ev = _Eval(compile_pattern("{name}" + suffix), frozenset(match_fields), parents, {fmt: fmt_id})
-    row = {"name": base + suffix, "vendor": vendor, "version": version, "format": fmt}
+@given(s=_scenarios())
+def test_resolution_honors_match_fields(s) -> None:
+    ev = _Eval(compile_pattern("{name}" + s.suffix), frozenset(s.match_fields), s.parents, {s.fmt: s.fmt_id})
+    row = {"name": s.base + s.suffix, "vendor": s.vendor, "version": s.version, "format": s.fmt}
 
     res = resolve_variant(row, ev)
     if res is None:
         return
-    parent = next(p for p in parents if p.record_id == res.catalog_record_id)
+    parent = next(p for p in s.parents if p.record_id == res.catalog_record_id)
     extracted = ev.compiled.match(row["name"]).group("name")
     # Independent re-check of the contract the resolver promises.
     assert parent.name.lower() == extracted.lower()
-    if "vendor" in match_fields:
-        assert (parent.vendor or "").lower() == vendor.lower()
-    if "version" in match_fields:
-        assert (parent.version or "") == version
-    if "format" in match_fields:
-        assert ev.format_ids.get(fmt.lower()) in parent.plugin_format_ids
+    if "vendor" in s.match_fields:
+        assert (parent.vendor or "").lower() == s.vendor.lower()
+    if "version" in s.match_fields:
+        assert (parent.version or "") == s.version
+    if "format" in s.match_fields:
+        assert ev.format_ids.get(s.fmt.lower()) in parent.plugin_format_ids
