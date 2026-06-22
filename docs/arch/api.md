@@ -394,7 +394,13 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 Same endpoints at `/scanner/rules/name/{id}` for name rules.
 
+`POST /scanner/rules/pattern` (U-12) — admin only. Body: `{label, pattern, match_fields, action}` (`pattern` must contain `{name}`; `match_fields` ⊆ {vendor, version, format}). Created enabled. Returns rule + `{affected_count, clean_count, needs_review_count}` (counts are read-only: pattern fires and resolves on name+vendor+version; `format` honoring is deferred to U-13). Returns 422 on invalid pattern/match_fields.
+
+`DELETE /scanner/rules/pattern/{id}` (U-12) — admin only. Returns 204. Returns 404 if not found, 403 if the rule is seeded (seeded rules toggle but never delete).
+
 `PATCH /scanner/rules/pattern/{id}/toggle` — admin only. Toggle enabled on a pattern rule (including the seeded Mono Variant rule).
+
+`POST /scanner/rules/pattern/{id}/acknowledge-clean` (U-12) — admin only. Bulk-confirms the clean results the pattern resolves. Returns `{acknowledged: N}`.
 
 #### Rejections (U-02)
 

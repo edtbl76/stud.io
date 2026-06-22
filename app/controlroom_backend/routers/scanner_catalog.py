@@ -71,8 +71,8 @@ def catalog_union(cols: str, where: str = _DEFAULT_WHERE) -> str:
 
 
 def catalog_index_query() -> str:
-    """Full matching index (replaces scanner_match._CATALOG_UNION)."""
-    return catalog_union(_INDEX_COLS)
+    """Full matching index. Carries plugin_format_ids (U-13) for format-aware resolution."""
+    return catalog_union(_INDEX_COLS + ", t.plugin_format_ids")
 
 
 def catalog_meta_query() -> str:
@@ -107,6 +107,7 @@ class CatalogRecord:
     vendor: str | None
     version: str | None
     disk_paths: list[dict]
+    plugin_format_ids: list[str]  # type_ids (::text) from t.plugin_format_ids (U-13)
     search_key: str  # precomputed: f"{vendor or ''} {name or ''}".lower().strip()
 
 
@@ -120,10 +121,17 @@ async def build_catalog_index(conn: Connection) -> list[CatalogRecord]:
             vendor=r["vendor"],
             version=r["version"],
             disk_paths=r["disk_paths"] or [],
+            plugin_format_ids=[str(f) for f in (r["plugin_format_ids"] or [])],
             search_key=f"{r['vendor'] or ''} {r['name'] or ''}".lower().strip(),
         )
         for r in rows
     ]
+
+
+async def load_plugin_format_ids(conn: Connection) -> dict[str, str]:
+    """Map lower(type_name) -> type_id::text, for resolving a scan format string to its id (U-13)."""
+    rows = await conn.fetch("SELECT type_id::text AS type_id, type_name FROM plugin_formats")
+    return {r["type_name"].lower(): r["type_id"] for r in rows}
 
 
 async def load_exclusions(conn: Connection) -> set[str]:
