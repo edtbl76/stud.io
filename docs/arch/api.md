@@ -394,7 +394,7 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 Same endpoints at `/scanner/rules/name/{id}` for name rules.
 
-`POST /scanner/rules/pattern` (U-12) — admin only. Body: `{label, pattern, match_fields, action}` (`pattern` must contain `{name}`; `match_fields` ⊆ {vendor, version, format}). Created enabled. Returns rule + `{affected_count, clean_count, needs_review_count}` (counts are read-only: pattern fires and resolves on name+vendor+version; `format` honoring is deferred to U-13). Returns 422 on invalid pattern/match_fields.
+`POST /scanner/rules/pattern` (U-12) — admin only. Body: `{label, pattern, match_fields, action}` (`pattern` must contain `{name}`; `match_fields` ⊆ {vendor, version, format}). Created enabled. Returns rule + `{affected_count, clean_count, needs_review_count}` (counts are read-only: a pattern fires and a variant resolves when the extracted name matches and every field in `match_fields` matches — including `format`, resolved across the scan-string ↔ catalog-id boundary via `plugin_format_ids` (U-13)). Returns 422 on invalid pattern/match_fields.
 
 `DELETE /scanner/rules/pattern/{id}` (U-12) — admin only. Returns 204. Returns 404 if not found, 403 if the rule is seeded (seeded rules toggle but never delete).
 

@@ -9,6 +9,7 @@ counts run through the same resolver (affected = fires, clean = resolves to one 
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
@@ -18,7 +19,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
-from routers.scanner_catalog import build_matching_context, load_plugin_format_ids
+from routers.scanner_catalog import (
+    MatchingContext,
+    build_matching_context,
+    load_plugin_format_ids,
+)
 from routers.scanner_rule_counts import _bulk_confirm
 from schemas.scanner_rules import (
     AcknowledgeCleanResult,
@@ -97,7 +102,7 @@ def _honors_match_fields(row, parent, extracted: str, ev: _Eval) -> bool:
     return all(checks[field]() for field in ev.match_fields)
 
 
-def resolve_variant(row, ev: _Eval) -> Resolution | None:
+def resolve_variant(row: Mapping[str, object], ev: _Eval) -> Resolution | None:
     """Resolve a scan row's variant name to its single qualifying parent, or None (no fire / no / ambiguous parent)."""
     matched = ev.compiled.match(row["name"] or "")
     if not matched:
@@ -114,7 +119,12 @@ def _eval_for(pattern: str, match_fields, ctx, format_ids: dict[str, str]) -> _E
     return _Eval(compile_pattern(pattern), frozenset(match_fields), ctx.catalog_index, format_ids)
 
 
-def resolve_variants(scan_rows, enabled_patterns, ctx, format_ids: dict[str, str]) -> list[Resolution]:
+def resolve_variants(
+    scan_rows: Iterable[Mapping[str, object]],
+    enabled_patterns: Iterable[Mapping[str, object]],
+    ctx: MatchingContext,
+    format_ids: dict[str, str],
+) -> list[Resolution]:
     """Pure engine entry: every (enabled pattern x scan row) that resolves. U-14 persists/wires."""
     out: list[Resolution] = []
     for p in enabled_patterns:
@@ -149,14 +159,16 @@ def _split(rows, ev: _Eval) -> dict[str, int]:
     return {"affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean}
 
 
-async def count_pattern(conn: Connection, pattern: str, match_fields) -> dict[str, int]:
+async def count_pattern(conn: Connection, pattern: str, match_fields: Iterable[str]) -> dict[str, int]:
     ctx = await build_matching_context(conn)
     format_ids = await load_plugin_format_ids(conn)
     rows = await _active_candidates(conn)
     return _split(rows, _eval_for(pattern, match_fields, ctx, format_ids))
 
 
-async def count_patterns(conn: Connection, pattern_rows) -> dict:
+async def count_patterns(
+    conn: Connection, pattern_rows: Iterable[Mapping[str, object]],
+) -> dict[UUID, dict[str, int]]:
     """Counts for many patterns, sharing one matching context + candidate fetch (list view)."""
     ctx = await build_matching_context(conn)
     format_ids = await load_plugin_format_ids(conn)
