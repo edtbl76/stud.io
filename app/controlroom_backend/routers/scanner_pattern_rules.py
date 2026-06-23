@@ -1,14 +1,16 @@
-"""Scanner pattern rules — create/delete/toggle/acknowledge + counts (U-12).
+"""Scanner pattern rules — create/delete/toggle/acknowledge + counts + evaluation.
 
-Counts are read-only (D-4): the pattern fires (regex extracts {name}) and the
-aliased name is scored with the shared match/clean machinery on name+vendor+version
-(decision A — `format` in match_fields is a no-op for counting; real format-honoring
-and persistence are U-13/U-14). `match_fields` is persisted for U-13 but does not alter
-the U-12 count beyond validation.
+The resolver (U-13) honors `match_fields` exactly: the pattern fires (regex extracts
+`{name}`), and a parent catalog record qualifies iff `name == {name}` and every field listed
+in `match_fields` (vendor/version/format) matches — format crossing the scan-string ↔ catalog-id
+boundary via the `plugin_formats` lookup. Resolution is **pure** (no persistence — that is U-14);
+counts run through the same resolver (affected = fires, clean = resolves to one qualifying parent).
 """
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
@@ -17,8 +19,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
-from routers.scanner_catalog import build_matching_context, is_clean_match
-from routers.scanner_match import match_plugin
+from routers.scanner_catalog import (
+    MatchingContext,
+    build_matching_context,
+    load_plugin_format_ids,
+)
 from routers.scanner_rule_counts import _bulk_confirm
 from schemas.scanner_rules import (
     AcknowledgeCleanResult,
@@ -37,8 +42,15 @@ _PATTERN_COLS = (
 _ZERO_COUNTS = {"affected_count": 0, "clean_count": 0, "needs_review_count": 0}
 
 
+@dataclass(frozen=True)
+class Resolution:
+    disk_name: str
+    catalog_record_id: str
+    catalog_table: str
+
+
 # ---------------------------------------------------------------------------
-# Pattern fire + read-only counting
+# Pattern compilation + match_fields-driven resolution (U-13)
 # ---------------------------------------------------------------------------
 
 def compile_pattern(pattern: str) -> re.Pattern:
@@ -60,46 +72,111 @@ def _validation_error(body: PatternRuleIn) -> str | None:
     return None
 
 
+def _norm(value: str | None) -> str:
+    return (value or "").lower()
+
+
+def _format_matches(scan_format: str | None, parent_format_ids: list[str], format_ids: dict[str, str]) -> bool:
+    type_id = format_ids.get(_norm(scan_format))
+    return type_id is not None and type_id in parent_format_ids
+
+
+@dataclass(frozen=True)
+class _Eval:
+    """Per-pattern evaluation context: compiled regex + the inputs resolution needs."""
+    compiled: re.Pattern
+    match_fields: frozenset[str]
+    catalog_index: list
+    format_ids: dict[str, str]
+
+
+def _honors_match_fields(row, parent, extracted: str, ev: _Eval) -> bool:
+    """Parent qualifies iff name == {name} and exactly the listed match_fields match."""
+    if _norm(parent.name) != _norm(extracted):
+        return False
+    checks = {
+        "vendor": lambda: _norm(parent.vendor) == _norm(row["vendor"]),
+        "version": lambda: (parent.version or "") == (row["version"] or ""),
+        "format": lambda: _format_matches(row["format"], parent.plugin_format_ids, ev.format_ids),
+    }
+    return all(checks[field]() for field in ev.match_fields)
+
+
+def resolve_variant(row: Mapping[str, object], ev: _Eval) -> Resolution | None:
+    """Resolve a scan row's variant name to its single qualifying parent, or None (no fire / no / ambiguous parent)."""
+    matched = ev.compiled.match(row["name"] or "")
+    if not matched:
+        return None
+    extracted = matched.group("name")
+    qualifying = [rec for rec in ev.catalog_index if _honors_match_fields(row, rec, extracted, ev)]
+    if len(qualifying) != 1:
+        return None
+    rec = qualifying[0]
+    return Resolution(disk_name=row["name"], catalog_record_id=rec.record_id, catalog_table=rec.record_table)
+
+
+def _eval_for(pattern: str, match_fields, ctx, format_ids: dict[str, str]) -> _Eval:
+    return _Eval(compile_pattern(pattern), frozenset(match_fields), ctx.catalog_index, format_ids)
+
+
+def resolve_variants(
+    scan_rows: Iterable[Mapping[str, object]],
+    enabled_patterns: Iterable[Mapping[str, object]],
+    ctx: MatchingContext,
+    format_ids: dict[str, str],
+) -> list[Resolution]:
+    """Pure engine entry: every (enabled pattern x scan row) that resolves. U-14 persists/wires."""
+    out: list[Resolution] = []
+    for p in enabled_patterns:
+        ev = _eval_for(p["pattern"], p["match_fields"], ctx, format_ids)
+        out.extend(res for row in scan_rows if (res := resolve_variant(row, ev)) is not None)
+    return out
+
+
+# ---------------------------------------------------------------------------
+# Counts (run through the resolver — affected = fires, clean = resolves)
+# ---------------------------------------------------------------------------
+
 async def _active_candidates(conn: Connection):
     return await conn.fetch(
-        "SELECT result_id, name, vendor, version FROM plugin_scan_results "
+        "SELECT result_id, name, vendor, version, format FROM plugin_scan_results "
         "WHERE confirmed_at IS NULL AND status NOT IN ('excluded','ignored')"
     )
 
 
-def _score(row, compiled: re.Pattern, ctx) -> tuple[int, int]:
-    """(affected, clean) for one candidate: the pattern fires and the aliased name
-    resolves; clean = exact name+vendor+version match (decision A)."""
-    matched = compiled.match(row["name"] or "")
-    if not matched:
+def _score(row, ev: _Eval) -> tuple[int, int]:
+    if ev.compiled.match(row["name"] or "") is None:
         return 0, 0
-    aliased_name = matched.group("name")
-    _, match = match_plugin(aliased_name, row["vendor"], ctx.catalog_index, ctx.exclusions)
-    if match.record is None:
-        return 0, 0
-    return 1, int(is_clean_match(aliased_name, row["vendor"], row["version"], match.record))
+    return 1, int(resolve_variant(row, ev) is not None)
 
 
-def _split(rows, compiled: re.Pattern, ctx) -> dict[str, int]:
+def _split(rows, ev: _Eval) -> dict[str, int]:
     affected = clean = 0
     for row in rows:
-        a, c = _score(row, compiled, ctx)
+        a, c = _score(row, ev)
         affected += a
         clean += c
     return {"affected_count": affected, "clean_count": clean, "needs_review_count": affected - clean}
 
 
-async def count_pattern(conn: Connection, pattern: str) -> dict[str, int]:
+async def count_pattern(conn: Connection, pattern: str, match_fields: Iterable[str]) -> dict[str, int]:
     ctx = await build_matching_context(conn)
+    format_ids = await load_plugin_format_ids(conn)
     rows = await _active_candidates(conn)
-    return _split(rows, compile_pattern(pattern), ctx)
+    return _split(rows, _eval_for(pattern, match_fields, ctx, format_ids))
 
 
-async def count_patterns(conn: Connection, pattern_rows) -> dict:
+async def count_patterns(
+    conn: Connection, pattern_rows: Iterable[Mapping[str, object]],
+) -> dict[UUID, dict[str, int]]:
     """Counts for many patterns, sharing one matching context + candidate fetch (list view)."""
     ctx = await build_matching_context(conn)
+    format_ids = await load_plugin_format_ids(conn)
     rows = await _active_candidates(conn)
-    return {r["rule_id"]: _split(rows, compile_pattern(r["pattern"]), ctx) for r in pattern_rows}
+    return {
+        r["rule_id"]: _split(rows, _eval_for(r["pattern"], r["match_fields"], ctx, format_ids))
+        for r in pattern_rows
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -122,7 +199,7 @@ async def create_pattern_rule(
         f"VALUES ($1,$2,$3,$4,TRUE,FALSE,$5) RETURNING {_PATTERN_COLS}",
         body.label, body.pattern, body.match_fields, body.action, user.username,
     )
-    counts = await count_pattern(conn, body.pattern)
+    counts = await count_pattern(conn, body.pattern, body.match_fields)
     return PatternRuleOut(**dict(row), **counts)
 
 
@@ -149,13 +226,14 @@ async def acknowledge_clean_pattern(
     user: Annotated[UserOut, Depends(require_admin)],
     conn: Annotated[Connection, Depends(get_conn)],
 ) -> AcknowledgeCleanResult:
-    rule = await conn.fetchrow("SELECT pattern FROM scanner_name_patterns WHERE rule_id=$1", rule_id)
+    rule = await conn.fetchrow("SELECT pattern, match_fields FROM scanner_name_patterns WHERE rule_id=$1", rule_id)
     if not rule:
         raise HTTPException(status_code=404, detail=_PATTERN_NOT_FOUND)
-    compiled = compile_pattern(rule["pattern"])
     ctx = await build_matching_context(conn, fingerprints=[])
+    format_ids = await load_plugin_format_ids(conn)
+    ev = _eval_for(rule["pattern"], rule["match_fields"], ctx, format_ids)
     rows = await _active_candidates(conn)
-    clean_ids = [r["result_id"] for r in rows if _score(r, compiled, ctx) == (1, 1)]
+    clean_ids = [r["result_id"] for r in rows if resolve_variant(r, ev) is not None]
     return await _bulk_confirm(conn, clean_ids, user.username)
 
 

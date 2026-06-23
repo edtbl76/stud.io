@@ -1,8 +1,101 @@
-"""U-12: pattern create/delete/acknowledge + counts."""
+"""U-12 + U-13: pattern create/delete/acknowledge + counts + the evaluation resolver."""
+from types import SimpleNamespace
+
 import pytest
 
-from routers.scanner_pattern_rules import compile_pattern
+from routers.scanner_catalog import CatalogRecord
+from routers.scanner_pattern_rules import (
+    Resolution,
+    _Eval,
+    _format_matches,
+    _honors_match_fields,
+    compile_pattern,
+    resolve_variant,
+    resolve_variants,
+)
 from ._scanner_helpers import insert_scan
+
+
+# ---------------------------------------------------------------------------
+# U-13 resolver — pure unit tests (no DB)
+# ---------------------------------------------------------------------------
+
+def _rec(name, **kw):
+    return CatalogRecord(
+        record_id=kw.get("rid", "c1"), record_table="effects", name=name,
+        vendor=kw.get("vendor"), version=kw.get("version"), disk_paths=[],
+        plugin_format_ids=kw.get("fmt_ids") or [], search_key="",
+    )
+
+
+def _row(name, **kw):
+    return {
+        "result_id": kw.get("rid", "r1"), "name": name, "vendor": kw.get("vendor"),
+        "version": kw.get("version"), "format": kw.get("fmt"),
+    }
+
+
+def _ctx(*recs):
+    return SimpleNamespace(catalog_index=list(recs))
+
+
+def _ev(pattern, match_fields, recs=(), fmt_ids=None):
+    return _Eval(compile_pattern(pattern), frozenset(match_fields), list(recs), fmt_ids or {})
+
+
+def test_format_matches_lookup():
+    fmt_ids = {"vst3": "fid-1"}
+    assert _format_matches("VST3", ["fid-1"], fmt_ids) is True   # case-insensitive
+    assert _format_matches("vst3", ["fid-2"], fmt_ids) is False  # type_id not in parent
+    assert _format_matches("au", ["fid-1"], fmt_ids) is False    # unknown scan format
+    assert _format_matches(None, ["fid-1"], fmt_ids) is False
+
+
+def test_honors_match_fields_vendor_only_ignores_version():
+    parent = _rec("Reverb", vendor="Acme", version="2.0")
+    row = _row("Reverb(m)", vendor="Acme", version="1.0")  # version differs
+    assert _honors_match_fields(row, parent, "Reverb", _ev("{name}", {"vendor"})) is True
+    assert _honors_match_fields(row, parent, "Reverb", _ev("{name}", {"vendor", "version"})) is False
+
+
+def test_honors_match_fields_name_mismatch():
+    parent = _rec("Delay", vendor="Acme")
+    row = _row("Reverb(m)", vendor="Acme")
+    assert _honors_match_fields(row, parent, "Reverb", _ev("{name}", {"vendor"})) is False
+
+
+def test_honors_match_fields_format():
+    fmt_ids = {"vst3": "fid-1"}
+    parent = _rec("Reverb", fmt_ids=["fid-1"])
+    assert _honors_match_fields(_row("Reverb(m)", fmt="vst3"), parent, "Reverb", _ev("{name}", {"format"}, fmt_ids=fmt_ids)) is True
+    assert _honors_match_fields(_row("Reverb(m)", fmt="au"), parent, "Reverb", _ev("{name}", {"format"}, fmt_ids=fmt_ids)) is False
+
+
+def test_resolve_variant_single_parent():
+    ev = _ev("{name}(m)", {"vendor"}, [_rec("Reverb", vendor="Acme", rid="c1")])
+    assert resolve_variant(_row("Reverb(m)", vendor="Acme"), ev) == Resolution("Reverb(m)", "c1", "effects")
+
+
+def test_resolve_variant_does_not_fire():
+    ev = _ev("{name}(m)", {"vendor"}, [_rec("Reverb", vendor="Acme")])
+    assert resolve_variant(_row("Reverb", vendor="Acme"), ev) is None
+
+
+def test_resolve_variant_no_qualifying_parent():
+    ev = _ev("{name}(m)", {"vendor"}, [_rec("Reverb", vendor="Other")])
+    assert resolve_variant(_row("Reverb(m)", vendor="Acme"), ev) is None
+
+
+def test_resolve_variant_ambiguous_does_not_resolve():
+    ev = _ev("{name}(m)", {"vendor"}, [_rec("Reverb", vendor="Acme", rid="c1"), _rec("Reverb", vendor="Acme", rid="c2")])
+    assert resolve_variant(_row("Reverb(m)", vendor="Acme"), ev) is None
+
+
+def test_resolve_variants_collects_resolutions():
+    ctx = _ctx(_rec("Reverb", vendor="Acme", rid="c1"))
+    patterns = [{"pattern": "{name}(m)", "match_fields": ["vendor"]}]
+    rows = [_row("Reverb(m)", vendor="Acme"), _row("Other", vendor="Acme")]
+    assert resolve_variants(rows, patterns, ctx, {}) == [Resolution("Reverb(m)", "c1", "effects")]
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +156,35 @@ async def test_create_pattern_counts_a_clean_variant(client, conn, admin_headers
     await _seed_clean_variant(conn)
     data = (await client.post("/scanner/rules/pattern", json=_VALID, headers=admin_headers)).json()
     assert data["affected_count"] >= 1
+    assert data["clean_count"] >= 1
+
+
+# U-13: match_fields-accurate counts (vendor-only ignores version; format honored)
+
+async def test_vendor_only_pattern_ignores_version(client, conn, admin_headers):
+    # parent version 1.0, variant version 9.9 — differ; match_fields={vendor} → still clean
+    brand_id = await conn.fetchval("INSERT INTO brands (legal_name, brand_name) VALUES ('Zz13Acme','Zz13Acme') RETURNING brand_id")
+    await conn.fetchval("INSERT INTO effects (effect_name, brand_id, version) VALUES ('Zz13Comp', $1, '1.0') RETURNING effect_id", brand_id)
+    _, rid = await insert_scan(conn, status="untracked")
+    await conn.execute("UPDATE plugin_scan_results SET name='Zz13Comp(m)', vendor='Zz13Acme', version='9.9' WHERE result_id=$1", rid)
+    data = (await client.post(
+        "/scanner/rules/pattern",
+        json={"label": "x", "pattern": "{name}(m)", "match_fields": ["vendor"], "action": "alias_to_match"},
+        headers=admin_headers,
+    )).json()
+    assert data["clean_count"] >= 1
+
+
+async def test_format_pattern_counts_clean_when_format_matches(client, conn, admin_headers):
+    vst3_id = await conn.fetchval("SELECT type_id FROM plugin_formats WHERE type_name='VST3'")
+    await conn.fetchval("INSERT INTO effects (effect_name, plugin_format_ids) VALUES ('Zz13Synth', ARRAY[$1]::uuid[]) RETURNING effect_id", vst3_id)
+    _, rid = await insert_scan(conn, status="untracked")
+    await conn.execute("UPDATE plugin_scan_results SET name='Zz13Synth(m)', format='vst3' WHERE result_id=$1", rid)
+    data = (await client.post(
+        "/scanner/rules/pattern",
+        json={"label": "x", "pattern": "{name}(m)", "match_fields": ["format"], "action": "alias_to_match"},
+        headers=admin_headers,
+    )).json()
     assert data["clean_count"] >= 1
 
 

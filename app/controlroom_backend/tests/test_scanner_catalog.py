@@ -23,6 +23,7 @@ from routers.scanner_catalog import (
     catalog_index_query,
     catalog_meta_query,
     catalog_search_query,
+    load_plugin_format_ids,
     is_clean_match,
     load_rejection_set,
     orphaned_query,
@@ -48,7 +49,7 @@ class _FakeConn:
 def _legacy_index() -> str:
     return " UNION ALL ".join(
         f"SELECT {pk}::text AS record_id, '{tbl}' AS record_table, "
-        f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
+        f"{name} AS name, b.brand_name AS vendor, t.version, t.disk_paths, t.plugin_format_ids "
         f"FROM {tbl} t LEFT JOIN brands b ON t.brand_id = b.brand_id "
         f"WHERE t.deleted_at IS NULL"
         for tbl, (pk, name) in CATALOG_TABLES.items()
@@ -142,6 +143,32 @@ async def test_build_catalog_index_maps_real_rows(conn) -> None:
     orphan = by_id[str(no_brand)]
     assert orphan.vendor is None
     assert orphan.search_key == "nobrandverb"
+
+
+# ---------------------------------------------------------------------------
+# U-13: plugin_format_ids on the index + the format lookup
+# ---------------------------------------------------------------------------
+
+async def test_build_catalog_index_includes_plugin_format_ids(conn) -> None:
+    fmt_id = await conn.fetchval("INSERT INTO plugin_formats (type_name) VALUES ('TestFmt') RETURNING type_id")
+    eid = await conn.fetchval(
+        "INSERT INTO effects (effect_name, plugin_format_ids) VALUES ('FmtVerb', ARRAY[$1]::uuid[]) RETURNING effect_id",
+        fmt_id,
+    )
+    by_id = {r.record_id: r for r in await build_catalog_index(conn)}
+    assert by_id[str(eid)].plugin_format_ids == [str(fmt_id)]
+
+
+async def test_build_catalog_index_null_plugin_format_ids_to_empty(conn) -> None:
+    eid = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('NoFmtVerb') RETURNING effect_id")
+    by_id = {r.record_id: r for r in await build_catalog_index(conn)}
+    assert by_id[str(eid)].plugin_format_ids == []
+
+
+async def test_load_plugin_format_ids_maps_lowercased_name_to_id(conn) -> None:
+    fmt_id = await conn.fetchval("INSERT INTO plugin_formats (type_name) VALUES ('VST9') RETURNING type_id")
+    mapping = await load_plugin_format_ids(conn)
+    assert mapping["vst9"] == str(fmt_id)
 
 
 # ---------------------------------------------------------------------------
