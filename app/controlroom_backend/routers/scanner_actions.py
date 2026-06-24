@@ -110,18 +110,31 @@ async def _assert_catalog_row_exists(conn: Connection, table: str, record_id: st
         raise ValueError(f"result_id {result_id}: record {record_id} not found in {table}")
 
 
-async def _append_disk_path(conn: Connection, table: str, rid: object, ctx: _ConfirmCtx) -> None:
+async def append_disk_path(
+    conn: Connection, record: tuple[str, object], entry: dict, username: str,
+) -> None:
+    """Append a {path, format, version} entry to a catalog ``record`` (table, pk)'s disk_paths.
+
+    Deduped by ``path`` (no-op if already present) and audit-logged. Shared by the
+    confirm/acknowledge flow and the U-14 alias write path.
+    """
+    table, rid = record
     pk, _ = CATALOG_TABLES[table]
     old_row = await conn.fetchrow(f"SELECT disk_paths FROM {table} WHERE {pk}=$1", rid)
     old_paths: list = list(old_row["disk_paths"] or []) if old_row else []
-    if any(e.get("path") == ctx.row["path"] for e in old_paths):
+    if any(e.get("path") == entry["path"] for e in old_paths):
         return
-    new_paths = old_paths + [{"path": ctx.row["path"], "format": ctx.row["format"], "version": ctx.row["version"]}]
+    new_paths = old_paths + [entry]
     await conn.execute(
         f"UPDATE {table} SET disk_paths=$1, updated_at=NOW() WHERE {pk}=$2", new_paths, rid,
     )
-    await log_audit(conn, table, rid, "UPDATE", ctx.username,
+    await log_audit(conn, table, rid, "UPDATE", username,
                     old_data={"disk_paths": old_paths}, new_data={"disk_paths": new_paths})
+
+
+async def _append_disk_path(conn: Connection, table: str, rid: object, ctx: _ConfirmCtx) -> None:
+    entry = {"path": ctx.row["path"], "format": ctx.row["format"], "version": ctx.row["version"]}
+    await append_disk_path(conn, (table, rid), entry, ctx.username)
 
 
 async def _action_acknowledge(conn: Connection, ctx: _ConfirmCtx) -> None:

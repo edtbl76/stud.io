@@ -1,195 +1,32 @@
-"""Plugin Scanner — core routes.
+"""Plugin Scanner — report, catalog search, and result actions.
 
-  POST /scanner/scan                     — ingest raw scan (API key auth)
-  GET  /scanner/report[?scan_id=]        — scan report (latest or specific run)
-  POST /scanner/confirm                  — apply user decisions
-  PATCH /scanner/results/{id}/dismiss    — dismiss an orphaned result
-  PATCH /scanner/results/{result_id}/keep — permanently keep a confirmed link
+  GET   /scanner/report[?scan_id=]         — scan report (latest or specific run)
+  GET   /scanner/catalog/search            — catalog search for manual linking
+  PATCH /scanner/results/{id}/dismiss      — dismiss an orphaned result
+  PATCH /scanner/results/{result_id}/keep  — permanently keep a confirmed link
+  POST  /scanner/confirm                   — apply user decisions
+
+Scan ingest (`POST /scanner/scan`) lives in `scanner_ingest`; auth deps in `scanner_auth`.
 """
 from __future__ import annotations
 
 from typing import Annotated, Any, Mapping
 from uuid import UUID
 
-import bcrypt
-import jwt
-from jwt.exceptions import PyJWTError as JWTError
 from asyncpg import Connection
-from fastapi import APIRouter, Depends, Header, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response
 
-from config import settings
 from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
-from routers.scanner_actions import apply_confirmation, insert_orphans
-from routers.scanner_catalog import (
-    CATALOG_TABLES,
-    CatalogRecord,
-    absent_query,
-    build_catalog_index,
-    catalog_search_query,
-    load_exclusions,
-)
-from routers.scanner_match import (
-    fetch_match_meta,
-    load_persistent_links,
-    match_plugin,
-)
+from routers.scanner_actions import apply_confirmation
+from routers.scanner_catalog import CATALOG_TABLES, absent_query, catalog_search_query
+from routers.scanner_match import fetch_match_meta
 from schemas.scanner import (
     AbsentRecord, CatalogSearchResult, ConfirmPayload, ConfirmResult,
-    ScanPayload, ScanReport, ScanResult, ScanSummary,
-    ScannedPlugin, build_scan_result,
+    ScanReport, ScanResult, build_scan_result,
 )
 
 router = APIRouter()
-
-
-# ---------------------------------------------------------------------------
-# API key auth dependency
-# ---------------------------------------------------------------------------
-
-_BEARER_PREFIX = "Bearer "
-
-
-def _is_bearer_token(authorization: str | None) -> bool:
-    return bool(authorization and authorization.startswith(_BEARER_PREFIX))
-
-
-async def get_scanner_auth(
-    conn: Annotated[Connection, Depends(get_conn)],
-    authorization: Annotated[str | None, Header()] = None,
-) -> str:
-    if not _is_bearer_token(authorization):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid API key")
-    token = authorization.removeprefix(_BEARER_PREFIX).strip()
-    rows = await conn.fetch(
-        "SELECT label, hashed_key FROM scanner_api_keys WHERE revoked_at IS NULL"
-    )
-    for row in rows:
-        if bcrypt.checkpw(token.encode(), row["hashed_key"].encode()):
-            return row["label"]
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or revoked API key")
-
-
-async def get_scanner_auth_or_user(
-    conn: Annotated[Connection, Depends(get_conn)],
-    authorization: Annotated[str | None, Header()] = None,
-) -> None:
-    """Accept either a user session JWT or a scanner API key as Bearer token."""
-    if not _is_bearer_token(authorization):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
-    token = authorization.removeprefix(_BEARER_PREFIX).strip()
-    if await _valid_jwt(token, conn) or await _valid_api_key(token, conn):
-        return
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
-
-
-async def _valid_jwt(token: str, conn: Connection) -> bool:
-    try:
-        payload = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-        username: str | None = payload.get("sub")
-        if not username:
-            return False
-        return bool(await conn.fetchrow("SELECT user_id FROM users WHERE username = $1", username))
-    except JWTError:
-        return False
-
-
-async def _valid_api_key(token: str, conn: Connection) -> bool:
-    rows = await conn.fetch("SELECT hashed_key FROM scanner_api_keys WHERE revoked_at IS NULL")
-    return any(bcrypt.checkpw(token.encode(), row["hashed_key"].encode()) for row in rows)
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _assign_status(confidence: str, disk_ver: str, record_ver: str | None, disk_paths: list | None = None) -> str:
-    if confidence == "none":
-        return "untracked"
-    if confidence == "exact":
-        if disk_ver != (record_ver or ""):
-            return "conflicted"
-        return "known" if disk_paths else "matched"
-    return "unconfirmed"
-
-
-async def _linked_plugin_row(
-    conn: Connection, scan_id: UUID, p: ScannedPlugin, link: tuple[str, str],
-) -> tuple | None:
-    record_id, table = link
-    if table not in CATALOG_TABLES:
-        raise ValueError(f"persistent link has unknown record_table: {table!r}")
-    pk, _ = CATALOG_TABLES[table]
-    rec = await conn.fetchrow(f"SELECT version, disk_paths FROM {table} WHERE {pk}=$1", UUID(record_id))
-    if rec is None:
-        return None
-    st = _assign_status("exact", p.version, rec["version"], rec["disk_paths"])
-    return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
-            st, "exact", None, UUID(record_id), table, p.metadata_source)
-
-
-def _unlinked_plugin_row(
-    scan_id: UUID, p: ScannedPlugin,
-    index: list[CatalogRecord], exclusions: set[str],
-) -> tuple:
-    _, result = match_plugin(p.name, p.vendor, index, exclusions)
-    st = _assign_status(result.confidence, p.version,
-                        result.record.version if result.record else None,
-                        result.record.disk_paths if result.record else None)
-    rec_id = UUID(result.record.record_id) if result.record else None
-    rec_table = result.record.record_table if result.record else None
-    return (scan_id, p.name, p.vendor, p.version, p.format, p.path,
-            st, result.confidence, result.score, rec_id, rec_table, p.metadata_source)
-
-
-# ---------------------------------------------------------------------------
-# POST /scan
-# ---------------------------------------------------------------------------
-
-@router.post("/scan")
-async def ingest_scan(
-    payload: ScanPayload,
-    _label: Annotated[str, Depends(get_scanner_auth)],
-    conn: Annotated[Connection, Depends(get_conn)],
-) -> ScanSummary:
-    index = await build_catalog_index(conn)
-    exclusions = await load_exclusions(conn)
-    links = await load_persistent_links(conn)
-
-    async with conn.transaction():
-        scan_id = await conn.fetchval(
-            "INSERT INTO plugin_scans (source_machine, total_count) "
-            "VALUES ($1, $2) RETURNING scan_id",
-            payload.source_machine, len(payload.plugins),
-        )
-        rows, seen = [], set()
-        for p in payload.plugins:
-            fp = f"{p.vendor} {p.name}".lower().strip()
-            seen.add(fp)
-            if fp in links:
-                row = await _linked_plugin_row(conn, scan_id, p, links[fp])
-                if row is not None:
-                    rows.append(row)
-            elif fp not in exclusions:
-                rows.append(_unlinked_plugin_row(scan_id, p, index, exclusions))
-        await conn.executemany(
-            "INSERT INTO plugin_scan_results "
-            "(scan_id,name,vendor,version,format,path,status,confidence,score,record_id,record_table,metadata_source)"
-            " VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-            rows,
-        )
-        await insert_orphans(conn, scan_id, links, seen)
-
-    counts = await conn.fetchrow(
-        "SELECT "
-        "COUNT(*) FILTER (WHERE status='known')                                 AS known,"
-        "COUNT(*) FILTER (WHERE status IN ('untracked','unlinked'))             AS unlinked,"
-        "COUNT(*) FILTER (WHERE status='orphaned')                              AS orphaned,"
-        "COUNT(*) FILTER (WHERE status IN ('matched','unconfirmed','conflicted','needs_review')) AS needs_review,"
-        "COUNT(*) FILTER (WHERE status IN ('ignored','excluded'))               AS excluded "
-        "FROM plugin_scan_results WHERE scan_id=$1", scan_id,
-    )
-    return ScanSummary(scan_id=scan_id, **dict(counts))
 
 
 # ---------------------------------------------------------------------------
@@ -224,8 +61,6 @@ async def _fetch_absent_records(conn: Connection, scan_id: UUID) -> list[AbsentR
         )
         for r in rows
     ]
-
-
 
 
 @router.get("/report", responses={404: {"description": "No scans found"}})

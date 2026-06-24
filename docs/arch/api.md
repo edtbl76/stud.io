@@ -27,7 +27,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/studio/admin` | `routers/backup_ops.py`, `routers/change_review.py` + `change_review_list.py` + `change_review_undo.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/studio/admin/users` | `routers/users.py` | User management (admin only) |
 | `/gearlist/*` | `routers/gearlist.py` | Catch-all proxy to the internal GearList Go service |
-| `/scanner` | `routers/scanner.py` + `scanner_actions.py` + `scanner_match.py` + `scanner_admin.py` | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
+| `/scanner` | `routers/scanner.py` (report/search/actions) + `scanner_ingest.py` (`POST /scan`) + `scanner_auth.py` (API-key/JWT deps) + `scanner_actions.py` + `scanner_match.py` + `scanner_pattern_eval.py` + `scanner_admin.py` | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
 
 ---
 
@@ -326,7 +326,7 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 
 #### Core
 
-`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Runs 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only) against all active catalog records, resolves persistent links first, detects orphaned records. At ingest time, matched results are classified as `known` (catalog record has `disk_paths` populated) or `matched` (no `disk_paths`). Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
+`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Resolution precedence per plugin is **persistent link (fingerprint) → name alias (`disk_name`, U-14) → exclusion → 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only)** against all active catalog records; detects orphaned records. A name-alias hit resolves with `confidence='exact'` (no re-validation of vendor/version/format); if its catalog record is missing the plugin falls through unresolved. At ingest time, matched results are classified as `known` (catalog record has `disk_paths` populated) or `matched` (no `disk_paths`). Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
 
 `GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped into eight sections: `known` (matched, catalog has disk paths), `matched` (matched, no disk paths), `conflicted` (version mismatch between disk and catalog), `unconfirmed` (fuzzy match awaiting review), `untracked` (no match found), `orphaned` (previously confirmed, catalog record missing from disk), `ignored`, and `absent` (catalog records with known disk paths not found in this scan — contains catalog metadata: record id/table/name/vendor/version/disk paths, not scanned plugin data). The seven scan-result sections each include scanned metadata and match context (confidence, score, matched record, catalog disk paths). If `scan_id` is omitted, returns the latest scan. Returns 404 if no scan found.
 
@@ -400,7 +400,7 @@ Same endpoints at `/scanner/rules/name/{id}` for name rules.
 
 `PATCH /scanner/rules/pattern/{id}/toggle` — admin only. Toggle enabled on a pattern rule (including the seeded Mono Variant rule).
 
-`POST /scanner/rules/pattern/{id}/acknowledge-clean` (U-12) — admin only. Bulk-confirms the clean results the pattern resolves. Returns `{acknowledged: N}`.
+`POST /scanner/rules/pattern/{id}/acknowledge-clean` (U-12, U-14) — admin only. For every result the pattern resolves: writes a `scanner_name_aliases` row (`ON CONFLICT (disk_name) DO NOTHING`), appends the variant's `{path,format,version}` to the parent catalog record's `disk_paths` (deduped + audited), and confirms the row — all in one transaction. Returns `{acknowledged: N}`. The aliases are read on every subsequent scan (see `POST /scanner/scan`).
 
 #### Rejections (U-02)
 

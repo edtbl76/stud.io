@@ -7,7 +7,7 @@ whose remainder equals the (escaped) suffix.
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from routers.scanner_pattern_rules import compile_pattern
+from routers.scanner_pattern_eval import compile_pattern
 
 # Letters/digits only: no regex-special chars and no '{'/'}' that could form a placeholder.
 _safe = st.text(st.characters(whitelist_categories=("Ll", "Lu", "Nd")), min_size=1, max_size=20)

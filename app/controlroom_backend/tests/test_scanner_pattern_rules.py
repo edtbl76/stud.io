@@ -1,10 +1,10 @@
-"""U-12 + U-13: pattern create/delete/acknowledge + counts + the evaluation resolver."""
+"""U-12 + U-13 + U-14: pattern create/delete/acknowledge + counts + resolver + alias persistence."""
 from types import SimpleNamespace
 
 import pytest
 
 from routers.scanner_catalog import CatalogRecord
-from routers.scanner_pattern_rules import (
+from routers.scanner_pattern_eval import (
     Resolution,
     _Eval,
     _format_matches,
@@ -12,6 +12,11 @@ from routers.scanner_pattern_rules import (
     compile_pattern,
     resolve_variant,
     resolve_variants,
+)
+from routers.scanner_pattern_rules import (
+    _active_candidates,
+    _append_variant_path,
+    _write_alias,
 )
 from ._scanner_helpers import insert_scan
 
@@ -252,3 +257,62 @@ async def test_list_rules_patterns_carry_counts(client, admin_headers):
     assert patterns  # the seeded Mono variant exists
     for p in patterns:
         assert "affected_count" in p and "clean_count" in p and "needs_review_count" in p
+
+
+# ---------------------------------------------------------------------------
+# U-14 alias persistence — write path (Steps 1-6)
+# ---------------------------------------------------------------------------
+
+async def test_active_candidates_includes_path(conn):
+    # Step 1: the disk_paths append needs `path` on each candidate row.
+    _, result_id = await insert_scan(conn, status="untracked")
+    rows = await _active_candidates(conn)
+    row = next(r for r in rows if r["result_id"] == result_id)
+    assert row["path"] == "/path/reverb.vst3"
+
+
+async def test_write_alias_inserts(conn):
+    eid = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('Zz14Parent') RETURNING effect_id")
+    await _write_alias(conn, Resolution("Zz14Parent(m)", str(eid), "effects"), "admin")
+    row = await conn.fetchrow(
+        "SELECT catalog_record_id, catalog_table, created_by FROM scanner_name_aliases WHERE disk_name='Zz14Parent(m)'"
+    )
+    assert row["catalog_record_id"] == eid
+    assert row["catalog_table"] == "effects"
+    assert row["created_by"] == "admin"
+
+
+async def test_write_alias_idempotent_on_disk_name(conn):
+    e1 = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('Zz14A') RETURNING effect_id")
+    e2 = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('Zz14B') RETURNING effect_id")
+    await _write_alias(conn, Resolution("Zz14Dup(m)", str(e1), "effects"), "admin")
+    await _write_alias(conn, Resolution("Zz14Dup(m)", str(e2), "effects"), "admin")  # different record
+    rows = await conn.fetch("SELECT catalog_record_id FROM scanner_name_aliases WHERE disk_name='Zz14Dup(m)'")
+    assert len(rows) == 1
+    assert rows[0]["catalog_record_id"] == e1  # first write wins (ON CONFLICT DO NOTHING)
+
+
+async def test_append_variant_path_appends_and_dedupes(conn):
+    eid = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('Zz14Pae') RETURNING effect_id")
+    res = Resolution("Zz14Pae(m)", str(eid), "effects")
+    row = {"path": "/x/zz14.vst3", "format": "vst3", "version": "2.0"}
+    await _append_variant_path(conn, res, row, "admin")
+    await _append_variant_path(conn, res, row, "admin")  # second call must not double
+    dp = await conn.fetchval("SELECT disk_paths FROM effects WHERE effect_id=$1", eid)
+    assert sum(1 for e in dp if e["path"] == "/x/zz14.vst3") == 1
+    entry = next(e for e in dp if e["path"] == "/x/zz14.vst3")
+    assert entry["format"] == "vst3" and entry["version"] == "2.0"
+
+
+async def test_acknowledge_writes_alias_and_appends_disk_path(client, conn, admin_headers):
+    await _seed_clean_variant(conn)  # parent Reverb/Acme/1.0.0 + scan "Reverb(m)" path /path/reverb.vst3
+    rule_id = (await client.post("/scanner/rules/pattern", json=_VALID, headers=admin_headers)).json()["rule_id"]
+    resp = await client.post(f"/scanner/rules/pattern/{rule_id}/acknowledge-clean", headers=admin_headers)
+    assert resp.status_code == 200
+    assert resp.json()["acknowledged"] >= 1
+    alias = await conn.fetchrow(
+        "SELECT catalog_record_id, catalog_table FROM scanner_name_aliases WHERE disk_name='Reverb(m)'"
+    )
+    assert alias is not None and alias["catalog_table"] == "effects"
+    dp = await conn.fetchval("SELECT disk_paths FROM effects WHERE effect_id=$1", alias["catalog_record_id"])
+    assert any(e["path"] == "/path/reverb.vst3" for e in (dp or []))
