@@ -106,13 +106,22 @@ async def count_patterns(
 # Alias persistence (U-14) — write a Resolution as a name alias + append disk_paths
 # ---------------------------------------------------------------------------
 
-async def _write_alias(conn: Connection, res: Resolution, username: str) -> None:
-    """Persist a resolved variant as a name alias. Idempotent on disk_name (first write wins)."""
-    await conn.execute(
+async def _write_alias(conn: Connection, res: Resolution, username: str) -> bool:
+    """Persist a resolved variant as a name alias (first write wins on disk_name).
+
+    Returns True when the stored alias resolves this disk_name to ``res``'s record
+    (fresh insert, or an existing alias that already agrees); False when an existing
+    alias points to a *different* record — so the caller can leave that row for review.
+    The no-op ``DO UPDATE`` lets RETURNING surface the existing record on conflict.
+    """
+    stored = await conn.fetchval(
         "INSERT INTO scanner_name_aliases (disk_name, catalog_record_id, catalog_table, created_by) "
-        "VALUES ($1, $2::uuid, $3, $4) ON CONFLICT (disk_name) DO NOTHING",
+        "VALUES ($1, $2::uuid, $3, $4) "
+        "ON CONFLICT (disk_name) DO UPDATE SET disk_name = scanner_name_aliases.disk_name "
+        "RETURNING catalog_record_id",
         res.disk_name, res.catalog_record_id, res.catalog_table, username,
     )
+    return str(stored) == res.catalog_record_id
 
 
 async def _append_variant_path(
@@ -126,12 +135,19 @@ async def _append_variant_path(
 async def _persist_resolutions(
     conn: Connection, resolutions: list[tuple[Mapping[str, object], Resolution]], username: str,
 ) -> AcknowledgeCleanResult:
-    """Write aliases + append disk_paths + confirm the resolving rows, atomically."""
+    """Write aliases + append disk_paths + confirm the resolving rows, atomically.
+
+    A row whose disk_name already aliases to a *different* record is left unconfirmed
+    (for review) rather than appended/confirmed against a record the alias contradicts.
+    """
     async with conn.transaction():
+        confirmable: list = []
         for row, res in resolutions:
-            await _write_alias(conn, res, username)
+            if not await _write_alias(conn, res, username):
+                continue
             await _append_variant_path(conn, res, row, username)
-        return await _bulk_confirm(conn, [row["result_id"] for row, _ in resolutions], username)
+            confirmable.append(row["result_id"])
+        return await _bulk_confirm(conn, confirmable, username)
 
 
 # ---------------------------------------------------------------------------

@@ -116,11 +116,13 @@ async def append_disk_path(
     """Append a {path, format, version} entry to a catalog ``record`` (table, pk)'s disk_paths.
 
     Deduped by ``path`` (no-op if already present) and audit-logged. Shared by the
-    confirm/acknowledge flow and the U-14 alias write path.
+    confirm/acknowledge flow and the U-14 alias write path. The read locks the row
+    (``FOR UPDATE``) so concurrent appends to the same record serialize instead of
+    losing each other's writes — callers run inside a transaction that holds the lock.
     """
     table, rid = record
     pk, _ = CATALOG_TABLES[table]
-    old_row = await conn.fetchrow(f"SELECT disk_paths FROM {table} WHERE {pk}=$1", rid)
+    old_row = await conn.fetchrow(f"SELECT disk_paths FROM {table} WHERE {pk}=$1 FOR UPDATE", rid)
     old_paths: list = list(old_row["disk_paths"] or []) if old_row else []
     if any(e.get("path") == entry["path"] for e in old_paths):
         return

@@ -316,3 +316,25 @@ async def test_acknowledge_writes_alias_and_appends_disk_path(client, conn, admi
     assert alias is not None and alias["catalog_table"] == "effects"
     dp = await conn.fetchval("SELECT disk_paths FROM effects WHERE effect_id=$1", alias["catalog_record_id"])
     assert any(e["path"] == "/path/reverb.vst3" for e in (dp or []))
+
+
+async def test_acknowledge_skips_row_when_alias_points_to_different_record(client, conn, admin_headers):
+    # An existing alias for 'Zz9(m)' already points to record A.
+    other = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('Zz9Other') RETURNING effect_id")
+    await conn.execute(
+        "INSERT INTO scanner_name_aliases (disk_name, catalog_record_id, catalog_table, created_by) "
+        "VALUES ('Zz9(m)', $1, 'effects', 'admin')", other,
+    )
+    # A parent B named 'Zz9' (Zz9Acme) + an unconfirmed 'Zz9(m)' scan row that now resolves to B.
+    brand = await conn.fetchval("INSERT INTO brands (legal_name, brand_name) VALUES ('Zz9Acme','Zz9Acme') RETURNING brand_id")
+    b = await conn.fetchval("INSERT INTO effects (effect_name, brand_id) VALUES ('Zz9', $1) RETURNING effect_id", brand)
+    _, rid = await insert_scan(conn, status="untracked")
+    await conn.execute("UPDATE plugin_scan_results SET name='Zz9(m)', vendor='Zz9Acme', path='/z/z9.vst3' WHERE result_id=$1", rid)
+    rule_id = (await client.post("/scanner/rules/pattern", json=_VALID, headers=admin_headers)).json()["rule_id"]
+
+    await client.post(f"/scanner/rules/pattern/{rule_id}/acknowledge-clean", headers=admin_headers)
+
+    # alias unchanged (A wins), row left unconfirmed, B's disk_paths untouched
+    assert await conn.fetchval("SELECT catalog_record_id FROM scanner_name_aliases WHERE disk_name='Zz9(m)'") == other
+    assert await conn.fetchval("SELECT confirmed_at FROM plugin_scan_results WHERE result_id=$1", rid) is None
+    assert not (await conn.fetchval("SELECT disk_paths FROM effects WHERE effect_id=$1", b))

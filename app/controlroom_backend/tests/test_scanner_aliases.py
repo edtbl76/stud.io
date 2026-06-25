@@ -57,6 +57,7 @@ async def _last_row(conn, name):
 # Step 4 — extracted append_disk_path core (ctx-free)
 # ---------------------------------------------------------------------------
 
+@pytest.mark.asyncio
 async def test_append_disk_path_appends_and_dedupes(conn):
     eid = await conn.fetchval("INSERT INTO effects (effect_name) VALUES ('Zz14Adp') RETURNING effect_id")
     entry = {"path": "/a/b.vst3", "format": "vst3", "version": "1.0"}
