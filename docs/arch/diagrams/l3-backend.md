@@ -16,7 +16,9 @@ graph LR
         usersrouter["Users Router"]
         adminrouters["Admin Routers"]
         gearlistrouter["GearList Proxy"]
-        scannerrouter["Scanner Router (legacy)"]
+        scannerrouter["Scanner Router"]
+        ingestrouter["Scan Ingest Router"]
+        patternrulesrouter["Pattern Rules Router"]
         workbenchrouter["Workbench Router"]
         rulesrouter["Rules Router"]
         reportrouter["Report Router"]
@@ -41,9 +43,11 @@ graph LR
     appcore -->|"/studio/admin/users"| usersrouter
     appcore -->|"/studio/admin"| adminrouters
     appcore -->|"/gearlist/*"| gearlistrouter
-    appcore -->|"/scanner (legacy)"| scannerrouter
+    appcore -->|"/scanner/report · /catalog/search · /confirm"| scannerrouter
+    appcore -->|"/scanner/scan"| ingestrouter
     appcore -->|"/scanner/workbench"| workbenchrouter
-    appcore -->|"/scanner/rules"| rulesrouter
+    appcore -->|"/scanner/rules/vendor · /name"| rulesrouter
+    appcore -->|"/scanner/rules/pattern"| patternrulesrouter
     appcore -->|"/scanner/scans/recent · /scans/{id}/report"| reportrouter
     appcore -->|"/scanner/links"| linksrouter
     appcore -->|"/scanner/results · /rejections"| rejectionsrouter
@@ -54,8 +58,10 @@ graph LR
     configrouter --> crudlib
     crudlib --> dbpool
     scannerrouter --> dbpool
+    ingestrouter --> dbpool
     workbenchrouter --> dbpool
     rulesrouter --> dbpool
+    patternrulesrouter --> dbpool
     reportrouter --> dbpool
     linksrouter --> dbpool
     rejectionsrouter --> dbpool
@@ -78,9 +84,11 @@ graph LR
 | Users Router | FastAPI / Python | User CRUD, role management, Google account linking |
 | Admin Routers | FastAPI / Python | Backup, restore, verify, change review, stats, XLSX import/export |
 | GearList Proxy | FastAPI / httpx | Catch-all proxy to the GearList Go service |
-| Scanner Router (legacy) | FastAPI / Python | Ingest (API key) · report · confirm · keys · exclusions · scan history — coexistence until U-05 |
+| Scanner Router | FastAPI / Python | Report · catalog search · confirm/dismiss/keep actions (`scanner.py`). Keys + exclusions live in the Admin Routers (`scanner_admin.py`) |
+| Scan Ingest Router | FastAPI / Python | `POST /scanner/scan` (API key auth) — resolution precedence link→alias→exclusion→fuzzy (`scanner_ingest.py`) |
 | Workbench Router | FastAPI / Python | Rules-applied workbench view at `/scanner/workbench` |
-| Rules Router | FastAPI / Python | Vendor + name + pattern rule CRUD, toggle, acknowledge-clean |
+| Rules Router | FastAPI / Python | Vendor + name rule CRUD, toggle, acknowledge-clean (`scanner_rules.py`) |
+| Pattern Rules Router | FastAPI / Python | Pattern rule CRUD + counts; alias-writing acknowledge-clean (`scanner_pattern_rules.py`, U-12/U-14); pure resolver in `scanner_pattern_eval.py` (U-13) |
 | Report Router | FastAPI / Python | Recent scan list (`/scanner/scans/recent`) + raw scan report |
 | Links Router | FastAPI / Python | Find-link candidates and link creation |
 | Rejections Router | FastAPI / Python | Reject match, list rejections, delete rejection |

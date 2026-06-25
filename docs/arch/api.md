@@ -27,7 +27,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/studio/admin` | `routers/backup_ops.py`, `routers/change_review.py` + `change_review_list.py` + `change_review_undo.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/studio/admin/users` | `routers/users.py` | User management (admin only) |
 | `/gearlist/*` | `routers/gearlist.py` | Catch-all proxy to the internal GearList Go service |
-| `/scanner` | `routers/scanner.py` (report/search/actions) + `scanner_ingest.py` (`POST /scan`) + `scanner_auth.py` (API-key/JWT deps) + `scanner_actions.py` + `scanner_match.py` + `scanner_pattern_eval.py` + `scanner_admin.py` | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
+| `/scanner` | `routers/scanner.py` (report/search/confirm/dismiss/keep) + `scanner_ingest.py` (`POST /scan`) + `scanner_auth.py` (API-key/JWT deps) + `scanner_pattern_rules.py` (pattern CRUD + alias-writing acknowledge-clean) + `scanner_pattern_eval.py` (pure resolver) + `scanner_actions.py` + `scanner_match.py` + `scanner_admin.py` (keys/exclusions) | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, pattern rules + name aliases, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
 
 ---
 
@@ -372,7 +372,9 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 #### Workbench (U-02 — rules-driven view)
 
-`GET /scanner/workbench[?scan_id=UUID&bucket=str&format=str&show_confirmed=bool]` — admin only. Returns all scan results for a scan with active rules applied, buckets recomputed, and rejections checked. Defaults to the most recent scan. Response: `{rows: WorkbenchRow[], orphaned: OrphanedRecord[], scan_id}`. Sorted by catalog type → catalog record name → bucket.
+`GET /scanner/workbench[?scan_id=UUID&bucket=str&format=str&show_confirmed=bool]` — admin only. Returns all scan results for a scan with active rules applied, buckets recomputed, and rejections checked. Defaults to the most recent scan. Response: `{rows: WorkbenchRow[], orphaned: OrphanedRecord[], scan_id}`. Sorted by catalog type → catalog record name → bucket (`excluded → collision → known → needs_review → unlinked`).
+
+Bucket values: `excluded`, `collision`, `known`, `needs_review`, `unlinked`. A **collision** (U-09) is ≥2 scan rows resolving to the same catalog record in the same format at ≥2 distinct paths; it overrides `known`/`needs_review` (FR-02) but not `excluded`. Each colliding `WorkbenchRow` carries a `collision` sub-state: `{shared_catalog_record: {id, table, name, vendor, version}, copies: [{result_id, path, version, format}]}` (the full duplicate set, used by the collision-resolution modal). Non-colliding rows have `collision: null`. Collision rows are never hidden by `show_confirmed=false`.
 
 `GET /scanner/scans/recent` — admin only. Returns the most recent 10 scans for the scan picker. Response: `[{scan_id, scanned_at, source_machine, total_count}]`.
 
@@ -400,7 +402,7 @@ Same endpoints at `/scanner/rules/name/{id}` for name rules.
 
 `PATCH /scanner/rules/pattern/{id}/toggle` — admin only. Toggle enabled on a pattern rule (including the seeded Mono Variant rule).
 
-`POST /scanner/rules/pattern/{id}/acknowledge-clean` (U-12, U-14) — admin only. For every result the pattern resolves: writes a `scanner_name_aliases` row (`ON CONFLICT (disk_name) DO NOTHING`), appends the variant's `{path,format,version}` to the parent catalog record's `disk_paths` (deduped + audited), and confirms the row — all in one transaction. Returns `{acknowledged: N}`. The aliases are read on every subsequent scan (see `POST /scanner/scan`).
+`POST /scanner/rules/pattern/{id}/acknowledge-clean` (U-12, U-14) — admin only. For every result the pattern resolves: writes a `scanner_name_aliases` row (idempotent on `disk_name` — the first alias for a `disk_name` wins), appends the variant's `{path,format,version}` to the parent catalog record's `disk_paths` (deduped + audited), and confirms the row — all in one transaction. The alias write is **record-aware**: if a `disk_name` already aliases to a *different* catalog record than the current resolution, that row is left **unconfirmed for review** (its `disk_paths` are not appended and it is not confirmed), so the persisted alias and the confirmed scan state never contradict each other. Returns `{acknowledged: N}` (the count of rows actually confirmed). The aliases are read on every subsequent scan (see `POST /scanner/scan`).
 
 #### Rejections (U-02)
 

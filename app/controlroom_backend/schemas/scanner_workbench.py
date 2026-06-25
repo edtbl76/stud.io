@@ -19,6 +19,29 @@ class WorkbenchFilters(BaseModel):
     show_confirmed: bool = False
 
 
+class CollisionCopy(BaseModel):
+    """One physical install participating in a collision (U-09)."""
+    result_id: UUID
+    path: str
+    version: str | None = None
+    format: str
+
+
+class CollisionRecord(BaseModel):
+    """The single catalog record a collision set's copies all resolve to (U-09)."""
+    id: UUID
+    table: str
+    name: str | None = None
+    vendor: str | None = None
+    version: str | None = None
+
+
+class CollisionInfo(BaseModel):
+    """Per-row collision sub-state: the shared record + every duplicate copy (U-09)."""
+    shared_catalog_record: CollisionRecord | None = None
+    copies: list[CollisionCopy] = []
+
+
 class WorkbenchRow(BaseModel):
     result_id: UUID
     disk_name: str
@@ -34,6 +57,7 @@ class WorkbenchRow(BaseModel):
     catalog_record_vendor: str | None = None
     catalog_record_version: str | None = None
     bucket: str
+    collision: CollisionInfo | None = None
     confidence: str | None = None
     confirmed_at: datetime | None = None
     confirmed_by: str | None = None
