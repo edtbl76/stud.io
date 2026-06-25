@@ -10,7 +10,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from routers.scanner_catalog import CatalogRecord
-from routers.scanner_pattern_rules import _Eval, compile_pattern, resolve_variant
+from routers.scanner_pattern_eval import _Eval, compile_pattern, resolve_variant
 
 _word = st.text(st.characters(whitelist_categories=("Ll", "Lu", "Nd")), min_size=1, max_size=6)
 _match_fields = st.sets(st.sampled_from(["vendor", "version", "format"]))

@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from database import get_conn
 from limiter import limiter
 from routers.auth import UserOut, get_current_user, require_admin
-from routers.scanner import get_scanner_auth_or_user
+from routers.scanner_auth import get_scanner_auth_or_user
 from schemas.scanner import (
     APIKeyCreated, APIKeyResponse,
     ConfirmationCounts, CreateExclusionRequest,

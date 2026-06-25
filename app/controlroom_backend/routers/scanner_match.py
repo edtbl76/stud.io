@@ -42,6 +42,14 @@ async def load_persistent_links(conn: Connection) -> dict[str, tuple[str, str]]:
     return {r["fingerprint"]: (str(r["record_id"]), r["record_table"]) for r in rows}
 
 
+async def load_aliases(conn: Connection) -> dict[str, tuple[str, str]]:
+    """Name aliases keyed on disk_name (U-14): {disk_name: (record_id, catalog_table)}."""
+    rows = await conn.fetch(
+        "SELECT disk_name, catalog_record_id::text, catalog_table FROM scanner_name_aliases"
+    )
+    return {r["disk_name"]: (str(r["catalog_record_id"]), r["catalog_table"]) for r in rows}
+
+
 def _meta_candidates(results: list[Record]) -> dict[str, tuple]:
     """Return {rid: (table, record_id)} for results that need a catalog metadata fetch."""
     return {

@@ -12,7 +12,7 @@ from limiter import limiter
 from routers import brands, models, effects, instruments, libraries
 from routers import workstations, tools, config as config_router, search, auth, users
 from routers import backup_ops, change_review, admin_stats, import_export, gearlist
-from routers import scanner, scanner_admin
+from routers import scanner, scanner_admin, scanner_ingest
 from routers import scanner_workbench, scanner_rules, scanner_pattern_rules, scanner_report, scanner_links, scanner_rejections, scanner_reset
 from routers.auth import seed_default_admin
 
@@ -59,6 +59,7 @@ app.include_router(import_export.router,  prefix=ADMIN_PREFIX, tags=["admin"])
 app.include_router(users.router,        prefix="/studio/admin/users", tags=["users"])
 app.include_router(gearlist.router,       prefix="/gearlist",           tags=["gearlist"])
 app.include_router(scanner.router,             prefix=_SCANNER_PREFIX, tags=["scanner"])
+app.include_router(scanner_ingest.router,      prefix=_SCANNER_PREFIX, tags=["scanner"])
 app.include_router(scanner_admin.router,       prefix=_SCANNER_PREFIX, tags=["scanner"])
 app.include_router(scanner_workbench.router,   prefix=_SCANNER_PREFIX, tags=["scanner"])
 app.include_router(scanner_rules.router,       prefix=_SCANNER_PREFIX, tags=["scanner"])

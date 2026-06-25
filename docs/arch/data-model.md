@@ -76,7 +76,7 @@ Defined in `sql/scanner_schema.sql`. Used by the FastAPI scanner routes and the 
 | `scanner_vendor_rules` | Vendor normalization rules. Maps raw disk vendor string to catalog vendor string. Example: `"ikmultimedia"` → `"IK Multimedia"`. UNIQUE on `disk_vendor`. Applied at workbench query time. |
 | `scanner_name_rules` | Name normalization rules. Maps raw disk plugin name to catalog name. UNIQUE on `disk_name`. Applied at workbench query time. |
 | `scanner_name_patterns` | Pattern-based rules using `{name}` template syntax. `match_fields TEXT[]` defines which additional fields must align. `is_seeded BOOLEAN` protects system-provided rules from hard-reset deletion. Seeded rule: Mono Variant (`{name}(m)`, ships disabled). |
-| `scanner_name_aliases` | Maps a specific disk name to a catalog record. Created by the "Set Name Alias" collision resolution. UNIQUE on `disk_name`. |
+| `scanner_name_aliases` | Maps a specific disk name to a catalog record. UNIQUE on `disk_name`. Written by pattern-rule `acknowledge-clean` (U-14) and the "Set Name Alias" collision resolution; read during scan ingest to resolve variants to their parent (`confidence='exact'`). Decoupled from the originating rule (no `rule_id`); cleared only by Hard Reset. |
 | `scanner_rejections` | Persists rejected `(fingerprint, record_id)` pairings so bad matches do not reappear in the workbench. UNIQUE on `(fingerprint, record_id)`. Optimistically purged when the same pairing is later confirmed. |
 
 ### Soft delete

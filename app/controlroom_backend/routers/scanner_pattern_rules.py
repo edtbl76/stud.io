@@ -1,16 +1,13 @@
-"""Scanner pattern rules — create/delete/toggle/acknowledge + counts + evaluation.
+"""Scanner pattern rules — create/delete/toggle/acknowledge routes + counts + alias persistence.
 
-The resolver (U-13) honors `match_fields` exactly: the pattern fires (regex extracts
-`{name}`), and a parent catalog record qualifies iff `name == {name}` and every field listed
-in `match_fields` (vendor/version/format) matches — format crossing the scan-string ↔ catalog-id
-boundary via the `plugin_formats` lookup. Resolution is **pure** (no persistence — that is U-14);
-counts run through the same resolver (affected = fires, clean = resolves to one qualifying parent).
+The pure evaluation engine (compile/resolve, U-13) lives in `scanner_pattern_eval`; this module
+owns the routes, count aggregation, and the U-14 alias write path. Counts run through the
+resolver (affected = fires, clean = resolves to exactly one qualifying parent).
 """
 from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping
-from dataclasses import dataclass
 from typing import Annotated
 from uuid import UUID
 
@@ -19,10 +16,14 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
-from routers.scanner_catalog import (
-    MatchingContext,
-    build_matching_context,
-    load_plugin_format_ids,
+from routers.scanner_actions import append_disk_path
+from routers.scanner_catalog import build_matching_context, load_plugin_format_ids
+from routers.scanner_pattern_eval import (
+    Resolution,
+    _Eval,
+    _eval_for,
+    compile_pattern,
+    resolve_variant,
 )
 from routers.scanner_rule_counts import _bulk_confirm
 from schemas.scanner_rules import (
@@ -42,23 +43,6 @@ _PATTERN_COLS = (
 _ZERO_COUNTS = {"affected_count": 0, "clean_count": 0, "needs_review_count": 0}
 
 
-@dataclass(frozen=True)
-class Resolution:
-    disk_name: str
-    catalog_record_id: str
-    catalog_table: str
-
-
-# ---------------------------------------------------------------------------
-# Pattern compilation + match_fields-driven resolution (U-13)
-# ---------------------------------------------------------------------------
-
-def compile_pattern(pattern: str) -> re.Pattern:
-    """Compile a template like '{name}(m)' into a regex with a 'name' capture group."""
-    regex = "(?P<name>.+?)".join(re.escape(part) for part in pattern.split("{name}"))
-    return re.compile(f"^{regex}$")
-
-
 def _validation_error(body: PatternRuleIn) -> str | None:
     """Return the first validation error message, or None if the pattern is valid."""
     if "{name}" not in body.pattern:
@@ -72,74 +56,13 @@ def _validation_error(body: PatternRuleIn) -> str | None:
     return None
 
 
-def _norm(value: str | None) -> str:
-    return (value or "").lower()
-
-
-def _format_matches(scan_format: str | None, parent_format_ids: list[str], format_ids: dict[str, str]) -> bool:
-    type_id = format_ids.get(_norm(scan_format))
-    return type_id is not None and type_id in parent_format_ids
-
-
-@dataclass(frozen=True)
-class _Eval:
-    """Per-pattern evaluation context: compiled regex + the inputs resolution needs."""
-    compiled: re.Pattern
-    match_fields: frozenset[str]
-    catalog_index: list
-    format_ids: dict[str, str]
-
-
-def _honors_match_fields(row, parent, extracted: str, ev: _Eval) -> bool:
-    """Parent qualifies iff name == {name} and exactly the listed match_fields match."""
-    if _norm(parent.name) != _norm(extracted):
-        return False
-    checks = {
-        "vendor": lambda: _norm(parent.vendor) == _norm(row["vendor"]),
-        "version": lambda: (parent.version or "") == (row["version"] or ""),
-        "format": lambda: _format_matches(row["format"], parent.plugin_format_ids, ev.format_ids),
-    }
-    return all(checks[field]() for field in ev.match_fields)
-
-
-def resolve_variant(row: Mapping[str, object], ev: _Eval) -> Resolution | None:
-    """Resolve a scan row's variant name to its single qualifying parent, or None (no fire / no / ambiguous parent)."""
-    matched = ev.compiled.match(row["name"] or "")
-    if not matched:
-        return None
-    extracted = matched.group("name")
-    qualifying = [rec for rec in ev.catalog_index if _honors_match_fields(row, rec, extracted, ev)]
-    if len(qualifying) != 1:
-        return None
-    rec = qualifying[0]
-    return Resolution(disk_name=row["name"], catalog_record_id=rec.record_id, catalog_table=rec.record_table)
-
-
-def _eval_for(pattern: str, match_fields, ctx, format_ids: dict[str, str]) -> _Eval:
-    return _Eval(compile_pattern(pattern), frozenset(match_fields), ctx.catalog_index, format_ids)
-
-
-def resolve_variants(
-    scan_rows: Iterable[Mapping[str, object]],
-    enabled_patterns: Iterable[Mapping[str, object]],
-    ctx: MatchingContext,
-    format_ids: dict[str, str],
-) -> list[Resolution]:
-    """Pure engine entry: every (enabled pattern x scan row) that resolves. U-14 persists/wires."""
-    out: list[Resolution] = []
-    for p in enabled_patterns:
-        ev = _eval_for(p["pattern"], p["match_fields"], ctx, format_ids)
-        out.extend(res for row in scan_rows if (res := resolve_variant(row, ev)) is not None)
-    return out
-
-
 # ---------------------------------------------------------------------------
 # Counts (run through the resolver — affected = fires, clean = resolves)
 # ---------------------------------------------------------------------------
 
 async def _active_candidates(conn: Connection):
     return await conn.fetch(
-        "SELECT result_id, name, vendor, version, format FROM plugin_scan_results "
+        "SELECT result_id, name, vendor, version, format, path FROM plugin_scan_results "
         "WHERE confirmed_at IS NULL AND status NOT IN ('excluded','ignored')"
     )
 
@@ -177,6 +100,54 @@ async def count_patterns(
         r["rule_id"]: _split(rows, _eval_for(r["pattern"], r["match_fields"], ctx, format_ids))
         for r in pattern_rows
     }
+
+
+# ---------------------------------------------------------------------------
+# Alias persistence (U-14) — write a Resolution as a name alias + append disk_paths
+# ---------------------------------------------------------------------------
+
+async def _write_alias(conn: Connection, res: Resolution, username: str) -> bool:
+    """Persist a resolved variant as a name alias (first write wins on disk_name).
+
+    Returns True when the stored alias resolves this disk_name to ``res``'s record
+    (fresh insert, or an existing alias that already agrees); False when an existing
+    alias points to a *different* record — so the caller can leave that row for review.
+    The no-op ``DO UPDATE`` lets RETURNING surface the existing record on conflict.
+    """
+    stored = await conn.fetchval(
+        "INSERT INTO scanner_name_aliases (disk_name, catalog_record_id, catalog_table, created_by) "
+        "VALUES ($1, $2::uuid, $3, $4) "
+        "ON CONFLICT (disk_name) DO UPDATE SET disk_name = scanner_name_aliases.disk_name "
+        "RETURNING catalog_record_id",
+        res.disk_name, res.catalog_record_id, res.catalog_table, username,
+    )
+    return str(stored) == res.catalog_record_id
+
+
+async def _append_variant_path(
+    conn: Connection, res: Resolution, row: Mapping[str, object], username: str,
+) -> None:
+    """Append the resolved variant's install to its parent catalog record's disk_paths."""
+    entry = {"path": row["path"], "format": row["format"], "version": row["version"]}
+    await append_disk_path(conn, (res.catalog_table, UUID(res.catalog_record_id)), entry, username)
+
+
+async def _persist_resolutions(
+    conn: Connection, resolutions: list[tuple[Mapping[str, object], Resolution]], username: str,
+) -> AcknowledgeCleanResult:
+    """Write aliases + append disk_paths + confirm the resolving rows, atomically.
+
+    A row whose disk_name already aliases to a *different* record is left unconfirmed
+    (for review) rather than appended/confirmed against a record the alias contradicts.
+    """
+    async with conn.transaction():
+        confirmable: list = []
+        for row, res in resolutions:
+            if not await _write_alias(conn, res, username):
+                continue
+            await _append_variant_path(conn, res, row, username)
+            confirmable.append(row["result_id"])
+        return await _bulk_confirm(conn, confirmable, username)
 
 
 # ---------------------------------------------------------------------------
@@ -233,8 +204,8 @@ async def acknowledge_clean_pattern(
     format_ids = await load_plugin_format_ids(conn)
     ev = _eval_for(rule["pattern"], rule["match_fields"], ctx, format_ids)
     rows = await _active_candidates(conn)
-    clean_ids = [r["result_id"] for r in rows if resolve_variant(r, ev) is not None]
-    return await _bulk_confirm(conn, clean_ids, user.username)
+    resolutions = [(r, res) for r in rows if (res := resolve_variant(r, ev)) is not None]
+    return await _persist_resolutions(conn, resolutions, user.username)
 
 
 @router.patch("/rules/pattern/{rule_id}/toggle", responses={404: {"description": _PATTERN_NOT_FOUND}})
