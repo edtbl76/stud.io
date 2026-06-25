@@ -19,11 +19,11 @@ async def scanner_key(conn):
     return raw
 
 
-async def _effect(conn, name, *, version=None, disk_paths=None, fmt_ids=None):
+async def _effect(conn, name, **kw):
     return await conn.fetchval(
         "INSERT INTO effects (effect_name, version, disk_paths, plugin_format_ids) "
         "VALUES ($1,$2,$3,$4) RETURNING effect_id",
-        name, version, disk_paths if disk_paths is not None else [], fmt_ids or [],
+        name, kw.get("version"), kw.get("disk_paths") or [], kw.get("fmt_ids") or [],
     )
 
 
