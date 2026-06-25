@@ -372,7 +372,7 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 #### Workbench (U-02 — rules-driven view)
 
-`GET /scanner/workbench[?scan_id=UUID&bucket=str&format=str&show_confirmed=bool]` — admin only. Returns all scan results for a scan with active rules applied, buckets recomputed, and rejections checked. Defaults to the most recent scan. Response: `{rows: WorkbenchRow[], orphaned: OrphanedRecord[], scan_id}`. Sorted by catalog type → catalog record name → bucket (`excluded → collision → known → needs_review → unlinked`).
+`GET /scanner/workbench[?scan_id=UUID&bucket=str&show_confirmed=bool]` — admin only. Returns all scan results for a scan with active rules applied, buckets recomputed, and rejections checked. Defaults to the most recent scan. Response: `{rows: WorkbenchRow[], orphaned: OrphanedRecord[], scan_id}`. Sorted by catalog type → catalog record name → bucket (`excluded → collision → known → needs_review → unlinked`).
 
 Bucket values: `excluded`, `collision`, `known`, `needs_review`, `unlinked`. A **collision** (U-09) is ≥2 scan rows resolving to the same catalog record in the same format at ≥2 distinct paths; it overrides `known`/`needs_review` (FR-02) but not `excluded`. Each colliding `WorkbenchRow` carries a `collision` sub-state: `{shared_catalog_record: {id, table, name, vendor, version}, copies: [{result_id, path, version, format}]}` (the full duplicate set, used by the collision-resolution modal). Non-colliding rows have `collision: null`. Collision rows are never hidden by `show_confirmed=false`.
 

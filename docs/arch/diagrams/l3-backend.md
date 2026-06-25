@@ -43,14 +43,14 @@ graph LR
     appcore -->|"/studio/admin/users"| usersrouter
     appcore -->|"/studio/admin"| adminrouters
     appcore -->|"/gearlist/*"| gearlistrouter
-    appcore -->|"/scanner/report · /catalog/search · /confirm"| scannerrouter
+    appcore -->|"/scanner/report · /scanner/catalog/search · /scanner/confirm"| scannerrouter
     appcore -->|"/scanner/scan"| ingestrouter
     appcore -->|"/scanner/workbench"| workbenchrouter
-    appcore -->|"/scanner/rules/vendor · /name"| rulesrouter
+    appcore -->|"/scanner/rules/vendor · /scanner/rules/name"| rulesrouter
     appcore -->|"/scanner/rules/pattern"| patternrulesrouter
-    appcore -->|"/scanner/scans/recent · /scans/{id}/report"| reportrouter
+    appcore -->|"/scanner/scans/recent · /scanner/scans/{id}/report"| reportrouter
     appcore -->|"/scanner/links"| linksrouter
-    appcore -->|"/scanner/results · /rejections"| rejectionsrouter
+    appcore -->|"/scanner/results · /scanner/rejections"| rejectionsrouter
     appcore -->|"/scanner/admin/reset"| resetrouter
     catalogrouters --> crudlib
     sessionrouters --> crudlib
