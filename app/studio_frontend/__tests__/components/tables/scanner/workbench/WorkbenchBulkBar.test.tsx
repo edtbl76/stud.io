@@ -17,7 +17,7 @@ function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
 const noop = jest.fn()
 const DEFAULT_PROPS = {
   rowSubStates: new Map<string, NeedsReviewSubState>(),
-  onResolveCollision: noop, onBulkResolve: noop, onBulkUpdate: noop,
+  onBulkResolve: noop, onBulkUpdate: noop,
   onBulkReject: noop, onBulkExclude: noop, onClearSelection: noop,
 }
 
@@ -28,30 +28,8 @@ it('shows selected count', () => {
   expect(screen.getByText(/3 selected/i)).toBeInTheDocument()
 })
 
-// Step 43: Resolve Collision
-it('shows Resolve Collision only for exactly 2 rows both with catalog_record_id', () => {
-  const rows = [
-    makeRow({ result_id: 'r1', catalog_record_id: 'c1', bucket: 'needs_review' }),
-    makeRow({ result_id: 'r2', catalog_record_id: 'c2', bucket: 'needs_review' }),
-  ]
-  render(<WorkbenchBulkBar selectedRows={rows} {...DEFAULT_PROPS} />)
-  expect(screen.getByRole('button', { name: /resolve collision/i })).toBeInTheDocument()
-})
-
-it('does not show Resolve Collision when one row lacks catalog_record_id', () => {
-  const rows = [
-    makeRow({ result_id: 'r1', catalog_record_id: 'c1', bucket: 'needs_review' }),
-    makeRow({ result_id: 'r2', catalog_record_id: null, bucket: 'unlinked' }),
-  ]
-  render(<WorkbenchBulkBar selectedRows={rows} {...DEFAULT_PROPS} />)
-  expect(screen.queryByRole('button', { name: /resolve collision/i })).not.toBeInTheDocument()
-})
-
-it('does not show Resolve Collision when 3 rows are selected', () => {
-  const rows = ['r1', 'r2', 'r3'].map((id) => makeRow({ result_id: id, catalog_record_id: 'c', bucket: 'needs_review' }))
-  render(<WorkbenchBulkBar selectedRows={rows} {...DEFAULT_PROPS} />)
-  expect(screen.queryByRole('button', { name: /resolve collision/i })).not.toBeInTheDocument()
-})
+// U-18: the old bulk "Resolve Collision" (2-selected-rows) flow is retired;
+// collisions are now resolved per-row via the record-centric CollisionModal.
 
 // Step 44: Resolve (bulk resolve for needs_review)
 it('shows Resolve button when at least one needs_review row is selected', () => {

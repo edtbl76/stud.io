@@ -112,6 +112,20 @@ it('Exclude button on unlinked row fires onExclude', () => {
   expect(onExclude).toHaveBeenCalledTimes(1)
 })
 
+// U-18 — collision row: Collision tag + Resolve trigger
+it('shows a Collision tag and Resolve button for a collision row, firing onResolveCollision', () => {
+  const onResolveCollision = jest.fn()
+  render(<WorkbenchRow row={makeRow({ bucket: 'collision', catalog_record_id: 'c1' })} {...DEFAULT_PROPS} onResolveCollision={onResolveCollision} />)
+  expect(screen.getByText('Collision')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: /resolve/i }))
+  expect(onResolveCollision).toHaveBeenCalledTimes(1)
+})
+
+it('does not show Resolve for non-collision rows', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'unlinked' })} {...DEFAULT_PROPS} />)
+  expect(screen.queryByRole('button', { name: /resolve/i })).not.toBeInTheDocument()
+})
+
 // Step 50
 it('checkbox click calls onToggleSelect', () => {
   const onToggle = jest.fn()

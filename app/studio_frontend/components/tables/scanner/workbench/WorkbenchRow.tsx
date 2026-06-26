@@ -1,22 +1,49 @@
 'use client'
 
-import type { NeedsReviewSubState, WorkbenchRow as WorkbenchRowType } from '@/lib/types'
+import type { NeedsReviewSubState, WorkbenchBucket, WorkbenchRow as WorkbenchRowType } from '@/lib/types'
 import { BucketTag } from './BucketTag'
 
-interface WorkbenchRowProps {
+interface RowActionHandlers {
+  onReject?: () => void
+  onFindLink?: () => void
+  onCreateRecord?: () => void
+  onExclude?: () => void
+  onResolveCollision?: () => void
+}
+
+interface WorkbenchRowProps extends RowActionHandlers {
   row: WorkbenchRowType
   isSelected: boolean
   subState?: NeedsReviewSubState
   onToggleSelect: (id: string) => void
   onShiftSelect: (id: string) => void
   onRowClick: (row: WorkbenchRowType) => void
-  onReject?: () => void
-  onFindLink?: () => void
-  onCreateRecord?: () => void
-  onExclude?: () => void
 }
 
-export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShiftSelect, onRowClick, onReject, onFindLink, onCreateRecord, onExclude }: Readonly<WorkbenchRowProps>) {
+function RowTag({ bucket, subState }: Readonly<{ bucket: WorkbenchBucket; subState?: NeedsReviewSubState }>) {
+  if (bucket === 'collision') return <BucketTag bucket={bucket} />
+  if (bucket === 'needs_review' && subState) return <BucketTag bucket={bucket} subState={subState} />
+  return null
+}
+
+function RowActions({ bucket, onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision }: Readonly<{ bucket: WorkbenchBucket } & RowActionHandlers>) {
+  return (
+    <div className="flex items-center gap-1 ml-auto">
+      {bucket === 'unlinked' && (
+        <>
+          <button type="button" onClick={onFindLink}>Find Link</button>
+          <button type="button" onClick={onCreateRecord}>Create Record</button>
+          <button type="button" onClick={onExclude}>Exclude</button>
+        </>
+      )}
+      {bucket === 'orphaned' && <button type="button" onClick={onFindLink}>Find Link</button>}
+      {(bucket === 'needs_review' || bucket === 'known') && <button type="button" onClick={onReject}>Reject</button>}
+      {bucket === 'collision' && <button type="button" onClick={onResolveCollision}>Resolve</button>}
+    </div>
+  )
+}
+
+export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShiftSelect, onRowClick, onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision }: Readonly<WorkbenchRowProps>) {
   const { bucket, result_id, display_name, disk_name, display_vendor, disk_version, disk_format } = row
 
   function handleCheckboxClick(e: React.MouseEvent<HTMLInputElement>) {
@@ -48,29 +75,20 @@ export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShif
         >
           {display_name}
         </span>
-        {bucket === 'needs_review' && subState && (
-          <BucketTag bucket={bucket} subState={subState} />
-        )}
+        <RowTag bucket={bucket} subState={subState} />
         <span className="text-sm text-muted-foreground w-36 truncate">{display_vendor}</span>
         <span className="text-sm text-muted-foreground w-16 truncate">{disk_version}</span>
         <span className="text-sm text-muted-foreground w-12">{disk_format}</span>
       </button>
 
-      <div className="flex items-center gap-1 ml-auto">
-        {bucket === 'unlinked' && (
-          <>
-            <button type="button" onClick={onFindLink}>Find Link</button>
-            <button type="button" onClick={onCreateRecord}>Create Record</button>
-            <button type="button" onClick={onExclude}>Exclude</button>
-          </>
-        )}
-        {bucket === 'orphaned' && (
-          <button type="button" onClick={onFindLink}>Find Link</button>
-        )}
-        {(bucket === 'needs_review' || bucket === 'known') && (
-          <button type="button" onClick={onReject}>Reject</button>
-        )}
-      </div>
+      <RowActions
+        bucket={bucket}
+        onReject={onReject}
+        onFindLink={onFindLink}
+        onCreateRecord={onCreateRecord}
+        onExclude={onExclude}
+        onResolveCollision={onResolveCollision}
+      />
     </div>
   )
 }

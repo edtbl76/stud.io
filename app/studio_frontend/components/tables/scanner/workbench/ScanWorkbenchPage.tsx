@@ -29,8 +29,7 @@ type RenderModalProps = {
 function renderActiveModal({ modal, onClose, onCloseAndInvalidate }: RenderModalProps) {
   if (!modal) return null
   if (modal.type === 'collision') {
-    return <CollisionModal rowA={modal.rowA} rowB={modal.rowB}
-      onClose={onClose} onSaved={onCloseAndInvalidate} onFireRuleToasts={() => undefined} />
+    return <CollisionModal row={modal.row} onClose={onClose} onResolved={onCloseAndInvalidate} />
   }
   if (modal.type === 'find-link-unlinked' || modal.type === 'find-link-orphaned') {
     const mode = modal.type === 'find-link-unlinked' ? 'unlinked-to-orphaned' : 'orphaned-to-unlinked'
@@ -102,7 +101,6 @@ export function ScanWorkbenchPage() {
         <WorkbenchBulkBar
           selectedRows={selectedRows}
           rowSubStates={rowSubStates}
-          onResolveCollision={actions.handleResolveCollision}
           onBulkResolve={actions.handleBulkResolve}
           onBulkUpdate={actions.handleBulkUpdate}
           onBulkReject={actions.handleBulkReject}
@@ -126,6 +124,7 @@ export function ScanWorkbenchPage() {
         onFindLink={actions.handleFindLink}
         onCreateRecord={actions.handleCreateRecord}
         onExclude={actions.handleExclude}
+        onResolveCollision={actions.handleResolveCollision}
       />
 
       <WorkbenchModals

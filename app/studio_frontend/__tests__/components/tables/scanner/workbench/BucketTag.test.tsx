@@ -18,15 +18,16 @@ it('renders "Known" for known bucket', () => {
   expect(screen.getByText('Known')).toBeInTheDocument()
 })
 
+// U-18: collision is a first-class bucket
+it('renders "Collision" for collision bucket', () => {
+  render(<BucketTag bucket="collision" />)
+  expect(screen.getByText('Collision')).toBeInTheDocument()
+})
+
 // Step 35
 it('renders secondary sub-state pill when subState is provided', () => {
   render(<BucketTag bucket="needs_review" subState="mismatch" />)
   expect(screen.getByText('mismatch')).toBeInTheDocument()
-})
-
-it('renders collision sub-state pill', () => {
-  render(<BucketTag bucket="needs_review" subState="collision" />)
-  expect(screen.getByText('collision')).toBeInTheDocument()
 })
 
 // Step 36

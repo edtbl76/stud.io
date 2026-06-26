@@ -1,182 +1,103 @@
 import * as React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { CollisionModal } from '@/components/tables/scanner/modals/CollisionModal'
-import type { WorkbenchRow, RuleCreationResult } from '@/lib/types'
+import type { WorkbenchRow } from '@/lib/types'
 
 jest.mock('@/lib/api', () => ({
-  api: {
-    create: jest.fn(),
-    update: jest.fn(),
-    scanner: {
-      createVendorRule: jest.fn(),
-      createNameRule: jest.fn(),
-      createPatternRule: jest.fn(),
-      createLink: jest.fn(),
-    },
-  },
+  api: { scanner: { confirm: jest.fn(), acknowledge: jest.fn(), dismiss: jest.fn(), exclude: jest.fn() } },
 }))
 
 import { api } from '@/lib/api'
 const mockApi = api as jest.Mocked<typeof api>
 
-function makeRow(id: string, name: string, vendor: string, overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
+function makeRow(): WorkbenchRow {
   return {
-    result_id: id, disk_name: name, disk_vendor: vendor, disk_version: '1.0', disk_format: 'VST3',
-    disk_path: '/p', display_name: name, display_vendor: vendor,
-    catalog_record_id: 'c1', catalog_record_table: 'instruments',
-    catalog_record_name: 'CatalogName', catalog_record_vendor: 'CatalogVendor', catalog_record_version: '1.0',
-    bucket: 'needs_review', confidence: null, confirmed_at: null, confirmed_by: null,
-    ...overrides,
+    result_id: 'r1', disk_name: 'Pro-Q 3', disk_vendor: 'FabFilter', disk_version: '3.0', disk_format: 'vst3',
+    disk_path: '/lib/proq.vst3', display_name: 'Pro-Q 3', display_vendor: 'FabFilter',
+    catalog_record_id: 'c1', catalog_record_table: 'effects',
+    catalog_record_name: 'Pro-Q 3', catalog_record_vendor: 'FabFilter', catalog_record_version: '3.0',
+    bucket: 'collision', confidence: 'exact', confirmed_at: null, confirmed_by: null,
+    collision: {
+      shared_catalog_record: { id: 'c1', table: 'effects', name: 'Pro-Q 3', vendor: 'FabFilter', version: '3.0' },
+      copies: [
+        { result_id: 'r1', path: '/lib/proq.vst3', version: '3.0', format: 'vst3' },
+        { result_id: 'r2', path: '/users/ed/proq.vst3', version: '3.0', format: 'vst3' },
+      ],
+    },
   }
 }
 
-const rowA = makeRow('rA', 'Plugin A', 'VendorA')
-const rowB = makeRow('rB', 'Plugin B', 'VendorB')
 const noop = jest.fn()
-
 afterEach(() => jest.resetAllMocks())
 
-function mockVendorRuleSuccess() {
-  ;(mockApi.update as jest.Mock).mockResolvedValue({})
-  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue({
-    rule: { rule_id: 'rv1', disk_vendor: 'VendorA', catalog_vendor: 'CatalogVendor', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
-    affected_count: 1, clean_count: 1, needs_review_count: 0,
-  } satisfies RuleCreationResult)
+function renderModal(onResolved: jest.Mock = noop, onClose: jest.Mock = noop) {
+  render(<CollisionModal row={makeRow()} onClose={onClose} onResolved={onResolved} />)
 }
 
-function renderAndSaveCatalogVendor() {
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → A
-  fireEvent.click(radios[5]) // vendor → Catalog
-  fireEvent.click(radios[6]) // version → A
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
-}
-
-// Step 64
-it('renders Result A, Result B, Catalog column headers', () => {
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  expect(screen.getByText('Result A')).toBeInTheDocument()
-  expect(screen.getByText('Result B')).toBeInTheDocument()
-  expect(screen.getByText('Catalog')).toBeInTheDocument()
+it('renders the shared catalog record and every duplicate copy', () => {
+  renderModal()
+  expect(screen.getByText(/Resolve Collision/)).toBeInTheDocument()
+  expect(screen.getByText('/lib/proq.vst3')).toBeInTheDocument()
+  expect(screen.getByText('/users/ed/proq.vst3')).toBeInTheDocument()
 })
 
-// Step 65
-it('renders 3 radio buttons (A, B, Catalog) for each differing field row', () => {
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  // name and vendor differ across A/B; all three options per field
-  const radios = screen.getAllByRole('radio')
-  // at least name row: 3 radios; vendor row: 3 radios = 6+
-  expect(radios.length).toBeGreaterThanOrEqual(6)
+it('keep all confirms every copy in one batched request then resolves', async () => {
+  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 2, errors: [] })
+  const onResolved = jest.fn()
+  renderModal(onResolved)
+  fireEvent.click(screen.getByTestId('collision-keep-all'))
+  await waitFor(() => expect(onResolved).toHaveBeenCalled())
+  expect(mockApi.scanner.confirm).toHaveBeenCalledTimes(1)
+  expect(mockApi.scanner.confirm).toHaveBeenCalledWith([
+    { result_id: 'r1', action: 'acknowledge' },
+    { result_id: 'r2', action: 'acknowledge' },
+  ])
+  // keep-all must use ONLY the batched confirm path, not the legacy per-copy endpoints
+  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
+  expect(mockApi.scanner.dismiss).not.toHaveBeenCalled()
 })
 
-// Step 66 — radios: [name-A, name-B, name-Cat, vendor-A, vendor-B, vendor-Cat, ver-A, ver-B, ver-Cat]
-it('calls api.update with values from chosen sources on Save', async () => {
-  mockVendorRuleSuccess()
-  renderAndSaveCatalogVendor()
-  await waitFor(() => expect(mockApi.update).toHaveBeenCalledWith(
-    '/catalog/instruments', 'c1',
-    expect.objectContaining({ name: 'Plugin A', vendor: 'CatalogVendor' })
-  ))
+it('remove straggler is disabled until a keeper is chosen', () => {
+  renderModal()
+  expect(screen.getByTestId('collision-remove-straggler')).toBeDisabled()
+  fireEvent.click(screen.getByTestId('collision-copy-r1'))
+  expect(screen.getByTestId('collision-remove-straggler')).not.toBeDisabled()
 })
 
-it('creates vendor rule when Catalog chosen for vendor', async () => {
-  mockVendorRuleSuccess()
-  renderAndSaveCatalogVendor()
-  await waitFor(() => expect(mockApi.scanner.createVendorRule).toHaveBeenCalled())
+it('remove straggler acknowledges the keeper and dismisses the rest', async () => {
+  ;(mockApi.scanner.acknowledge as jest.Mock).mockResolvedValue({ applied: 1, errors: [] })
+  ;(mockApi.scanner.dismiss as jest.Mock).mockResolvedValue(undefined)
+  const onResolved = jest.fn()
+  renderModal(onResolved)
+  fireEvent.click(screen.getByTestId('collision-copy-r1'))
+  fireEvent.click(screen.getByTestId('collision-remove-straggler'))
+  await waitFor(() => expect(onResolved).toHaveBeenCalled())
+  expect(mockApi.scanner.acknowledge).toHaveBeenCalledWith('r1')
+  expect(mockApi.scanner.dismiss).toHaveBeenCalledWith('r2')
 })
 
-it('skips rule creation when catalog vendor value is null', async () => {
-  ;(mockApi.update as jest.Mock).mockResolvedValue({})
-  const a = makeRow('rA', 'Plugin A', 'VendorA', { catalog_record_vendor: null })
-  const b = makeRow('rB', 'Plugin B', 'VendorB', { catalog_record_vendor: null })
-  render(<CollisionModal rowA={a} rowB={b} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → A
-  fireEvent.click(radios[5]) // vendor → catalog (null)
-  fireEvent.click(radios[6]) // version → A
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
-  await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
-  expect(mockApi.scanner.createVendorRule).not.toHaveBeenCalled()
+it('exclude excludes the plugin then resolves', async () => {
+  ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+  const onResolved = jest.fn()
+  renderModal(onResolved)
+  fireEvent.click(screen.getByTestId('collision-exclude'))
+  await waitFor(() => expect(onResolved).toHaveBeenCalled())
+  expect(mockApi.scanner.exclude).toHaveBeenCalledWith('FabFilter', 'Pro-Q 3', 'vst3')
 })
 
-// Step 67
-it('enables Set Name Alias when only names differ and all other fields match', () => {
-  const a = makeRow('rA', 'Plugin A', 'SharedVendor', { catalog_record_vendor: 'SharedVendor', disk_version: '1.0', catalog_record_version: '1.0' })
-  const b = makeRow('rB', 'Plugin B', 'SharedVendor', { catalog_record_vendor: 'SharedVendor', disk_version: '1.0', catalog_record_version: '1.0' })
-  render(<CollisionModal rowA={a} rowB={b} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  expect(screen.getByRole('button', { name: /set name alias/i })).not.toBeDisabled()
+it('cancel closes without any api call', () => {
+  const onClose = jest.fn()
+  renderModal(noop, onClose)
+  fireEvent.click(screen.getByTestId('collision-cancel'))
+  expect(onClose).toHaveBeenCalled()
+  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
 })
 
-it('disables Set Name Alias when vendor also differs', () => {
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  expect(screen.getByRole('button', { name: /set name alias/i })).toBeDisabled()
-})
-
-// Step 68
-it('calls createPatternRule with action alias_to_match on Set Name Alias', async () => {
-  ;(mockApi.scanner.createPatternRule as jest.Mock).mockResolvedValue({
-    rule: { rule_id: 'rp1', label: 'alias', pattern: '*', match_fields: ['name'], action: 'alias_to_match', enabled: true, is_seeded: false, created_by: 'test', created_at: '2026-01-01T00:00:00Z' },
-    affected_count: 0, clean_count: 0, needs_review_count: 0,
-  } satisfies RuleCreationResult)
-  const a = makeRow('rA', 'Plugin A', 'SharedVendor', { catalog_record_vendor: 'SharedVendor', disk_version: '1.0', catalog_record_version: '1.0' })
-  const b = makeRow('rB', 'Plugin B', 'SharedVendor', { catalog_record_vendor: 'SharedVendor', disk_version: '1.0', catalog_record_version: '1.0' })
-  render(<CollisionModal rowA={a} rowB={b} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  fireEvent.click(screen.getByRole('button', { name: /set name alias/i }))
-  await waitFor(() =>
-    expect(mockApi.scanner.createPatternRule).toHaveBeenCalledWith(
-      expect.objectContaining({ action: 'alias_to_match' })
-    )
-  )
-})
-
-// Step 69
-it('transitions to inline form with disk values when Create New Record clicked', () => {
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  fireEvent.click(screen.getByRole('button', { name: /create new record/i }))
-  expect(screen.getByDisplayValue('Plugin A')).toBeInTheDocument()
-  expect(screen.getByDisplayValue('VendorA')).toBeInTheDocument()
-})
-
-async function assertInlineError(saveButtonName: RegExp) {
+it('shows an inline error and does not resolve when keep all reports per-copy errors', async () => {
+  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 1, errors: [{ result_id: 'r2', error: 'nope' }] })
+  const onResolved = jest.fn()
+  renderModal(onResolved)
+  fireEvent.click(screen.getByTestId('collision-keep-all'))
   await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
-  expect(screen.getByRole('button', { name: saveButtonName })).not.toBeDisabled()
-}
-
-// Step 71 (error handling)
-it('shows inline error and keeps modal open when handleSave api.update fails', async () => {
-  ;(mockApi.update as jest.Mock).mockRejectedValue(new Error('Network error'))
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // name → A
-  fireEvent.click(radios[3]) // vendor → B
-  fireEvent.click(radios[6]) // version → A
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
-  await assertInlineError(/save/i)
-})
-
-it('shows inline error and keeps form open when handleCreateSave api.create fails', async () => {
-  ;(mockApi.create as jest.Mock).mockRejectedValue(new Error('Server error'))
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
-  fireEvent.click(screen.getByRole('button', { name: /create new record/i }))
-  fireEvent.change(screen.getByRole('combobox', { name: /catalog type/i }), { target: { value: 'instruments' } })
-  fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-  await assertInlineError(/^save$/i)
-})
-
-// Step 70
-it('POSTs catalog then link when Create New Record form submitted', async () => {
-  ;(mockApi.create as jest.Mock).mockResolvedValue({ id: 'newCat1' })
-  ;(mockApi.scanner.createLink as jest.Mock).mockResolvedValue({ created: 1, errors: [] })
-  const onSaved = jest.fn()
-  render(<CollisionModal rowA={rowA} rowB={rowB} onClose={noop} onSaved={onSaved} onFireRuleToasts={noop} />)
-  fireEvent.click(screen.getByRole('button', { name: /create new record/i }))
-  fireEvent.change(screen.getByRole('combobox', { name: /catalog type/i }), { target: { value: 'instruments' } })
-  fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
-  await waitFor(() => expect(mockApi.create).toHaveBeenCalledWith(
-    '/catalog/instruments', expect.objectContaining({ name: 'Plugin A' })
-  ))
-  await waitFor(() => expect(mockApi.scanner.createLink).toHaveBeenCalledWith(
-    expect.objectContaining({ catalog_record_id: 'newCat1', catalog_record_table: 'instruments' })
-  ))
+  expect(onResolved).not.toHaveBeenCalled()
 })

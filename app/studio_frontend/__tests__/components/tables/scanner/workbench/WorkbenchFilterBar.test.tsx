@@ -73,7 +73,7 @@ it('Reset button calls onFiltersChange with all-blank filters', () => {
   const onChange = jest.fn()
   render(
     <WorkbenchFilterBar
-      filters={{ bucket: 'needs_review', needs_review_substate: 'collision', catalog_type: 'effects', format: 'VST3' }}
+      filters={{ bucket: 'needs_review', needs_review_substate: 'mismatch', catalog_type: 'effects', format: 'VST3' }}
       onFiltersChange={onChange}
     />
   )
