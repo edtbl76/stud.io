@@ -40,11 +40,12 @@ sequenceDiagram
     FastAPI->>DB: INSERT INTO plugin_scans — creates scan run record
     FastAPI->>DB: SELECT active rules from scanner_vendor_rules, scanner_name_rules, scanner_name_patterns
     FastAPI->>DB: SELECT persistent links from scanner_plugin_links
+    FastAPI->>DB: SELECT name aliases from scanner_name_aliases (U-14)
     FastAPI->>DB: Build catalog index (effects / instruments / workstations / tools UNION)
     FastAPI->>DB: SELECT exclusions from scanner_exclusions
     loop For each plugin
         FastAPI->>FastAPI: Apply vendor and name normalization rules
-        FastAPI->>FastAPI: Check persistent links — mark known/orphaned, skip matching if fingerprint known
+        FastAPI->>FastAPI: Resolution precedence — persistent link (fingerprint) → name alias (disk_name, confidence=exact) → exclusion → fuzzy matching
         FastAPI->>FastAPI: Tier 1 — exact fingerprint match
         FastAPI->>FastAPI: Tier 2 — fuzzy vendor+name (rapidfuzz)
         FastAPI->>FastAPI: Tier 3 — fuzzy name-only

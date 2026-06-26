@@ -378,3 +378,148 @@ async def test_bulk_update_requires_auth(client):
 @pytest.mark.asyncio
 async def test_bulk_update_requires_admin(client, auth_headers):
     assert (await client.post("/scanner/workbench/bulk-update", json={"result_ids": []}, headers=auth_headers)).status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# Collision detection (U-09)
+# ---------------------------------------------------------------------------
+
+async def insert_dup_result(conn, scan_id, path: str, fmt: str = "vst3") -> uuid.UUID:
+    """A scan row matching the shared catalog record (default tokens) at a given path/format."""
+    return await conn.fetchval(
+        "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
+        "VALUES ($1,'ZZZTESTPLUGIN_XYZ','ZZZTESTVENDOR_XYZ','1.0.0',$2,$3,'untracked') RETURNING result_id",
+        scan_id, fmt, path,
+    )
+
+
+async def insert_confirmed_dup(conn, scan_id, record_id, path: str) -> uuid.UUID:
+    """A confirmed install of the shared record at a given path (would classify as known)."""
+    return await conn.fetchval(
+        "INSERT INTO plugin_scan_results "
+        "(scan_id,name,vendor,version,format,path,status,record_id,record_table,confidence,confirmed_at) "
+        "VALUES ($1,'ZZZTESTPLUGIN_XYZ','ZZZTESTVENDOR_XYZ','1.0.0','vst3',$2,'matched',$3,'effects','exact',NOW()) "
+        "RETURNING result_id",
+        scan_id, path, record_id,
+    )
+
+
+def _collision_rows(payload: dict) -> list[dict]:
+    return [r for r in payload["rows"] if r["bucket"] == "collision"]
+
+
+@pytest.mark.asyncio
+async def test_two_installs_same_record_are_collision(client, conn, admin_headers):
+    await insert_effect(conn)  # shared catalog record, matched by name
+    scan_id = await insert_scan(conn)
+    await insert_dup_result(conn, scan_id, "/a/zzztest.vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.vst3")
+    payload = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    collisions = _collision_rows(payload)
+    assert len(collisions) == 2
+    assert all(len(r["collision"]["copies"]) == 2 for r in collisions)
+
+
+@pytest.mark.asyncio
+async def test_collision_info_carries_copies_and_shared_record(client, conn, admin_headers):
+    rid = await insert_effect(conn)
+    scan_id = await insert_scan(conn)
+    r1 = await insert_dup_result(conn, scan_id, "/a/zzztest.vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.vst3")
+    info = _collision_rows((await client.get("/scanner/workbench", headers=admin_headers)).json())[0]["collision"]
+    assert info["shared_catalog_record"]["id"] == str(rid)
+    assert info["shared_catalog_record"]["table"] == "effects"
+    assert info["shared_catalog_record"]["name"] == "ZZZTESTPLUGIN_XYZ"
+    assert {c["path"] for c in info["copies"]} == {"/a/zzztest.vst3", "/b/zzztest.vst3"}
+    assert all(c["format"] == "vst3" and c["version"] == "1.0.0" for c in info["copies"])
+    assert any(c["result_id"] == str(r1) for c in info["copies"])
+
+
+@pytest.mark.asyncio
+async def test_same_path_twice_is_not_collision(client, conn, admin_headers):
+    await insert_effect(conn)
+    scan_id = await insert_scan(conn)
+    await insert_dup_result(conn, scan_id, "/same/zzztest.vst3")
+    await insert_dup_result(conn, scan_id, "/same/zzztest.vst3")
+    payload = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert _collision_rows(payload) == []
+
+
+@pytest.mark.asyncio
+async def test_different_formats_same_record_not_collision(client, conn, admin_headers):
+    await insert_effect(conn)
+    scan_id = await insert_scan(conn)
+    await insert_dup_result(conn, scan_id, "/a/zzztest.vst3", fmt="vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.component", fmt="au")
+    payload = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert _collision_rows(payload) == []
+    # (format case-insensitivity is enforced upstream: the API validator + a DB CHECK
+    #  constraint normalize disk_format to lowercase, so mixed case never reaches here.)
+
+
+@pytest.mark.asyncio
+async def test_unlinked_duplicates_do_not_collide(client, conn, admin_headers):
+    scan_id = await insert_scan(conn)  # no insert_effect → default tokens stay unlinked
+    await insert_dup_result(conn, scan_id, "/a/zzztest.vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.vst3")
+    resp = await client.get("/scanner/workbench", headers=admin_headers)
+    assert resp.status_code == 200
+    payload = resp.json()
+    assert _collision_rows(payload) == []
+    assert all(r["bucket"] == "unlinked" for r in payload["rows"])
+
+
+@pytest.mark.asyncio
+async def test_excluded_duplicates_are_excluded_not_collision(client, conn, admin_headers):
+    # Exclusion wins over collision (BR-U09-05): match_plugin returns no record for an
+    # excluded fingerprint, so the rows are never catalog-anchored and never collide.
+    await insert_effect(conn)
+    scan_id = await insert_scan(conn)
+    await insert_dup_result(conn, scan_id, "/a/zzztest.vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.vst3")
+    await conn.execute(
+        "INSERT INTO scanner_exclusions (vendor, name) VALUES ($1,$2)",
+        "ZZZTESTVENDOR_XYZ", "ZZZTESTPLUGIN_XYZ",
+    )
+    payload = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert _collision_rows(payload) == []
+    assert all(r["bucket"] == "excluded" for r in payload["rows"])
+
+
+@pytest.mark.asyncio
+async def test_collision_overrides_known(client, conn, admin_headers):
+    rid = await insert_effect(conn, disk_paths=[{"path": "/a/zzztest.vst3", "format": "vst3", "version": "1.0.0"}])
+    scan_id = await insert_scan(conn)
+    await insert_confirmed_dup(conn, scan_id, rid, "/a/zzztest.vst3")
+    await insert_confirmed_dup(conn, scan_id, rid, "/b/zzztest.vst3")
+    payload = (await client.get("/scanner/workbench?show_confirmed=true", headers=admin_headers)).json()
+    collisions = _collision_rows(payload)
+    assert len(collisions) == 2  # both would be "known", but collision overrides (FR-02)
+    assert not any(r["bucket"] == "known" for r in payload["rows"])
+
+
+@pytest.mark.asyncio
+async def test_collision_sorts_before_other_buckets_of_same_record(client, conn, admin_headers):
+    # Same record R: two vst3 installs collide; one au install is a singleton (needs_review).
+    # Sort tiebreak within a record must place collision (order 1) before needs_review (order 3).
+    await insert_effect(conn)
+    scan_id = await insert_scan(conn)
+    await insert_dup_result(conn, scan_id, "/a/zzztest.vst3", fmt="vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.vst3", fmt="vst3")
+    await insert_dup_result(conn, scan_id, "/c/zzztest.component", fmt="au")
+    buckets = [r["bucket"] for r in (await client.get("/scanner/workbench", headers=admin_headers)).json()["rows"]]
+    assert buckets == ["collision", "collision", "needs_review"]
+
+
+@pytest.mark.asyncio
+async def test_collision_visible_under_show_confirmed_false_and_bucket_filter(client, conn, admin_headers):
+    rid = await insert_effect(conn, disk_paths=[{"path": "/a/zzztest.vst3", "format": "vst3", "version": "1.0.0"}])
+    scan_id = await insert_scan(conn)
+    await insert_confirmed_dup(conn, scan_id, rid, "/a/zzztest.vst3")
+    await insert_confirmed_dup(conn, scan_id, rid, "/b/zzztest.vst3")
+    # confirmed, but collision must NOT be suppressed by show_confirmed=false (only "known" is)
+    default_rows = (await client.get("/scanner/workbench?show_confirmed=false", headers=admin_headers)).json()["rows"]
+    assert len(_collision_rows({"rows": default_rows})) == 2
+    # bucket filter returns only collision rows
+    filtered = (await client.get("/scanner/workbench?bucket=collision", headers=admin_headers)).json()["rows"]
+    assert filtered and all(r["bucket"] == "collision" for r in filtered)

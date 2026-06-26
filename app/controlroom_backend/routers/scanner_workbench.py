@@ -17,7 +17,16 @@ from routers.scanner_catalog import (
 )
 from routers.scanner_match import MatchResult, match_plugin
 from routers._helpers import log_audit
-from schemas.scanner_workbench import BulkUpdateRequest, BulkUpdateResult, OrphanedRecord, WorkbenchResponse, WorkbenchRow
+from schemas.scanner_workbench import (
+    BulkUpdateRequest,
+    BulkUpdateResult,
+    CollisionCopy,
+    CollisionInfo,
+    CollisionRecord,
+    OrphanedRecord,
+    WorkbenchResponse,
+    WorkbenchRow,
+)
 
 router = APIRouter()
 
@@ -44,7 +53,7 @@ LEFT JOIN scanner_name_rules nr
 WHERE psr.scan_id = $1
 """
 
-_BUCKET_ORDER = {"excluded": 0, "known": 1, "needs_review": 2, "unlinked": 3}
+_BUCKET_ORDER = {"excluded": 0, "collision": 1, "known": 2, "needs_review": 3, "unlinked": 4}
 
 
 class _WorkbenchQuery:
@@ -133,8 +142,53 @@ def _row_passes_filter(wb_row: WorkbenchRow, bucket_filter: str | None, show_con
     return not _known_suppressed(wb_row, show_confirmed, bucket_filter)
 
 
+def _collision_copy(row: WorkbenchRow) -> CollisionCopy:
+    return CollisionCopy(
+        result_id=row.result_id, path=row.disk_path,
+        version=row.disk_version, format=row.disk_format,
+    )
+
+
+def _shared_record(row: WorkbenchRow) -> CollisionRecord:
+    return CollisionRecord(
+        id=row.catalog_record_id, table=row.catalog_record_table,
+        name=row.catalog_record_name, vendor=row.catalog_record_vendor,
+        version=row.catalog_record_version,
+    )
+
+
+def _group_by_record_format(rows: list[WorkbenchRow]) -> dict[tuple, list[WorkbenchRow]]:
+    """Group catalog-anchored rows by (table, record_id, format). Unlinked rows are dropped."""
+    groups: dict[tuple, list[WorkbenchRow]] = {}
+    for row in rows:
+        if row.catalog_record_id is None:
+            continue  # unlinked rows are not catalog-anchored — never a collision
+        key = (row.catalog_record_table, row.catalog_record_id, (row.disk_format or "").casefold())
+        groups.setdefault(key, []).append(row)
+    return groups
+
+
+def _mark_collision(members: list[WorkbenchRow]) -> None:
+    """Re-bucket every member to `collision` and attach the shared duplicate-set sub-state."""
+    info = CollisionInfo(
+        shared_catalog_record=_shared_record(members[0]),
+        copies=[_collision_copy(m) for m in members],
+    )
+    for member in members:
+        member.bucket = "collision"
+        member.collision = info
+
+
+def _apply_collisions(rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
+    """Cross-row pass: a group at ≥2 distinct paths is a collision set (overrides Known)."""
+    for members in _group_by_record_format(rows).values():
+        if len({m.disk_path for m in members}) >= 2:
+            _mark_collision(members)
+    return rows
+
+
 def _process_workbench_rows(raw_rows, ctx: MatchingContext, bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
-    built = [_build_workbench_row(r, ctx) for r in raw_rows]
+    built = _apply_collisions([_build_workbench_row(r, ctx) for r in raw_rows])
     filtered = [r for r in built if _row_passes_filter(r, bucket_filter, show_confirmed)]
     filtered.sort(key=_workbench_sort_key)
     return filtered
