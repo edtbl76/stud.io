@@ -8,6 +8,7 @@ const BUCKET_LABELS: Record<WorkbenchBucket, string> = {
   needs_review: 'Needs Review',
   known: 'Known',
   excluded: 'Excluded',
+  collision: 'Collision',
 }
 
 interface BucketTagProps {

@@ -14,9 +14,10 @@ interface WorkbenchRowProps {
   onFindLink?: () => void
   onCreateRecord?: () => void
   onExclude?: () => void
+  onResolveCollision?: () => void
 }
 
-export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShiftSelect, onRowClick, onReject, onFindLink, onCreateRecord, onExclude }: Readonly<WorkbenchRowProps>) {
+export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShiftSelect, onRowClick, onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision }: Readonly<WorkbenchRowProps>) {
   const { bucket, result_id, display_name, disk_name, display_vendor, disk_version, disk_format } = row
 
   function handleCheckboxClick(e: React.MouseEvent<HTMLInputElement>) {
@@ -51,6 +52,7 @@ export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShif
         {bucket === 'needs_review' && subState && (
           <BucketTag bucket={bucket} subState={subState} />
         )}
+        {bucket === 'collision' && <BucketTag bucket={bucket} />}
         <span className="text-sm text-muted-foreground w-36 truncate">{display_vendor}</span>
         <span className="text-sm text-muted-foreground w-16 truncate">{disk_version}</span>
         <span className="text-sm text-muted-foreground w-12">{disk_format}</span>
@@ -69,6 +71,9 @@ export function WorkbenchRow({ row, isSelected, subState, onToggleSelect, onShif
         )}
         {(bucket === 'needs_review' || bucket === 'known') && (
           <button type="button" onClick={onReject}>Reject</button>
+        )}
+        {bucket === 'collision' && (
+          <button type="button" onClick={onResolveCollision}>Resolve</button>
         )}
       </div>
     </div>

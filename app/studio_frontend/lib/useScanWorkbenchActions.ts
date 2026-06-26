@@ -7,7 +7,7 @@ import type { NeedsReviewSubState, OrphanedRecord, WorkbenchRow } from '@/lib/ty
 
 export type ActiveModal =
   | { type: 'single-resolution'; row: WorkbenchRow }
-  | { type: 'collision'; rowA: WorkbenchRow; rowB: WorkbenchRow }
+  | { type: 'collision'; row: WorkbenchRow }
   | { type: 'find-link-unlinked'; sourceId: string }
   | { type: 'find-link-orphaned'; sourceId: string }
   | { type: 'create-record'; row: WorkbenchRow }
@@ -103,9 +103,8 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     }
   }
 
-  function handleResolveCollision() {
-    const pair = selectedRows.filter((r) => r.catalog_record_id !== null)
-    if (pair.length === 2) setActiveModal({ type: 'collision', rowA: pair[0], rowB: pair[1] })
+  function handleResolveCollision(row: WorkbenchRow) {
+    setActiveModal({ type: 'collision', row })
   }
 
   async function handleBulkReject() {

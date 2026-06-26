@@ -42,12 +42,13 @@ interface WorkbenchTableProps {
   onFindLink?: (row: WorkbenchRow) => void
   onCreateRecord?: (row: WorkbenchRow) => void
   onExclude?: (row: WorkbenchRow) => void
+  onResolveCollision?: (row: WorkbenchRow) => void
 }
 
 export function WorkbenchTable({
   rows, orphaned, isLoading, selectedIds, rowSubStates,
   onToggleSelect, onShiftSelect, onRowClick,
-  onSelectAll, onOrphanFindLink, onReject, onFindLink, onCreateRecord, onExclude,
+  onSelectAll, onOrphanFindLink, onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision,
 }: Readonly<WorkbenchTableProps>) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -106,6 +107,7 @@ export function WorkbenchTable({
                   onFindLink={onFindLink ? () => onFindLink(row) : undefined}
                   onCreateRecord={onCreateRecord ? () => onCreateRecord(row) : undefined}
                   onExclude={onExclude ? () => onExclude(row) : undefined}
+                  onResolveCollision={onResolveCollision ? () => onResolveCollision(row) : undefined}
                 />
               </div>
             )

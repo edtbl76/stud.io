@@ -7,6 +7,7 @@ const BUCKET_OPTIONS: Array<{ value: WorkbenchBucket | ''; label: string }> = [
   { value: '', label: 'All Buckets' },
   { value: 'unlinked', label: 'Unlinked' },
   { value: 'orphaned', label: 'Orphaned' },
+  { value: 'collision', label: 'Collision' },
   { value: 'needs_review', label: 'Needs Review' },
   { value: 'known', label: 'Known' },
   { value: 'excluded', label: 'Excluded' },
@@ -16,7 +17,6 @@ const SUB_STATE_OPTIONS: Array<{ value: NeedsReviewSubState | ''; label: string 
   { value: '', label: 'All Sub-states' },
   { value: 'mismatch', label: 'Mismatch' },
   { value: 'unconfirmed', label: 'Unconfirmed' },
-  { value: 'collision', label: 'Collision' },
 ]
 
 const CATALOG_TYPE_OPTIONS = [

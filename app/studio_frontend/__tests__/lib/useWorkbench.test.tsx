@@ -195,15 +195,8 @@ it('Step 22: format filter shows only matching disk_format rows', async () => {
 // Steps 24–26: sub-state derivation
 // ---------------------------------------------------------------------------
 
-it('Step 24: collision — two needs_review rows sharing catalog_record_id get substate collision', async () => {
-  const a = makeRow({ result_id: 'r-a', bucket: 'needs_review', catalog_record_id: 'cat-shared' })
-  const b = makeRow({ result_id: 'r-b', bucket: 'needs_review', catalog_record_id: 'cat-shared' })
-  api.scanner.workbench.mockResolvedValue({ rows: [a, b], orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
-  expect(result.current.rowSubStates.get('r-a')).toBe('collision')
-  expect(result.current.rowSubStates.get('r-b')).toBe('collision')
-})
+// U-18: client-side collision derivation retired — collision is the backend `bucket`,
+// no longer a needs_review sub-state. (Two same-record duplicates arrive as bucket='collision'.)
 
 it('Step 25a: mismatch — disk_version differs from catalog_record_version', async () => {
   const result = await setupWorkbenchWithRow({

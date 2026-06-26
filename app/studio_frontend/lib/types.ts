@@ -290,7 +290,27 @@ export interface SearchResponse {
 // Plugin Scanner — Workbench (U-04)
 // ---------------------------------------------------------------------------
 
-export type WorkbenchBucket = 'unlinked' | 'orphaned' | 'needs_review' | 'known' | 'excluded'
+export type WorkbenchBucket = 'unlinked' | 'orphaned' | 'needs_review' | 'known' | 'excluded' | 'collision'
+
+export interface CollisionCopy {
+  result_id: string
+  path: string
+  version: string | null
+  format: string
+}
+
+export interface CollisionRecord {
+  id: string
+  table: string
+  name: string | null
+  vendor: string | null
+  version: string | null
+}
+
+export interface CollisionInfo {
+  shared_catalog_record: CollisionRecord
+  copies: CollisionCopy[]
+}
 
 export interface WorkbenchRow {
   result_id: string
@@ -307,6 +327,7 @@ export interface WorkbenchRow {
   catalog_record_vendor: string | null
   catalog_record_version: string | null
   bucket: WorkbenchBucket
+  collision?: CollisionInfo | null
   confidence: string | null
   confirmed_at: string | null
   confirmed_by: string | null
@@ -333,7 +354,7 @@ export interface WorkbenchServerParams {
   show_confirmed?: boolean
 }
 
-export type NeedsReviewSubState = 'mismatch' | 'unconfirmed' | 'collision'
+export type NeedsReviewSubState = 'mismatch' | 'unconfirmed'
 
 export interface WorkbenchClientFilters {
   bucket: WorkbenchBucket | ''
@@ -390,14 +411,6 @@ export interface SingleResolutionInput {
   nameSource: FieldSource
   vendorSource: FieldSource
   versionSource: FieldSource
-}
-
-export type FieldChoice = 'a' | 'b' | 'catalog'
-
-export interface CollisionResolutionInput {
-  nameChoice: FieldChoice
-  vendorChoice: FieldChoice
-  versionChoice: FieldChoice
 }
 
 export interface BulkAuditActionRequest {

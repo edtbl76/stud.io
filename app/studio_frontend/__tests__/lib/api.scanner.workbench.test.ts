@@ -17,8 +17,6 @@ import type {
   SelectionState,
   FieldSource,
   SingleResolutionInput,
-  FieldChoice,
-  CollisionResolutionInput,
   BulkAuditActionRequest,
   BulkActionResult,
 } from '../../lib/types'
@@ -106,10 +104,9 @@ describe('WorkbenchServerParams / WorkbenchClientFilters / NeedsReviewSubState t
   })
 
   it('NeedsReviewSubState union is assignable', () => {
-    const s1: NeedsReviewSubState = 'collision'
-    const s2: NeedsReviewSubState = 'mismatch'
-    const s3: NeedsReviewSubState = 'unconfirmed'
-    expect([s1, s2, s3]).toHaveLength(3)
+    const s1: NeedsReviewSubState = 'mismatch'
+    const s2: NeedsReviewSubState = 'unconfirmed'
+    expect([s1, s2]).toHaveLength(2)
   })
 })
 
@@ -138,17 +135,13 @@ describe('remaining workbench types', () => {
     expect(hard.records_wiped).toBe(100)
   })
 
-  it('SelectionState / FieldSource / SingleResolutionInput / FieldChoice / CollisionResolutionInput are assignable', () => {
+  it('SelectionState / FieldSource / SingleResolutionInput are assignable', () => {
     const sel: SelectionState = { selectedIds: new Set(['r1']), lastClickedIndex: null }
     const src: FieldSource = 'disk'
     const single: SingleResolutionInput = { nameSource: 'disk', vendorSource: 'catalog', versionSource: 'disk' }
-    const choice: FieldChoice = 'a'
-    const coll: CollisionResolutionInput = { nameChoice: 'a', vendorChoice: 'b', versionChoice: 'catalog' }
     expect(sel.selectedIds.size).toBe(1)
     expect(src).toBe('disk')
     expect(single.vendorSource).toBe('catalog')
-    expect(choice).toBe('a')
-    expect(coll.versionChoice).toBe('catalog')
   })
 
   it('BulkAuditActionRequest / BulkActionResult are assignable', () => {

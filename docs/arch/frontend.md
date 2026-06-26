@@ -94,7 +94,7 @@ app/studio_frontend/
 │   │   ├── scanner/report/    # ScanReportPage, ReportRow — raw scan results accordion with scan picker
 │   │   ├── scanner/rules/     # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
 │   │   ├── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag
-│   │   ├── scanner/modals/    # SingleResolutionModal, FindLinkModal, CreateRecordModal, HardResetDialog — all via shared Dialog through ScannerModalContent (enforces ESC/X close, backdrop blocked; U-17). CollisionModal still bare <dialog> pending U-18 rebuild
+│   │   ├── scanner/modals/    # SingleResolutionModal, FindLinkModal, CreateRecordModal, HardResetDialog, CollisionModal — all via shared Dialog through ScannerModalContent (enforces ESC/X close, backdrop blocked; U-17). CollisionModal (U-18) is record-centric: driven by the backend `collision` bucket + each row's `collision` sub-state; actions keep-all (acknowledge each copy) / remove-straggler (acknowledge keeper, dismiss rest) / exclude; opened by a per-row Resolve trigger. Client-side collision derivation was removed; collision is now an authoritative backend bucket.
 │   │   ├── scanner/KnownPage.tsx      # KnownPage — known bucket list, sorted by catalog type then name, catalog links via catalogRecordPath (U-05b)
 │   │   └── scanner/ExclusionsPage.tsx # ExclusionsPage — exclusion list with remove confirmation dialog; shows excluded_by + format (U-05b)
 │   ├── admin/              # Shared admin components
@@ -350,6 +350,7 @@ E2E spec files:
 - `gearlist.spec.ts` — GearList module: guitars and other gear pages load; create modal opens; gear row click opens detail modal; guitar edit mode shows pickup config select
 - `scanner.spec.ts` — ControlRoom scanner bucket pages (known/matched/conflicted/etc.): load without error, empty-state rendering; rules page loads all three sections; Add Rule button opens creation form
 - `scanner-workbench.spec.ts` — Scan Workbench page: loads with heading and filter bar; Soft Reset toast; needs_review row opens SingleResolutionModal
+- `scanner-collision.spec.ts` — collision row opens the record-centric CollisionModal; Keep all acknowledges every copy and the modal closes (U-18)
 - `plugin-scanner.spec.ts` — Studio Management plugin-scanner admin page: page load, API key manager renders, generate-key button visible, release card visible
 - `stats.spec.ts` — Admin stats page row counts render
 - `backup.spec.ts` — Backup and restore page loads

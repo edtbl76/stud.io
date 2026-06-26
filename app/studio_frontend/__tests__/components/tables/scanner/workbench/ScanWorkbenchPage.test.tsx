@@ -56,9 +56,10 @@ type TableProps = {
   rows: WorkbenchRow[]; orphaned: OrphanedRecord[]; onReject?: (r: WorkbenchRow) => void;
   onFindLink?: (r: WorkbenchRow) => void; onCreateRecord?: (r: WorkbenchRow) => void;
   onExclude?: (r: WorkbenchRow) => void; onOrphanFindLink?: (o: OrphanedRecord) => void;
+  onResolveCollision?: (r: WorkbenchRow) => void;
   onSelectAll?: () => void;
 }
-function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord, onExclude, onOrphanFindLink, onSelectAll }: TableProps) {
+function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord, onExclude, onOrphanFindLink, onResolveCollision, onSelectAll }: TableProps) {
   return (
     <div data-testid="workbench-table">
       <button type="button" onClick={() => onReject?.(rows[0])}>RowAction:Reject</button>
@@ -66,6 +67,7 @@ function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord
       <button type="button" onClick={() => onCreateRecord?.(rows[0])}>RowAction:CreateRecord</button>
       <button type="button" onClick={() => onExclude?.(rows[0])}>RowAction:Exclude</button>
       <button type="button" onClick={() => onOrphanFindLink?.(orphaned[0])}>RowAction:OrphanFindLink</button>
+      <button type="button" onClick={() => onResolveCollision?.(rows[0])}>RowAction:ResolveCollision</button>
       <button type="button" onClick={() => onSelectAll?.()}>RowAction:SelectAll</button>
     </div>
   )
@@ -81,8 +83,8 @@ jest.mock('@/components/tables/scanner/modals/SingleResolutionModal', () => ({
   ),
 }))
 jest.mock('@/components/tables/scanner/modals/CollisionModal', () => ({
-  CollisionModal: ({ rowA, rowB }: { rowA: WorkbenchRow; rowB: WorkbenchRow }) => (
-    <div data-testid="collision-modal" data-row-a={rowA.result_id} data-row-b={rowB.result_id} />
+  CollisionModal: ({ row }: { row: WorkbenchRow }) => (
+    <div data-testid="collision-modal" data-row-id={row.result_id} />
   ),
 }))
 jest.mock('@/components/tables/scanner/modals/FindLinkModal', () => ({
@@ -351,17 +353,14 @@ describe('handleExclude (single row)', () => {
   })
 })
 
-// Step 22 — handleResolveCollision (replace stub)
+// U-18 — handleResolveCollision opens the record-centric modal for the clicked row
 describe('handleResolveCollision', () => {
-  it('opens CollisionModal with the two selected rows', () => {
-    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1' })
-    const r2 = makeRow('r2', { bucket: 'needs_review', catalog_record_id: 'c2' })
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
+  it('opens CollisionModal for the collision row', () => {
+    const r1 = makeRow('r1', { bucket: 'collision', catalog_record_id: 'c1' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: /resolve collision/i }))
-    const modal = screen.getByTestId('collision-modal')
-    expect(modal).toHaveAttribute('data-row-a', 'r1')
-    expect(modal).toHaveAttribute('data-row-b', 'r2')
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:ResolveCollision' }))
+    expect(screen.getByTestId('collision-modal')).toHaveAttribute('data-row-id', 'r1')
   })
 })
 

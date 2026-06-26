@@ -5,7 +5,6 @@ import type { NeedsReviewSubState, WorkbenchRow } from '@/lib/types'
 interface WorkbenchBulkBarProps {
   selectedRows: WorkbenchRow[]
   rowSubStates: Map<string, NeedsReviewSubState>
-  onResolveCollision: () => void
   onBulkResolve: () => void
   onBulkUpdate: () => void
   onBulkReject: () => void
@@ -16,15 +15,12 @@ interface WorkbenchBulkBarProps {
 export function WorkbenchBulkBar({
   selectedRows,
   rowSubStates,
-  onResolveCollision,
   onBulkResolve,
   onBulkUpdate,
   onBulkReject,
   onBulkExclude,
   onClearSelection,
 }: Readonly<WorkbenchBulkBarProps>) {
-  const showResolveCollision =
-    selectedRows.length === 2 && selectedRows.every((r) => r.catalog_record_id !== null)
   const showResolve = selectedRows.some((r) => r.bucket === 'needs_review')
   const showBulkUpdate = selectedRows.some((r) => rowSubStates.get(r.result_id) === 'mismatch')
   const showReject = selectedRows.some((r) => r.bucket === 'needs_review' || r.bucket === 'known')
@@ -32,12 +28,6 @@ export function WorkbenchBulkBar({
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <span className="text-sm text-muted-foreground">{selectedRows.length} selected</span>
-
-      {showResolveCollision && (
-        <button type="button" onClick={onResolveCollision}>
-          Resolve Collision
-        </button>
-      )}
 
       {showResolve && (
         <button type="button" onClick={onBulkResolve}>
