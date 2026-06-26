@@ -157,24 +157,33 @@ def _shared_record(row: WorkbenchRow) -> CollisionRecord:
     )
 
 
-def _apply_collisions(rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
-    """Cross-row pass: rows resolving to the same catalog record become a collision set."""
+def _group_by_record_format(rows: list[WorkbenchRow]) -> dict[tuple, list[WorkbenchRow]]:
+    """Group catalog-anchored rows by (table, record_id, format). Unlinked rows are dropped."""
     groups: dict[tuple, list[WorkbenchRow]] = {}
     for row in rows:
         if row.catalog_record_id is None:
             continue  # unlinked rows are not catalog-anchored — never a collision
         key = (row.catalog_record_table, row.catalog_record_id, (row.disk_format or "").casefold())
         groups.setdefault(key, []).append(row)
-    for members in groups.values():
-        if len({m.disk_path for m in members}) < 2:
-            continue
-        info = CollisionInfo(
-            shared_catalog_record=_shared_record(members[0]),
-            copies=[_collision_copy(m) for m in members],
-        )
-        for member in members:
-            member.bucket = "collision"
-            member.collision = info
+    return groups
+
+
+def _mark_collision(members: list[WorkbenchRow]) -> None:
+    """Re-bucket every member to `collision` and attach the shared duplicate-set sub-state."""
+    info = CollisionInfo(
+        shared_catalog_record=_shared_record(members[0]),
+        copies=[_collision_copy(m) for m in members],
+    )
+    for member in members:
+        member.bucket = "collision"
+        member.collision = info
+
+
+def _apply_collisions(rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
+    """Cross-row pass: a group at ≥2 distinct paths is a collision set (overrides Known)."""
+    for members in _group_by_record_format(rows).values():
+        if len({m.disk_path for m in members}) >= 2:
+            _mark_collision(members)
     return rows
 
 
