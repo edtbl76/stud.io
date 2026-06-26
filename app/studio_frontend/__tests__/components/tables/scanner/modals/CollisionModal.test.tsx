@@ -52,6 +52,9 @@ it('keep all confirms every copy in one batched request then resolves', async ()
     { result_id: 'r1', action: 'acknowledge' },
     { result_id: 'r2', action: 'acknowledge' },
   ])
+  // keep-all must use ONLY the batched confirm path, not the legacy per-copy endpoints
+  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
+  expect(mockApi.scanner.dismiss).not.toHaveBeenCalled()
 })
 
 it('remove straggler is disabled until a keeper is chosen', () => {
