@@ -26,13 +26,14 @@ test('collision row opens the record-centric modal and Keep all acknowledges eve
       body: JSON.stringify({ rows: [COLLISION_ROW], orphaned: [], scan_id: 's1' }),
     })
   })
-  let confirmCalls = 0
+  let confirmedIds: string[] = []
   await page.route('**/api/scanner/confirm', async (route) => {
-    confirmCalls += 1
+    const body = route.request().postDataJSON() as { confirmations?: Array<{ result_id: string; action: string }> }
+    confirmedIds = (body.confirmations ?? []).map((c) => c.result_id)
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ applied: 1, errors: [] }),
+      body: JSON.stringify({ applied: confirmedIds.length, errors: [] }),
     })
   })
 
@@ -48,8 +49,10 @@ test('collision row opens the record-centric modal and Keep all acknowledges eve
   await expect(page.getByText('/lib/proq.vst3')).toBeVisible()
   await expect(page.getByText('/users/ed/proq.vst3')).toBeVisible()
 
-  // Keep all acknowledges every copy, then the modal closes.
+  // Keep all sends ONE batched confirm that acknowledges every copy (both r1 and r2),
+  // then the modal closes.
   await page.getByTestId('collision-keep-all').click()
-  await expect.poll(() => confirmCalls).toBeGreaterThanOrEqual(1)
+  await expect.poll(() => confirmedIds.length).toBe(2)
+  expect(confirmedIds).toEqual(expect.arrayContaining(['r1', 'r2']))
   await expect(page.getByText(/Resolve Collision/)).not.toBeVisible({ timeout: 5000 })
 })

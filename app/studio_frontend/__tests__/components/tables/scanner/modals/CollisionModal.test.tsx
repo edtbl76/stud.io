@@ -4,7 +4,7 @@ import { CollisionModal } from '@/components/tables/scanner/modals/CollisionModa
 import type { WorkbenchRow } from '@/lib/types'
 
 jest.mock('@/lib/api', () => ({
-  api: { scanner: { acknowledge: jest.fn(), dismiss: jest.fn(), exclude: jest.fn() } },
+  api: { scanner: { confirm: jest.fn(), acknowledge: jest.fn(), dismiss: jest.fn(), exclude: jest.fn() } },
 }))
 
 import { api } from '@/lib/api'
@@ -41,14 +41,17 @@ it('renders the shared catalog record and every duplicate copy', () => {
   expect(screen.getByText('/users/ed/proq.vst3')).toBeInTheDocument()
 })
 
-it('keep all acknowledges every copy then resolves', async () => {
-  ;(mockApi.scanner.acknowledge as jest.Mock).mockResolvedValue({ applied: 1, errors: [] })
+it('keep all confirms every copy in one batched request then resolves', async () => {
+  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 2, errors: [] })
   const onResolved = jest.fn()
   renderModal(onResolved)
   fireEvent.click(screen.getByTestId('collision-keep-all'))
   await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.acknowledge).toHaveBeenCalledWith('r1')
-  expect(mockApi.scanner.acknowledge).toHaveBeenCalledWith('r2')
+  expect(mockApi.scanner.confirm).toHaveBeenCalledTimes(1)
+  expect(mockApi.scanner.confirm).toHaveBeenCalledWith([
+    { result_id: 'r1', action: 'acknowledge' },
+    { result_id: 'r2', action: 'acknowledge' },
+  ])
 })
 
 it('remove straggler is disabled until a keeper is chosen', () => {
@@ -87,8 +90,8 @@ it('cancel closes without any api call', () => {
   expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
 })
 
-it('shows an inline error and does not resolve when an action fails', async () => {
-  ;(mockApi.scanner.acknowledge as jest.Mock).mockRejectedValue(new Error('boom'))
+it('shows an inline error and does not resolve when keep all reports per-copy errors', async () => {
+  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 1, errors: [{ result_id: 'r2', error: 'nope' }] })
   const onResolved = jest.fn()
   renderModal(onResolved)
   fireEvent.click(screen.getByTestId('collision-keep-all'))

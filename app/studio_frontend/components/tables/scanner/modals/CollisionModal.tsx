@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScannerModalContent } from './ScannerModalContent'
-import type { WorkbenchRow } from '@/lib/types'
+import type { ConfirmDecision, WorkbenchRow } from '@/lib/types'
 
 interface CollisionModalProps {
   row: WorkbenchRow
@@ -18,9 +18,15 @@ interface CollisionModalProps {
 }
 
 async function acknowledgeAll(copyIds: string[]): Promise<void> {
-  for (const id of copyIds) await api.scanner.acknowledge(id)
+  // Keep all copies in one backend request; only report success if every copy applied.
+  const decisions: ConfirmDecision[] = copyIds.map((id) => ({ result_id: id, action: 'acknowledge' }))
+  const result = await api.scanner.confirm(decisions)
+  if (result.errors.length > 0) throw new Error('Some copies could not be kept')
 }
 
+// Remove-straggler keeps one copy (acknowledge) and dismisses the rest. Acknowledge and dismiss
+// are different endpoints — `dismiss` is not a confirm action — so this cannot be a single backend
+// call without a new endpoint (out of U-18 scope; collision resolution reuses existing endpoints).
 async function keepOneDismissRest(keeperId: string, copyIds: string[]): Promise<void> {
   await api.scanner.acknowledge(keeperId)
   for (const id of copyIds) {
