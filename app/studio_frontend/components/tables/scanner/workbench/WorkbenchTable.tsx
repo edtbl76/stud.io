@@ -27,7 +27,27 @@ function OrphanedSection({ orphaned, onOrphanFindLink }: Readonly<{ orphaned: Or
   )
 }
 
-interface WorkbenchTableProps {
+interface RowActionHandlers {
+  onReject?: (row: WorkbenchRow) => void
+  onFindLink?: (row: WorkbenchRow) => void
+  onCreateRecord?: (row: WorkbenchRow) => void
+  onExclude?: (row: WorkbenchRow) => void
+  onResolveCollision?: (row: WorkbenchRow) => void
+}
+
+// Bind each row-taking handler to a specific row, producing the WorkbenchRow's `() => void` props.
+function bindRowActions(row: WorkbenchRow, h: RowActionHandlers) {
+  const bind = (fn?: (r: WorkbenchRow) => void) => (fn ? () => fn(row) : undefined)
+  return {
+    onReject: bind(h.onReject),
+    onFindLink: bind(h.onFindLink),
+    onCreateRecord: bind(h.onCreateRecord),
+    onExclude: bind(h.onExclude),
+    onResolveCollision: bind(h.onResolveCollision),
+  }
+}
+
+interface WorkbenchTableProps extends RowActionHandlers {
   rows: WorkbenchRow[]
   orphaned: OrphanedRecord[]
   isLoading: boolean
@@ -38,11 +58,6 @@ interface WorkbenchTableProps {
   onRowClick: (row: WorkbenchRow) => void
   onSelectAll?: () => void
   onOrphanFindLink?: (record: OrphanedRecord) => void
-  onReject?: (row: WorkbenchRow) => void
-  onFindLink?: (row: WorkbenchRow) => void
-  onCreateRecord?: (row: WorkbenchRow) => void
-  onExclude?: (row: WorkbenchRow) => void
-  onResolveCollision?: (row: WorkbenchRow) => void
 }
 
 export function WorkbenchTable({
@@ -103,11 +118,7 @@ export function WorkbenchTable({
                   onToggleSelect={onToggleSelect}
                   onShiftSelect={onShiftSelect}
                   onRowClick={onRowClick}
-                  onReject={onReject ? () => onReject(row) : undefined}
-                  onFindLink={onFindLink ? () => onFindLink(row) : undefined}
-                  onCreateRecord={onCreateRecord ? () => onCreateRecord(row) : undefined}
-                  onExclude={onExclude ? () => onExclude(row) : undefined}
-                  onResolveCollision={onResolveCollision ? () => onResolveCollision(row) : undefined}
+                  {...bindRowActions(row, { onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision })}
                 />
               </div>
             )
