@@ -51,6 +51,7 @@ RBAC is enforced via a `require_admin` FastAPI dependency injected into every wr
 | Change review reads | `test_user_can_list_change_review` |
 | Change review bulk writes | `test_bulk_acknowledge/undo_requires_admin`, `test_bulk_acknowledge/undo_unauthenticated_returns_401` (in `test_change_review_bulk.py`) |
 | Scanner admin | `test_user_cannot_soft/hard_reset`, `test_unauthenticated_cannot_soft/hard_reset` (in `test_rbac.py`) |
+| Scanner name aliases (U-19) | `test_user_cannot_create_alias`, `test_unauthenticated_cannot_create_alias` (in `test_rbac.py`) — `POST /scanner/aliases` |
 | Import/export | `test_user_cannot_export_xlsx/template`, `test_user_cannot_import` |
 | User management | `test_user_cannot_create/change_role/delete_user` |
 | Unauthenticated writes | `test_unauthenticated_cannot_write/acknowledge/export/create_user` |

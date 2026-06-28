@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import {
   Dialog,
@@ -66,12 +67,28 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
     nameSource: null, vendorSource: null, versionSource: null,
   })
   const [error, setError] = useState<string | null>(null)
+  const [aliasError, setAliasError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   const allResolved = differingFields.every((f) => sources[f.sourceKey] !== null)
+  const hasMatchedRecord = row.catalog_record_id != null
 
   function setSource(sourceKey: keyof ResolutionState, value: FieldSource) {
     setSources((prev) => ({ ...prev, [sourceKey]: value }))
+  }
+
+  async function handleSetNameAlias() {
+    setAliasError(null)
+    try {
+      await api.scanner.createAlias({
+        disk_name: row.disk_name,
+        catalog_record_id: row.catalog_record_id!,
+        catalog_table: row.catalog_record_table!,
+      })
+      toast.success(`Alias set: ${row.disk_name} → ${row.catalog_record_name}`)
+    } catch (err) {
+      setAliasError(err instanceof Error ? err.message : 'Failed to set alias. Please try again.')
+    }
   }
 
   async function handleSave() {
@@ -153,10 +170,16 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
       {error && (
         <p role="alert" className="mt-3 text-sm text-destructive">{error}</p>
       )}
+      {aliasError && (
+        <p role="alert" className="mt-3 text-sm text-destructive">{aliasError}</p>
+      )}
         </div>
 
         <DialogFooter>
           <button type="button" onClick={onClose}>Cancel</button>
+          {hasMatchedRecord && (
+            <button type="button" data-testid="set-name-alias" onClick={handleSetNameAlias}>Set Name Alias</button>
+          )}
           <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>
         </DialogFooter>
       </ScannerModalContent>

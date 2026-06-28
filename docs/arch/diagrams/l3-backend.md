@@ -19,6 +19,7 @@ graph LR
         scannerrouter["Scanner Router"]
         ingestrouter["Scan Ingest Router"]
         patternrulesrouter["Pattern Rules Router"]
+        aliasrouter["Name Aliases Router"]
         workbenchrouter["Workbench Router"]
         rulesrouter["Rules Router"]
         reportrouter["Report Router"]
@@ -48,6 +49,7 @@ graph LR
     appcore -->|"/scanner/workbench"| workbenchrouter
     appcore -->|"/scanner/rules/vendor · /scanner/rules/name"| rulesrouter
     appcore -->|"/scanner/rules/pattern"| patternrulesrouter
+    appcore -->|"/scanner/aliases"| aliasrouter
     appcore -->|"/scanner/scans/recent · /scanner/scans/{id}/report"| reportrouter
     appcore -->|"/scanner/links"| linksrouter
     appcore -->|"/scanner/results · /scanner/rejections"| rejectionsrouter
@@ -62,6 +64,7 @@ graph LR
     workbenchrouter --> dbpool
     rulesrouter --> dbpool
     patternrulesrouter --> dbpool
+    aliasrouter --> dbpool
     reportrouter --> dbpool
     linksrouter --> dbpool
     rejectionsrouter --> dbpool
@@ -89,6 +92,7 @@ graph LR
 | Workbench Router | FastAPI / Python | Rules-applied workbench view at `/scanner/workbench` |
 | Rules Router | FastAPI / Python | Vendor + name rule CRUD, toggle, acknowledge-clean (`scanner_rules.py`) |
 | Pattern Rules Router | FastAPI / Python | Pattern rule CRUD + counts; alias-writing acknowledge-clean (`scanner_pattern_rules.py`, U-12/U-14); pure resolver in `scanner_pattern_eval.py` (U-13) |
+| Name Aliases Router | FastAPI / Python | Direct name-alias write `POST /scanner/aliases` (record-aware, 409 on divergent re-alias) backing the Set Name Alias action (`scanner_aliases.py`, U-19) |
 | Report Router | FastAPI / Python | Recent scan list (`/scanner/scans/recent`) + raw scan report |
 | Links Router | FastAPI / Python | Find-link candidates and link creation |
 | Rejections Router | FastAPI / Python | Reject match, list rejections, delete rejection |
