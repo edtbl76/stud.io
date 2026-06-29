@@ -61,7 +61,8 @@ async def create_alias(
     async with conn.transaction():
         await _assert_target_exists(conn, body.catalog_table, body.catalog_record_id)
         row = await _upsert_alias(conn, body, user.username)
-        if str(row["catalog_record_id"]) != str(body.catalog_record_id):
+        if (row["catalog_table"] != body.catalog_table
+                or str(row["catalog_record_id"]) != str(body.catalog_record_id)):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"{body.disk_name} is already aliased to "

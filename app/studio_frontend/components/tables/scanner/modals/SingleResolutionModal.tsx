@@ -71,19 +71,22 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
   const [isSaving, setIsSaving] = useState(false)
 
   const allResolved = differingFields.every((f) => sources[f.sourceKey] !== null)
-  const hasMatchedRecord = row.catalog_record_id != null
+  const hasMatchedRecord = row.catalog_record_id != null && row.catalog_record_table != null
 
   function setSource(sourceKey: keyof ResolutionState, value: FieldSource) {
     setSources((prev) => ({ ...prev, [sourceKey]: value }))
   }
 
   async function handleSetNameAlias() {
+    const catalogRecordId = row.catalog_record_id
+    const catalogTable = row.catalog_record_table
+    if (catalogRecordId == null || catalogTable == null) return
     setAliasError(null)
     try {
       await api.scanner.createAlias({
         disk_name: row.disk_name,
-        catalog_record_id: row.catalog_record_id!,
-        catalog_table: row.catalog_record_table!,
+        catalog_record_id: catalogRecordId,
+        catalog_table: catalogTable,
       })
       toast.success(`Alias set: ${row.disk_name} → ${row.catalog_record_name}`)
     } catch (err) {

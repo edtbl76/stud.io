@@ -241,3 +241,11 @@ it('hides Set Name Alias when the row has no matched catalog record', () => {
   />)
   expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
 })
+
+it('hides Set Name Alias when the row has a record id but no catalog table', () => {
+  render(<SingleResolutionModal
+    row={makeRow({ catalog_record_table: null })}
+    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+  />)
+  expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
+})

@@ -105,6 +105,21 @@ async def test_realias_to_different_record_conflicts(client, conn, admin_headers
     assert str(row["catalog_record_id"]) == str(first)  # original mapping untouched
 
 
+async def test_realias_same_id_different_table_conflicts(client, conn, admin_headers):
+    # Alias identity is (catalog_table, catalog_record_id): a matching UUID under a
+    # different table is a divergent mapping, not an idempotent re-alias.
+    shared = "11111111-1111-1111-1111-111111111111"
+    await conn.execute("INSERT INTO effects (effect_id, effect_name) VALUES ($1, 'Zz19DupTblE')", shared)
+    await conn.execute("INSERT INTO instruments (instrument_id, instrument_name) VALUES ($1, 'Zz19DupTblI')", shared)
+    await client.post("/scanner/aliases", json=_body("TblDiff FX", shared, "effects"), headers=admin_headers)
+    resp = await client.post(
+        "/scanner/aliases", json=_body("TblDiff FX", shared, "instruments"), headers=admin_headers,
+    )
+    assert resp.status_code == 409
+    row = await _alias_row(conn, "TblDiff FX")
+    assert row["catalog_table"] == "effects"  # original mapping untouched
+
+
 # ---------------------------------------------------------------------------
 # Step 5 — target validation → 404, no row written
 # ---------------------------------------------------------------------------

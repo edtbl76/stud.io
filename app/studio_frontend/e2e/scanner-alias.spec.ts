@@ -30,9 +30,9 @@ test('Set Name Alias posts the raw disk name to the matched record and keeps the
   // The single-row modal opens from the bulk-resolve queue: select the needs_review
   // row, then click the bulk "Resolve" action.
   await expect(page.getByText('Serum FX').first()).toBeVisible({ timeout: 10000 })
-  const checkboxes = page.getByRole('checkbox')
-  const count = await checkboxes.count()
-  for (let i = 0; i < count; i++) await checkboxes.nth(i).check()
+  // Scope the selection to the Serum FX row's own checkbox (avoid any select-all / unrelated controls).
+  const serumRow = page.locator('div').filter({ hasText: 'Serum FX' }).filter({ has: page.getByRole('checkbox') }).last()
+  await serumRow.getByRole('checkbox').check()
   await page.getByRole('button', { name: /^resolve$/i }).first().click()
   await expect(page.getByText(/Resolve Match/)).toBeVisible({ timeout: 10000 })
 
