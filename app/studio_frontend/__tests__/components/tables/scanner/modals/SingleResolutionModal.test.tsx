@@ -9,9 +9,12 @@ jest.mock('@/lib/api', () => ({
     scanner: {
       createVendorRule: jest.fn(),
       createNameRule: jest.fn(),
+      createAlias: jest.fn(),
     },
   },
 }))
+
+jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
 import { api } from '@/lib/api'
 const mockApi = api as jest.Mocked<typeof api>
@@ -178,4 +181,71 @@ it('closes on Escape', () => {
   render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} onFireRuleToasts={noop} />)
   fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
   expect(onClose).toHaveBeenCalled()
+})
+
+// U-19: Set Name Alias
+function getToast() {
+  return (jest.requireMock('sonner') as { toast: { success: jest.Mock; error: jest.Mock } }).toast
+}
+
+// Step 9 — button calls createAlias with the row's raw disk name + matched record
+it('Set Name Alias calls createAlias with disk_name and the matched record', async () => {
+  ;(mockApi.scanner.createAlias as jest.Mock).mockResolvedValue(undefined)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  fireEvent.click(screen.getByTestId('set-name-alias'))
+  await waitFor(() => expect(mockApi.scanner.createAlias).toHaveBeenCalledWith({
+    disk_name: 'Surge XT', catalog_record_id: 'c1', catalog_table: 'instruments',
+  }))
+})
+
+// Step 10 — success: toast + modal stays open
+it('shows a success toast and keeps the modal open on alias success', async () => {
+  ;(mockApi.scanner.createAlias as jest.Mock).mockResolvedValue(undefined)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  fireEvent.click(screen.getByTestId('set-name-alias'))
+  await waitFor(() => expect(getToast().success).toHaveBeenCalledWith(expect.stringContaining('Surge XT')))
+  expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
+})
+
+// Step 11 — conflict: inline error, modal stays open, no success toast
+it('surfaces a 409 inline and keeps the modal open without a success toast', async () => {
+  ;(mockApi.scanner.createAlias as jest.Mock).mockRejectedValue(
+    new Error('Surge XT is already aliased to effects abc'),
+  )
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  fireEvent.click(screen.getByTestId('set-name-alias'))
+  await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/already aliased/i))
+  expect(getToast().success).not.toHaveBeenCalled()
+  expect(screen.getByTestId('set-name-alias')).toBeInTheDocument()
+})
+
+// Step 12 — independence + guard
+it('does not call api.update when setting an alias, and Save still works after', async () => {
+  ;(mockApi.scanner.createAlias as jest.Mock).mockResolvedValue(undefined)
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  fireEvent.click(screen.getByTestId('set-name-alias'))
+  await waitFor(() => expect(mockApi.scanner.createAlias).toHaveBeenCalled())
+  expect(mockApi.update).not.toHaveBeenCalled()
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]); fireEvent.click(radios[2])
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
+})
+
+it('hides Set Name Alias when the row has no matched catalog record', () => {
+  render(<SingleResolutionModal
+    row={makeRow({ catalog_record_id: null, catalog_record_name: null, catalog_record_vendor: null, catalog_record_version: null })}
+    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+  />)
+  expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
+})
+
+it('hides Set Name Alias when the row has a record id but no catalog table', () => {
+  render(<SingleResolutionModal
+    row={makeRow({ catalog_record_table: null })}
+    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+  />)
+  expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
 })

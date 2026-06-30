@@ -139,6 +139,7 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | **Bulk Update** | Needs Review section header | Updates the catalog version for all user-selected rows in the Needs Review section to match the disk version. |
 | **Confirm / Reject** | Needs Review | Confirm accepts the match; Reject returns the plugin to Unlinked. |
 | **Create Record** | Unlinked | Creates a new catalog record from the scanned plugin data. |
+| **Set Name Alias** | Needs Review (single-row resolution) | Maps the raw disk name to the matched catalog record (`POST /scanner/aliases`), so future scans of that name resolve automatically (`confidence='exact'`). Independent of Save; the modal stays open. Re-aliasing the same name to a different record is rejected (409). This is the second direct alias-write path alongside pattern acknowledge-clean. |
 
 ## Custom Scan Paths
 

@@ -301,6 +301,23 @@ async def test_unauthenticated_cannot_list_exclusions(client):
     assert response.status_code == 401
 
 
+async def test_user_cannot_create_alias(client, auth_headers):
+    response = await client.post(
+        "/scanner/aliases",
+        json={"disk_name": "X", "catalog_record_id": DUMMY_UUID, "catalog_table": "effects"},
+        headers=auth_headers,
+    )
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_create_alias(client):
+    response = await client.post(
+        "/scanner/aliases",
+        json={"disk_name": "X", "catalog_record_id": DUMMY_UUID, "catalog_table": "effects"},
+    )
+    assert response.status_code == 401
+
+
 async def test_user_cannot_get_recent_scans(client, auth_headers):
     response = await client.get("/scanner/scans/recent", headers=auth_headers)
     assert response.status_code == 403

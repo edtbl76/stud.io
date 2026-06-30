@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, ConfirmDecision, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, ConfirmDecision, CreateAliasRequest, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -118,6 +118,8 @@ export const api = {
       req<RuleCreationResult>(`/scanner/rules/${type}/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
     acknowledgeClean: (id: string, type: RuleType) =>
       req<AcknowledgeResult>(`/scanner/rules/${type}/${id}/acknowledge-clean`, { method: 'POST' }),
+    createAlias: (body: CreateAliasRequest) =>
+      req<void>('/scanner/aliases', { method: 'POST', body: JSON.stringify(body) }),
     workbench: (params: WorkbenchServerParams) => {
       const p = new URLSearchParams()
       if (params.scan_id) p.set('scan_id', params.scan_id)
