@@ -71,12 +71,19 @@ beforeEach(() => {
   api.scanner.workbench.mockResolvedValue(EMPTY_RESPONSE)
 })
 
-async function setupWorkbenchWithRow(overrides: Partial<WorkbenchRow> = {}) {
-  const row = makeRow(overrides)
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
+async function setupWorkbenchWithRows(rows: WorkbenchRow[]) {
+  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   return result
+}
+
+async function setupWorkbenchWithRow(overrides: Partial<WorkbenchRow> = {}) {
+  return setupWorkbenchWithRows([makeRow(overrides)])
+}
+
+function unlinkedRows(...ids: string[]) {
+  return ids.map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
 }
 
 // ---------------------------------------------------------------------------
@@ -309,10 +316,7 @@ it('shiftSelect clamps stale lastClickedIndex when visibleRows shrinks via filte
 
 // U-15 Step 13 — none selected → selects all visible
 it('Step 13: toggleSelectAll selects all visible rows when none are selected', async () => {
-  const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2'))
 
   act(() => { result.current.toggleSelectAll() })
   expect(result.current.selectedIds.size).toBe(3)
@@ -320,10 +324,7 @@ it('Step 13: toggleSelectAll selects all visible rows when none are selected', a
 
 // U-15 Step 14 — all visible selected → clears
 it('Step 14: toggleSelectAll clears the selection when every visible row is already selected', async () => {
-  const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2'))
 
   act(() => { result.current.toggleSelectAll() })
   expect(result.current.selectedIds.size).toBe(3)
@@ -333,10 +334,7 @@ it('Step 14: toggleSelectAll clears the selection when every visible row is alre
 
 // U-15 Step 15 — some selected → selects all visible
 it('Step 15: toggleSelectAll selects all visible when only some are selected', async () => {
-  const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2'))
 
   act(() => { result.current.toggleSelect('r1') })
   act(() => { result.current.toggleSelectAll() })
@@ -347,9 +345,7 @@ it('Step 15: toggleSelectAll selects all visible when only some are selected', a
 it('Step 16: toggleSelectAll is scoped to the filtered visible rows', async () => {
   const vst3 = ['r0', 'r1'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
   const au = ['r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
-  api.scanner.workbench.mockResolvedValue({ rows: [...vst3, ...au], orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRows([...vst3, ...au])
 
   act(() => { result.current.setClientFilter({ format: 'VST3' }) })
   act(() => { result.current.toggleSelectAll() })
@@ -364,10 +360,7 @@ it('Step 16: toggleSelectAll is scoped to the filtered visible rows', async () =
 
 // U-15 Step 17 — toggle-clear resets the shift-select anchor
 it('Step 17: toggle-clear resets the shift-select anchor', async () => {
-  const rows = ['r0', 'r1', 'r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2', 'r3'))
 
   act(() => { result.current.toggleSelect('r3') })   // anchor = 3
   act(() => { result.current.toggleSelectAll() })     // selects all
