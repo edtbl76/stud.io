@@ -249,3 +249,37 @@ it('hides Set Name Alias when the row has a record id but no catalog table', () 
   />)
   expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
 })
+
+// U-15: read-only mode (Q2=A — Known-row inspect view)
+
+// Step 9 — readOnly hides the editing controls
+it('renders no radios and no Save button in read-only mode', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.queryAllByRole('radio')).toHaveLength(0)
+  expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
+})
+
+// Step 10 — readOnly hides Set Name Alias even with a matched record
+it('hides Set Name Alias in read-only mode even when a record is matched', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
+})
+
+// Step 11 — readOnly retitles the dialog
+it('titles the dialog "Match Details" in read-only mode and "Resolve Match" otherwise', () => {
+  const { rerender } = render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByText('Match Details')).toBeInTheDocument()
+  expect(screen.queryByText('Resolve Match')).not.toBeInTheDocument()
+  rerender(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByText('Resolve Match')).toBeInTheDocument()
+  expect(screen.queryByText('Match Details')).not.toBeInTheDocument()
+})
+
+// Step 12 — readOnly still shows both disk and catalog values for inspection
+it('shows both disk and catalog values for differing fields in read-only mode', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByText('Surge XT')).toBeInTheDocument()
+  expect(screen.getByText('Surge')).toBeInTheDocument()
+  expect(screen.getByText('Vembertech')).toBeInTheDocument()
+  expect(screen.getByText('Surge Synth Team')).toBeInTheDocument()
+})

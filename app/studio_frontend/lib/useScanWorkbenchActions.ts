@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import type { NeedsReviewSubState, OrphanedRecord, WorkbenchRow } from '@/lib/types'
 
 export type ActiveModal =
-  | { type: 'single-resolution'; row: WorkbenchRow }
+  | { type: 'single-resolution'; row: WorkbenchRow; readOnly: boolean }
   | { type: 'collision'; row: WorkbenchRow }
   | { type: 'find-link-unlinked'; sourceId: string }
   | { type: 'find-link-orphaned'; sourceId: string }
@@ -107,6 +107,17 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     setActiveModal({ type: 'collision', row })
   }
 
+  const rowClickHandlers: Partial<Record<WorkbenchRow['bucket'], (row: WorkbenchRow) => void>> = {
+    needs_review: (row) => setActiveModal({ type: 'single-resolution', row, readOnly: false }),
+    known: (row) => setActiveModal({ type: 'single-resolution', row, readOnly: true }),
+    collision: handleResolveCollision,
+    unlinked: handleFindLink,
+  }
+
+  function handleRowClick(row: WorkbenchRow) {
+    rowClickHandlers[row.bucket]?.(row)
+  }
+
   async function handleBulkReject() {
     const queue = selectedRows.filter((r) => r.bucket === 'needs_review' || r.bucket === 'known')
     let completed = 0
@@ -162,6 +173,7 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     handleSoftReset, handleHardReset, handleHardResetCancel,
     handleBulkResolve, handleModalSaved,
     handleReject, handleFindLink, handleOrphanFindLink,
+    handleRowClick,
     handleCreateRecord, handleExclude,
     handleResolveCollision, handleBulkReject, handleBulkUpdate, handleBulkExclude,
   }

@@ -140,7 +140,12 @@ export function useWorkbench() {
     setSelectedIds((prev) => new Set([...prev, ...rangeIds]))
   }
 
-  function selectAll() {
+  function toggleSelectAll() {
+    const allSelected = visibleRows.length > 0 && visibleRows.every((r) => selectedIds.has(r.result_id))
+    if (allSelected) {
+      clearSelection()
+      return
+    }
     setSelectedIds(new Set(visibleRows.map((r) => r.result_id)))
   }
 
@@ -165,7 +170,7 @@ export function useWorkbench() {
     selectedIds,
     toggleSelect,
     shiftSelect,
-    selectAll,
+    toggleSelectAll,
     clearSelection,
     invalidate,
     rowSubStates,

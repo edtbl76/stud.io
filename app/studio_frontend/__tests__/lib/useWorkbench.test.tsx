@@ -307,14 +307,75 @@ it('shiftSelect clamps stale lastClickedIndex when visibleRows shrinks via filte
   expect(result.current.selectedIds.has('r2')).toBe(true)
 })
 
-it('Step 27c: selectAll selects all visible rows', async () => {
+// U-15 Step 13 — none selected → selects all visible
+it('Step 13: toggleSelectAll selects all visible rows when none are selected', async () => {
   const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
   api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
 
-  act(() => { result.current.selectAll() })
+  act(() => { result.current.toggleSelectAll() })
   expect(result.current.selectedIds.size).toBe(3)
+})
+
+// U-15 Step 14 — all visible selected → clears
+it('Step 14: toggleSelectAll clears the selection when every visible row is already selected', async () => {
+  const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
+  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
+  const { result } = renderHook(() => useWorkbench(), { wrapper })
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(3)
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(0)
+})
+
+// U-15 Step 15 — some selected → selects all visible
+it('Step 15: toggleSelectAll selects all visible when only some are selected', async () => {
+  const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
+  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
+  const { result } = renderHook(() => useWorkbench(), { wrapper })
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+  act(() => { result.current.toggleSelect('r1') })
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(3)
+})
+
+// U-15 Step 16 — filtered scope: toggle covers only visible (filtered) rows
+it('Step 16: toggleSelectAll is scoped to the filtered visible rows', async () => {
+  const vst3 = ['r0', 'r1'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
+  const au = ['r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
+  api.scanner.workbench.mockResolvedValue({ rows: [...vst3, ...au], orphaned: [], scan_id: null })
+  const { result } = renderHook(() => useWorkbench(), { wrapper })
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+  act(() => { result.current.setClientFilter({ format: 'VST3' }) })
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.has('r0')).toBe(true)
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r2')).toBe(false)
+  expect(result.current.selectedIds.has('r3')).toBe(false)
+  // every visible (VST3) row is now selected → toggling again clears
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(0)
+})
+
+// U-15 Step 17 — toggle-clear resets the shift-select anchor
+it('Step 17: toggle-clear resets the shift-select anchor', async () => {
+  const rows = ['r0', 'r1', 'r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
+  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
+  const { result } = renderHook(() => useWorkbench(), { wrapper })
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+
+  act(() => { result.current.toggleSelect('r3') })   // anchor = 3
+  act(() => { result.current.toggleSelectAll() })     // selects all
+  act(() => { result.current.toggleSelectAll() })     // clears + resets anchor
+  act(() => { result.current.shiftSelect('r1') })     // fresh anchor at r1 → only r1
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r0')).toBe(false)
+  expect(result.current.selectedIds.has('r2')).toBe(false)
 })
 
 it('Step 27d: clearSelection empties selectedIds', async () => {
