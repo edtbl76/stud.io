@@ -70,6 +70,14 @@ CVE-2026-31802
 # widen their ws ranges. Consistent with the dev-tooling suppression rationale above.
 CVE-2026-48779
 
+# CVE-2026-48815 (HIGH): sigstore < 4.1.1 — certificateOIDs verification constraint bypass.
+# sigstore is bundled inside the npm CLI shipped in the node:20-alpine base image
+# (usr/local/lib/node_modules/npm/node_modules/sigstore), NOT an app dependency
+# (`npm ls sigstore` is empty). It runs only during npm publish/provenance, never in the
+# Next.js request path. Not bumpable via package.json; resolves when node:20-alpine ships
+# npm bundling sigstore >= 4.1.1. Consistent with the dev-tooling suppressions above.
+CVE-2026-48815
+
 # Perl CVEs in controlroom_backend — no fix available in debian trixie
 # Perl is a runtime dependency required by pg backup tooling.
 # Suppression accepted pending an upstream patch.
