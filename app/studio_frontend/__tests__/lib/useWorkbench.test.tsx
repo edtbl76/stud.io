@@ -358,6 +358,23 @@ it('Step 16: toggleSelectAll is scoped to the filtered visible rows', async () =
   expect(result.current.selectedIds.size).toBe(0)
 })
 
+// U-15 Step 16b — a row selected before the filter change is hidden by the new filter;
+// toggleSelectAll replaces the selection with the visible set, so the hidden row is dropped.
+it('Step 16b: toggleSelectAll drops a filter-hidden pre-selected row and selects the visible ones', async () => {
+  const vst3 = ['r0', 'r1'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
+  const au = ['r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
+  const result = await setupWorkbenchWithRows([...vst3, ...au])
+
+  act(() => { result.current.toggleSelect('r2') })                    // select an AU row while all rows are visible
+  act(() => { result.current.setClientFilter({ format: 'VST3' }) })   // r2 (AU) is now hidden
+  act(() => { result.current.toggleSelectAll() })                     // replaces selection with visible VST3 rows
+
+  expect(result.current.selectedIds.has('r0')).toBe(true)
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r2')).toBe(false)           // hidden pre-selection is not preserved
+  expect(result.current.selectedIds.size).toBe(2)
+})
+
 // U-15 Step 17 — toggle-clear resets the shift-select anchor
 it('Step 17: toggle-clear resets the shift-select anchor', async () => {
   const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2', 'r3'))

@@ -42,7 +42,7 @@ function renderReadOnlyRow(f: Field) {
       {differs ? (
         <>
           <td className="py-2 pr-4">{f.diskValue}</td>
-          <td className="py-2">{f.catalogValue}</td>
+          <td className="py-2">{f.catalogValue ?? '—'}</td>
         </>
       ) : (
         <td colSpan={2} className="py-2">{f.diskValue}</td>

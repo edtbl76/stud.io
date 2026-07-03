@@ -435,4 +435,22 @@ describe('handleRowClick wiring', () => {
     expect(screen.queryByTestId('collision-modal')).not.toBeInTheDocument()
     expect(screen.queryByTestId('find-link-modal')).not.toBeInTheDocument()
   })
+
+  it('clicking a collision row opens the collision modal', () => {
+    const r1 = makeRow('r1', { bucket: 'collision' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    expect(screen.getByTestId('collision-modal')).toHaveAttribute('data-row-id', 'r1')
+  })
+
+  it('clicking an unlinked row opens the find-link modal', () => {
+    const r1 = makeRow('r1', { bucket: 'unlinked' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    const modal = screen.getByTestId('find-link-modal')
+    expect(modal).toHaveAttribute('data-mode', 'unlinked-to-orphaned')
+    expect(modal).toHaveAttribute('data-source-id', 'r1')
+  })
 })

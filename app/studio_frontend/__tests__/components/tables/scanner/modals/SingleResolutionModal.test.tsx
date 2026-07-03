@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { SingleResolutionModal } from '@/components/tables/scanner/modals/SingleResolutionModal'
 import type { WorkbenchRow, RuleCreationResult } from '@/lib/types'
 
@@ -282,4 +282,18 @@ it('shows both disk and catalog values for differing fields in read-only mode', 
   expect(screen.getByText('Surge')).toBeInTheDocument()
   expect(screen.getByText('Vembertech')).toBeInTheDocument()
   expect(screen.getByText('Surge Synth Team')).toBeInTheDocument()
+})
+
+// Step 12b — readOnly: differing field with a null catalog value shows the disk value and a fallback in the catalog cell
+it('shows the disk value and a fallback in the catalog cell for a differing field with a null catalog value', () => {
+  render(<SingleResolutionModal
+    row={makeRow({ catalog_record_name: null })}
+    readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+  />)
+  // name differs (disk 'Surge XT' vs catalog null)
+  const nameRow = screen.getByText('Name').closest('tr') as HTMLTableRowElement
+  const cells = within(nameRow).getAllByRole('cell')
+  // [Name][disk][catalog] — disk shows the value, catalog side shows the null fallback (matches KnownPage convention)
+  expect(cells[1]).toHaveTextContent('Surge XT')
+  expect(cells[2]).toHaveTextContent('—')
 })
