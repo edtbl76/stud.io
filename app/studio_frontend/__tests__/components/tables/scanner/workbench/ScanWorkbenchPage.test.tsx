@@ -42,7 +42,7 @@ const BASE_HOOK = {
   serverParams: { show_confirmed: true }, setServerBucket: mockSetServerBucket,
   clientFilters: BLANK_FILTERS, setClientFilter: mockSetClientFilter,
   selectedIds: new Set<string>(), toggleSelect: mockToggleSelect,
-  shiftSelect: mockShiftSelect, selectAll: jest.fn(), clearSelection: mockClearSelection,
+  shiftSelect: mockShiftSelect, toggleSelectAll: jest.fn(), clearSelection: mockClearSelection,
   invalidate: mockInvalidate, rowSubStates: new Map(),
 }
 
@@ -58,8 +58,9 @@ type TableProps = {
   onExclude?: (r: WorkbenchRow) => void; onOrphanFindLink?: (o: OrphanedRecord) => void;
   onResolveCollision?: (r: WorkbenchRow) => void;
   onSelectAll?: () => void;
+  onRowClick?: (r: WorkbenchRow) => void;
 }
-function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord, onExclude, onOrphanFindLink, onResolveCollision, onSelectAll }: TableProps) {
+function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord, onExclude, onOrphanFindLink, onResolveCollision, onSelectAll, onRowClick }: TableProps) {
   return (
     <div data-testid="workbench-table">
       <button type="button" onClick={() => onReject?.(rows[0])}>RowAction:Reject</button>
@@ -69,6 +70,7 @@ function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord
       <button type="button" onClick={() => onOrphanFindLink?.(orphaned[0])}>RowAction:OrphanFindLink</button>
       <button type="button" onClick={() => onResolveCollision?.(rows[0])}>RowAction:ResolveCollision</button>
       <button type="button" onClick={() => onSelectAll?.()}>RowAction:SelectAll</button>
+      <button type="button" onClick={() => onRowClick?.(rows[0])}>RowAction:RowClick</button>
     </div>
   )
 }
@@ -76,8 +78,8 @@ jest.mock('@/components/tables/scanner/workbench/WorkbenchTable', () => ({
   WorkbenchTable: (props: TableProps) => <MockTableActions {...props} />,
 }))
 jest.mock('@/components/tables/scanner/modals/SingleResolutionModal', () => ({
-  SingleResolutionModal: ({ onSaved, row }: { onSaved: () => void; row: WorkbenchRow }) => (
-    <div data-testid="single-resolution-modal" data-row-id={row.result_id}>
+  SingleResolutionModal: ({ onSaved, row, readOnly }: { onSaved: () => void; row: WorkbenchRow; readOnly?: boolean }) => (
+    <div data-testid="single-resolution-modal" data-row-id={row.result_id} data-readonly={String(!!readOnly)}>
       <button type="button" onClick={onSaved}>MockSave</button>
     </div>
   ),
@@ -378,13 +380,77 @@ describe('handleBulkReject', () => {
   })
 })
 
-// Step 24 — selectAll wired
-describe('selectAll wiring', () => {
-  it('MockSelectAll button triggers selectAll from useWorkbench', () => {
-    const mockSelectAll = jest.fn()
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, selectAll: mockSelectAll })
+// Step 24 — select-all wired (U-15: toggleSelectAll)
+describe('select-all wiring', () => {
+  it('MockSelectAll button triggers toggleSelectAll from useWorkbench', () => {
+    const mockToggleSelectAll = jest.fn()
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, toggleSelectAll: mockToggleSelectAll })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getByRole('button', { name: 'RowAction:SelectAll' }))
-    expect(mockSelectAll).toHaveBeenCalledTimes(1)
+    expect(mockToggleSelectAll).toHaveBeenCalledTimes(1)
+  })
+})
+
+// U-15 Step 12 — row-click routing wiring + save closes + invalidate
+describe('handleRowClick wiring', () => {
+  const matched = { catalog_record_id: 'c1', catalog_record_table: 'instruments', catalog_record_name: 'N', catalog_record_vendor: 'V', catalog_record_version: '1.0' }
+
+  it('clicking a needs_review row opens the editable single-resolution modal', () => {
+    const r1 = makeRow('r1', { bucket: 'needs_review', ...matched })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    const modal = screen.getByTestId('single-resolution-modal')
+    expect(modal).toHaveAttribute('data-row-id', 'r1')
+    expect(modal).toHaveAttribute('data-readonly', 'false')
+  })
+
+  it('clicking a known row opens the read-only single-resolution modal', () => {
+    const r1 = makeRow('r1', { bucket: 'known', ...matched })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    const modal = screen.getByTestId('single-resolution-modal')
+    expect(modal).toHaveAttribute('data-row-id', 'r1')
+    expect(modal).toHaveAttribute('data-readonly', 'true')
+  })
+
+  it('saving the click-opened modal invalidates and closes it', async () => {
+    const r1 = makeRow('r1', { bucket: 'needs_review', ...matched })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    expect(screen.getByTestId('single-resolution-modal')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'MockSave' }))
+    await waitFor(() => expect(screen.queryByTestId('single-resolution-modal')).not.toBeInTheDocument())
+    expect(mockInvalidate).toHaveBeenCalled()
+  })
+
+  it('clicking an excluded row opens no modal', () => {
+    const r1 = makeRow('r1', { bucket: 'excluded' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    expect(screen.queryByTestId('single-resolution-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('collision-modal')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('find-link-modal')).not.toBeInTheDocument()
+  })
+
+  it('clicking a collision row opens the collision modal', () => {
+    const r1 = makeRow('r1', { bucket: 'collision' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    expect(screen.getByTestId('collision-modal')).toHaveAttribute('data-row-id', 'r1')
+  })
+
+  it('clicking an unlinked row opens the find-link modal', () => {
+    const r1 = makeRow('r1', { bucket: 'unlinked' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
+    const modal = screen.getByTestId('find-link-modal')
+    expect(modal).toHaveAttribute('data-mode', 'unlinked-to-orphaned')
+    expect(modal).toHaveAttribute('data-source-id', 'r1')
   })
 })

@@ -109,3 +109,65 @@ it('hardReset state: setHardResetOpen controls dialog visibility', () => {
   act(() => { result.current.handleHardResetCancel() })
   expect(result.current.hardResetOpen).toBe(false)
 })
+
+// U-15: handleRowClick dispatcher (row-click routing by bucket)
+
+// Step 5 — needs_review opens the editable single-resolution modal
+it('handleRowClick routes a needs_review row to the editable single-resolution modal', () => {
+  const row = makeRow({ result_id: 'r-nr', bucket: 'needs_review', catalog_record_id: 'c1', catalog_record_table: 'instruments' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toEqual({ type: 'single-resolution', row, readOnly: false })
+})
+
+// Step 6 — collision routes to the collision modal
+it('handleRowClick routes a collision row to the collision modal', () => {
+  const row = makeRow({ result_id: 'r-c', bucket: 'collision' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toEqual({ type: 'collision', row })
+})
+
+// Step 7 — unlinked routes to find-link
+it('handleRowClick routes an unlinked row to the find-link modal', () => {
+  const row = makeRow({ result_id: 'r-u', bucket: 'unlinked' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toEqual({ type: 'find-link-unlinked', sourceId: 'r-u' })
+})
+
+// Step 8 — known opens the read-only single-resolution modal
+it('handleRowClick routes a known row to the read-only single-resolution modal', () => {
+  const row = makeRow({ result_id: 'r-k', bucket: 'known', catalog_record_id: 'c1', catalog_record_table: 'instruments' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toEqual({ type: 'single-resolution', row, readOnly: true })
+})
+
+// Step 9 — excluded is a no-op
+it('handleRowClick does nothing for an excluded row', () => {
+  const row = makeRow({ result_id: 'r-x', bucket: 'excluded' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toBeNull()
+})
+
+// Step 10 — unknown bucket is a no-op
+it('handleRowClick does nothing for an unrouted bucket', () => {
+  const row = makeRow({ result_id: 'r-?', bucket: 'orphaned' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toBeNull()
+})
+
+// Step 11 — a row click does not disturb an in-progress bulk-resolve queue
+it('handleRowClick leaves an in-progress bulkResolveQueue untouched', () => {
+  const queued = makeRow({ result_id: 'r-queued', bucket: 'needs_review', catalog_record_id: 'c9', catalog_record_table: 'instruments' })
+  const clicked = makeRow({ result_id: 'r-click', bucket: 'needs_review', catalog_record_id: 'c1', catalog_record_table: 'instruments' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.setBulkResolveQueue([queued]) })
+  act(() => { result.current.handleRowClick(clicked) })
+  expect(result.current.bulkResolveQueue).toEqual([queued])
+  expect(result.current.currentModalRow).toEqual(queued)
+  expect(result.current.activeModal).toEqual({ type: 'single-resolution', row: clicked, readOnly: false })
+})

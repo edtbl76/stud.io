@@ -103,9 +103,12 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 | `CVE-2025-64756` | `glob` | npm devDep. Not in the HTTP request path. |
 | `CVE-2026-26996`, `CVE-2026-27903`, `CVE-2026-27904` | `minimatch` | npm devDeps. Not in the HTTP request path. |
 | `CVE-2026-23745`, `CVE-2026-23950`, `CVE-2026-24842`, `CVE-2026-26960`, `CVE-2026-29786`, `CVE-2026-31802` | `node-tar` | npm devDep. Not in the HTTP request path. |
+| `CVE-2026-48815` | `sigstore` (bundled in npm CLI, `node:20-alpine`) | Not an app dependency (`npm ls sigstore` is empty); runs only during npm publish/provenance, never in the request path. Not bumpable via `package.json`; resolves when the base image ships npm bundling sigstore ≥ 4.1.1. |
 | `CVE-2026-42496`, `CVE-2026-8376`, `CVE-2026-42497`, `CVE-2026-9538`, `CVE-2026-48962` | `perl`, `libperl5.40`, `perl-base`, `perl-modules-5.40` | No fix available in debian trixie. Perl is a runtime dependency required by pg backup tooling. Suppression accepted pending an upstream patch. |
 
 **When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a suppression with justification. Revisit existing suppressions whenever the affected package is upgraded — a suppression that was justified by "no fix available" may no longer apply.
+
+**Trivy DB timing (why a scan can "start" failing with no code change):** the scan result depends on the Trivy vulnerability database, which auto-updates in the shared `trivy-cache` volume. A scan can pass one day and fail the next — with an identical image — simply because the DB learned about a CVE that was always present in the image. This is not a stale build; it means the finding is newly disclosed, not newly introduced. `roadie release` and `roadie test scan` use the same trivy step against the running container, so they agree once both use the same DB. When a scan begins failing unexpectedly, check whether the CVE is newly added to the DB before suspecting a rebuild or cache problem.
 
 ---
 

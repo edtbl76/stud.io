@@ -93,8 +93,8 @@ app/studio_frontend/
 │   │   ├── gear/           # GearModal, columns, guitarColumns
 │   │   ├── scanner/report/    # ScanReportPage, ReportRow — raw scan results accordion with scan picker
 │   │   ├── scanner/rules/     # PluginScannerRulesPage, VendorMappingsSection, NameMappingsSection, NamePatternsSection, RuleSection, RuleCreationForm
-│   │   ├── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag
-│   │   ├── scanner/modals/    # SingleResolutionModal, FindLinkModal, CreateRecordModal, HardResetDialog, CollisionModal — all via shared Dialog through ScannerModalContent (enforces ESC/X close, backdrop blocked; U-17). CollisionModal (U-18) is record-centric: driven by the backend `collision` bucket + each row's `collision` sub-state; actions keep-all (acknowledge each copy) / remove-straggler (acknowledge keeper, dismiss rest) / exclude; opened by a per-row Resolve trigger. Client-side collision derivation was removed; collision is now an authoritative backend bucket.
+│   │   ├── scanner/workbench/ # ScanWorkbenchPage, WorkbenchTable, WorkbenchRow, WorkbenchFilterBar, WorkbenchBulkBar, BucketTag. Row click routes by bucket (U-15): needs_review→single-resolution (editable), known→single-resolution (read-only inspect), collision→collision, unlinked→find-link, excluded→no-op. Header select-all checkbox toggles select/clear over the filtered visible rows.
+│   │   ├── scanner/modals/    # SingleResolutionModal (accepts a `readOnly` prop — U-15: read-only "Match Details" inspect view for Known rows, hides radios/Save/Set-Name-Alias; reachable via row click or the bulk-resolve queue), FindLinkModal, CreateRecordModal, HardResetDialog, CollisionModal — all via shared Dialog through ScannerModalContent (enforces ESC/X close, backdrop blocked; U-17). CollisionModal (U-18) is record-centric: driven by the backend `collision` bucket + each row's `collision` sub-state; actions keep-all (acknowledge each copy) / remove-straggler (acknowledge keeper, dismiss rest) / exclude; opened by a per-row Resolve trigger. Client-side collision derivation was removed; collision is now an authoritative backend bucket.
 │   │   ├── scanner/KnownPage.tsx      # KnownPage — known bucket list, sorted by catalog type then name, catalog links via catalogRecordPath (U-05b)
 │   │   └── scanner/ExclusionsPage.tsx # ExclusionsPage — exclusion list with remove confirmation dialog; shows excluded_by + format (U-05b)
 │   ├── admin/              # Shared admin components
@@ -114,7 +114,7 @@ app/studio_frontend/
 │   ├── types.ts                 # TypeScript interfaces for all API response shapes
 │   ├── useSessionState.ts       # Hook: per-user, per-table localStorage persistence for filters, sorting, column visibility, and column sizing. Exposes isDirty and resetView.
 │   ├── useRules.ts              # Hook: React Query mutations for scanner rule CRUD (vendor, name, pattern) via TanStack useMutation
-│   ├── useWorkbench.ts          # Hook: workbench data, client filters, sub-state derivation, selection (toggle/shift/selectAll) for ScanWorkbenchPage
+│   ├── useWorkbench.ts          # Hook: workbench data, client filters, sub-state derivation, selection (toggle/shift/toggleSelectAll) for ScanWorkbenchPage
 │   ├── useFindLink.ts           # Hook: debounced candidate search + selection for FindLinkModal (unlinked-to-orphaned and orphaned-to-unlinked modes)
 │   ├── useChangeReviewBulk.ts   # Hook: checkbox selection state + shift-click + select-all for Change Review bulk actions
 │   ├── useTableData.ts          # Hook: data fetching for TablePage — handles paginated (useInfiniteQuery) and non-paginated (useQuery) modes, resolves filter params
@@ -349,7 +349,7 @@ E2E spec files:
 - `search.spec.ts` — global search: TopBar query navigation, results page, tab filtering, deep-link to record modal
 - `gearlist.spec.ts` — GearList module: guitars and other gear pages load; create modal opens; gear row click opens detail modal; guitar edit mode shows pickup config select
 - `scanner.spec.ts` — ControlRoom scanner bucket pages (known/matched/conflicted/etc.): load without error, empty-state rendering; rules page loads all three sections; Add Rule button opens creation form
-- `scanner-workbench.spec.ts` — Scan Workbench page: loads with heading and filter bar; Soft Reset toast; needs_review row opens SingleResolutionModal
+- `scanner-workbench.spec.ts` — Scan Workbench page: loads with heading and filter bar; Soft Reset toast; needs_review row click opens SingleResolutionModal and saving closes it (row click routes by bucket; select-all header checkbox toggles on/off)
 - `scanner-collision.spec.ts` — collision row opens the record-centric CollisionModal; Keep all acknowledges every copy and the modal closes (U-18)
 - `plugin-scanner.spec.ts` — Studio Management plugin-scanner admin page: page load, API key manager renders, generate-key button visible, release card visible
 - `stats.spec.ts` — Admin stats page row counts render

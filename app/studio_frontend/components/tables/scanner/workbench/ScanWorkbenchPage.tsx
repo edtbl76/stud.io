@@ -28,6 +28,12 @@ type RenderModalProps = {
 
 function renderActiveModal({ modal, onClose, onCloseAndInvalidate }: RenderModalProps) {
   if (!modal) return null
+  if (modal.type === 'single-resolution') {
+    return (
+      <SingleResolutionModal row={modal.row} readOnly={modal.readOnly}
+        onClose={onClose} onSaved={onCloseAndInvalidate} onFireRuleToasts={() => undefined} />
+    )
+  }
   if (modal.type === 'collision') {
     return <CollisionModal row={modal.row} onClose={onClose} onResolved={onCloseAndInvalidate} />
   }
@@ -62,7 +68,7 @@ function WorkbenchModals({ activeModal, setActiveModal, currentModalRow, setBulk
 export function ScanWorkbenchPage() {
   const {
     rows, orphaned, isLoading, clientFilters, setClientFilter, setServerBucket,
-    selectedIds, toggleSelect, shiftSelect, selectAll, clearSelection, invalidate,
+    selectedIds, toggleSelect, shiftSelect, toggleSelectAll, clearSelection, invalidate,
     rowSubStates,
   } = useWorkbench()
 
@@ -117,8 +123,8 @@ export function ScanWorkbenchPage() {
         rowSubStates={rowSubStates}
         onToggleSelect={toggleSelect}
         onShiftSelect={shiftSelect}
-        onRowClick={() => undefined}
-        onSelectAll={selectAll}
+        onRowClick={actions.handleRowClick}
+        onSelectAll={toggleSelectAll}
         onOrphanFindLink={actions.handleOrphanFindLink}
         onReject={actions.handleReject}
         onFindLink={actions.handleFindLink}

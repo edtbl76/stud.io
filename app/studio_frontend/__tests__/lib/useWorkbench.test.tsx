@@ -71,12 +71,19 @@ beforeEach(() => {
   api.scanner.workbench.mockResolvedValue(EMPTY_RESPONSE)
 })
 
-async function setupWorkbenchWithRow(overrides: Partial<WorkbenchRow> = {}) {
-  const row = makeRow(overrides)
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [], scan_id: null })
+async function setupWorkbenchWithRows(rows: WorkbenchRow[]) {
+  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   return result
+}
+
+async function setupWorkbenchWithRow(overrides: Partial<WorkbenchRow> = {}) {
+  return setupWorkbenchWithRows([makeRow(overrides)])
+}
+
+function unlinkedRows(...ids: string[]) {
+  return ids.map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
 }
 
 // ---------------------------------------------------------------------------
@@ -307,14 +314,78 @@ it('shiftSelect clamps stale lastClickedIndex when visibleRows shrinks via filte
   expect(result.current.selectedIds.has('r2')).toBe(true)
 })
 
-it('Step 27c: selectAll selects all visible rows', async () => {
-  const rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
-  const { result } = renderHook(() => useWorkbench(), { wrapper })
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+// U-15 Step 13 — none selected → selects all visible
+it('Step 13: toggleSelectAll selects all visible rows when none are selected', async () => {
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2'))
 
-  act(() => { result.current.selectAll() })
+  act(() => { result.current.toggleSelectAll() })
   expect(result.current.selectedIds.size).toBe(3)
+})
+
+// U-15 Step 14 — all visible selected → clears
+it('Step 14: toggleSelectAll clears the selection when every visible row is already selected', async () => {
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2'))
+
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(3)
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(0)
+})
+
+// U-15 Step 15 — some selected → selects all visible
+it('Step 15: toggleSelectAll selects all visible when only some are selected', async () => {
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2'))
+
+  act(() => { result.current.toggleSelect('r1') })
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(3)
+})
+
+// U-15 Step 16 — filtered scope: toggle covers only visible (filtered) rows
+it('Step 16: toggleSelectAll is scoped to the filtered visible rows', async () => {
+  const vst3 = ['r0', 'r1'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
+  const au = ['r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
+  const result = await setupWorkbenchWithRows([...vst3, ...au])
+
+  act(() => { result.current.setClientFilter({ format: 'VST3' }) })
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.has('r0')).toBe(true)
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r2')).toBe(false)
+  expect(result.current.selectedIds.has('r3')).toBe(false)
+  // every visible (VST3) row is now selected → toggling again clears
+  act(() => { result.current.toggleSelectAll() })
+  expect(result.current.selectedIds.size).toBe(0)
+})
+
+// U-15 Step 16b — a row selected before the filter change is hidden by the new filter;
+// toggleSelectAll replaces the selection with the visible set, so the hidden row is dropped.
+it('Step 16b: toggleSelectAll drops a filter-hidden pre-selected row and selects the visible ones', async () => {
+  const vst3 = ['r0', 'r1'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
+  const au = ['r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
+  const result = await setupWorkbenchWithRows([...vst3, ...au])
+
+  act(() => { result.current.toggleSelect('r2') })                    // select an AU row while all rows are visible
+  act(() => { result.current.setClientFilter({ format: 'VST3' }) })   // r2 (AU) is now hidden
+  act(() => { result.current.toggleSelectAll() })                     // replaces selection with visible VST3 rows
+
+  expect(result.current.selectedIds.has('r0')).toBe(true)
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r2')).toBe(false)           // hidden pre-selection is not preserved
+  expect(result.current.selectedIds.size).toBe(2)
+})
+
+// U-15 Step 17 — toggle-clear resets the shift-select anchor
+it('Step 17: toggle-clear resets the shift-select anchor', async () => {
+  const result = await setupWorkbenchWithRows(unlinkedRows('r0', 'r1', 'r2', 'r3'))
+
+  act(() => { result.current.toggleSelect('r3') })   // anchor = 3
+  act(() => { result.current.toggleSelectAll() })     // selects all
+  act(() => { result.current.toggleSelectAll() })     // clears + resets anchor
+  act(() => { result.current.shiftSelect('r1') })     // fresh anchor at r1 → only r1
+  expect(result.current.selectedIds.has('r1')).toBe(true)
+  expect(result.current.selectedIds.has('r0')).toBe(false)
+  expect(result.current.selectedIds.has('r2')).toBe(false)
 })
 
 it('Step 27d: clearSelection empties selectedIds', async () => {

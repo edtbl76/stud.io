@@ -31,6 +31,61 @@ interface SingleResolutionModalProps {
   onClose: () => void
   onSaved: () => void
   onFireRuleToasts: (result: RuleCreationResult) => void
+  readOnly?: boolean
+}
+
+function renderReadOnlyRow(f: Field) {
+  const differs = f.diskValue !== f.catalogValue
+  return (
+    <tr key={f.key} className="border-t border-border">
+      <td className="py-2 pr-4 font-medium">{f.label}</td>
+      {differs ? (
+        <>
+          <td className="py-2 pr-4">{f.diskValue}</td>
+          <td className="py-2">{f.catalogValue ?? '—'}</td>
+        </>
+      ) : (
+        <td colSpan={2} className="py-2">{f.diskValue}</td>
+      )}
+    </tr>
+  )
+}
+
+function renderEditableRow(
+  f: Field,
+  sources: ResolutionState,
+  setSource: (sourceKey: keyof ResolutionState, value: FieldSource) => void,
+) {
+  const differs = f.diskValue !== f.catalogValue
+  if (!differs) {
+    return (
+      <tr key={f.key} className="border-t border-border">
+        <td className="py-2 pr-4 font-medium">{f.label}</td>
+        <td colSpan={2} className="py-2">{f.diskValue}</td>
+      </tr>
+    )
+  }
+  return (
+    <tr key={f.key} className="border-t border-border">
+      <td className="py-2 pr-4 font-medium">{f.label}</td>
+      <td className="py-2 pr-4">
+        <label className="flex items-center gap-2">
+          <input type="radio" name={f.key} value="disk"
+            checked={sources[f.sourceKey] === 'disk'}
+            onChange={() => setSource(f.sourceKey, 'disk')} />
+          {f.diskValue}
+        </label>
+      </td>
+      <td className="py-2">
+        <label className="flex items-center gap-2">
+          <input type="radio" name={f.key} value="catalog"
+            checked={sources[f.sourceKey] === 'catalog'}
+            onChange={() => setSource(f.sourceKey, 'catalog')} />
+          {f.catalogValue}
+        </label>
+      </td>
+    </tr>
+  )
 }
 
 function buildPatch(fields: Field[], sources: ResolutionState): Record<string, string> {
@@ -54,7 +109,7 @@ function collectRulePromises(fields: Field[], sources: ResolutionState): Promise
   return promises
 }
 
-export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts }: Readonly<SingleResolutionModalProps>) {
+export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts, readOnly = false }: Readonly<SingleResolutionModalProps>) {
   const fields: Field[] = [
     { key: 'name', label: 'Name', diskValue: row.disk_name, catalogValue: row.catalog_record_name, sourceKey: 'nameSource' },
     { key: 'vendor', label: 'Vendor', diskValue: row.disk_vendor, catalogValue: row.catalog_record_vendor, sourceKey: 'vendorSource' },
@@ -116,7 +171,7 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
     <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
       <ScannerModalContent>
         <DialogHeader>
-          <DialogTitle>Resolve Match</DialogTitle>
+          <DialogTitle>{readOnly ? 'Match Details' : 'Resolve Match'}</DialogTitle>
         </DialogHeader>
 
         <div className="px-6 py-4">
@@ -129,44 +184,7 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
           </tr>
         </thead>
         <tbody>
-          {fields.map((f) => {
-            const differs = f.diskValue !== f.catalogValue
-            return (
-              <tr key={f.key} className="border-t border-border">
-                <td className="py-2 pr-4 font-medium">{f.label}</td>
-                {differs ? (
-                  <>
-                    <td className="py-2 pr-4">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name={f.key}
-                          value="disk"
-                          checked={sources[f.sourceKey] === 'disk'}
-                          onChange={() => setSource(f.sourceKey, 'disk')}
-                        />
-                        {f.diskValue}
-                      </label>
-                    </td>
-                    <td className="py-2">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name={f.key}
-                          value="catalog"
-                          checked={sources[f.sourceKey] === 'catalog'}
-                          onChange={() => setSource(f.sourceKey, 'catalog')}
-                        />
-                        {f.catalogValue}
-                      </label>
-                    </td>
-                  </>
-                ) : (
-                  <td colSpan={2} className="py-2">{f.diskValue}</td>
-                )}
-              </tr>
-            )
-          })}
+          {fields.map((f) => readOnly ? renderReadOnlyRow(f) : renderEditableRow(f, sources, setSource))}
         </tbody>
       </table>
 
@@ -179,11 +197,13 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts 
         </div>
 
         <DialogFooter>
-          <button type="button" onClick={onClose}>Cancel</button>
-          {hasMatchedRecord && (
+          <button type="button" onClick={onClose}>{readOnly ? 'Close' : 'Cancel'}</button>
+          {!readOnly && hasMatchedRecord && (
             <button type="button" data-testid="set-name-alias" onClick={handleSetNameAlias}>Set Name Alias</button>
           )}
-          <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>
+          {!readOnly && (
+            <button type="button" onClick={handleSave} disabled={!allResolved || isSaving}>Save</button>
+          )}
         </DialogFooter>
       </ScannerModalContent>
     </Dialog>

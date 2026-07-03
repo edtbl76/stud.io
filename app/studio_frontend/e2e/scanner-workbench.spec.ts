@@ -2,6 +2,15 @@ import { test, expect } from '@playwright/test'
 
 const BASE = '/controlroom/scanner/workbench'
 
+// U-15: a needs_review row whose name differs from its matched catalog record.
+const U15_NEEDS_REVIEW_ROW = {
+  result_id: 'r1', disk_name: 'Serum FX', disk_vendor: 'Xfer', disk_version: '1.0', disk_format: 'vst3',
+  disk_path: '/lib/serumfx.vst3', display_name: 'Serum FX', display_vendor: 'Xfer',
+  catalog_record_id: 'c1', catalog_record_table: 'instruments',
+  catalog_record_name: 'Serum', catalog_record_vendor: 'Xfer', catalog_record_version: '1.0',
+  bucket: 'needs_review', confidence: 'fuzzy', confirmed_at: null, confirmed_by: null,
+}
+
 // Step 93
 test('workbench page loads and shows filter bar', async ({ page }) => {
   await page.goto(BASE)
@@ -56,4 +65,35 @@ test('Soft Reset button fires and shows toast', async ({ page }) => {
   await expect(page.getByRole('button', { name: /soft reset/i })).toBeVisible({ timeout: 10000 })
   await page.getByRole('button', { name: /soft reset/i }).click()
   await expect(page.locator('[data-sonner-toast]').filter({ hasText: /soft reset complete/i })).toBeVisible({ timeout: 5000 })
+})
+
+// U-15 Step 18: clicking a needs_review row routes to the single-resolution modal;
+// resolving the differing field and saving PATCHes the record and closes the modal.
+test('needs_review row click opens the resolution modal and saving closes it', async ({ page }) => {
+  await page.route('**/api/scanner/workbench**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ rows: [U15_NEEDS_REVIEW_ROW], orphaned: [], scan_id: 's1' }),
+    })
+  })
+  let patched = false
+  await page.route('**/api/catalog/instruments/c1', async (route) => {
+    patched = true
+    await route.fulfill({ status: 200, contentType: 'application/json', body: '{}' })
+  })
+
+  await page.goto(BASE)
+
+  // Click the row-name button (routes needs_review → single-resolution modal).
+  await page.getByRole('button', { name: /Serum FX/ }).click()
+  await expect(page.getByText(/Resolve Match/)).toBeVisible({ timeout: 10000 })
+
+  // Keep the disk value for the differing name field (no rule creation), then Save.
+  await page.locator('input[type=radio][value="disk"]').first().check()
+  await page.getByRole('button', { name: /^save$/i }).click()
+
+  // Save PATCHes the matched record and the modal closes.
+  await expect.poll(() => patched).toBe(true)
+  await expect(page.getByText(/Resolve Match/)).not.toBeVisible({ timeout: 5000 })
 })

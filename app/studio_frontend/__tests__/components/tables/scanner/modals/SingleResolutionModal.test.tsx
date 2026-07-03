@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { SingleResolutionModal } from '@/components/tables/scanner/modals/SingleResolutionModal'
 import type { WorkbenchRow, RuleCreationResult } from '@/lib/types'
 
@@ -248,4 +248,52 @@ it('hides Set Name Alias when the row has a record id but no catalog table', () 
     onClose={noop} onSaved={noop} onFireRuleToasts={noop}
   />)
   expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
+})
+
+// U-15: read-only mode (Q2=A — Known-row inspect view)
+
+// Step 9 — readOnly hides the editing controls
+it('renders no radios and no Save button in read-only mode', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.queryAllByRole('radio')).toHaveLength(0)
+  expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
+})
+
+// Step 10 — readOnly hides Set Name Alias even with a matched record
+it('hides Set Name Alias in read-only mode even when a record is matched', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
+})
+
+// Step 11 — readOnly retitles the dialog
+it('titles the dialog "Match Details" in read-only mode and "Resolve Match" otherwise', () => {
+  const { rerender } = render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByText('Match Details')).toBeInTheDocument()
+  expect(screen.queryByText('Resolve Match')).not.toBeInTheDocument()
+  rerender(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByText('Resolve Match')).toBeInTheDocument()
+  expect(screen.queryByText('Match Details')).not.toBeInTheDocument()
+})
+
+// Step 12 — readOnly still shows both disk and catalog values for inspection
+it('shows both disk and catalog values for differing fields in read-only mode', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  expect(screen.getByText('Surge XT')).toBeInTheDocument()
+  expect(screen.getByText('Surge')).toBeInTheDocument()
+  expect(screen.getByText('Vembertech')).toBeInTheDocument()
+  expect(screen.getByText('Surge Synth Team')).toBeInTheDocument()
+})
+
+// Step 12b — readOnly: differing field with a null catalog value shows the disk value and a fallback in the catalog cell
+it('shows the disk value and a fallback in the catalog cell for a differing field with a null catalog value', () => {
+  render(<SingleResolutionModal
+    row={makeRow({ catalog_record_name: null })}
+    readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+  />)
+  // name differs (disk 'Surge XT' vs catalog null)
+  const nameRow = screen.getByText('Name').closest('tr') as HTMLTableRowElement
+  const cells = within(nameRow).getAllByRole('cell')
+  // [Name][disk][catalog] — disk shows the value, catalog side shows the null fallback (matches KnownPage convention)
+  expect(cells[1]).toHaveTextContent('Surge XT')
+  expect(cells[2]).toHaveTextContent('—')
 })

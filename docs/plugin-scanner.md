@@ -141,6 +141,20 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | **Create Record** | Unlinked | Creates a new catalog record from the scanned plugin data. |
 | **Set Name Alias** | Needs Review (single-row resolution) | Maps the raw disk name to the matched catalog record (`POST /scanner/aliases`), so future scans of that name resolve automatically (`confidence='exact'`). Independent of Save; the modal stays open. Re-aliasing the same name to a different record is rejected (409). This is the second direct alias-write path alongside pattern acknowledge-clean. |
 
+### Row-click and selection (Scan Workbench)
+
+Clicking a row on the Scan Workbench opens the appropriate action for that row's bucket, so a single click is a shortcut to the same modals reachable from the row action buttons:
+
+| Bucket | Row click opens |
+|---|---|
+| Needs Review | Single-row resolution modal (editable) |
+| Known | Match details (read-only inspect — no editing, no Save) |
+| Collision | Collision resolution modal |
+| Unlinked | Find Link modal |
+| Excluded | Nothing (no resolution action) |
+
+The header **Select all** checkbox toggles: clicking it selects every currently-visible (filtered) row, and clicking it again when all visible rows are already selected clears the selection.
+
 ## Custom Scan Paths
 
 Add paths to `~/.plugin-scanner.yml` under `scan_paths`:
