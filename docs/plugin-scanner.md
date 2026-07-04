@@ -153,6 +153,8 @@ Clicking a row on the Scan Workbench opens the appropriate action for that row's
 | Unlinked | Find Link modal |
 | Excluded | Nothing (no resolution action) |
 
+**Orphaned records** (catalog records not found on disk in the latest scan) are now first-class rows in the workbench with `bucket=orphaned` and empty disk fields (U-10), rather than a separate list. They sort and filter alongside every other bucket and carry the catalog record's identity; their Find Link action links them back to an unlinked scan result.
+
 The header **Select all** checkbox toggles: clicking it selects every currently-visible (filtered) row, and clicking it again when all visible rows are already selected clears the selection.
 
 ## Custom Scan Paths
