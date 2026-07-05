@@ -53,7 +53,7 @@ LEFT JOIN scanner_name_rules nr
 WHERE psr.scan_id = $1
 """
 
-_BUCKET_ORDER = {"excluded": 0, "collision": 1, "known": 2, "needs_review": 3, "unlinked": 4}
+_BUCKET_ORDER = {"excluded": 0, "collision": 1, "known": 2, "needs_review": 3, "unlinked": 4, "orphaned": 5}
 
 
 class _WorkbenchQuery:
@@ -101,6 +101,21 @@ async def _fetch_orphaned(conn: Connection, scan_paths: set[str]) -> list[Orphan
                 disk_paths=missing,
             ))
     return result
+
+
+def _orphaned_to_row(o: OrphanedRecord) -> WorkbenchRow:
+    """Map an orphaned catalog record into a WorkbenchRow (bucket='orphaned', empty disk fields)."""
+    return WorkbenchRow(
+        result_id=o.catalog_record_id,
+        disk_name="", disk_vendor="", disk_version="", disk_format="", disk_path="",
+        display_name=o.name, display_vendor=o.vendor or "",
+        catalog_record_id=o.catalog_record_id,
+        catalog_record_table=o.catalog_record_table,
+        catalog_record_name=o.name,
+        catalog_record_vendor=o.vendor,
+        catalog_record_version=o.version,
+        bucket="orphaned",
+    )
 
 
 def _build_workbench_row(r, ctx: MatchingContext) -> WorkbenchRow:
@@ -187,9 +202,18 @@ def _apply_collisions(rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
     return rows
 
 
-def _process_workbench_rows(raw_rows, ctx: MatchingContext, bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
+def _collect_workbench_rows(raw_rows, ctx: MatchingContext, orphaned_rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
+    # Collisions are computed on disk rows only, before orphaned rows are merged.
     built = _apply_collisions([_build_workbench_row(r, ctx) for r in raw_rows])
-    filtered = [r for r in built if _row_passes_filter(r, bucket_filter, show_confirmed)]
+    # Matched rows win: a mixed-path record (some paths present, some missing) is already
+    # a disk row, so drop its orphaned duplicate to avoid listing the record twice.
+    matched_ids = {r.catalog_record_id for r in built if r.catalog_record_id is not None}
+    deduped_orphaned = [o for o in orphaned_rows if o.catalog_record_id not in matched_ids]
+    return built + deduped_orphaned
+
+
+def _filter_and_sort_rows(rows: list[WorkbenchRow], bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
+    filtered = [r for r in rows if _row_passes_filter(r, bucket_filter, show_confirmed)]
     filtered.sort(key=_workbench_sort_key)
     return filtered
 
@@ -202,16 +226,16 @@ async def get_workbench(
 ) -> WorkbenchResponse:
     resolved_scan_id = await _resolve_scan_id(conn, q.scan_id)
     if resolved_scan_id is None:
-        return WorkbenchResponse(rows=[], orphaned=[], scan_id=None)
+        return WorkbenchResponse(rows=[], scan_id=None)
 
     raw_rows = await conn.fetch(_WORKBENCH_QUERY, resolved_scan_id)
     fingerprints = [f"{r['display_vendor']} {r['display_name']}".lower().strip() for r in raw_rows]
     ctx = await build_matching_context(conn, with_meta=True, fingerprints=fingerprints)
     scan_paths = {r["disk_path"] for r in raw_rows}
-    workbench_rows = _process_workbench_rows(raw_rows, ctx, q.bucket, q.show_confirmed)
-    orphaned = await _fetch_orphaned(conn, scan_paths)
-    orphaned.sort(key=lambda o: (o.catalog_record_table, o.name))
-    return WorkbenchResponse(rows=workbench_rows, orphaned=orphaned, scan_id=resolved_scan_id)
+    orphaned_rows = [_orphaned_to_row(o) for o in await _fetch_orphaned(conn, scan_paths)]
+    all_rows = _collect_workbench_rows(raw_rows, ctx, orphaned_rows)
+    rows = _filter_and_sort_rows(all_rows, q.bucket, q.show_confirmed)
+    return WorkbenchResponse(rows=rows, scan_id=resolved_scan_id)
 
 
 def _build_update_targets(rows: list) -> dict[tuple, str]:

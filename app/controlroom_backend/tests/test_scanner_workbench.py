@@ -77,13 +77,13 @@ async def _make_confirmed_scan(conn, disk_paths: list) -> tuple:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.asyncio
-async def test_workbench_returns_rows_and_orphaned(client, conn, admin_headers):
+async def test_workbench_returns_rows_without_orphaned_field(client, conn, admin_headers):
     scan_id = await insert_scan(conn)
     await insert_result(conn, scan_id)
     resp = await client.get("/scanner/workbench", headers=admin_headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert "rows" in data and "orphaned" in data
+    assert "rows" in data and "orphaned" not in data
     assert data["rows"][0]["bucket"] == "unlinked"
 
 
@@ -252,16 +252,136 @@ async def test_workbench_bucket_known_filter_returns_known_items_despite_show_co
 
 
 # ---------------------------------------------------------------------------
-# Orphaned records
+# Orphaned records (U-10: merged into rows as bucket='orphaned')
 # ---------------------------------------------------------------------------
 
+_MISSING = [{"path": "/missing/plugin.vst3", "format": "vst3", "version": "1.0.0"}]
+
+
 @pytest.mark.asyncio
-async def test_workbench_catalog_record_with_disk_paths_not_in_scan_is_orphaned(client, conn, admin_headers):
-    await insert_effect(conn, disk_paths=[{"path": "/missing/plugin.vst3", "format": "vst3", "version": "1.0.0"}])
+async def test_orphaned_record_becomes_a_row(client, conn, admin_headers):
+    """U-10 Step 1: an orphaned catalog record maps to a merged WorkbenchRow."""
+    record_id = await insert_effect(conn, name="Orphan FX", disk_paths=_MISSING)
     scan_id = await insert_scan(conn)
     await insert_named_result(conn, scan_id, "Other Plugin", "/other/plugin.vst3")
     data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
-    assert len(data["orphaned"]) == 1
+    orphan_rows = [r for r in data["rows"] if r["bucket"] == "orphaned"]
+    assert len(orphan_rows) == 1
+    row = orphan_rows[0]
+    assert row["result_id"] == str(record_id)                       # Q2
+    assert row["catalog_record_id"] == str(record_id)
+    assert row["catalog_record_table"] == "effects"
+    assert row["catalog_record_name"] == "Orphan FX"
+    assert row["display_name"] == "Orphan FX"
+    assert row["disk_name"] == "" and row["disk_vendor"] == ""
+    assert row["disk_version"] == "" and row["disk_format"] == "" and row["disk_path"] == ""  # Q3, Q5
+    assert row["collision"] is None and row["confidence"] is None
+
+
+@pytest.mark.asyncio
+async def test_workbench_response_has_no_orphaned_field(client, conn, admin_headers):
+    """U-10 Step 2: the response is {rows, scan_id} — no orphaned list."""
+    await insert_effect(conn, name="Orphan FX", disk_paths=_MISSING)
+    scan_id = await insert_scan(conn)
+    await insert_named_result(conn, scan_id, "Other Plugin", "/other/plugin.vst3")
+    data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert "orphaned" not in data
+    assert set(data.keys()) == {"rows", "scan_id"}
+
+
+@pytest.mark.asyncio
+async def test_empty_scan_returns_rows_and_scan_id_only(client, conn, admin_headers):
+    """U-10 Step 2: no scan present returns {rows: [], scan_id: null}, no orphaned key."""
+    data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert data == {"rows": [], "scan_id": None}
+
+
+@pytest.mark.asyncio
+async def test_bucket_orphaned_filter_returns_only_orphaned(client, conn, admin_headers):
+    """U-10 Step 3."""
+    await insert_effect(conn, name="Orphan FX", disk_paths=_MISSING)
+    scan_id = await insert_scan(conn)
+    await insert_named_result(conn, scan_id, "Unlinked One", "/other/plugin.vst3")
+    data = (await client.get("/scanner/workbench?bucket=orphaned", headers=admin_headers)).json()
+    assert data["rows"] and all(r["bucket"] == "orphaned" for r in data["rows"])
+    other = (await client.get("/scanner/workbench?bucket=unlinked", headers=admin_headers)).json()
+    assert all(r["bucket"] != "orphaned" for r in other["rows"])
+
+
+@pytest.mark.asyncio
+async def test_orphaned_shown_regardless_of_show_confirmed(client, conn, admin_headers):
+    """U-10 Step 4: orphaned is never suppressed like known."""
+    await insert_effect(conn, name="Orphan FX", disk_paths=_MISSING)
+    scan_id = await insert_scan(conn)
+    await insert_named_result(conn, scan_id, "Other Plugin", "/other/plugin.vst3")
+    for flag in ("false", "true"):
+        data = (await client.get(f"/scanner/workbench?show_confirmed={flag}", headers=admin_headers)).json()
+        assert any(r["bucket"] == "orphaned" for r in data["rows"])
+
+
+@pytest.mark.asyncio
+async def test_orphaned_rows_sort_within_the_merged_list(client, conn, admin_headers):
+    """U-10 Step 5: orphaned participates in (table, name, bucket-order) sort."""
+    await insert_effect(conn, name="AAA Orphan", disk_paths=[{"path": "/missing/a.vst3", "format": "vst3", "version": "1.0.0"}])
+    await insert_effect(conn, name="ZZZ Orphan", disk_paths=[{"path": "/missing/z.vst3", "format": "vst3", "version": "1.0.0"}])
+    scan_id = await insert_scan(conn)
+    await insert_named_result(conn, scan_id, "Other Plugin", "/other/plugin.vst3")
+    data = (await client.get("/scanner/workbench?bucket=orphaned", headers=admin_headers)).json()
+    names = [r["catalog_record_name"] for r in data["rows"]]
+    assert names == sorted(names)
+
+
+@pytest.mark.asyncio
+async def test_matched_record_in_scan_is_not_orphaned(client, conn, admin_headers):
+    """U-10 Step 6: a record whose disk path is present is matched, not orphaned."""
+    record_id = await insert_effect(conn, disk_paths=[{"path": "/path/zzztest.vst3", "format": "vst3", "version": "1.0.0"}])
+    scan_id = await insert_scan(conn)
+    await insert_matched_result(conn, scan_id, record_id, "effects")
+    data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert not any(r["bucket"] == "orphaned" for r in data["rows"])
+
+
+@pytest.mark.asyncio
+async def test_mixed_path_record_appears_once_matched_not_orphaned(client, conn, admin_headers):
+    """U-10: a record with one present + one missing path is a matched row only, never double-listed."""
+    record_id = await insert_effect(conn, disk_paths=[
+        {"path": "/path/zzztest.vst3", "format": "vst3", "version": "1.0.0"},   # present in scan
+        {"path": "/missing/gone.vst3", "format": "vst3", "version": "1.0.0"},    # missing
+    ])
+    scan_id = await insert_scan(conn)
+    await insert_matched_result(conn, scan_id, record_id, "effects")  # scan result at /path/zzztest.vst3
+    data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    rows_for_record = [r for r in data["rows"] if r["catalog_record_id"] == str(record_id)]
+    assert len(rows_for_record) == 1
+    assert rows_for_record[0]["bucket"] != "orphaned"
+
+
+@pytest.mark.asyncio
+async def test_matched_row_still_carries_catalog_fields(client, conn, admin_headers):
+    """U-10 Step 8: verify-not-build — matched rows keep their catalog identity."""
+    record_id = await insert_effect(conn, disk_paths=[{"path": "/path/zzztest.vst3", "format": "vst3", "version": "1.0.0"}])
+    scan_id = await insert_scan(conn)
+    await insert_matched_result(conn, scan_id, record_id, "effects")
+    data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    matched = [r for r in data["rows"] if r["catalog_record_id"] == str(record_id) and r["bucket"] != "orphaned"]
+    assert matched
+    assert matched[0]["catalog_record_table"] == "effects"
+    assert matched[0]["catalog_record_name"] is not None
+
+
+@pytest.mark.asyncio
+async def test_orphaned_row_is_never_collision(client, conn, admin_headers):
+    """U-10 Step 7: collisions form on disk rows; orphaned is never swept in."""
+    await insert_effect(conn)  # collision record (matched by name), no disk_paths
+    await insert_effect(conn, name="Orphan Only", disk_paths=[{"path": "/missing/orphan.vst3", "format": "vst3", "version": "1.0.0"}])
+    scan_id = await insert_scan(conn)
+    await insert_dup_result(conn, scan_id, "/a/zzztest.vst3")
+    await insert_dup_result(conn, scan_id, "/b/zzztest.vst3")
+    payload = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    assert len(_collision_rows(payload)) == 2
+    orphan_rows = [r for r in payload["rows"] if r["catalog_record_name"] == "Orphan Only"]
+    assert len(orphan_rows) == 1
+    assert orphan_rows[0]["bucket"] == "orphaned" and orphan_rows[0]["collision"] is None
 
 
 # ---------------------------------------------------------------------------

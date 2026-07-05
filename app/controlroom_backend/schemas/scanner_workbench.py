@@ -74,7 +74,6 @@ class OrphanedRecord(BaseModel):
 
 class WorkbenchResponse(BaseModel):
     rows: list[WorkbenchRow]
-    orphaned: list[OrphanedRecord]
     scan_id: UUID | None = None
 
 
