@@ -202,14 +202,14 @@ def _apply_collisions(rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
     return rows
 
 
-def _process_workbench_rows(
-    raw_rows, ctx: MatchingContext, orphaned_rows: list[WorkbenchRow],
-    bucket_filter: str | None, show_confirmed: bool,
-) -> list[WorkbenchRow]:
+def _collect_workbench_rows(raw_rows, ctx: MatchingContext, orphaned_rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
     # Collisions are computed on disk rows only, before orphaned rows are merged.
     built = _apply_collisions([_build_workbench_row(r, ctx) for r in raw_rows])
-    merged = built + orphaned_rows
-    filtered = [r for r in merged if _row_passes_filter(r, bucket_filter, show_confirmed)]
+    return built + orphaned_rows
+
+
+def _filter_and_sort_rows(rows: list[WorkbenchRow], bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:
+    filtered = [r for r in rows if _row_passes_filter(r, bucket_filter, show_confirmed)]
     filtered.sort(key=_workbench_sort_key)
     return filtered
 
@@ -229,7 +229,8 @@ async def get_workbench(
     ctx = await build_matching_context(conn, with_meta=True, fingerprints=fingerprints)
     scan_paths = {r["disk_path"] for r in raw_rows}
     orphaned_rows = [_orphaned_to_row(o) for o in await _fetch_orphaned(conn, scan_paths)]
-    rows = _process_workbench_rows(raw_rows, ctx, orphaned_rows, q.bucket, q.show_confirmed)
+    all_rows = _collect_workbench_rows(raw_rows, ctx, orphaned_rows)
+    rows = _filter_and_sort_rows(all_rows, q.bucket, q.show_confirmed)
     return WorkbenchResponse(rows=rows, scan_id=resolved_scan_id)
 
 
