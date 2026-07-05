@@ -16,7 +16,7 @@ test('Set Name Alias posts the raw disk name to the matched record and keeps the
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ rows: [NEEDS_REVIEW_ROW], orphaned: [], scan_id: 's1' }),
+      body: JSON.stringify({ rows: [NEEDS_REVIEW_ROW], scan_id: 's1' }),
     })
   })
   let aliasBody: { disk_name?: string; catalog_record_id?: string; catalog_table?: string } | null = null

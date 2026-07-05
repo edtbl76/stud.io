@@ -3,44 +3,27 @@
 import { useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { WorkbenchRow as WorkbenchRowComponent } from './WorkbenchRow'
-import type { WorkbenchRow, OrphanedRecord, NeedsReviewSubState } from '@/lib/types'
+import type { WorkbenchRow, NeedsReviewSubState } from '@/lib/types'
 
 const SKELETON_COUNT = 8
 const WORKBENCH_HEIGHT = '600px'
 
-function OrphanedSection({ orphaned, onOrphanFindLink }: Readonly<{ orphaned: OrphanedRecord[]; onOrphanFindLink?: (r: OrphanedRecord) => void }>) {
-  if (orphaned.length === 0) return null
-  return (
-    <div className="mt-6">
-      <h3 className="px-3 py-2 text-sm font-semibold text-muted-foreground">Orphaned Catalog Records</h3>
-      {orphaned.map((o) => (
-        <div key={o.catalog_record_id} className="px-3 py-2 text-sm flex gap-3 items-center">
-          <span>{o.name}</span>
-          {o.vendor && <span className="text-muted-foreground">{o.vendor}</span>}
-          {o.version && <span className="text-muted-foreground">{o.version}</span>}
-          {onOrphanFindLink && (
-            <button type="button" onClick={() => onOrphanFindLink(o)}>Find Link</button>
-          )}
-        </div>
-      ))}
-    </div>
-  )
-}
-
 interface RowActionHandlers {
   onReject?: (row: WorkbenchRow) => void
   onFindLink?: (row: WorkbenchRow) => void
+  onOrphanRowFindLink?: (row: WorkbenchRow) => void
   onCreateRecord?: (row: WorkbenchRow) => void
   onExclude?: (row: WorkbenchRow) => void
   onResolveCollision?: (row: WorkbenchRow) => void
 }
 
 // Bind each row-taking handler to a specific row, producing the WorkbenchRow's `() => void` props.
+// Orphaned rows route their Find Link to the orphaned-to-unlinked handler.
 function bindRowActions(row: WorkbenchRow, h: RowActionHandlers) {
   const bind = (fn?: (r: WorkbenchRow) => void) => (fn ? () => fn(row) : undefined)
   return {
     onReject: bind(h.onReject),
-    onFindLink: bind(h.onFindLink),
+    onFindLink: bind(row.bucket === 'orphaned' ? h.onOrphanRowFindLink : h.onFindLink),
     onCreateRecord: bind(h.onCreateRecord),
     onExclude: bind(h.onExclude),
     onResolveCollision: bind(h.onResolveCollision),
@@ -49,7 +32,6 @@ function bindRowActions(row: WorkbenchRow, h: RowActionHandlers) {
 
 interface WorkbenchTableProps extends RowActionHandlers {
   rows: WorkbenchRow[]
-  orphaned: OrphanedRecord[]
   isLoading: boolean
   selectedIds: Set<string>
   rowSubStates: Map<string, NeedsReviewSubState>
@@ -57,13 +39,12 @@ interface WorkbenchTableProps extends RowActionHandlers {
   onShiftSelect: (id: string) => void
   onRowClick: (row: WorkbenchRow) => void
   onSelectAll?: () => void
-  onOrphanFindLink?: (record: OrphanedRecord) => void
 }
 
 export function WorkbenchTable({
-  rows, orphaned, isLoading, selectedIds, rowSubStates,
+  rows, isLoading, selectedIds, rowSubStates,
   onToggleSelect, onShiftSelect, onRowClick,
-  onSelectAll, onOrphanFindLink, onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision,
+  onSelectAll, onReject, onFindLink, onOrphanRowFindLink, onCreateRecord, onExclude, onResolveCollision,
 }: Readonly<WorkbenchTableProps>) {
   const parentRef = useRef<HTMLDivElement>(null)
 
@@ -88,7 +69,7 @@ export function WorkbenchTable({
     )
   }
 
-  if (rows.length === 0 && orphaned.length === 0) {
+  if (rows.length === 0) {
     return <div className="py-12 text-center text-sm text-muted-foreground">No results</div>
   }
 
@@ -118,15 +99,13 @@ export function WorkbenchTable({
                   onToggleSelect={onToggleSelect}
                   onShiftSelect={onShiftSelect}
                   onRowClick={onRowClick}
-                  {...bindRowActions(row, { onReject, onFindLink, onCreateRecord, onExclude, onResolveCollision })}
+                  {...bindRowActions(row, { onReject, onFindLink, onOrphanRowFindLink, onCreateRecord, onExclude, onResolveCollision })}
                 />
               </div>
             )
           })}
         </div>
       </div>
-
-      <OrphanedSection orphaned={orphaned} onOrphanFindLink={onOrphanFindLink} />
     </div>
   )
 }

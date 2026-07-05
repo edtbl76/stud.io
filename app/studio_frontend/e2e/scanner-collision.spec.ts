@@ -23,7 +23,7 @@ test('collision row opens the record-centric modal and Keep all acknowledges eve
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ rows: [COLLISION_ROW], orphaned: [], scan_id: 's1' }),
+      body: JSON.stringify({ rows: [COLLISION_ROW], scan_id: 's1' }),
     })
   })
   let confirmedIds: string[] = []

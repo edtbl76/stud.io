@@ -159,6 +159,75 @@ it('does not render secondary pill for non-needs_review row even with subState',
   expect(screen.queryByTestId('bucket-tag-pill-sub')).not.toBeInTheDocument()
 })
 
+// U-16 Step 1 — differing field renders disk → catalog on a needs_review row
+it('renders disk → catalog for a differing field on a needs_review row', () => {
+  const row = makeRow({
+    bucket: 'needs_review', catalog_record_id: 'c1',
+    catalog_record_name: 'Serum', catalog_record_vendor: 'Xfer Records', catalog_record_version: '1.4',
+  })
+  render(<WorkbenchRow row={row} {...DEFAULT_PROPS} />)
+  // version differs (1.3 → 1.4); name + vendor agree
+  expect(screen.getByTitle('1.3 → 1.4')).toBeInTheDocument()
+  expect(screen.getByText('1.4')).toBeInTheDocument()
+})
+
+// U-16 Step 2 — agreeing fields and null catalog show a single value (no arrow)
+it('shows single values with no arrow when all fields agree', () => {
+  const row = makeRow({
+    bucket: 'needs_review', catalog_record_id: 'c1',
+    catalog_record_name: 'Serum', catalog_record_vendor: 'Xfer Records', catalog_record_version: '1.3',
+  })
+  render(<WorkbenchRow row={row} {...DEFAULT_PROPS} />)
+  expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+})
+
+it('shows single values with no arrow when catalog fields are null', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'needs_review', catalog_record_id: 'c1' })} {...DEFAULT_PROPS} />)
+  expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+})
+
+// U-16 Step 3 — known and unlinked show no diff arrows
+it('shows no diff arrows on a known row even when a field differs', () => {
+  const row = makeRow({ bucket: 'known', catalog_record_id: 'c1', catalog_record_version: '1.4' })
+  render(<WorkbenchRow row={row} {...DEFAULT_PROPS} />)
+  expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+})
+
+it('shows no diff arrows on an unlinked row', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'unlinked' })} {...DEFAULT_PROPS} />)
+  expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+})
+
+// U-16 Step 4 — diff compares display_vendor, not the raw disk_vendor
+it('uses display_vendor (not raw disk_vendor) for the vendor diff', () => {
+  const row = makeRow({
+    bucket: 'needs_review', catalog_record_id: 'c1',
+    disk_vendor: 'xfer', display_vendor: 'Xfer Records', catalog_record_vendor: 'Xfer Records',
+  })
+  render(<WorkbenchRow row={row} {...DEFAULT_PROPS} />)
+  // display_vendor equals catalog → no vendor arrow, even though raw disk_vendor differs
+  expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+})
+
+// U-16 Step 5 — orphaned row renders the Orphaned tag
+it('renders the Orphaned tag for an orphaned row', () => {
+  render(<WorkbenchRow row={makeRow({ bucket: 'orphaned', catalog_record_id: 'c1', catalog_record_name: 'Serum' })} {...DEFAULT_PROPS} />)
+  expect(screen.getByText('Orphaned')).toBeInTheDocument()
+})
+
+// U-16 Step 6 — orphaned row shows catalog name + empty disk cells + Find Link
+it('renders an orphaned row with catalog name, empty disk fields, and Find Link', () => {
+  const row = makeRow({
+    bucket: 'orphaned', result_id: 'c1', catalog_record_id: 'c1', catalog_record_name: 'Ghost FX',
+    display_name: 'Ghost FX', disk_name: '', disk_vendor: '', disk_version: '', disk_format: '',
+    display_vendor: '',
+  })
+  render(<WorkbenchRow row={row} {...DEFAULT_PROPS} />)
+  expect(screen.getByText('Ghost FX')).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /find link/i })).toBeInTheDocument()
+  expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+})
+
 // Step 51
 it('shift-click checkbox calls onShiftSelect', () => {
   const onShift = jest.fn()

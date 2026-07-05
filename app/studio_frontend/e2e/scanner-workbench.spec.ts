@@ -74,7 +74,7 @@ test('needs_review row click opens the resolution modal and saving closes it', a
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ rows: [U15_NEEDS_REVIEW_ROW], orphaned: [], scan_id: 's1' }),
+      body: JSON.stringify({ rows: [U15_NEEDS_REVIEW_ROW], scan_id: 's1' }),
     })
   })
   let patched = false
@@ -96,4 +96,41 @@ test('needs_review row click opens the resolution modal and saving closes it', a
   // Save PATCHes the matched record and the modal closes.
   await expect.poll(() => patched).toBe(true)
   await expect(page.getByText(/Resolve Match/)).not.toBeVisible({ timeout: 5000 })
+})
+
+// U-16: an orphaned catalog record renders as a bucket=orphaned row with the Orphaned tag
+// and a Find Link action that opens the orphaned-to-unlinked modal.
+const U16_ORPHANED_ROW = {
+  result_id: 'orphan-c1', disk_name: '', disk_vendor: '', disk_version: '', disk_format: '',
+  disk_path: '', display_name: 'Ghost Synth', display_vendor: '',
+  catalog_record_id: 'orphan-c1', catalog_record_table: 'instruments',
+  catalog_record_name: 'Ghost Synth', catalog_record_vendor: null, catalog_record_version: null,
+  bucket: 'orphaned', confidence: null, confirmed_at: null, confirmed_by: null,
+}
+
+test('orphaned row renders with the Orphaned tag and Find Link, and opens the modal', async ({ page }) => {
+  await page.route('**/api/scanner/workbench**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ rows: [U16_ORPHANED_ROW], scan_id: 's1' }),
+    })
+  })
+  // Find Link (orphaned-to-unlinked) fetches candidates on open — mock it so the modal renders cleanly.
+  await page.route('**/api/scanner/links/candidates**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ type: 'orphaned', candidates: [], total: 0 }),
+    })
+  })
+
+  await page.goto(BASE)
+
+  await expect(page.getByText('Ghost Synth').first()).toBeVisible({ timeout: 10000 })
+  // The row's Orphaned tag pill (not the filter-bar option) confirms U-16 rendering.
+  await expect(page.getByTestId('bucket-tag-pill-primary').filter({ hasText: 'Orphaned' })).toBeVisible()
+
+  await page.getByRole('button', { name: /find link/i }).first().click()
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10000 })
 })

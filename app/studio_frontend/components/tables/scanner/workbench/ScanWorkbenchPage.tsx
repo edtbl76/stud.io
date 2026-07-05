@@ -67,7 +67,7 @@ function WorkbenchModals({ activeModal, setActiveModal, currentModalRow, setBulk
 
 export function ScanWorkbenchPage() {
   const {
-    rows, orphaned, isLoading, clientFilters, setClientFilter, setServerBucket,
+    rows, isLoading, clientFilters, setClientFilter, setServerBucket,
     selectedIds, toggleSelect, shiftSelect, toggleSelectAll, clearSelection, invalidate,
     rowSubStates,
   } = useWorkbench()
@@ -117,7 +117,6 @@ export function ScanWorkbenchPage() {
 
       <WorkbenchTable
         rows={rows}
-        orphaned={orphaned}
         isLoading={isLoading}
         selectedIds={selectedIds}
         rowSubStates={rowSubStates}
@@ -125,7 +124,7 @@ export function ScanWorkbenchPage() {
         onShiftSelect={shiftSelect}
         onRowClick={actions.handleRowClick}
         onSelectAll={toggleSelectAll}
-        onOrphanFindLink={actions.handleOrphanFindLink}
+        onOrphanRowFindLink={actions.handleOrphanRowFindLink}
         onReject={actions.handleReject}
         onFindLink={actions.handleFindLink}
         onCreateRecord={actions.handleCreateRecord}

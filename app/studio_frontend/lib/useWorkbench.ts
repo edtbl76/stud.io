@@ -3,7 +3,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type {
   NeedsReviewSubState,
-  OrphanedRecord,
   WorkbenchBucket,
   WorkbenchClientFilters,
   WorkbenchRow,
@@ -160,7 +159,6 @@ export function useWorkbench() {
 
   return {
     rows: visibleRows,
-    orphaned: data?.orphaned ?? [] as OrphanedRecord[],
     isLoading,
     scanId: data?.scan_id ?? null,
     serverParams,

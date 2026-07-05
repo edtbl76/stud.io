@@ -152,7 +152,9 @@ Clicking a row on the Scan Workbench opens the appropriate action for that row's
 | Collision | Collision resolution modal |
 | Unlinked | Find Link modal |
 | Excluded | Nothing (no resolution action) |
-| Orphaned | No row-click action yet; the row has a separate Find Link action, wired to link back to an unlinked scan result in U-16 |
+| Orphaned | Find Link modal (orphaned-to-unlinked; links the catalog record back to an unlinked scan result) |
+
+Matched rows (Needs Review / Collision) surface the catalog record inline: fields that differ render as `disk → catalog` (e.g. `1.0.7 → 1.0.8`); known rows show no diff.
 
 **Orphaned records** (catalog records not found on disk in the latest scan) are now first-class rows in the workbench with `bucket=orphaned` and empty disk fields (U-10), rather than a separate list. They sort and filter alongside every other bucket and carry the catalog record's identity; their Find Link action links them back to an unlinked scan result.
 

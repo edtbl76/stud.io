@@ -345,7 +345,6 @@ export interface OrphanedRecord {
 
 export interface WorkbenchResponse {
   rows: WorkbenchRow[]
-  orphaned: OrphanedRecord[]
   scan_id: string | null
 }
 

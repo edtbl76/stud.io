@@ -152,12 +152,28 @@ it('handleRowClick does nothing for an excluded row', () => {
   expect(result.current.activeModal).toBeNull()
 })
 
-// Step 10 — unknown bucket is a no-op
+// Step 10 — unknown bucket is a no-op (excluded is the only unrouted real bucket; use an invalid value to hit the default)
 it('handleRowClick does nothing for an unrouted bucket', () => {
-  const row = makeRow({ result_id: 'r-?', bucket: 'orphaned' })
+  const row = makeRow({ result_id: 'r-?', bucket: 'nonexistent' as WorkbenchRow['bucket'] })
   const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
   act(() => { result.current.handleRowClick(row) })
   expect(result.current.activeModal).toBeNull()
+})
+
+// U-16 Step 7 — handleOrphanRowFindLink opens find-link-orphaned with the catalog id
+it('handleOrphanRowFindLink opens find-link-orphaned with the catalog record id', () => {
+  const row = makeRow({ result_id: 'o1', bucket: 'orphaned', catalog_record_id: 'cat-9', catalog_record_table: 'effects' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleOrphanRowFindLink(row) })
+  expect(result.current.activeModal).toEqual({ type: 'find-link-orphaned', sourceId: 'cat-9' })
+})
+
+// U-16 Step 8 — orphaned row-click opens find-link-orphaned
+it('handleRowClick routes an orphaned row to find-link-orphaned', () => {
+  const row = makeRow({ result_id: 'o1', bucket: 'orphaned', catalog_record_id: 'cat-9', catalog_record_table: 'effects' })
+  const { result } = renderHook(() => useScanWorkbenchActions(makeHookArgs()))
+  act(() => { result.current.handleRowClick(row) })
+  expect(result.current.activeModal).toEqual({ type: 'find-link-orphaned', sourceId: 'cat-9' })
 })
 
 // Step 11 — a row click does not disturb an in-progress bulk-resolve queue
