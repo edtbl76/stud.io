@@ -205,7 +205,11 @@ def _apply_collisions(rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
 def _collect_workbench_rows(raw_rows, ctx: MatchingContext, orphaned_rows: list[WorkbenchRow]) -> list[WorkbenchRow]:
     # Collisions are computed on disk rows only, before orphaned rows are merged.
     built = _apply_collisions([_build_workbench_row(r, ctx) for r in raw_rows])
-    return built + orphaned_rows
+    # Matched rows win: a mixed-path record (some paths present, some missing) is already
+    # a disk row, so drop its orphaned duplicate to avoid listing the record twice.
+    matched_ids = {r.catalog_record_id for r in built if r.catalog_record_id is not None}
+    deduped_orphaned = [o for o in orphaned_rows if o.catalog_record_id not in matched_ids]
+    return built + deduped_orphaned
 
 
 def _filter_and_sort_rows(rows: list[WorkbenchRow], bucket_filter: str | None, show_confirmed: bool) -> list[WorkbenchRow]:

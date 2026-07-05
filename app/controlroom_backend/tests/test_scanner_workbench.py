@@ -342,6 +342,21 @@ async def test_matched_record_in_scan_is_not_orphaned(client, conn, admin_header
 
 
 @pytest.mark.asyncio
+async def test_mixed_path_record_appears_once_matched_not_orphaned(client, conn, admin_headers):
+    """U-10: a record with one present + one missing path is a matched row only, never double-listed."""
+    record_id = await insert_effect(conn, disk_paths=[
+        {"path": "/path/zzztest.vst3", "format": "vst3", "version": "1.0.0"},   # present in scan
+        {"path": "/missing/gone.vst3", "format": "vst3", "version": "1.0.0"},    # missing
+    ])
+    scan_id = await insert_scan(conn)
+    await insert_matched_result(conn, scan_id, record_id, "effects")  # scan result at /path/zzztest.vst3
+    data = (await client.get("/scanner/workbench", headers=admin_headers)).json()
+    rows_for_record = [r for r in data["rows"] if r["catalog_record_id"] == str(record_id)]
+    assert len(rows_for_record) == 1
+    assert rows_for_record[0]["bucket"] != "orphaned"
+
+
+@pytest.mark.asyncio
 async def test_matched_row_still_carries_catalog_fields(client, conn, admin_headers):
     """U-10 Step 8: verify-not-build — matched rows keep their catalog identity."""
     record_id = await insert_effect(conn, disk_paths=[{"path": "/path/zzztest.vst3", "format": "vst3", "version": "1.0.0"}])
