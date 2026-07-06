@@ -41,7 +41,6 @@ function makeKnownRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
 
 const response = (rows: WorkbenchRow[]): WorkbenchResponse => ({
   rows,
-  orphaned: [],
   scan_id: 'scan-1',
 })
 

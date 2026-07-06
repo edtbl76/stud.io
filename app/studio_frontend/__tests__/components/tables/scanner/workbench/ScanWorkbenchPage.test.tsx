@@ -38,7 +38,7 @@ function makeRow(id: string, overrides: Partial<WorkbenchRow> = {}): WorkbenchRo
 }
 
 const BASE_HOOK = {
-  rows: [], orphaned: [], isLoading: false, scanId: null,
+  rows: [], isLoading: false, scanId: null,
   serverParams: { show_confirmed: true }, setServerBucket: mockSetServerBucket,
   clientFilters: BLANK_FILTERS, setClientFilter: mockSetClientFilter,
   selectedIds: new Set<string>(), toggleSelect: mockToggleSelect,
@@ -51,23 +51,22 @@ jest.mock('@/lib/useWorkbench', () => ({
 }))
 
 // Mock sub-components so tests focus on page wiring only
-import type { OrphanedRecord } from '@/lib/types'
 type TableProps = {
-  rows: WorkbenchRow[]; orphaned: OrphanedRecord[]; onReject?: (r: WorkbenchRow) => void;
+  rows: WorkbenchRow[]; onReject?: (r: WorkbenchRow) => void;
   onFindLink?: (r: WorkbenchRow) => void; onCreateRecord?: (r: WorkbenchRow) => void;
-  onExclude?: (r: WorkbenchRow) => void; onOrphanFindLink?: (o: OrphanedRecord) => void;
+  onExclude?: (r: WorkbenchRow) => void; onOrphanRowFindLink?: (r: WorkbenchRow) => void;
   onResolveCollision?: (r: WorkbenchRow) => void;
   onSelectAll?: () => void;
   onRowClick?: (r: WorkbenchRow) => void;
 }
-function MockTableActions({ rows, orphaned, onReject, onFindLink, onCreateRecord, onExclude, onOrphanFindLink, onResolveCollision, onSelectAll, onRowClick }: TableProps) {
+function MockTableActions({ rows, onReject, onFindLink, onCreateRecord, onExclude, onOrphanRowFindLink, onResolveCollision, onSelectAll, onRowClick }: TableProps) {
   return (
     <div data-testid="workbench-table">
       <button type="button" onClick={() => onReject?.(rows[0])}>RowAction:Reject</button>
       <button type="button" onClick={() => onFindLink?.(rows[0])}>RowAction:FindLink</button>
       <button type="button" onClick={() => onCreateRecord?.(rows[0])}>RowAction:CreateRecord</button>
       <button type="button" onClick={() => onExclude?.(rows[0])}>RowAction:Exclude</button>
-      <button type="button" onClick={() => onOrphanFindLink?.(orphaned[0])}>RowAction:OrphanFindLink</button>
+      <button type="button" onClick={() => onOrphanRowFindLink?.(rows[0])}>RowAction:OrphanRowFindLink</button>
       <button type="button" onClick={() => onResolveCollision?.(rows[0])}>RowAction:ResolveCollision</button>
       <button type="button" onClick={() => onSelectAll?.()}>RowAction:SelectAll</button>
       <button type="button" onClick={() => onRowClick?.(rows[0])}>RowAction:RowClick</button>
@@ -310,7 +309,7 @@ describe('handleReject', () => {
   })
 })
 
-// Step 19 — handleFindLink and handleOrphanFindLink
+// Step 19 — handleFindLink (unlinked) + orphaned Find Link (U-16)
 describe('handleFindLink', () => {
   it('opens FindLinkModal in unlinked-to-orphaned mode for unlinked row', () => {
     const r1 = makeRow('r1', { bucket: 'unlinked' })
@@ -321,13 +320,22 @@ describe('handleFindLink', () => {
     expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-source-id', 'r1')
   })
 
-  it('opens FindLinkModal in orphaned-to-unlinked mode for orphaned record', () => {
-    const orphan = { catalog_record_id: 'cat-1', catalog_record_table: 'instruments', name: 'X', vendor: null, version: null, disk_paths: [] }
-    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, orphaned: [orphan] })
+  it('orphaned Find Link opens FindLinkModal in orphaned-to-unlinked mode with the catalog id', () => {
+    const r1 = makeRow('r1', { bucket: 'orphaned', catalog_record_id: 'cat-1', catalog_record_table: 'instruments', catalog_record_name: 'X' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
     render(<ScanWorkbenchPage />)
-    fireEvent.click(screen.getByRole('button', { name: 'RowAction:OrphanFindLink' }))
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:OrphanRowFindLink' }))
+    const modal = screen.getByTestId('find-link-modal')
+    expect(modal).toHaveAttribute('data-mode', 'orphaned-to-unlinked')
+    expect(modal).toHaveAttribute('data-source-id', 'cat-1')
+  })
+
+  it('clicking an orphaned row opens FindLinkModal in orphaned-to-unlinked mode', () => {
+    const r1 = makeRow('r1', { bucket: 'orphaned', catalog_record_id: 'cat-1', catalog_record_table: 'instruments' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1] })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: 'RowAction:RowClick' }))
     expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-mode', 'orphaned-to-unlinked')
-    expect(screen.getByTestId('find-link-modal')).toHaveAttribute('data-source-id', 'cat-1')
   })
 })
 

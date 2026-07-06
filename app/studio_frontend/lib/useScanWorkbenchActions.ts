@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
-import type { NeedsReviewSubState, OrphanedRecord, WorkbenchRow } from '@/lib/types'
+import type { NeedsReviewSubState, WorkbenchRow } from '@/lib/types'
 
 export type ActiveModal =
   | { type: 'single-resolution'; row: WorkbenchRow; readOnly: boolean }
@@ -85,8 +85,9 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     setActiveModal({ type: 'find-link-unlinked', sourceId: row.result_id })
   }
 
-  function handleOrphanFindLink(record: OrphanedRecord) {
-    setActiveModal({ type: 'find-link-orphaned', sourceId: record.catalog_record_id })
+  function handleOrphanRowFindLink(row: WorkbenchRow) {
+    if (row.catalog_record_id == null) return
+    setActiveModal({ type: 'find-link-orphaned', sourceId: row.catalog_record_id })
   }
 
   function handleCreateRecord(row: WorkbenchRow) {
@@ -112,6 +113,7 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     known: (row) => setActiveModal({ type: 'single-resolution', row, readOnly: true }),
     collision: handleResolveCollision,
     unlinked: handleFindLink,
+    orphaned: handleOrphanRowFindLink,
   }
 
   function handleRowClick(row: WorkbenchRow) {
@@ -172,7 +174,7 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     bulkResolveQueue, setBulkResolveQueue,
     handleSoftReset, handleHardReset, handleHardResetCancel,
     handleBulkResolve, handleModalSaved,
-    handleReject, handleFindLink, handleOrphanFindLink,
+    handleReject, handleFindLink, handleOrphanRowFindLink,
     handleRowClick,
     handleCreateRecord, handleExclude,
     handleResolveCollision, handleBulkReject, handleBulkUpdate, handleBulkExclude,

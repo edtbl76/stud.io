@@ -81,7 +81,7 @@ describe('WorkbenchBucket / WorkbenchRow / OrphanedRecord / WorkbenchResponse ty
   })
 
   it('WorkbenchResponse is assignable', () => {
-    const resp: WorkbenchResponse = { rows: [], orphaned: [], scan_id: null }
+    const resp: WorkbenchResponse = { rows: [], scan_id: null }
     expect(resp.rows).toHaveLength(0)
   })
 })
@@ -159,7 +159,7 @@ describe('remaining workbench types', () => {
 // Step 4
 describe('api.scanner.workbench', () => {
   it('calls GET /scanner/workbench with show_confirmed=true', async () => {
-    const spy = mockFetch({ rows: [], orphaned: [], scan_id: null })
+    const spy = mockFetch({ rows: [], scan_id: null })
     await api.scanner.workbench({ show_confirmed: true })
     expect(spy).toHaveBeenCalledWith(
       `${BASE}/scanner/workbench?show_confirmed=true`,
@@ -168,7 +168,7 @@ describe('api.scanner.workbench', () => {
   })
 
   it('includes optional scan_id and bucket params', async () => {
-    const spy = mockFetch({ rows: [], orphaned: [], scan_id: 'scan-1' })
+    const spy = mockFetch({ rows: [], scan_id: 'scan-1' })
     await api.scanner.workbench({ show_confirmed: true, scan_id: 'scan-1', bucket: 'needs_review' })
     expect(spy).toHaveBeenCalledWith(
       expect.stringContaining('scan_id=scan-1'),

@@ -2,7 +2,7 @@ import * as React from 'react'
 import { renderHook, act, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useWorkbench } from '@/lib/useWorkbench'
-import type { WorkbenchRow, OrphanedRecord, WorkbenchResponse } from '@/lib/types'
+import type { WorkbenchRow, WorkbenchResponse } from '@/lib/types'
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -31,19 +31,8 @@ function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
   }
 }
 
-function makeOrphan(overrides: Partial<OrphanedRecord> = {}): OrphanedRecord {
-  return {
-    catalog_record_id: 'c1',
-    catalog_record_table: 'effects',
-    name: 'Surge XT',
-    vendor: null,
-    version: null,
-    disk_paths: [],
-    ...overrides,
-  }
-}
 
-const EMPTY_RESPONSE: WorkbenchResponse = { rows: [], orphaned: [], scan_id: null }
+const EMPTY_RESPONSE: WorkbenchResponse = { rows: [], scan_id: null }
 
 // ---------------------------------------------------------------------------
 // Mock api.scanner.workbench
@@ -72,7 +61,7 @@ beforeEach(() => {
 })
 
 async function setupWorkbenchWithRows(rows: WorkbenchRow[]) {
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows, scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   return result
@@ -99,16 +88,15 @@ it('Step 16: always fetches with show_confirmed=true', async () => {
 })
 
 // ---------------------------------------------------------------------------
-// Step 17: rows, orphaned, scanId exposed
+// Step 17: rows + scanId exposed (orphaned merged into rows as bucket='orphaned' in U-10/U-16)
 // ---------------------------------------------------------------------------
 
-it('Step 17: exposes rows, orphaned and scanId from response', async () => {
+it('Step 17: exposes rows and scanId from response', async () => {
   const row = makeRow()
-  const orphan = makeOrphan()
-  api.scanner.workbench.mockResolvedValue({ rows: [row], orphaned: [orphan], scan_id: 'scan-1' })
+  api.scanner.workbench.mockResolvedValue({ rows: [row], scan_id: 'scan-1' })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
-  expect(result.current.orphaned).toHaveLength(1)
+  expect(result.current.rows).toHaveLength(1)
   expect(result.current.scanId).toBe('scan-1')
 })
 
@@ -129,7 +117,7 @@ it('Step 18: isLoading is true while fetching', () => {
 it('Step 19a: known row IS visible when it has an active sibling', async () => {
   const known = makeRow({ result_id: 'r-known', bucket: 'known', catalog_record_id: 'cat-1' })
   const review = makeRow({ result_id: 'r-review', bucket: 'needs_review', catalog_record_id: 'cat-1' })
-  api.scanner.workbench.mockResolvedValue({ rows: [known, review], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [known, review], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   const ids = result.current.rows.map((r) => r.result_id)
@@ -138,7 +126,7 @@ it('Step 19a: known row IS visible when it has an active sibling', async () => {
 
 it('Step 19b: known row is hidden when it has no active sibling', async () => {
   const known = makeRow({ result_id: 'r-known', bucket: 'known', catalog_record_id: 'cat-solo' })
-  api.scanner.workbench.mockResolvedValue({ rows: [known], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [known], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   const ids = result.current.rows.map((r) => r.result_id)
@@ -151,7 +139,7 @@ it('Step 19b: known row is hidden when it has no active sibling', async () => {
 
 it('Step 20a: excluded row is hidden when it has no active sibling', async () => {
   const excl = makeRow({ result_id: 'r-excl', bucket: 'excluded', catalog_record_id: 'cat-x' })
-  api.scanner.workbench.mockResolvedValue({ rows: [excl], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [excl], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   expect(result.current.rows.map((r) => r.result_id)).not.toContain('r-excl')
@@ -160,7 +148,7 @@ it('Step 20a: excluded row is hidden when it has no active sibling', async () =>
 it('Step 20b: excluded row IS visible when a sibling needs attention', async () => {
   const excl = makeRow({ result_id: 'r-excl', bucket: 'excluded', catalog_record_id: 'cat-y' })
   const review = makeRow({ result_id: 'r-review', bucket: 'needs_review', catalog_record_id: 'cat-y' })
-  api.scanner.workbench.mockResolvedValue({ rows: [excl, review], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [excl, review], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   expect(result.current.rows.map((r) => r.result_id)).toContain('r-excl')
@@ -173,7 +161,7 @@ it('Step 20b: excluded row IS visible when a sibling needs attention', async () 
 it('Step 21: catalog_type filter shows only matching table rows', async () => {
   const effects = makeRow({ result_id: 'r-eff', catalog_record_table: 'effects', bucket: 'needs_review', catalog_record_id: 'c1' })
   const instruments = makeRow({ result_id: 'r-inst', catalog_record_table: 'instruments', bucket: 'needs_review', catalog_record_id: 'c2' })
-  api.scanner.workbench.mockResolvedValue({ rows: [effects, instruments], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [effects, instruments], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   act(() => { result.current.setClientFilter({ catalog_type: 'effects' }) })
@@ -189,7 +177,7 @@ it('Step 21: catalog_type filter shows only matching table rows', async () => {
 it('Step 22: format filter shows only matching disk_format rows', async () => {
   const vst3 = makeRow({ result_id: 'r-vst3', disk_format: 'VST3', bucket: 'unlinked' })
   const au = makeRow({ result_id: 'r-au', disk_format: 'AU', bucket: 'unlinked' })
-  api.scanner.workbench.mockResolvedValue({ rows: [vst3, au], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [vst3, au], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   act(() => { result.current.setClientFilter({ format: 'VST3' }) })
@@ -262,7 +250,7 @@ it('Step 23: needs_review_substate filter shows only rows with matching sub-stat
     result_id: 'r-vm', bucket: 'needs_review', catalog_record_id: 'cat-vm',
     disk_version: '1.0', catalog_record_version: '2.0',
   })
-  api.scanner.workbench.mockResolvedValue({ rows: [unconfirmed, mismatch], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [unconfirmed, mismatch], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
   act(() => { result.current.setClientFilter({ needs_review_substate: 'unconfirmed' }) })
@@ -287,7 +275,7 @@ it('Step 27a: toggleSelect adds then removes an id', async () => {
 
 it('Step 27b: shiftSelect selects a range from lastClickedIndex to current', async () => {
   const rows = ['r0', 'r1', 'r2', 'r3'].map((id) => makeRow({ result_id: id, bucket: 'unlinked' }))
-  api.scanner.workbench.mockResolvedValue({ rows, orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows, scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
 
@@ -302,7 +290,7 @@ it('Step 27b: shiftSelect selects a range from lastClickedIndex to current', asy
 it('shiftSelect clamps stale lastClickedIndex when visibleRows shrinks via filter', async () => {
   const vst3Rows = ['r0', 'r1', 'r2'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'VST3' }))
   const auRows = ['r3', 'r4'].map((id) => makeRow({ result_id: id, bucket: 'unlinked', disk_format: 'AU' }))
-  api.scanner.workbench.mockResolvedValue({ rows: [...vst3Rows, ...auRows], orphaned: [], scan_id: null })
+  api.scanner.workbench.mockResolvedValue({ rows: [...vst3Rows, ...auRows], scan_id: null })
   const { result } = renderHook(() => useWorkbench(), { wrapper })
   await waitFor(() => expect(result.current.isLoading).toBe(false))
 
