@@ -215,17 +215,24 @@ it('renders the Orphaned tag for an orphaned row', () => {
   expect(screen.getByText('Orphaned')).toBeInTheDocument()
 })
 
-// U-16 Step 6 — orphaned row shows catalog name + empty disk cells + Find Link
-it('renders an orphaned row with catalog name, empty disk fields, and Find Link', () => {
+// U-16 Step 6 — orphaned row: catalog name + vendor (via display), empty version cell (no catalog leak), no diff, Find Link
+it('renders an orphaned row with catalog name + vendor, an empty version cell, no diff, and Find Link', () => {
+  // Realistic orphaned shape (U-10): display_* carry the catalog name/vendor; disk fields are empty;
+  // catalog_record_vendor/version are populated. shouldDiff is false for orphaned, so FieldDiff shows the
+  // disk value — the empty version must NOT fall back to the catalog version, and no arrow renders.
   const row = makeRow({
-    bucket: 'orphaned', result_id: 'c1', catalog_record_id: 'c1', catalog_record_name: 'Ghost FX',
-    display_name: 'Ghost FX', disk_name: '', disk_vendor: '', disk_version: '', disk_format: '',
-    display_vendor: '',
+    bucket: 'orphaned', result_id: 'c1', catalog_record_id: 'c1',
+    disk_name: '', disk_vendor: '', disk_version: '', disk_format: '',
+    display_name: 'Ghost FX', display_vendor: 'Ghost Vendor',
+    catalog_record_name: 'Ghost FX', catalog_record_vendor: 'Ghost Vendor', catalog_record_version: '2.0',
   })
   render(<WorkbenchRow row={row} {...DEFAULT_PROPS} />)
   expect(screen.getByText('Ghost FX')).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: /find link/i })).toBeInTheDocument()
+  expect(screen.getByText('Ghost Vendor')).toBeInTheDocument()
+  // empty disk version/format cells by design — the populated catalog version is not shown
+  expect(screen.queryByText('2.0')).not.toBeInTheDocument()
   expect(screen.queryByTitle(/→/)).not.toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /find link/i })).toBeInTheDocument()
 })
 
 // Step 51
