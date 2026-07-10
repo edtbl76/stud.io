@@ -101,12 +101,14 @@ class CreateLinkRequest(BaseModel):
     result_id: UUID
     catalog_record_id: UUID
     catalog_record_table: str
+    create_rules: bool = False
 
 
 class BulkCreateLinkRequest(BaseModel):
     result_ids: list[UUID]
     catalog_record_id: UUID
     catalog_record_table: str
+    create_rules: bool = False
 
 
 class BulkLinkResult(BaseModel):

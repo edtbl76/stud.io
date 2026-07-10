@@ -418,9 +418,9 @@ Same endpoints at `/scanner/rules/name/{id}` for name rules.
 
 `GET /scanner/links/candidates?type=unlinked|orphaned&source_id=UUID[&q=str]` — admin only. Find link candidates. `type=unlinked` returns orphaned catalog records (from a scan result). `type=orphaned` returns unlinked scan results (from a catalog record). `q` filters by name substring.
 
-`POST /scanner/links` — admin only. Body: `{result_id, catalog_record_id, catalog_record_table}`. Creates vendor+name rules pairing the disk fingerprint to the catalog record. Returns `{links_created: 1}`. Purges matching rejection entry.
+`POST /scanner/links` — admin only. Body: `{result_id, catalog_record_id, catalog_record_table, create_rules?}`. Writes a persistent `scanner_plugin_links` binding for the plugin fingerprint (the same binding Confirm writes). `create_rules` (default `false`) additionally writes broad vendor+name normalization rules. Returns `{links_created: 1}`. Purges matching rejection entry.
 
-`POST /scanner/links/bulk` — admin only. Body: `{result_ids: [...], catalog_record_id, catalog_record_table}`. Creates links for multiple result fingerprints. Returns `{links_created: N}`.
+`POST /scanner/links/bulk` — admin only. Body: `{result_ids: [...], catalog_record_id, catalog_record_table, create_rules?}`. Writes one persistent binding per result fingerprint; `create_rules` (default `false`) applies to the whole batch. Returns `{links_created: N}`.
 
 #### Reset (U-02)
 

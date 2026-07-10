@@ -19,6 +19,7 @@ export function useFindLink(mode: Mode, sourceId: string) {
   const [query, setQueryRaw] = React.useState('')
   const [debouncedQuery, setDebouncedQuery] = React.useState('')
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set())
+  const [createRules, setCreateRules] = React.useState(false)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const debounceRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -64,6 +65,7 @@ export function useFindLink(mode: Mode, sourceId: string) {
           result_id: sourceId,
           catalog_record_id: candidate.catalog_record_id,
           catalog_record_table: candidate.catalog_record_table,
+          create_rules: createRules,
         })
       } else {
         const candidate = candidates.find(
@@ -74,6 +76,7 @@ export function useFindLink(mode: Mode, sourceId: string) {
           result_ids: [...selectedIds],
           catalog_record_id: sourceId,
           catalog_record_table: candidate.catalog_record_table ?? '',
+          create_rules: createRules,
         })
       }
     } finally {
@@ -88,6 +91,8 @@ export function useFindLink(mode: Mode, sourceId: string) {
     setQuery,
     selectedIds,
     toggleCandidate,
+    createRules,
+    setCreateRules,
     confirmLink,
     isSubmitting,
   }

@@ -5,6 +5,7 @@ import { FindLinkModal } from '@/components/tables/scanner/modals/FindLinkModal'
 const mockSetQuery = jest.fn()
 const mockConfirmLink = jest.fn()
 const mockToggleCandidate = jest.fn()
+const mockSetCreateRules = jest.fn()
 
 const BASE_HOOK = {
   candidates: [
@@ -24,6 +25,8 @@ const BASE_HOOK = {
   setQuery: mockSetQuery,
   selectedIds: new Set<string>(),
   toggleCandidate: mockToggleCandidate,
+  createRules: false,
+  setCreateRules: mockSetCreateRules,
   confirmLink: mockConfirmLink,
   isSubmitting: false,
 }
@@ -88,4 +91,13 @@ it('closes on Escape', () => {
   render(<FindLinkModal mode="orphaned-to-unlinked" sourceId="s1" onClose={onClose} onLinked={jest.fn()} />)
   fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
   expect(onClose).toHaveBeenCalled()
+})
+
+// U-11 Step 13: normalization-rule checkbox renders unchecked and toggles createRules
+it('renders the normalization-rule checkbox unchecked by default and toggles it', () => {
+  render(<FindLinkModal mode="unlinked-to-orphaned" sourceId="s1" onClose={jest.fn()} onLinked={jest.fn()} />)
+  const checkbox = screen.getByRole('checkbox', { name: /normalization rule/i })
+  expect(checkbox).not.toBeChecked()
+  fireEvent.click(checkbox)
+  expect(mockSetCreateRules).toHaveBeenCalledWith(true)
 })

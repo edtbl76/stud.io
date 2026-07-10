@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from database import get_conn
 from routers.auth import UserOut, require_admin
+from routers.scanner_actions import PluginLinkWrite, upsert_plugin_link
 from routers.scanner_catalog import CATALOG_TABLES, orphaned_query
 from routers.scanner_rejections import optimistic_purge
 from schemas.scanner_workbench import (
@@ -44,8 +45,22 @@ def _name_matches(name: str | None, q_lower: str | None) -> bool:
     return q_lower is None or q_lower in (name or "").lower()
 
 
+async def _write_normalization_rules(
+    conn: Connection, row: dict, catalog: dict, username: str
+) -> None:
+    if catalog["vendor"] is not None:
+        await conn.execute(
+            "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_vendor) DO NOTHING",
+            row["vendor"].lower(), catalog["vendor"], username,
+        )
+    await conn.execute(
+        "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_name) DO NOTHING",
+        row["name"].lower(), catalog["name"], username,
+    )
+
+
 async def _create_link_for_result(
-    conn: Connection, result_id: UUID, catalog_ref: _CatalogRef, username: str
+    conn: Connection, result_id: UUID, catalog_ref: _CatalogRef, username: str, create_rules: bool
 ) -> bool:
     row = await conn.fetchrow(
         "SELECT name, vendor FROM plugin_scan_results WHERE result_id=$1", result_id
@@ -61,15 +76,12 @@ async def _create_link_for_result(
     if not catalog:
         raise HTTPException(status_code=404, detail="Catalog record not found")
     fp = f"{row['vendor']} {row['name']}".lower().strip()
-    if catalog["vendor"] is not None:
-        await conn.execute(
-            "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_vendor) DO NOTHING",
-            row["vendor"].lower(), catalog["vendor"], username,
-        )
-    await conn.execute(
-        "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1,$2,$3) ON CONFLICT (disk_name) DO NOTHING",
-        row["name"].lower(), catalog["name"], username,
-    )
+    await upsert_plugin_link(conn, PluginLinkWrite(
+        scanned_vendor=row["vendor"], scanned_name=row["name"], fingerprint=fp,
+        record_id=catalog_ref.record_id, record_table=catalog_ref.record_table, confirmed_by=username,
+    ))
+    if create_rules:
+        await _write_normalization_rules(conn, dict(row), dict(catalog), username)
     await optimistic_purge(conn, fp, catalog_ref.record_id)
     return True
 
@@ -140,14 +152,14 @@ async def find_link_candidates(
 
 @router.post("/links", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
 async def create_link(body: CreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
-    created = await _create_link_for_result(conn, body.result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username)
+    created = await _create_link_for_result(conn, body.result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username, body.create_rules)
     return BulkLinkResult(links_created=int(created))
 
 
 @router.post("/links/bulk", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
 async def bulk_create_links(body: BulkCreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     results = [
-        await _create_link_for_result(conn, result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username)
+        await _create_link_for_result(conn, result_id, _CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username, body.create_rules)
         for result_id in body.result_ids
     ]
     return BulkLinkResult(links_created=sum(results))

@@ -136,6 +136,7 @@ Open **ControlRoom → Plugin Scanner** to review the scan report. Results are g
 | **Acknowledge** | Known | Confirms you've reviewed the match and records a persistent link. |
 | **Bulk Acknowledge** | Known section header | Acknowledges all results in the Known section at once. |
 | **Override** | Unlinked, Needs Review | Opens a catalog search modal to manually link the plugin to any catalog record. |
+| **Find Link** | Unlinked, Orphaned | Links a scan result to a catalog record. Writes a persistent per-plugin binding (`scanner_plugin_links`, keyed on the plugin fingerprint) — the same binding a Confirm writes, so the linked plugin resolves at the top ingest precedence on the next scan. The optional "Also add a normalization rule" checkbox additionally writes broad vendor/name normalization rules; it is unchecked by default, so a Find Link no longer reshapes matching for unrelated plugins unless you opt in (U-11). |
 | **Bulk Update** | Needs Review section header | Updates the catalog version for all user-selected rows in the Needs Review section to match the disk version. |
 | **Confirm / Reject** | Needs Review | Confirm accepts the match; Reject returns the plugin to Unlinked. |
 | **Create Record** | Unlinked | Creates a new catalog record from the scanned plugin data. |
