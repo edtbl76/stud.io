@@ -128,3 +128,10 @@ CVE-2026-54369
 # CVE-2026-54371 (HIGH): libattr1 — symlink-traversal privilege escalation via getfattr.
 # Indirect OS dep; non-root container; app performs no xattr ops on attacker-controlled paths.
 CVE-2026-54371
+
+# CVE-2026-53615 (HIGH): util-linux — integer overflow in libblkid/src/partitions/dos.c
+# (affects bsdutils, libblkid1, liblastlog2-2, libmount1, libsmartcols1, libuuid1, login,
+# mount, util-linux). No fixed version available in debian 13.5. The overflow is in DOS
+# partition-table parsing; the application never probes untrusted block devices or partition
+# tables. Indirect OS dep; non-root container (appuser). Revisit when trixie ships patched util-linux.
+CVE-2026-53615

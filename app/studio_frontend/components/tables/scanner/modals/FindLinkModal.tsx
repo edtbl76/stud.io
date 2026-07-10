@@ -39,6 +39,10 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
     onLinked()
   }
 
+  function handleToggleCreateRules(e: React.ChangeEvent<HTMLInputElement>) {
+    setCreateRules(e.target.checked)
+  }
+
   return (
     <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
       <ScannerModalContent>
@@ -82,9 +86,9 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
             <input
               type="checkbox"
               checked={createRules}
-              onChange={(e) => setCreateRules(e.target.checked)}
+              onChange={handleToggleCreateRules}
             />
-            Also add a normalization rule for this vendor/name
+            <span>Also add a normalization rule for this vendor/name</span>
           </label>
         </div>
 
