@@ -152,19 +152,19 @@ async def _vendor_rule(conn, disk_vendor: str):
     )
 
 
-async def _post_link(client, headers, result_id, effect_id, **extra):
-    return await client.post(
-        "/scanner/links",
-        json={"result_id": str(result_id), "catalog_record_id": str(effect_id),
-              "catalog_record_table": "effects", **extra},
-        headers=headers,
-    )
+def _link_body(result_id, effect_id, **extra):
+    return {"result_id": str(result_id), "catalog_record_id": str(effect_id),
+            "catalog_record_table": "effects", **extra}
+
+
+async def _post_link(client, headers, body):
+    return await client.post("/scanner/links", json=body, headers=headers)
 
 
 @pytest.mark.asyncio
 async def test_create_link_binding_columns_match_confirm_shape(client, conn, admin_headers):
     result_id, effect_id = await _setup_link(conn)
-    await _post_link(client, admin_headers, result_id, effect_id)
+    await _post_link(client, admin_headers, _link_body(result_id, effect_id))
     binding = await _binding_row(conn, "acme audio reverb pro")
     assert binding["scanned_vendor"] == "Acme Audio"
     assert binding["scanned_name"] == "Reverb Pro"
@@ -176,7 +176,7 @@ async def test_create_link_binding_columns_match_confirm_shape(client, conn, adm
 async def test_create_link_create_rules_writes_rules(client, conn, admin_headers):
     _, result_id = await insert_scan(conn, status="untracked")
     effect_id = await _insert_branded_effect(conn)
-    resp = await _post_link(client, admin_headers, result_id, effect_id, create_rules=True)
+    resp = await _post_link(client, admin_headers, _link_body(result_id, effect_id, create_rules=True))
     assert resp.status_code == 201
     assert await _binding_row(conn, "acme audio reverb pro") is not None
     name_rule = await _name_rule(conn, "reverb pro")
@@ -188,7 +188,7 @@ async def test_create_link_create_rules_writes_rules(client, conn, admin_headers
 @pytest.mark.asyncio
 async def test_create_link_create_rules_null_vendor_writes_name_only(client, conn, admin_headers):
     result_id, effect_id = await _setup_link(conn)  # _insert_effect has no brand => null catalog vendor
-    resp = await _post_link(client, admin_headers, result_id, effect_id, create_rules=True)
+    resp = await _post_link(client, admin_headers, _link_body(result_id, effect_id, create_rules=True))
     assert resp.status_code == 201
     assert await _binding_row(conn, "acme audio reverb pro") is not None
     assert await _name_rule(conn, "reverb pro") is not None
@@ -199,8 +199,8 @@ async def test_create_link_create_rules_null_vendor_writes_name_only(client, con
 async def test_create_link_relink_updates_binding_in_place(client, conn, admin_headers):
     result_id, effect_a = await _setup_link(conn)
     effect_b = await _insert_effect(conn, name="Delay Machine")
-    await _post_link(client, admin_headers, result_id, effect_a)
-    await _post_link(client, admin_headers, result_id, effect_b)
+    await _post_link(client, admin_headers, _link_body(result_id, effect_a))
+    await _post_link(client, admin_headers, _link_body(result_id, effect_b))
     rows = await conn.fetch(
         "SELECT record_id FROM scanner_plugin_links WHERE fingerprint = $1", "acme audio reverb pro"
     )
@@ -212,7 +212,7 @@ async def test_create_link_relink_updates_binding_in_place(client, conn, admin_h
 async def test_find_link_binding_loads_as_persistent(client, conn, admin_headers):
     from routers.scanner_match import load_persistent_links
     result_id, effect_id = await _setup_link(conn)
-    await _post_link(client, admin_headers, result_id, effect_id)
+    await _post_link(client, admin_headers, _link_body(result_id, effect_id))
     links = await load_persistent_links(conn)
     assert "acme audio reverb pro" in links
     record_id, record_table = links["acme audio reverb pro"]
@@ -243,13 +243,13 @@ async def test_create_link_purges_matching_rejection(client, conn, admin_headers
 # POST /scanner/links/bulk
 # ---------------------------------------------------------------------------
 
-async def _post_bulk(client, headers, result_ids, effect_id, **extra):
-    return await client.post(
-        "/scanner/links/bulk",
-        json={"result_ids": [str(r) for r in result_ids], "catalog_record_id": str(effect_id),
-              "catalog_record_table": "effects", **extra},
-        headers=headers,
-    )
+def _bulk_body(result_ids, effect_id, **extra):
+    return {"result_ids": [str(r) for r in result_ids], "catalog_record_id": str(effect_id),
+            "catalog_record_table": "effects", **extra}
+
+
+async def _post_bulk(client, headers, body):
+    return await client.post("/scanner/links/bulk", json=body, headers=headers)
 
 
 @pytest.mark.asyncio
@@ -257,7 +257,7 @@ async def test_bulk_create_links_writes_one_binding_per_result(client, conn, adm
     scan_id, result_id_1 = await insert_scan(conn, status="untracked")
     result_id_2 = await _distinct_result(conn, scan_id)  # distinct vendor/name => distinct fingerprint
     effect_id = await _insert_effect(conn)
-    resp = await _post_bulk(client, admin_headers, [result_id_1, result_id_2], effect_id)
+    resp = await _post_bulk(client, admin_headers, _bulk_body([result_id_1, result_id_2], effect_id))
     assert resp.status_code == 201
     assert resp.json()["links_created"] == 2
     assert await _binding_row(conn, "acme audio reverb pro") is not None
@@ -271,7 +271,7 @@ async def test_bulk_create_links_create_rules_writes_rules(client, conn, admin_h
     scan_id, result_id_1 = await insert_scan(conn, status="untracked")
     result_id_2 = await _distinct_result(conn, scan_id)
     effect_id = await _insert_branded_effect(conn)
-    resp = await _post_bulk(client, admin_headers, [result_id_1, result_id_2], effect_id, create_rules=True)
+    resp = await _post_bulk(client, admin_headers, _bulk_body([result_id_1, result_id_2], effect_id, create_rules=True))
     assert resp.status_code == 201
     assert await _binding_row(conn, "acme audio reverb pro") is not None
     assert await _binding_row(conn, "other vendor delay machine") is not None

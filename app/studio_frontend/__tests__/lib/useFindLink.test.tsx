@@ -37,6 +37,23 @@ afterEach(() => {
   jest.useRealTimers()
 })
 
+const MULTI_UNLINKED = {
+  type: 'orphaned' as const,
+  candidates: [
+    { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r1' },
+    { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r2' },
+  ],
+  total: 2,
+}
+
+async function renderReady(mode: Parameters<typeof useFindLink>[0], sourceId: string, candidates: unknown) {
+  api.scanner.findLinkCandidates.mockResolvedValue(candidates)
+  const { result } = renderHook(() => useFindLink(mode, sourceId), { wrapper })
+  jest.runAllTimers()
+  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  return result
+}
+
 // Step 29: fetches candidates for unlinked-to-orphaned mode
 it('Step 29: fetches candidates with type=unlinked for unlinked-to-orphaned mode', async () => {
   const { result } = renderHook(
@@ -104,18 +121,7 @@ it('Step 31: single-select — second toggleCandidate replaces first selection',
 
 // Step 32: orphaned-to-unlinked is multi-select
 it('Step 32: multi-select — both ids are selected after two toggles', async () => {
-  api.scanner.findLinkCandidates.mockResolvedValue({
-    type: 'orphaned', candidates: [
-      { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r1' },
-      { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r2' },
-    ], total: 2,
-  })
-  const { result } = renderHook(
-    () => useFindLink('orphaned-to-unlinked', 'cat-1'),
-    { wrapper }
-  )
-  jest.runAllTimers()
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await renderReady('orphaned-to-unlinked', 'cat-1', MULTI_UNLINKED)
 
   act(() => { result.current.toggleCandidate('r1') })
   act(() => { result.current.toggleCandidate('r2') })
@@ -125,14 +131,8 @@ it('Step 32: multi-select — both ids are selected after two toggles', async ()
 
 // Step 33: confirmLink calls correct API based on mode
 it('Step 33a: single-select mode calls createLink', async () => {
-  api.scanner.findLinkCandidates.mockResolvedValue(ORPHAN_CANDIDATES)
   api.scanner.createLink.mockResolvedValue({ links_created: 1 })
-  const { result } = renderHook(
-    () => useFindLink('unlinked-to-orphaned', 'uuid-src'),
-    { wrapper }
-  )
-  jest.runAllTimers()
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await renderReady('unlinked-to-orphaned', 'uuid-src', ORPHAN_CANDIDATES)
 
   act(() => { result.current.toggleCandidate('c1') })
   await act(async () => { await result.current.confirmLink() })
@@ -144,19 +144,8 @@ it('Step 33a: single-select mode calls createLink', async () => {
 })
 
 it('Step 33b: multi-select mode calls bulkCreateLinks with result_ids', async () => {
-  api.scanner.findLinkCandidates.mockResolvedValue({
-    type: 'orphaned', candidates: [
-      { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r1' },
-      { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r2' },
-    ], total: 2,
-  })
   api.scanner.bulkCreateLinks.mockResolvedValue({ links_created: 2 })
-  const { result } = renderHook(
-    () => useFindLink('orphaned-to-unlinked', 'cat-src'),
-    { wrapper }
-  )
-  jest.runAllTimers()
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+  const result = await renderReady('orphaned-to-unlinked', 'cat-src', MULTI_UNLINKED)
 
   act(() => { result.current.toggleCandidate('r1') })
   act(() => { result.current.toggleCandidate('r2') })
@@ -168,57 +157,22 @@ it('Step 33b: multi-select mode calls bulkCreateLinks with result_ids', async ()
   expect(api.scanner.createLink).not.toHaveBeenCalled()
 })
 
-// U-11 Step 10: create_rules defaults to false on single-mode createLink
-it('U-11: createLink sends create_rules=false by default', async () => {
-  api.scanner.findLinkCandidates.mockResolvedValue(ORPHAN_CANDIDATES)
-  api.scanner.createLink.mockResolvedValue({ links_created: 1 })
-  const { result } = renderHook(() => useFindLink('unlinked-to-orphaned', 'uuid-src'), { wrapper })
-  jest.runAllTimers()
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
+// U-11 Steps 10-12: confirmLink threads create_rules onto the link request (single + bulk)
+const CREATE_RULES_CASES = [
+  { label: 'single mode defaults create_rules to false', mode: 'unlinked-to-orphaned' as const, sourceId: 'uuid-src', candidates: ORPHAN_CANDIDATES, pick: 'c1', setRules: false, apiFn: 'createLink' as const },
+  { label: 'single mode sends create_rules=true when set', mode: 'unlinked-to-orphaned' as const, sourceId: 'uuid-src', candidates: ORPHAN_CANDIDATES, pick: 'c1', setRules: true, apiFn: 'createLink' as const },
+  { label: 'bulk mode threads create_rules', mode: 'orphaned-to-unlinked' as const, sourceId: 'cat-src', candidates: MULTI_UNLINKED, pick: 'r1', setRules: true, apiFn: 'bulkCreateLinks' as const },
+]
 
-  act(() => { result.current.toggleCandidate('c1') })
+it.each(CREATE_RULES_CASES)('U-11: $label', async ({ mode, sourceId, candidates, pick, setRules, apiFn }) => {
+  api.scanner[apiFn].mockResolvedValue({ links_created: 1 })
+  const result = await renderReady(mode, sourceId, candidates)
+
+  act(() => { result.current.toggleCandidate(pick) })
+  if (setRules) act(() => { result.current.setCreateRules(true) })
   await act(async () => { await result.current.confirmLink() })
 
-  expect(api.scanner.createLink).toHaveBeenCalledWith(
-    expect.objectContaining({ create_rules: false })
-  )
-})
-
-// U-11 Step 11: create_rules=true when the flag is set (single mode)
-it('U-11: createLink sends create_rules=true after setCreateRules(true)', async () => {
-  api.scanner.findLinkCandidates.mockResolvedValue(ORPHAN_CANDIDATES)
-  api.scanner.createLink.mockResolvedValue({ links_created: 1 })
-  const { result } = renderHook(() => useFindLink('unlinked-to-orphaned', 'uuid-src'), { wrapper })
-  jest.runAllTimers()
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-  act(() => { result.current.toggleCandidate('c1') })
-  act(() => { result.current.setCreateRules(true) })
-  await act(async () => { await result.current.confirmLink() })
-
-  expect(api.scanner.createLink).toHaveBeenCalledWith(
-    expect.objectContaining({ create_rules: true })
-  )
-})
-
-// U-11 Step 12: bulk-mode threads create_rules onto bulkCreateLinks
-it('U-11: bulkCreateLinks threads create_rules flag', async () => {
-  api.scanner.findLinkCandidates.mockResolvedValue({
-    type: 'orphaned', candidates: [
-      { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r1' },
-      { ...UNLINKED_CANDIDATES.candidates[0], result_id: 'r2' },
-    ], total: 2,
-  })
-  api.scanner.bulkCreateLinks.mockResolvedValue({ links_created: 2 })
-  const { result } = renderHook(() => useFindLink('orphaned-to-unlinked', 'cat-src'), { wrapper })
-  jest.runAllTimers()
-  await waitFor(() => expect(result.current.isLoading).toBe(false))
-
-  act(() => { result.current.toggleCandidate('r1') })
-  act(() => { result.current.setCreateRules(true) })
-  await act(async () => { await result.current.confirmLink() })
-
-  expect(api.scanner.bulkCreateLinks).toHaveBeenCalledWith(
-    expect.objectContaining({ create_rules: true })
+  expect(api.scanner[apiFn]).toHaveBeenCalledWith(
+    expect.objectContaining({ create_rules: setRules })
   )
 })
