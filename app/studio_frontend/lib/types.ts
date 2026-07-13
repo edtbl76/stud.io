@@ -373,12 +373,14 @@ export interface CreateLinkRequest {
   result_id: string
   catalog_record_id: string
   catalog_record_table: string
+  create_rules?: boolean
 }
 
 export interface BulkCreateLinkRequest {
   result_ids: string[]
   catalog_record_id: string
   catalog_record_table: string
+  create_rules?: boolean
 }
 
 export interface BulkLinkResult {

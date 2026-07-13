@@ -24,17 +24,37 @@ class _ConfirmCtx:
     username: str
 
 
-async def _upsert_plugin_link(
-    conn: Connection, ctx: _ConfirmCtx, rid: object, table: str,
-) -> None:
+@dataclass(frozen=True)
+class PluginLinkWrite:
+    """Column values for a scanner_plugin_links binding (shared by Confirm and Find Link)."""
+    scanned_vendor: str
+    scanned_name: str
+    fingerprint: str
+    record_id: object
+    record_table: str
+    confirmed_by: str
+
+
+async def upsert_plugin_link(conn: Connection, link: PluginLinkWrite) -> None:
+    """Write the persistent binding shared by the Confirm and Find Link paths."""
     await conn.execute(
         "INSERT INTO scanner_plugin_links "
         "(scanned_vendor,scanned_name,fingerprint,record_id,record_table,confirmed_by) "
         "VALUES ($1,$2,$3,$4,$5,$6) "
         "ON CONFLICT (fingerprint) DO UPDATE SET record_id=$4,record_table=$5,"
         "confirmed_at=NOW(),confirmed_by=$6",
-        ctx.row["vendor"], ctx.row["name"], ctx.fp, rid, table, ctx.username,
+        link.scanned_vendor, link.scanned_name, link.fingerprint,
+        link.record_id, link.record_table, link.confirmed_by,
     )
+
+
+async def _upsert_plugin_link(
+    conn: Connection, ctx: _ConfirmCtx, rid: object, table: str,
+) -> None:
+    await upsert_plugin_link(conn, PluginLinkWrite(
+        scanned_vendor=ctx.row["vendor"], scanned_name=ctx.row["name"],
+        fingerprint=ctx.fp, record_id=rid, record_table=table, confirmed_by=ctx.username,
+    ))
 
 
 async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:

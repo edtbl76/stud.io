@@ -24,7 +24,7 @@ function getCandidateName(candidate: WorkbenchRow): string {
 }
 
 export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<FindLinkModalProps>) {
-  const { candidates, isLoading, query, setQuery, selectedIds, toggleCandidate, confirmLink, isSubmitting } =
+  const { candidates, isLoading, query, setQuery, selectedIds, toggleCandidate, createRules, setCreateRules, confirmLink, isSubmitting } =
     useFindLink(mode, sourceId)
 
   const rows = candidates as WorkbenchRow[]
@@ -37,6 +37,10 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
   async function handleConfirm() {
     await confirmLink()
     onLinked()
+  }
+
+  function handleToggleCreateRules(e: React.ChangeEvent<HTMLInputElement>) {
+    setCreateRules(e.target.checked)
   }
 
   return (
@@ -75,6 +79,17 @@ export function FindLinkModal({ mode, sourceId, onClose, onLinked }: Readonly<Fi
         </ul>
       )}
 
+        </div>
+
+        <div className="px-6 pb-2">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={createRules}
+              onChange={handleToggleCreateRules}
+            />
+            <span>Also add a normalization rule for this vendor/name</span>
+          </label>
         </div>
 
         <DialogFooter>
