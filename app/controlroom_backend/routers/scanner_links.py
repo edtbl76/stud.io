@@ -169,8 +169,9 @@ async def create_link(body: CreateLinkRequest, user: Annotated[UserOut, Depends(
 @router.post("/links/bulk", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
 async def bulk_create_links(body: BulkCreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     spec = _LinkSpec(_CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username, body.create_rules)
-    results = [
-        await _create_link_for_result(conn, result_id, spec)
-        for result_id in body.result_ids
-    ]
+    async with conn.transaction():
+        results = [
+            await _create_link_for_result(conn, result_id, spec)
+            for result_id in body.result_ids
+        ]
     return BulkLinkResult(links_created=sum(results))

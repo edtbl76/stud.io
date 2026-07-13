@@ -267,6 +267,17 @@ async def test_bulk_create_links_writes_one_binding_per_result(client, conn, adm
 
 
 @pytest.mark.asyncio
+async def test_bulk_create_links_rolls_back_on_partial_failure(client, conn, admin_headers):
+    scan_id, result_id_1 = await insert_scan(conn, status="untracked")
+    effect_id = await _insert_effect(conn)
+    missing_result = uuid4()  # second id does not exist => 404 after the first binding is written
+    resp = await _post_bulk(client, admin_headers, _bulk_body([result_id_1, missing_result], effect_id))
+    assert resp.status_code == 404
+    # the first result's binding must have rolled back, not stayed committed
+    assert await _binding_row(conn, "acme audio reverb pro") is None
+
+
+@pytest.mark.asyncio
 async def test_bulk_create_links_create_rules_writes_rules(client, conn, admin_headers):
     scan_id, result_id_1 = await insert_scan(conn, status="untracked")
     result_id_2 = await _distinct_result(conn, scan_id)
