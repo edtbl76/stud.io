@@ -19,9 +19,17 @@ from routers.scanner_ingest import (
 _DISK_PATHS = [{"path": "/Library/VST3/Reverb.vst3", "format": "vst3", "version": "2.0"}]
 
 
-def _row(name, vendor, fmt, path, status):
-    # matches the ingest row tuple: (scan_id,name,vendor,version,format,path,status,confidence,score,record_id,record_table,metadata_source)
+def _row(ident, path, status):
+    """Build an ingest row tuple. ``ident`` = (name, vendor, format).
+
+    Layout: (scan_id,name,vendor,version,format,path,status,confidence,score,record_id,record_table,metadata_source)
+    """
+    name, vendor, fmt = ident
     return (None, name, vendor, "1.0", fmt, path, status, "exact", 100.0, None, None, "vst3")
+
+
+_PQ = ("Pro-Q 3", "FabFilter", "vst3")     # base identity for collision tests
+_PQ_AU = ("Pro-Q 3", "FabFilter", "au")    # same name/vendor, different format
 
 
 def test_no_match_is_unlinked():
@@ -70,38 +78,38 @@ def _statuses(rows):
 
 def test_collision_downgrades_known_to_needs_review():
     rows = [
-        _row("Pro-Q 3", "FabFilter", "vst3", "/a/ProQ.vst3", "known"),
-        _row("Pro-Q 3", "FabFilter", "vst3", "/b/ProQ.vst3", "known"),
+        _row(_PQ, "/a/ProQ.vst3", "known"),
+        _row(_PQ, "/b/ProQ.vst3", "known"),
     ]
     assert _statuses(_apply_collision_override(rows)) == ["needs_review", "needs_review"]
 
 
 def test_no_collision_when_same_path():
     rows = [
-        _row("Pro-Q 3", "FabFilter", "vst3", "/a/ProQ.vst3", "known"),
-        _row("Pro-Q 3", "FabFilter", "vst3", "/a/ProQ.vst3", "known"),
+        _row(_PQ, "/a/ProQ.vst3", "known"),
+        _row(_PQ, "/a/ProQ.vst3", "known"),
     ]
     assert _statuses(_apply_collision_override(rows)) == ["known", "known"]
 
 
 def test_different_format_is_not_a_collision():
     rows = [
-        _row("Pro-Q 3", "FabFilter", "vst3", "/a/ProQ.vst3", "known"),
-        _row("Pro-Q 3", "FabFilter", "au", "/b/ProQ.component", "known"),
+        _row(_PQ, "/a/ProQ.vst3", "known"),
+        _row(_PQ_AU, "/b/ProQ.component", "known"),
     ]
     assert _statuses(_apply_collision_override(rows)) == ["known", "known"]
 
 
 def test_collision_only_touches_known_rows():
     rows = [
-        _row("Pro-Q 3", "FabFilter", "vst3", "/a/ProQ.vst3", "needs_review"),
-        _row("Pro-Q 3", "FabFilter", "vst3", "/b/ProQ.vst3", "unlinked"),
+        _row(_PQ, "/a/ProQ.vst3", "needs_review"),
+        _row(_PQ, "/b/ProQ.vst3", "unlinked"),
     ]
     assert _statuses(_apply_collision_override(rows)) == ["needs_review", "unlinked"]
 
 
 def test_no_collision_returns_rows_unchanged():
-    rows = [_row("Serum", "Xfer", "vst3", "/a/Serum.vst3", "known")]
+    rows = [_row(("Serum", "Xfer", "vst3"), "/a/Serum.vst3", "known")]
     assert _apply_collision_override(rows) == rows
 
 
