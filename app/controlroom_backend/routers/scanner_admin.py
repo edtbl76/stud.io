@@ -38,14 +38,12 @@ _HINT_LEN  = 4
 _SCAN_HISTORY_SQL = (
     "SELECT ps.scan_id, ps.scanned_at, ps.source_machine, ps.total_count, "
     "COUNT(*) FILTER (WHERE r.status='known') AS known, "
-    "COUNT(*) FILTER (WHERE r.status='matched') AS matched, "
-    "COUNT(*) FILTER (WHERE r.status='conflicted') AS conflicted, "
-    "COUNT(*) FILTER (WHERE r.status='unconfirmed') AS unconfirmed, "
-    "COUNT(*) FILTER (WHERE r.status='untracked') AS untracked, "
+    "COUNT(*) FILTER (WHERE r.status='needs_review') AS needs_review, "
+    "COUNT(*) FILTER (WHERE r.status='unlinked') AS unlinked, "
     "COUNT(*) FILTER (WHERE r.status='orphaned') AS orphaned, "
-    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status IN ('known','matched')) AS confirmed, "
-    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='untracked') AS rejected, "
-    "COUNT(*) FILTER (WHERE r.status='ignored') AS ignored "
+    "COUNT(*) FILTER (WHERE r.status='excluded') AS excluded, "
+    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='known') AS confirmed, "
+    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='unlinked') AS rejected "
     "FROM plugin_scans ps "
     "LEFT JOIN plugin_scan_results r ON r.scan_id = ps.scan_id "
     "GROUP BY ps.scan_id, ps.scanned_at, ps.source_machine, ps.total_count "
@@ -171,17 +169,15 @@ async def list_scans(
             total_count=r["total_count"],
             status_counts=StatusCounts(
                 known=r["known"],
-                matched=r["matched"],
-                conflicted=r["conflicted"],
-                unconfirmed=r["unconfirmed"],
-                untracked=r["untracked"],
+                needs_review=r["needs_review"],
+                unlinked=r["unlinked"],
                 orphaned=r["orphaned"],
-                ignored=r["ignored"],
+                excluded=r["excluded"],
             ),
             confirmation_counts=ConfirmationCounts(
                 confirmed=r["confirmed"],
                 rejected=r["rejected"],
-                ignored=r["ignored"],
+                excluded=r["excluded"],
             ),
         )
         for r in rows

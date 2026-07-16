@@ -51,11 +51,10 @@ async def test_ingest_scan_returns_summary(client, conn, scanner_key):
     assert response.status_code == 200
     data = response.json()
     assert "scan_id" in data
-    # S-12: response uses new five-bucket vocabulary
+    # S-12: response uses new five-bucket vocabulary; no old-vocab keys
     assert data["unlinked"] + data["needs_review"] == 1
-    assert "matched" not in data
-    assert "untracked" not in data
-    assert "unconfirmed" not in data
+    for old in ("matched", "conflicted", "unconfirmed", "untracked", "ignored"):
+        assert old not in data
     stored = await conn.fetchval(
         "SELECT metadata_source FROM plugin_scan_results WHERE scan_id=$1",
         data["scan_id"],
@@ -102,7 +101,7 @@ async def test_ingest_scan_revoked_key_returns_401(client, conn, scanner_key):
 
 @pytest.mark.asyncio
 async def test_confirm_reject_clears_match(client, conn, admin_headers):
-    _, result_id = await insert_scan(conn, "unconfirmed")
+    _, result_id = await insert_scan(conn, "needs_review")
     response = await client.post(
         "/scanner/confirm",
         json={"confirmations": [{"result_id": str(result_id), "action": "reject"}]},
@@ -113,12 +112,12 @@ async def test_confirm_reject_clears_match(client, conn, admin_headers):
     updated = await conn.fetchval(
         "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id,
     )
-    assert updated == "untracked"
+    assert updated == "unlinked"  # U-08: reject → unlinked (was 'untracked')
 
 
 @pytest.mark.asyncio
 async def test_confirm_ignore_adds_exclusion_and_removes_link(client, conn, admin_headers):
-    _, result_id = await insert_scan(conn, "untracked")
+    _, result_id = await insert_scan(conn, "unlinked")
     fp = "acme audio reverb pro"
     await conn.execute(
         "INSERT INTO scanner_plugin_links "
@@ -141,6 +140,10 @@ async def test_confirm_ignore_adds_exclusion_and_removes_link(client, conn, admi
         "SELECT COUNT(*) FROM scanner_plugin_links WHERE fingerprint=$1", fp,
     )
     assert link_count == 0
+    status = await conn.fetchval(
+        "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id,
+    )
+    assert status == "excluded"  # U-08: ignore → excluded (was 'ignored')
 
 
 @pytest.mark.asyncio
@@ -160,7 +163,7 @@ async def test_confirm_unknown_result_id_returns_error_entry(client, admin_heade
 
 @pytest.mark.asyncio
 async def test_confirm_requires_admin(client, conn, auth_headers):
-    _, result_id = await insert_scan(conn, "untracked")
+    _, result_id = await insert_scan(conn, "unlinked")
     response = await client.post(
         "/scanner/confirm",
         json={"confirmations": [{"result_id": str(result_id), "action": "reject"}]},
@@ -327,14 +330,17 @@ async def test_list_exclusions_rejects_revoked_api_key(client, conn, scanner_key
 
 @pytest.mark.asyncio
 async def test_list_scans_returns_history(client, conn, auth_headers):
-    await insert_scan(conn)
+    await insert_scan(conn, "known")
     response = await client.get("/scanner/scans", headers=auth_headers)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 1
     assert data[0]["source_machine"] == "test-machine"
-    assert "status_counts" in data[0]
-    assert "confirmation_counts" in data[0]
+    # U-08: five-bucket status counts + derived confirmation counts
+    sc = data[0]["status_counts"]
+    assert sc["known"] == 1
+    assert set(sc.keys()) == {"known", "needs_review", "unlinked", "orphaned", "excluded"}
+    assert set(data[0]["confirmation_counts"].keys()) == {"confirmed", "rejected", "excluded"}
 
 
 @pytest.mark.asyncio

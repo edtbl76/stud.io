@@ -33,7 +33,7 @@ async def insert_matched_result(conn, *, record_id, record_table="effects"):
         " record_id, record_table, confidence) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
         scan_id, "Reverb Pro", "Acme Audio", "1.0.0", "vst3",
-        "/path/reverb.vst3", "matched",
+        "/path/reverb.vst3", "known",
         record_id, record_table, "exact",
     )
     return scan_id, result_id

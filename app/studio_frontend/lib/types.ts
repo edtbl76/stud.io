@@ -437,12 +437,10 @@ export interface BulkUpdateResult {
 
 export interface StatusCounts {
   known: number
-  matched: number
-  conflicted: number
-  unconfirmed: number
-  untracked: number
+  needs_review: number
+  unlinked: number
   orphaned: number
-  ignored: number
+  excluded: number
 }
 
 export interface ScannerApiKeyResponse {

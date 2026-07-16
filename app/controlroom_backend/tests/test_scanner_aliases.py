@@ -85,13 +85,14 @@ async def test_alias_resolves_scanned_variant_to_known(client, conn, scanner_key
 
 
 @pytest.mark.asyncio
-async def test_alias_version_mismatch_goes_conflicted(client, conn, scanner_key):
+async def test_alias_version_mismatch_goes_needs_review(client, conn, scanner_key):
     eid = await _effect(conn, "Zz14Comp", version="1.0")
     await _alias(conn, "Zz14Comp(m)", str(eid))
     await _ingest(client, scanner_key, _scan("Zz14Comp(m)", version="9.9"))
     row = await _last_row(conn, "Zz14Comp(m)")
     assert row["confidence"] == "exact"
-    assert row["status"] == "conflicted"
+    # U-08: exact match with a version mismatch is needs_review (was 'conflicted')
+    assert row["status"] == "needs_review"
 
 
 @pytest.mark.asyncio
@@ -145,7 +146,7 @@ async def test_seeded_mono_variant_end_to_end(client, conn, scanner_key, admin_h
     sid = await conn.fetchval("INSERT INTO plugin_scans (source_machine, total_count) VALUES ('m',1) RETURNING scan_id")
     await conn.execute(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
-        "VALUES ($1,'Zz14Mono(m)','Zz14MonoAcme','1.0','vst3','/m/mono.vst3','untracked')", sid,
+        "VALUES ($1,'Zz14Mono(m)','Zz14MonoAcme','1.0','vst3','/m/mono.vst3','unlinked')", sid,
     )
 
     seeded = await conn.fetchval("SELECT rule_id FROM scanner_name_patterns WHERE label='Mono variant'")

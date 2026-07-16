@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Optional
 
 
-async def insert_scan(conn, status: str = "untracked", scanned_at: Optional[datetime] = None) -> tuple:
+async def insert_scan(conn, status: str = "unlinked", scanned_at: Optional[datetime] = None) -> tuple:
     """Insert a plugin_scan + one plugin_scan_result; return (scan_id, result_id)."""
     if scanned_at is not None:
         scan_id = await conn.fetchval(

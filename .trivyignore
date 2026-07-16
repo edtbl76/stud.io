@@ -103,6 +103,17 @@ CVE-2026-48962
 # Unzip path is not invoked by the application. Revisit when trixie ships patched perl 5.40.
 CVE-2026-48959
 
+# CVE-2026-13221 (CRITICAL): perl <= 5.43.9 (libperl5.40, perl, perl-base, perl-modules-5.40,
+# 5.40.1-6) — silently incorrect results in certain numeric/string operations. No fixed debian
+# trixie package available. perl is a runtime dep of pg backup tooling only; the application does
+# not evaluate perl expressions on request-path data. Revisit when trixie ships patched perl 5.40.
+CVE-2026-13221
+
+# CVE-2026-57432 (HIGH): perl <= 5.43.10 (same packages) — integer overflow. No fixed debian trixie
+# package available. Same posture as above — perl is backup-tooling-only, not in the request path.
+# Revisit when trixie ships patched perl 5.40.
+CVE-2026-57432
+
 # SQLite CVEs in controlroom_backend — no fix available in debian trixie
 # libsqlite3-0 is an indirect OS dependency only; the application uses PostgreSQL (asyncpg)
 # exclusively and never opens a SQLite database. Revisit when trixie ships sqlite3 >= 3.53.2.

@@ -161,7 +161,42 @@ async def test_plugin_scan_results_not_null_columns(conn):
             "INSERT INTO plugin_scan_results "
             "(scan_id, name, vendor, version, format, path, status) "
             "VALUES ($1, NULL, $2, $3, $4, $5, $6)",
-            scan_id, 'Acme', '1.0', 'vst3', '/path', 'untracked',
+            scan_id, 'Acme', '1.0', 'vst3', '/path', 'unlinked',
+        )
+
+
+# ---------------------------------------------------------------------------
+# U-08 status vocabulary CHECK (five-bucket frozen snapshot)
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["known", "needs_review", "unlinked", "orphaned", "excluded"])
+async def test_status_check_accepts_five_bucket_values(conn, status):
+    scan_id = await conn.fetchval(
+        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ('m', 1) RETURNING scan_id"
+    )
+    await conn.execute(
+        "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
+        "VALUES ($1, 'N', 'V', '1.0', 'vst3', '/p', $2)",
+        scan_id, status,
+    )
+    stored = await conn.fetchval(
+        "SELECT status FROM plugin_scan_results WHERE scan_id=$1", scan_id
+    )
+    assert stored == status
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("status", ["matched", "conflicted", "unconfirmed", "untracked", "ignored"])
+async def test_status_check_rejects_retired_values(conn, status):
+    scan_id = await conn.fetchval(
+        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ('m', 1) RETURNING scan_id"
+    )
+    with pytest.raises(Exception):
+        await conn.execute(
+            "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
+            "VALUES ($1, 'N', 'V', '1.0', 'vst3', '/p', $2)",
+            scan_id, status,
         )
 
 
@@ -180,7 +215,7 @@ async def test_scan_results_cascade_delete(conn):
         "INSERT INTO plugin_scan_results "
         "(scan_id, name, vendor, version, format, path, status) "
         "VALUES ($1, $2, $3, $4, $5, $6, $7)",
-        scan_id, 'Reverb Pro', 'Acme Audio', '1.0', 'vst3', '/path/reverb.vst3', 'untracked',
+        scan_id, 'Reverb Pro', 'Acme Audio', '1.0', 'vst3', '/path/reverb.vst3', 'unlinked',
     )
     count_before = await conn.fetchval(
         "SELECT COUNT(*) FROM plugin_scan_results WHERE scan_id = $1", scan_id

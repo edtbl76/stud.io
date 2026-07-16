@@ -3,12 +3,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from asyncpg import Connection, Record
+from asyncpg import Connection
 from rapidfuzz import fuzz
 
-# Re-exported from scanner_catalog so existing importers of routers.scanner_match
-# keep working during the U-07 migration.
-from routers.scanner_catalog import CATALOG_TABLES, CatalogRecord
+from routers.scanner_catalog import CatalogRecord
 
 # ---------------------------------------------------------------------------
 # Score thresholds (named constants — no magic numbers in match_plugin)
@@ -48,30 +46,6 @@ async def load_aliases(conn: Connection) -> dict[str, tuple[str, str]]:
         "SELECT disk_name, catalog_record_id::text, catalog_table FROM scanner_name_aliases"
     )
     return {r["disk_name"]: (str(r["catalog_record_id"]), r["catalog_table"]) for r in rows}
-
-
-def _meta_candidates(results: list[Record]) -> dict[str, tuple]:
-    """Return {rid: (table, record_id)} for results that need a catalog metadata fetch."""
-    return {
-        str(r["record_id"]): (r["record_table"], r["record_id"])
-        for r in results
-        if r["record_id"] and r["record_table"] in CATALOG_TABLES
-    }
-
-
-async def fetch_match_meta(conn: Connection, results: list[Record]) -> dict[str, dict]:
-    """Fetch catalog name/vendor/version/disk_paths for each distinct matched record."""
-    meta: dict[str, dict] = {}
-    for rid, (table, record_id) in _meta_candidates(results).items():
-        pk, nc = CATALOG_TABLES[table]
-        rec = await conn.fetchrow(
-            f"SELECT {nc} AS name, b.brand_name AS vendor, t.version, t.disk_paths "
-            f"FROM {table} t LEFT JOIN brands b ON t.brand_id=b.brand_id WHERE {pk}=$1",
-            record_id,
-        )
-        if rec:
-            meta[rid] = dict(rec)
-    return meta
 
 
 # ---------------------------------------------------------------------------

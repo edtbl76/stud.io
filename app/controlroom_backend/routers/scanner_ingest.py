@@ -29,13 +29,21 @@ router = APIRouter()
 
 
 def _assign_status(confidence: str, disk_ver: str, record_ver: str | None, disk_paths: list | None = None) -> str:
+    """Derive the frozen five-bucket ingest status (U-08).
+
+    Returns one of: known, needs_review, unlinked. (orphaned is set by the
+    catalog-absence path; excluded only by user actions.) An exact,
+    version-agreeing match is `known` only once reconciled (catalog has
+    disk_paths); until then it is `needs_review` (Q1).
+    """
     if confidence == "none":
-        return "untracked"
-    if confidence == "exact":
-        if disk_ver != (record_ver or ""):
-            return "conflicted"
-        return "known" if disk_paths else "matched"
-    return "unconfirmed"
+        return "unlinked"
+    if confidence != "exact":
+        return "needs_review"
+    versions_agree = disk_ver == (record_ver or "")
+    if versions_agree and disk_paths:
+        return "known"
+    return "needs_review"
 
 
 async def _resolved_plugin_row(
@@ -94,6 +102,40 @@ async def _resolve_plugin_row(
     return None
 
 
+def _apply_collision_override(rows: list[tuple]) -> list[tuple]:
+    """Downgrade `known` rows to `needs_review` when they collide (U-08, Q3).
+
+    A collision is 2+ installs of the same (name, vendor, format) at distinct
+    paths within the scan. The collision sub-state is not stored — only the
+    coarse `needs_review` value.
+    """
+    paths_by_key: dict[tuple, set] = {}
+    for r in rows:
+        paths_by_key.setdefault((r[1], r[2], r[4]), set()).add(r[5])
+    colliding = {k for k, paths in paths_by_key.items() if len(paths) >= 2}
+    if not colliding:
+        return rows
+    return [
+        r[:6] + ("needs_review",) + r[7:]
+        if r[6] == "known" and (r[1], r[2], r[4]) in colliding else r
+        for r in rows
+    ]
+
+
+async def _summary_counts(conn: Connection, scan_id: UUID) -> dict[str, int]:
+    """Per-bucket counts over a scan's frozen five-value status snapshot."""
+    counts = await conn.fetchrow(
+        "SELECT "
+        "COUNT(*) FILTER (WHERE status='known')        AS known,"
+        "COUNT(*) FILTER (WHERE status='unlinked')     AS unlinked,"
+        "COUNT(*) FILTER (WHERE status='orphaned')     AS orphaned,"
+        "COUNT(*) FILTER (WHERE status='needs_review') AS needs_review,"
+        "COUNT(*) FILTER (WHERE status='excluded')     AS excluded "
+        "FROM plugin_scan_results WHERE scan_id=$1", scan_id,
+    )
+    return dict(counts)
+
+
 @router.post("/scan")
 async def ingest_scan(
     payload: ScanPayload,
@@ -123,17 +165,8 @@ async def ingest_scan(
             "INSERT INTO plugin_scan_results "
             "(scan_id,name,vendor,version,format,path,status,confidence,score,record_id,record_table,metadata_source)"
             " VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
-            rows,
+            _apply_collision_override(rows),
         )
         await insert_orphans(conn, scan_id, links, seen)
 
-    counts = await conn.fetchrow(
-        "SELECT "
-        "COUNT(*) FILTER (WHERE status='known')                                 AS known,"
-        "COUNT(*) FILTER (WHERE status IN ('untracked','unlinked'))             AS unlinked,"
-        "COUNT(*) FILTER (WHERE status='orphaned')                              AS orphaned,"
-        "COUNT(*) FILTER (WHERE status IN ('matched','unconfirmed','conflicted','needs_review')) AS needs_review,"
-        "COUNT(*) FILTER (WHERE status IN ('ignored','excluded'))               AS excluded "
-        "FROM plugin_scan_results WHERE scan_id=$1", scan_id,
-    )
-    return ScanSummary(scan_id=scan_id, **dict(counts))
+    return ScanSummary(scan_id=scan_id, **await _summary_counts(conn, scan_id))
