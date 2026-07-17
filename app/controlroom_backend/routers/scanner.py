@@ -1,16 +1,16 @@
-"""Plugin Scanner — report, catalog search, and result actions.
+"""Plugin Scanner — catalog search, and result actions.
 
-  GET   /scanner/report[?scan_id=]         — scan report (latest or specific run)
   GET   /scanner/catalog/search            — catalog search for manual linking
   PATCH /scanner/results/{id}/dismiss      — dismiss an orphaned result
   PATCH /scanner/results/{result_id}/keep  — permanently keep a confirmed link
   POST  /scanner/confirm                   — apply user decisions
 
-Scan ingest (`POST /scanner/scan`) lives in `scanner_ingest`; auth deps in `scanner_auth`.
+Scan ingest (`POST /scanner/scan`) lives in `scanner_ingest`; the read-only Scan
+Report lives in `scanner_report`; auth deps in `scanner_auth`.
 """
 from __future__ import annotations
 
-from typing import Annotated, Any, Mapping
+from typing import Annotated
 from uuid import UUID
 
 from asyncpg import Connection
@@ -19,77 +19,10 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
 from routers.scanner_actions import apply_confirmation
-from routers.scanner_catalog import CATALOG_TABLES, absent_query, catalog_search_query
-from routers.scanner_match import fetch_match_meta
-from schemas.scanner import (
-    AbsentRecord, CatalogSearchResult, ConfirmPayload, ConfirmResult,
-    ScanReport, ScanResult, build_scan_result,
-)
+from routers.scanner_catalog import CATALOG_TABLES, catalog_search_query
+from schemas.scanner import CatalogSearchResult, ConfirmPayload, ConfirmResult
 
 router = APIRouter()
-
-
-# ---------------------------------------------------------------------------
-# GET /report
-# ---------------------------------------------------------------------------
-
-async def _fetch_scan(conn: Connection, scan_id: UUID | None) -> Mapping[str, Any] | None:
-    if scan_id is not None:
-        return await conn.fetchrow(
-            "SELECT scan_id, scanned_at FROM plugin_scans WHERE scan_id=$1", scan_id
-        )
-    return await conn.fetchrow(
-        "SELECT scan_id, scanned_at FROM plugin_scans ORDER BY scanned_at DESC LIMIT 1"
-    )
-
-
-async def _fetch_absent_records(conn: Connection, scan_id: UUID) -> list[AbsentRecord]:
-    rows = await conn.fetch(
-        f"SELECT * FROM ({absent_query()}) c "
-        f"WHERE c.record_id::uuid NOT IN ("
-        f"  SELECT record_id FROM plugin_scan_results "
-        f"  WHERE scan_id=$1 AND record_id IS NOT NULL "
-        f"  AND status IN ('known','matched','conflicted')"
-        f")",
-        scan_id,
-    )
-    return [
-        AbsentRecord(
-            record_id=r["record_id"], record_table=r["record_table"],
-            name=r["name"], vendor=r["vendor"], version=r["version"],
-            disk_paths=r["disk_paths"] or [],
-        )
-        for r in rows
-    ]
-
-
-@router.get("/report", responses={404: {"description": "No scans found"}})
-async def get_report(
-    _user: Annotated[UserOut, Depends(get_current_user)],
-    conn: Annotated[Connection, Depends(get_conn)],
-    scan_id: UUID | None = None,
-) -> ScanReport:
-    scan = await _fetch_scan(conn, scan_id)
-    if not scan:
-        raise HTTPException(status_code=404, detail="No scans found")
-
-    results = await conn.fetch(
-        "SELECT result_id,status,name,vendor,version,format,path,"
-        "confidence,score,record_id,record_table,dismissed_at,confirmed_at "
-        "FROM plugin_scan_results WHERE scan_id=$1 "
-        "ORDER BY name, result_id",
-        scan["scan_id"],
-    )
-    meta = await fetch_match_meta(conn, results)
-    grouped: dict[str, list[ScanResult]] = {
-        s: [] for s in ("known", "matched", "conflicted", "unconfirmed", "untracked", "orphaned", "ignored")
-    }
-    for r in results:
-        if r["status"] in grouped:
-            grouped[r["status"]].append(build_scan_result(r, meta))
-
-    absent = await _fetch_absent_records(conn, scan["scan_id"])
-    return ScanReport(scan_id=scan["scan_id"], scanned_at=scan["scanned_at"], absent=absent, **grouped)
 
 
 # ---------------------------------------------------------------------------

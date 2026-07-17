@@ -49,11 +49,12 @@ sequenceDiagram
         FastAPI->>FastAPI: Tier 1 — exact fingerprint match
         FastAPI->>FastAPI: Tier 2 — fuzzy vendor+name (rapidfuzz)
         FastAPI->>FastAPI: Tier 3 — fuzzy name-only
-        FastAPI->>FastAPI: Assign status: known / matched / conflicted / unconfirmed / untracked / excluded
+        FastAPI->>FastAPI: Assign frozen status: known / needs_review / unlinked (+ orphaned via absence)
     end
+    FastAPI->>FastAPI: Collision override — same (name,vendor,format) at 2+ paths: known → needs_review
     FastAPI->>DB: INSERT INTO plugin_scan_results (bulk executemany)
     FastAPI->>DB: INSERT orphaned rows for confirmed links not seen in this scan
-    FastAPI-->>Binary: ScanSummary {scan_id, known, matched, conflicted, unconfirmed, untracked, orphaned, excluded}
+    FastAPI-->>Binary: ScanSummary {scan_id, known, needs_review, unlinked, orphaned, excluded}
     Binary->>Binary: Render terminal summary or --json output
 ```
 
@@ -82,7 +83,7 @@ sequenceDiagram
             FastAPI->>DB: UPSERT scanner_plugin_links
             FastAPI->>DB: Append {path, format, version} to {catalog_table}.disk_paths JSONB
         else action = reject
-            FastAPI->>DB: UPDATE plugin_scan_results SET status=untracked, record_id=NULL
+            FastAPI->>DB: UPDATE plugin_scan_results SET status=unlinked, record_id=NULL
             FastAPI->>DB: DELETE FROM scanner_plugin_links WHERE fingerprint=$fp
         else action = ignore
             FastAPI->>DB: INSERT INTO scanner_exclusions (vendor, name) ON CONFLICT DO NOTHING

@@ -38,7 +38,7 @@ async def _insert_branded_effect(conn, name="Reverb Pro", brand="Catalog Brand")
 async def _distinct_result(conn, scan_id, vendor="Other Vendor", name="Delay Machine") -> uuid4:
     return await conn.fetchval(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
-        "VALUES ($1,$2,$3,'1.0.0','vst3','/p/delay.vst3','untracked') RETURNING result_id",
+        "VALUES ($1,$2,$3,'1.0.0','vst3','/p/delay.vst3','unlinked') RETURNING result_id",
         scan_id, name, vendor,
     )
 
@@ -46,13 +46,13 @@ async def _distinct_result(conn, scan_id, vendor="Other Vendor", name="Delay Mac
 async def _setup_candidates(conn) -> tuple:
     """Shared setup: orphaned catalog record + unlinked scan result."""
     effect_id = await _insert_effect_with_paths(conn)
-    _, result_id = await insert_scan(conn, status="untracked")
+    _, result_id = await insert_scan(conn, status="unlinked")
     return effect_id, result_id
 
 
 async def _setup_link(conn) -> tuple:
     """Shared setup: unlinked result + plain catalog record."""
-    _, result_id = await insert_scan(conn, status="untracked")
+    _, result_id = await insert_scan(conn, status="unlinked")
     effect_id = await _insert_effect(conn)
     return result_id, effect_id
 
@@ -77,7 +77,7 @@ async def test_candidates_unlinked_returns_orphaned_records(client, conn, admin_
 async def test_candidates_unlinked_q_filter(client, conn, admin_headers):
     await _insert_effect_with_paths(conn, name="Reverb Pro")
     await _insert_effect_with_paths(conn, name="Delay Machine")
-    _, result_id = await insert_scan(conn, status="untracked")
+    _, result_id = await insert_scan(conn, status="unlinked")
     resp = await client.get(
         f"/scanner/links/candidates?type=unlinked&source_id={result_id}&q=reverb", headers=admin_headers
     )
@@ -174,7 +174,7 @@ async def test_create_link_binding_columns_match_confirm_shape(client, conn, adm
 
 @pytest.mark.asyncio
 async def test_create_link_create_rules_writes_rules(client, conn, admin_headers):
-    _, result_id = await insert_scan(conn, status="untracked")
+    _, result_id = await insert_scan(conn, status="unlinked")
     effect_id = await _insert_branded_effect(conn)
     resp = await _post_link(client, admin_headers, _link_body(result_id, effect_id, create_rules=True))
     assert resp.status_code == 201
@@ -254,7 +254,7 @@ async def _post_bulk(client, headers, body):
 
 @pytest.mark.asyncio
 async def test_bulk_create_links_writes_one_binding_per_result(client, conn, admin_headers):
-    scan_id, result_id_1 = await insert_scan(conn, status="untracked")
+    scan_id, result_id_1 = await insert_scan(conn, status="unlinked")
     result_id_2 = await _distinct_result(conn, scan_id)  # distinct vendor/name => distinct fingerprint
     effect_id = await _insert_effect(conn)
     resp = await _post_bulk(client, admin_headers, _bulk_body([result_id_1, result_id_2], effect_id))
@@ -268,7 +268,7 @@ async def test_bulk_create_links_writes_one_binding_per_result(client, conn, adm
 
 @pytest.mark.asyncio
 async def test_bulk_create_links_rolls_back_on_partial_failure(client, conn, admin_headers):
-    scan_id, result_id_1 = await insert_scan(conn, status="untracked")
+    scan_id, result_id_1 = await insert_scan(conn, status="unlinked")
     effect_id = await _insert_effect(conn)
     missing_result = uuid4()  # second id does not exist => 404 after the first binding is written
     resp = await _post_bulk(client, admin_headers, _bulk_body([result_id_1, missing_result], effect_id))
@@ -279,7 +279,7 @@ async def test_bulk_create_links_rolls_back_on_partial_failure(client, conn, adm
 
 @pytest.mark.asyncio
 async def test_bulk_create_links_create_rules_writes_rules(client, conn, admin_headers):
-    scan_id, result_id_1 = await insert_scan(conn, status="untracked")
+    scan_id, result_id_1 = await insert_scan(conn, status="unlinked")
     result_id_2 = await _distinct_result(conn, scan_id)
     effect_id = await _insert_branded_effect(conn)
     resp = await _post_bulk(client, admin_headers, _bulk_body([result_id_1, result_id_2], effect_id, create_rules=True))

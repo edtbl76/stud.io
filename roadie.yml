@@ -53,6 +53,7 @@ build:
     - sql/migrations/scanner_rewrite_u01.sql
     - sql/migrations/scanner_rewrite_u02_schema.sql
     - sql/migrations/scanner_rewrite_u05b_exclusions.sql
+    - sql/migrations/scanner_rewrite_u08_vocab_snapshot.sql
     - sql/views.sql
   seed_files:
     - sql/seeds/01_entity_types.sql

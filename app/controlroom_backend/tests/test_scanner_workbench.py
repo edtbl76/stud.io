@@ -20,7 +20,7 @@ async def insert_effect(conn, name: str = "ZZZTESTPLUGIN_XYZ", disk_paths=None) 
     return record_id
 
 
-async def insert_result(conn, scan_id, status: str = "untracked") -> uuid.UUID:
+async def insert_result(conn, scan_id, status: str = "unlinked") -> uuid.UUID:
     return await conn.fetchval(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING result_id",
@@ -32,7 +32,7 @@ async def insert_named_result(conn, scan_id, name: str, path: str) -> uuid.UUID:
     return await conn.fetchval(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING result_id",
-        scan_id, name, "ZZZTESTVENDOR_XYZ", "1.0.0", "vst3", path, "untracked",
+        scan_id, name, "ZZZTESTVENDOR_XYZ", "1.0.0", "vst3", path, "unlinked",
     )
 
 
@@ -42,7 +42,7 @@ async def insert_matched_result(conn, scan_id, record_id, record_table: str) -> 
         "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
         scan_id, "ZZZTESTPLUGIN_XYZ", "ZZZTESTVENDOR_XYZ", "1.0.0", "vst3",
-        "/path/zzztest.vst3", "matched", record_id, record_table, "exact",
+        "/path/zzztest.vst3", "known", record_id, record_table, "exact",
     )
 
 
@@ -52,7 +52,7 @@ async def insert_confirmed_result(conn, scan_id, record_id, record_table: str) -
         "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence, confirmed_at) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING result_id",
         scan_id, "ZZZTESTPLUGIN_XYZ", "ZZZTESTVENDOR_XYZ", "1.0.0", "vst3",
-        "/path/zzztest.vst3", "matched", record_id, record_table, "exact",
+        "/path/zzztest.vst3", "known", record_id, record_table, "exact",
         datetime.now(timezone.utc),
     )
 
@@ -162,7 +162,7 @@ async def test_workbench_vendor_rule_changes_display_vendor(client, conn, admin_
     await conn.fetchval(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING result_id",
-        scan_id, "ZZZTESTPLUGIN_XYZ", "ikmultimedia", "1.0.0", "vst3", "/p/z.vst3", "untracked",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "ikmultimedia", "1.0.0", "vst3", "/p/z.vst3", "unlinked",
     )
     await conn.execute(
         "INSERT INTO scanner_vendor_rules (disk_vendor, catalog_vendor, created_by) VALUES ($1,$2,$3)",
@@ -179,7 +179,7 @@ async def test_workbench_name_rule_changes_display_name(client, conn, admin_head
     await conn.fetchval(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING result_id",
-        scan_id, "bx_farts", "ZZZTESTVENDOR_XYZ", "1.0.0", "vst3", "/p/z.vst3", "untracked",
+        scan_id, "bx_farts", "ZZZTESTVENDOR_XYZ", "1.0.0", "vst3", "/p/z.vst3", "unlinked",
     )
     await conn.execute(
         "INSERT INTO scanner_name_rules (disk_name, catalog_name, created_by) VALUES ($1,$2,$3)",
@@ -412,7 +412,7 @@ async def test_bulk_update_writes_disk_version_to_catalog(client, conn, admin_he
         "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
         scan_id, "ZZZTESTPLUGIN_XYZ", "ZZZTESTVENDOR_XYZ", "2.0", "vst3",
-        "/path/zzztest.vst3", "matched", record_id, "effects", "exact",
+        "/path/zzztest.vst3", "known", record_id, "effects", "exact",
     )
 
     resp = await client.post(
@@ -437,13 +437,13 @@ async def test_bulk_update_two_results_same_target_counts_once(client, conn, adm
         "INSERT INTO plugin_scan_results "
         "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
-        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.0", "vst3", "/p1.vst3", "matched", record_id, "effects", "exact",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.0", "vst3", "/p1.vst3", "known", record_id, "effects", "exact",
     )
     rid2 = await conn.fetchval(
         "INSERT INTO plugin_scan_results "
         "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
-        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.1", "au", "/p1.au", "matched", record_id, "effects", "exact",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V1", "2.1", "au", "/p1.au", "known", record_id, "effects", "exact",
     )
     resp = await client.post(
         "/scanner/workbench/bulk-update",
@@ -466,7 +466,7 @@ async def test_bulk_update_missing_catalog_record_not_counted(client, conn, admi
         "INSERT INTO plugin_scan_results "
         "(scan_id, name, vendor, version, format, path, status, record_id, record_table, confidence) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING result_id",
-        scan_id, "ZZZTESTPLUGIN_XYZ", "V", "2.0", "vst3", "/p.vst3", "matched", record_id, "effects", "exact",
+        scan_id, "ZZZTESTPLUGIN_XYZ", "V", "2.0", "vst3", "/p.vst3", "known", record_id, "effects", "exact",
     )
     await conn.execute("DELETE FROM effects WHERE effect_id=$1", record_id)
 
@@ -508,7 +508,7 @@ async def insert_dup_result(conn, scan_id, path: str, fmt: str = "vst3") -> uuid
     """A scan row matching the shared catalog record (default tokens) at a given path/format."""
     return await conn.fetchval(
         "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
-        "VALUES ($1,'ZZZTESTPLUGIN_XYZ','ZZZTESTVENDOR_XYZ','1.0.0',$2,$3,'untracked') RETURNING result_id",
+        "VALUES ($1,'ZZZTESTPLUGIN_XYZ','ZZZTESTVENDOR_XYZ','1.0.0',$2,$3,'unlinked') RETURNING result_id",
         scan_id, fmt, path,
     )
 
@@ -518,7 +518,7 @@ async def insert_confirmed_dup(conn, scan_id, record_id, path: str) -> uuid.UUID
     return await conn.fetchval(
         "INSERT INTO plugin_scan_results "
         "(scan_id,name,vendor,version,format,path,status,record_id,record_table,confidence,confirmed_at) "
-        "VALUES ($1,'ZZZTESTPLUGIN_XYZ','ZZZTESTVENDOR_XYZ','1.0.0','vst3',$2,'matched',$3,'effects','exact',NOW()) "
+        "VALUES ($1,'ZZZTESTPLUGIN_XYZ','ZZZTESTVENDOR_XYZ','1.0.0','vst3',$2,'known',$3,'effects','exact',NOW()) "
         "RETURNING result_id",
         scan_id, path, record_id,
     )

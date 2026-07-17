@@ -63,7 +63,7 @@ def _validation_error(body: PatternRuleIn) -> str | None:
 async def _active_candidates(conn: Connection):
     return await conn.fetch(
         "SELECT result_id, name, vendor, version, format, path FROM plugin_scan_results "
-        "WHERE confirmed_at IS NULL AND status NOT IN ('excluded','ignored')"
+        "WHERE confirmed_at IS NULL AND status != 'excluded'"
     )
 
 

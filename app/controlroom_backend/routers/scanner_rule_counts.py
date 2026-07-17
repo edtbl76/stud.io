@@ -120,12 +120,12 @@ async def _fetch_candidates(conn: Connection, rule_type: str, disk_field: str):
     if rule_type == "vendor":
         return await conn.fetch(
             "SELECT result_id, name, vendor, version FROM plugin_scan_results "
-            "WHERE lower(vendor)=$1 AND confirmed_at IS NULL AND status NOT IN ('excluded','ignored')",
+            "WHERE lower(vendor)=$1 AND confirmed_at IS NULL AND status != 'excluded'",
             disk_field.lower(),
         )
     return await conn.fetch(
         "SELECT result_id, name, vendor, version FROM plugin_scan_results "
-        "WHERE lower(name)=$1 AND confirmed_at IS NULL AND status NOT IN ('excluded','ignored')",
+        "WHERE lower(name)=$1 AND confirmed_at IS NULL AND status != 'excluded'",
         disk_field.lower(),
     )
 
