@@ -344,6 +344,24 @@ async def test_list_scans_returns_history(client, conn, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_scan_history_confirmation_excluded_requires_confirmed_by(client, conn, auth_headers):
+    # An 'excluded' row with no confirmed_by is counted in StatusCounts.excluded (total)
+    # but NOT ConfirmationCounts.excluded (manual exclusions only).
+    scan_id = await conn.fetchval(
+        "INSERT INTO plugin_scans (source_machine, total_count) VALUES ('m', 1) RETURNING scan_id"
+    )
+    await conn.execute(
+        "INSERT INTO plugin_scan_results (scan_id, name, vendor, version, format, path, status) "
+        "VALUES ($1, 'N', 'V', '1.0', 'vst3', '/p', 'excluded')",
+        scan_id,
+    )
+    data = (await client.get("/scanner/scans", headers=auth_headers)).json()
+    run = next(d for d in data if d["scan_id"] == str(scan_id))
+    assert run["status_counts"]["excluded"] == 1
+    assert run["confirmation_counts"]["excluded"] == 0
+
+
+@pytest.mark.asyncio
 async def test_purge_scans_removes_old_runs(client, conn, admin_headers):
     await conn.execute(
         "INSERT INTO plugin_scans (source_machine, total_count, scanned_at) "

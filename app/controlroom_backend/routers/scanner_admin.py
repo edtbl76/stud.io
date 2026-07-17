@@ -43,7 +43,8 @@ _SCAN_HISTORY_SQL = (
     "COUNT(*) FILTER (WHERE r.status='orphaned') AS orphaned, "
     "COUNT(*) FILTER (WHERE r.status='excluded') AS excluded, "
     "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='known') AS confirmed, "
-    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='unlinked') AS rejected "
+    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='unlinked') AS rejected, "
+    "COUNT(*) FILTER (WHERE r.confirmed_by IS NOT NULL AND r.status='excluded') AS excluded_confirmed "
     "FROM plugin_scans ps "
     "LEFT JOIN plugin_scan_results r ON r.scan_id = ps.scan_id "
     "GROUP BY ps.scan_id, ps.scanned_at, ps.source_machine, ps.total_count "
@@ -177,7 +178,7 @@ async def list_scans(
             confirmation_counts=ConfirmationCounts(
                 confirmed=r["confirmed"],
                 rejected=r["rejected"],
-                excluded=r["excluded"],
+                excluded=r["excluded_confirmed"],
             ),
         )
         for r in rows
