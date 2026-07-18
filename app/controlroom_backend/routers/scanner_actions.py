@@ -70,7 +70,7 @@ async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:
             f"result_id {ctx.c.result_id}: catalog record {rid} in {table!r} no longer exists"
         )
     await conn.execute(
-        "UPDATE plugin_scan_results SET status='matched',confirmed_at=NOW(),"
+        "UPDATE plugin_scan_results SET status='known',confirmed_at=NOW(),"
         "confirmed_by=$2 WHERE result_id=$1", ctx.c.result_id, ctx.username,
     )
     await conn.execute(
@@ -84,7 +84,7 @@ async def _action_confirm(conn: Connection, ctx: _ConfirmCtx) -> None:
 
 async def _action_reject(conn: Connection, ctx: _ConfirmCtx) -> None:
     await conn.execute(
-        "UPDATE plugin_scan_results SET status='untracked',confirmed_at=NOW(),"
+        "UPDATE plugin_scan_results SET status='unlinked',confirmed_at=NOW(),"
         "confirmed_by=$2,record_id=NULL,record_table=NULL,confidence=NULL,score=NULL "
         "WHERE result_id=$1", ctx.c.result_id, ctx.username,
     )
@@ -98,7 +98,7 @@ async def _action_ignore(conn: Connection, ctx: _ConfirmCtx) -> None:
     )
     await conn.execute("DELETE FROM scanner_plugin_links WHERE fingerprint=$1", ctx.fp)
     await conn.execute(
-        "UPDATE plugin_scan_results SET status='ignored',confirmed_at=NOW(),"
+        "UPDATE plugin_scan_results SET status='excluded',confirmed_at=NOW(),"
         "confirmed_by=$2 WHERE result_id=$1", ctx.c.result_id, ctx.username,
     )
 
@@ -114,7 +114,7 @@ async def _action_create(conn: Connection, ctx: _ConfirmCtx) -> None:
     await log_audit(conn, ctx.c.target_table, new_id, "CREATE", ctx.username,
                     new_data={"name": ctx.row["name"], "version": ctx.row["version"]})
     await conn.execute(
-        "UPDATE plugin_scan_results SET status='matched',record_id=$1,record_table=$2,"
+        "UPDATE plugin_scan_results SET status='known',record_id=$1,record_table=$2,"
         "confirmed_at=NOW(),confirmed_by=$3 WHERE result_id=$4",
         new_id, ctx.c.target_table, ctx.username, ctx.c.result_id,
     )
@@ -183,7 +183,7 @@ async def _action_force(conn: Connection, ctx: _ConfirmCtx) -> None:
     await _assert_catalog_row_exists(conn, ctx.c.target_table, ctx.c.target_id, ctx.c.result_id)
     await conn.execute(
         "UPDATE plugin_scan_results "
-        "SET status='matched', record_id=$1, record_table=$2, "
+        "SET status='known', record_id=$1, record_table=$2, "
         "confirmed_at=NOW(), confirmed_by=$3 "
         "WHERE result_id=$4",
         target_id_uuid, ctx.c.target_table, ctx.username, ctx.c.result_id,

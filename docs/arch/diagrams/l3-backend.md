@@ -44,7 +44,7 @@ graph LR
     appcore -->|"/studio/admin/users"| usersrouter
     appcore -->|"/studio/admin"| adminrouters
     appcore -->|"/gearlist/*"| gearlistrouter
-    appcore -->|"/scanner/report · /scanner/catalog/search · /scanner/confirm"| scannerrouter
+    appcore -->|"/scanner/scans/{id}/report · /scanner/catalog/search · /scanner/confirm"| scannerrouter
     appcore -->|"/scanner/scan"| ingestrouter
     appcore -->|"/scanner/workbench"| workbenchrouter
     appcore -->|"/scanner/rules/vendor · /scanner/rules/name"| rulesrouter

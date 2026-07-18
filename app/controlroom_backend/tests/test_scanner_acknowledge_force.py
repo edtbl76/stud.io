@@ -24,7 +24,7 @@ async def _insert_matched_result(conn, effect_id: str) -> tuple:
         " confidence, score, record_id, record_table) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING result_id",
         scan_id, "Reverb Pro", "Acme Audio", "2.0", "vst3",
-        "/Library/VST3/Reverb.vst3", "matched",
+        "/Library/VST3/Reverb.vst3", "needs_review",
         "exact", 100.0, effect_id, "effects",
     )
     return scan_id, result_id
@@ -34,6 +34,14 @@ async def _post_acknowledge(client, result_id, headers):
     return await client.post(
         "/scanner/confirm",
         json={"confirmations": [{"result_id": str(result_id), "action": "acknowledge"}]},
+        headers=headers,
+    )
+
+
+async def _post_confirm(client, result_id, headers):
+    return await client.post(
+        "/scanner/confirm",
+        json={"confirmations": [{"result_id": str(result_id), "action": "confirm"}]},
         headers=headers,
     )
 
@@ -74,7 +82,7 @@ async def test_acknowledge_does_not_change_status(client, conn, admin_headers):
     row = await conn.fetchrow(
         "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id
     )
-    assert row["status"] == "matched"
+    assert row["status"] == "needs_review"  # U-08: acknowledge leaves ingest status untouched
 
 
 @pytest.mark.asyncio
@@ -107,7 +115,7 @@ async def test_bulk_acknowledge_sets_confirmed_at_for_all(client, conn, admin_he
             " confidence, score, record_id, record_table) "
             "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING result_id",
             scan_id, name, "Acme Audio", "1.0", "vst3", f"/path/{name}.vst3",
-            "matched", "exact", 100.0, effect_id, "effects",
+            "known", "exact", 100.0, effect_id, "effects",
         )
         ids.append(str(rid))
 
@@ -125,8 +133,8 @@ async def test_bulk_acknowledge_sets_confirmed_at_for_all(client, conn, admin_he
 
 
 @pytest.mark.asyncio
-async def test_force_sets_status_matched(client, conn, admin_headers):
-    _, result_id = await insert_scan(conn, "untracked")
+async def test_force_sets_status_known(client, conn, admin_headers):
+    _, result_id = await insert_scan(conn, "unlinked")
     effect_id = await _insert_effect(conn)
 
     resp = await _post_force(client, result_id, effect_id, admin_headers)
@@ -135,14 +143,14 @@ async def test_force_sets_status_matched(client, conn, admin_headers):
         "SELECT status, record_id::text, record_table FROM plugin_scan_results WHERE result_id=$1",
         result_id,
     )
-    assert row["status"] == "matched"
+    assert row["status"] == "known"  # U-08: force → known (was 'matched')
     assert row["record_id"] == effect_id
     assert row["record_table"] == "effects"
 
 
 @pytest.mark.asyncio
 async def test_force_creates_persistent_link(client, conn, admin_headers):
-    _, result_id = await insert_scan(conn, "untracked")
+    _, result_id = await insert_scan(conn, "unlinked")
     effect_id = await _insert_effect(conn)
 
     await _post_force(client, result_id, effect_id, admin_headers)
@@ -154,8 +162,42 @@ async def test_force_creates_persistent_link(client, conn, admin_headers):
 
 
 @pytest.mark.asyncio
+async def test_confirm_sets_status_known(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    _, result_id = await _insert_matched_result(conn, effect_id)
+
+    resp = await _post_confirm(client, result_id, admin_headers)
+    assert resp.status_code == 200
+    row = await conn.fetchrow(
+        "SELECT status FROM plugin_scan_results WHERE result_id=$1", result_id
+    )
+    assert row["status"] == "known"  # U-08: confirm (accept match) → known (was 'matched')
+
+
+@pytest.mark.asyncio
+async def test_create_sets_status_known(client, conn, admin_headers):
+    _, result_id = await insert_scan(conn, "unlinked")
+
+    resp = await client.post(
+        "/scanner/confirm",
+        json={"confirmations": [{
+            "result_id": str(result_id),
+            "action": "create",
+            "target_table": "effects",
+        }]},
+        headers=admin_headers,
+    )
+    assert resp.status_code == 200
+    row = await conn.fetchrow(
+        "SELECT status, record_table FROM plugin_scan_results WHERE result_id=$1", result_id
+    )
+    assert row["status"] == "known"  # U-08: create (new catalog record) → known (was 'matched')
+    assert row["record_table"] == "effects"
+
+
+@pytest.mark.asyncio
 async def test_force_requires_target_id(client, conn, admin_headers):
-    _, result_id = await insert_scan(conn, "untracked")
+    _, result_id = await insert_scan(conn, "unlinked")
 
     resp = await client.post(
         "/scanner/confirm",
@@ -237,7 +279,7 @@ async def test_acknowledge_skips_disk_path_when_path_is_empty(client, conn, admi
         " confidence, score, record_id, record_table) "
         "VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING result_id",
         scan_id, "Reverb Pro", "Acme Audio", "2.0", "vst3",
-        "", "matched", "exact", 100.0, effect_id, "effects",
+        "", "known", "exact", 100.0, effect_id, "effects",
     )
 
     await _post_acknowledge(client, result_id, admin_headers)

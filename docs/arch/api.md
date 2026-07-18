@@ -326,9 +326,8 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 
 #### Core
 
-`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Resolution precedence per plugin is **persistent link (fingerprint) → name alias (`disk_name`, U-14) → exclusion → 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only)** against all active catalog records; detects orphaned records. A name-alias hit resolves with `confidence='exact'` (no re-validation of vendor/version/format); if its catalog record is missing the plugin falls through unresolved. At ingest time, matched results are classified as `known` (catalog record has `disk_paths` populated) or `matched` (no `disk_paths`). Returns a `ScanSummary` with counts by status. The entire operation is atomic (one transaction).
+`POST /scanner/scan` — API key auth. Accepts a raw plugin scan from the plugin-scanner binary. Resolution precedence per plugin is **persistent link (fingerprint) → name alias (`disk_name`, U-14) → exclusion → 3-tier matching (exact → fuzzy vendor+name → fuzzy name-only)** against all active catalog records; detects orphaned records. A name-alias hit resolves with `confidence='exact'` (no re-validation of vendor/version/format); if its catalog record is missing the plugin falls through unresolved. At ingest time, results are classified into the frozen five-bucket vocabulary: `known` (exact match, versions agree, catalog record has `disk_paths`), `needs_review` (any other match — version mismatch, no `disk_paths`, fuzzy, or a same-`(name,vendor,format)`-different-path collision), `unlinked` (no match), `orphaned` (catalog record not seen on disk). Returns a `ScanSummary` with counts by bucket. The entire operation is atomic (one transaction).
 
-`GET /scanner/report[?scan_id=UUID]` — authenticated user. Returns the scan grouped into eight sections: `known` (matched, catalog has disk paths), `matched` (matched, no disk paths), `conflicted` (version mismatch between disk and catalog), `unconfirmed` (fuzzy match awaiting review), `untracked` (no match found), `orphaned` (previously confirmed, catalog record missing from disk), `ignored`, and `absent` (catalog records with known disk paths not found in this scan — contains catalog metadata: record id/table/name/vendor/version/disk paths, not scanned plugin data). The seven scan-result sections each include scanned metadata and match context (confidence, score, matched record, catalog disk paths). If `scan_id` is omitted, returns the latest scan. Returns 404 if no scan found.
 
 `GET /scanner/catalog/search?q={query}[&table={table}]` — authenticated user. ILIKE search across all catalog tables (or a single table if `table` is specified). Returns up to 20 results ordered by name. Returns 400 if `table` is non-empty and not a known catalog table.
 
@@ -366,7 +365,7 @@ Confirmation errors are isolated per item (one failure does not roll back others
 
 #### Scan History (coexistence — removed in U-05 cleanup)
 
-`GET /scanner/scans` — authenticated user. Returns all scan runs with per-run status counts and confirmation counts, newest first.
+`GET /scanner/scans` — authenticated user. Returns all scan runs with per-run five-bucket status counts (`known`/`needs_review`/`unlinked`/`orphaned`/`excluded`) and confirmation counts (`confirmed`/`rejected`/`excluded`), newest first.
 
 `DELETE /scanner/scans?older_than_days=N` — admin only. Hard-deletes scan runs (and their results via CASCADE) older than N days. Returns `{deleted_count}`.
 

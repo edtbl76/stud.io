@@ -23,7 +23,7 @@ async def _insert_vendor_rule(conn, disk_vendor="ikmultimedia", enabled=True) ->
 
 
 async def seed_scan_with_result(conn, *, name="Reverb Pro", vendor="Acme Audio", version="1.0.0") -> tuple:
-    scan_id, result_id = await insert_scan(conn, status="untracked")
+    scan_id, result_id = await insert_scan(conn, status="unlinked")
     await conn.execute(
         "UPDATE plugin_scan_results SET name=$1, vendor=$2, version=$3 WHERE result_id=$4",
         name, vendor, version, result_id,

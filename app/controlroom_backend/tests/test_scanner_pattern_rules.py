@@ -131,7 +131,7 @@ async def _seed_clean_variant(conn, *, parent="Reverb", vendor="Acme", version="
         "INSERT INTO effects (effect_name, brand_id, version) VALUES ($1,$2,$3) RETURNING effect_id",
         parent, brand_id, version,
     )
-    _, result_id = await insert_scan(conn, status="untracked")
+    _, result_id = await insert_scan(conn, status="unlinked")
     await conn.execute(
         "UPDATE plugin_scan_results SET name=$1, vendor=$2, version=$3 WHERE result_id=$4",
         f"{parent}(m)", vendor, version, result_id,
@@ -170,7 +170,7 @@ async def test_vendor_only_pattern_ignores_version(client, conn, admin_headers):
     # parent version 1.0, variant version 9.9 — differ; match_fields={vendor} → still clean
     brand_id = await conn.fetchval("INSERT INTO brands (legal_name, brand_name) VALUES ('Zz13Acme','Zz13Acme') RETURNING brand_id")
     await conn.fetchval("INSERT INTO effects (effect_name, brand_id, version) VALUES ('Zz13Comp', $1, '1.0') RETURNING effect_id", brand_id)
-    _, rid = await insert_scan(conn, status="untracked")
+    _, rid = await insert_scan(conn, status="unlinked")
     await conn.execute("UPDATE plugin_scan_results SET name='Zz13Comp(m)', vendor='Zz13Acme', version='9.9' WHERE result_id=$1", rid)
     data = (await client.post(
         "/scanner/rules/pattern",
@@ -183,7 +183,7 @@ async def test_vendor_only_pattern_ignores_version(client, conn, admin_headers):
 async def test_format_pattern_counts_clean_when_format_matches(client, conn, admin_headers):
     vst3_id = await conn.fetchval("SELECT type_id FROM plugin_formats WHERE type_name='VST3'")
     await conn.fetchval("INSERT INTO effects (effect_name, plugin_format_ids) VALUES ('Zz13Synth', ARRAY[$1]::uuid[]) RETURNING effect_id", vst3_id)
-    _, rid = await insert_scan(conn, status="untracked")
+    _, rid = await insert_scan(conn, status="unlinked")
     await conn.execute("UPDATE plugin_scan_results SET name='Zz13Synth(m)', format='vst3' WHERE result_id=$1", rid)
     data = (await client.post(
         "/scanner/rules/pattern",
@@ -265,7 +265,7 @@ async def test_list_rules_patterns_carry_counts(client, admin_headers):
 
 async def test_active_candidates_includes_path(conn):
     # Step 1: the disk_paths append needs `path` on each candidate row.
-    _, result_id = await insert_scan(conn, status="untracked")
+    _, result_id = await insert_scan(conn, status="unlinked")
     rows = await _active_candidates(conn)
     row = next(r for r in rows if r["result_id"] == result_id)
     assert row["path"] == "/path/reverb.vst3"
@@ -328,7 +328,7 @@ async def test_acknowledge_skips_row_when_alias_points_to_different_record(clien
     # A parent B named 'Zz9' (Zz9Acme) + an unconfirmed 'Zz9(m)' scan row that now resolves to B.
     brand = await conn.fetchval("INSERT INTO brands (legal_name, brand_name) VALUES ('Zz9Acme','Zz9Acme') RETURNING brand_id")
     b = await conn.fetchval("INSERT INTO effects (effect_name, brand_id) VALUES ('Zz9', $1) RETURNING effect_id", brand)
-    _, rid = await insert_scan(conn, status="untracked")
+    _, rid = await insert_scan(conn, status="unlinked")
     await conn.execute("UPDATE plugin_scan_results SET name='Zz9(m)', vendor='Zz9Acme', path='/z/z9.vst3' WHERE result_id=$1", rid)
     rule_id = (await client.post("/scanner/rules/pattern", json=_VALID, headers=admin_headers)).json()["rule_id"]
 

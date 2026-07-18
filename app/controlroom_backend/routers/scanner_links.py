@@ -133,7 +133,7 @@ async def _candidates_for_orphaned(conn: Connection, source_id: UUID, q_lower: s
         return FindLinkCandidatesResponse(type="orphaned", candidates=[], total=0)
     results = await conn.fetch(
         "SELECT result_id, name, vendor, version, format, path FROM plugin_scan_results "
-        "WHERE scan_id=$1 AND status IN ('untracked','unlinked') AND confirmed_at IS NULL "
+        "WHERE scan_id=$1 AND status='unlinked' AND confirmed_at IS NULL "
         "AND (record_id IS NULL OR record_id != $2)",
         scan_row["scan_id"], source_id,
     )
