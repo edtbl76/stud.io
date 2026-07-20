@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '@/lib/api'
+import { buildRequest, type ConfirmationRequest } from '@/lib/bulkConfirmation'
 import type { NeedsReviewSubState, WorkbenchRow } from '@/lib/types'
 
 export type ActiveModal =
@@ -27,6 +28,7 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
   const [hardResetSubmitting, setHardResetSubmitting] = useState(false)
   const [bulkResolveQueue, setBulkResolveQueue] = useState<WorkbenchRow[]>([])
   const [activeModal, setActiveModal] = useState<ActiveModal>(null)
+  const [pendingConfirm, setPendingConfirm] = useState<ConfirmationRequest | null>(null)
 
   const selectedRows = rows.filter((r) => selectedIds.has(r.result_id))
   const currentModalRow = bulkResolveQueue[0] ?? null
@@ -164,6 +166,21 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     }
   }
 
+  // U-20: the bulk-confirmation gate. Each request* opens the gate; confirmPending
+  // runs the existing handler unchanged (Q5=A). Bulk Resolve stays exempt.
+  function requestBulkExclude() { setPendingConfirm(buildRequest('exclude', selectedRows, rowSubStates)) }
+  function requestBulkReject() { setPendingConfirm(buildRequest('reject', selectedRows, rowSubStates)) }
+  function requestBulkUpdate() { setPendingConfirm(buildRequest('bulk-update', selectedRows, rowSubStates)) }
+  function cancelConfirm() { setPendingConfirm(null) }
+
+  async function confirmPending() {
+    const kind = pendingConfirm?.kind
+    setPendingConfirm(null)
+    if (kind === 'exclude') await handleBulkExclude()
+    else if (kind === 'reject') await handleBulkReject()
+    else if (kind === 'bulk-update') await handleBulkUpdate()
+  }
+
   return {
     selectedRows,
     currentModalRow,
@@ -178,5 +195,7 @@ export function useScanWorkbenchActions({ rows, selectedIds, rowSubStates, inval
     handleRowClick,
     handleCreateRecord, handleExclude,
     handleResolveCollision, handleBulkReject, handleBulkUpdate, handleBulkExclude,
+    pendingConfirm, requestBulkExclude, requestBulkReject, requestBulkUpdate,
+    confirmPending, cancelConfirm,
   }
 }

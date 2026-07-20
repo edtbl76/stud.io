@@ -41,7 +41,7 @@ graph LR
 | Pages | Next.js App Router | All module pages — ControlRoom, Studio Management, GearList, Search, Home |
 | TablePage | React / TanStack Table | Generic CRUD page used by all 18 data tables |
 | Modal System | React | Nine domain modals — view, edit, history, delete lifecycle |
-| Scanner UI | React / react-virtual | Eight-bucket triage with virtual scrolling; workbench row click routes by bucket to the single-resolution (editable or read-only inspect), collision, or find-link modal, and the header select-all toggles select/clear over filtered rows (U-15); rules management (vendor/name/pattern CRUD via RuleSection + useRules); Scan Report page (raw results accordion with scan picker, ScanReportPage) |
+| Scanner UI | React / react-virtual | Eight-bucket triage with virtual scrolling; workbench row click routes by bucket to the single-resolution (editable or read-only inspect), collision, or find-link modal, and the header select-all toggles select/clear over filtered rows (U-15); bulk Exclude/Reject/Bulk Update are gated by a BulkConfirmDialog count+summary confirm, Bulk Resolve exempt (U-20); rules management (vendor/name/pattern CRUD via RuleSection + useRules); Scan Report page (raw results accordion with scan picker, ScanReportPage) |
 | Auth Context | React Context | Session state; redirects unauthenticated users to /login |
 | API Client | TypeScript / fetch | Typed wrapper for all /api/... calls; no auth header set client-side |
 | BFF Catch-All Proxy | Next.js Route Handler | Reads httpOnly cookie, attaches Bearer token, forwards to FastAPI |

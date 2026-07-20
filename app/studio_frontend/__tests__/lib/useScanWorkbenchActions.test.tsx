@@ -187,3 +187,98 @@ it('handleRowClick leaves an in-progress bulkResolveQueue untouched', () => {
   expect(result.current.currentModalRow).toEqual(queued)
   expect(result.current.activeModal).toEqual({ type: 'single-resolution', row: clicked, readOnly: false })
 })
+
+// U-20: bulk-confirmation gate — request/commit split (BR-U20-01, BR-U20-03)
+
+// Steps 23-25 — each request* opens the gate without firing its API (table-driven)
+type RequestMethod = 'requestBulkExclude' | 'requestBulkReject' | 'requestBulkUpdate'
+type ScannerApiMethod = 'exclude' | 'rejectMatch' | 'bulkUpdate'
+
+const GATE_CASES: Array<{
+  method: RequestMethod
+  rows: WorkbenchRow[]
+  rowSubStates?: Map<string, NeedsReviewSubState>
+  expected: Partial<{ kind: string; affectedCount: number; skippedCount: number; destructive: boolean }>
+  apiMethod: ScannerApiMethod
+}> = [
+  {
+    method: 'requestBulkExclude',
+    rows: [makeRow({ result_id: 'r1', bucket: 'unlinked' }), makeRow({ result_id: 'r2', bucket: 'known' })],
+    expected: { kind: 'exclude', affectedCount: 2 },
+    apiMethod: 'exclude',
+  },
+  {
+    method: 'requestBulkReject',
+    rows: [makeRow({ result_id: 'r1', bucket: 'needs_review' }), makeRow({ result_id: 'r2', bucket: 'unlinked' })],
+    expected: { kind: 'reject', affectedCount: 1, skippedCount: 1 },
+    apiMethod: 'rejectMatch',
+  },
+  {
+    method: 'requestBulkUpdate',
+    rows: [makeRow({ result_id: 'r1', bucket: 'needs_review' })],
+    rowSubStates: new Map<string, NeedsReviewSubState>([['r1', 'mismatch']]),
+    expected: { kind: 'bulk-update', affectedCount: 1, destructive: false },
+    apiMethod: 'bulkUpdate',
+  },
+]
+
+it.each(GATE_CASES)('$method sets the ConfirmationRequest and fires no API call', ({ method, rows, rowSubStates, expected, apiMethod }) => {
+  const selectedIds = new Set(rows.map((r) => r.result_id))
+  const { result } = renderHook(() => useScanWorkbenchActions(
+    makeHookArgs({ rows, selectedIds, rowSubStates: rowSubStates ?? new Map() })
+  ))
+  act(() => { result.current[method]() })
+  expect(result.current.pendingConfirm).toMatchObject(expected)
+  expect(mockApi.scanner[apiMethod]).not.toHaveBeenCalled()
+})
+
+// Step 26 — confirmPending for exclude runs the existing handler and clears the gate
+it('confirmPending runs handleBulkExclude for an exclude request and clears pendingConfirm', async () => {
+  const r1 = makeRow({ result_id: 'r1', disk_vendor: 'V', disk_name: 'A', disk_format: 'VST3', bucket: 'unlinked' })
+  ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+  const { result } = renderHook(() => useScanWorkbenchActions(
+    makeHookArgs({ rows: [r1], selectedIds: new Set(['r1']) })
+  ))
+  act(() => { result.current.requestBulkExclude() })
+  await act(async () => { await result.current.confirmPending() })
+  expect(mockApi.scanner.exclude).toHaveBeenCalledWith('V', 'A', 'VST3')
+  expect(result.current.pendingConfirm).toBeNull()
+})
+
+// Step 27 — confirmPending routes reject and bulk-update to their existing handlers
+it('confirmPending runs the sequential reject for a reject request', async () => {
+  const r1 = makeRow({ result_id: 'r1', bucket: 'needs_review' })
+  ;(mockApi.scanner.rejectMatch as jest.Mock).mockResolvedValue(undefined)
+  const { result } = renderHook(() => useScanWorkbenchActions(
+    makeHookArgs({ rows: [r1], selectedIds: new Set(['r1']) })
+  ))
+  act(() => { result.current.requestBulkReject() })
+  await act(async () => { await result.current.confirmPending() })
+  expect(mockApi.scanner.rejectMatch).toHaveBeenCalledWith('r1')
+})
+
+it('confirmPending runs bulkUpdate for a bulk-update request', async () => {
+  const r1 = makeRow({ result_id: 'r1', bucket: 'needs_review' })
+  const rowSubStates = new Map<string, NeedsReviewSubState>([['r1', 'mismatch']])
+  ;(mockApi.scanner.bulkUpdate as jest.Mock).mockResolvedValue({ updated: 1 })
+  const { result } = renderHook(() => useScanWorkbenchActions(
+    makeHookArgs({ rows: [r1], selectedIds: new Set(['r1']), rowSubStates })
+  ))
+  act(() => { result.current.requestBulkUpdate() })
+  await act(async () => { await result.current.confirmPending() })
+  expect(mockApi.scanner.bulkUpdate).toHaveBeenCalledWith(['r1'])
+})
+
+// Step 28 — cancelConfirm aborts with no API call and no selection change
+it('cancelConfirm clears pendingConfirm without any API call or clearSelection', () => {
+  const clearSelection = jest.fn()
+  const r1 = makeRow({ result_id: 'r1', bucket: 'unlinked' })
+  const { result } = renderHook(() => useScanWorkbenchActions(
+    makeHookArgs({ rows: [r1], selectedIds: new Set(['r1']), clearSelection })
+  ))
+  act(() => { result.current.requestBulkExclude() })
+  act(() => { result.current.cancelConfirm() })
+  expect(result.current.pendingConfirm).toBeNull()
+  expect(mockApi.scanner.exclude).not.toHaveBeenCalled()
+  expect(clearSelection).not.toHaveBeenCalled()
+})

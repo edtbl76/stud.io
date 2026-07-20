@@ -5,6 +5,7 @@ import { useScanWorkbenchActions } from '@/lib/useScanWorkbenchActions'
 import { WorkbenchFilterBar } from './WorkbenchFilterBar'
 import { WorkbenchBulkBar } from './WorkbenchBulkBar'
 import { WorkbenchTable } from './WorkbenchTable'
+import { BulkConfirmDialog } from './BulkConfirmDialog'
 import { SingleResolutionModal } from '../modals/SingleResolutionModal'
 import { CollisionModal } from '../modals/CollisionModal'
 import { FindLinkModal } from '../modals/FindLinkModal'
@@ -108,9 +109,9 @@ export function ScanWorkbenchPage() {
           selectedRows={selectedRows}
           rowSubStates={rowSubStates}
           onBulkResolve={actions.handleBulkResolve}
-          onBulkUpdate={actions.handleBulkUpdate}
-          onBulkReject={actions.handleBulkReject}
-          onBulkExclude={actions.handleBulkExclude}
+          onBulkUpdate={actions.requestBulkUpdate}
+          onBulkReject={actions.requestBulkReject}
+          onBulkExclude={actions.requestBulkExclude}
           onClearSelection={clearSelection}
         />
       )}
@@ -148,6 +149,12 @@ export function ScanWorkbenchPage() {
         onConfirmTextChange={actions.setHardResetText}
         onConfirm={actions.handleHardReset}
         onCancel={actions.handleHardResetCancel}
+      />
+
+      <BulkConfirmDialog
+        request={actions.pendingConfirm}
+        onConfirm={actions.confirmPending}
+        onCancel={actions.cancelConfirm}
       />
     </div>
   )

@@ -227,15 +227,16 @@ it('advances to second row after first modal saved (BLM-14)', async () => {
   )
 })
 
-// Step 21 — handleBulkExclude happy path
+// Step 21 — handleBulkExclude happy path (U-20: now runs after the confirm gate)
 describe('handleBulkExclude', () => {
-  it('calls api.scanner.exclude for each selected row', async () => {
+  it('calls api.scanner.exclude for each selected row after confirming', async () => {
     const r1 = makeRow('r1', { disk_vendor: 'MNTRA', disk_name: 'Surge XT', disk_format: 'VST3' })
     const r2 = makeRow('r2', { disk_vendor: 'Arturia', disk_name: 'Pigments', disk_format: 'AU' })
     ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
     await waitFor(() => {
       expect(mockApi.scanner.exclude).toHaveBeenCalledWith('MNTRA', 'Surge XT', 'VST3')
       expect(mockApi.scanner.exclude).toHaveBeenCalledWith('Arturia', 'Pigments', 'AU')
@@ -248,6 +249,7 @@ describe('handleBulkExclude', () => {
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
     await waitFor(() => expect(mockClearSelection).toHaveBeenCalled())
     expect(mockInvalidate).toHaveBeenCalled()
   })
@@ -266,6 +268,7 @@ describe('handleBulkUpdate', () => {
     ;(mockApi.scanner.bulkUpdate as jest.Mock).mockResolvedValue({ updated: 1 })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
     await waitFor(() => expect(mockApi.scanner.bulkUpdate).toHaveBeenCalledWith(['r1']))
     expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/1 record/i))
     expect(mockClearSelection).toHaveBeenCalled()
@@ -276,6 +279,7 @@ describe('handleBulkUpdate', () => {
     ;(mockApi.scanner.bulkUpdate as jest.Mock).mockRejectedValue(new Error('update failed'))
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getByRole('button', { name: /bulk update/i }))
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
     await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
   })
 })
@@ -288,6 +292,7 @@ describe('handleBulkExclude error path', () => {
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
     await waitFor(() => expect(mockToast.error).toHaveBeenCalled())
     expect(mockClearSelection).toHaveBeenCalled()
     expect(mockInvalidate).toHaveBeenCalled()
@@ -383,8 +388,34 @@ describe('handleBulkReject', () => {
     mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1, r2], selectedIds: new Set(['r1', 'r2']) })
     render(<ScanWorkbenchPage />)
     fireEvent.click(screen.getAllByRole('button', { name: /reject/i })[0])
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
     await waitFor(() => expect(mockApi.scanner.rejectMatch).toHaveBeenCalledTimes(2))
     expect(mockToast.success).toHaveBeenCalledWith(expect.stringMatching(/2/))
+  })
+})
+
+// U-20 Step 30 — the bulk-confirmation gate fronts Exclude
+describe('U-20 bulk-confirmation gate', () => {
+  it('clicking bulk Exclude opens the confirm dialog and makes no exclude call until Confirm', async () => {
+    const r1 = makeRow('r1', { bucket: 'unlinked', disk_vendor: 'V', disk_name: 'A', disk_format: 'VST3' })
+    ;(mockApi.scanner.exclude as jest.Mock).mockResolvedValue(undefined)
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getAllByRole('button', { name: /exclude/i })[0])
+    expect(screen.getByTestId('bulk-confirm-dialog')).toBeInTheDocument()
+    expect(mockApi.scanner.exclude).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByTestId('bulk-confirm-submit'))
+    await waitFor(() => expect(mockApi.scanner.exclude).toHaveBeenCalledWith('V', 'A', 'VST3'))
+  })
+
+  // Step 31 — Bulk Resolve stays exempt (BR-U20-02): opens the per-item queue, not the gate
+  it('clicking bulk Resolve opens the per-item queue and never the confirm dialog', () => {
+    const r1 = makeRow('r1', { bucket: 'needs_review', catalog_record_id: 'c1', catalog_record_table: 'instruments', catalog_record_name: 'N', catalog_record_vendor: 'V', catalog_record_version: '1.0' })
+    mockUseWorkbench.mockReturnValue({ ...BASE_HOOK, rows: [r1], selectedIds: new Set(['r1']) })
+    render(<ScanWorkbenchPage />)
+    fireEvent.click(screen.getByRole('button', { name: /^resolve$/i }))
+    expect(screen.getByTestId('single-resolution-modal')).toHaveAttribute('data-row-id', 'r1')
+    expect(screen.queryByTestId('bulk-confirm-dialog')).not.toBeInTheDocument()
   })
 })
 
