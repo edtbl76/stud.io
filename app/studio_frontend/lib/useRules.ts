@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { WORKBENCH_KEY } from '@/lib/useWorkbench'
 import type { NameRuleInput, PatternRuleInput, RuleType, VendorRuleInput } from '@/lib/types'
 
 const RULES_KEY = ['scanner', 'rules'] as const
-const WORKBENCH_KEY = ['scanner', 'workbench'] as const
 
 export function useRules() {
   const qc = useQueryClient()

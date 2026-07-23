@@ -9,7 +9,7 @@ import type {
   WorkbenchServerParams,
 } from '@/lib/types'
 
-const WORKBENCH_KEY = ['scanner', 'workbench'] as const
+export const WORKBENCH_KEY = ['scanner', 'workbench'] as const
 
 const DEFAULT_SERVER_PARAMS: WorkbenchServerParams = { show_confirmed: true }
 

@@ -16,8 +16,22 @@ jest.mock('@/lib/api', () => ({
 
 jest.mock('sonner', () => ({ toast: { success: jest.fn(), error: jest.fn() } }))
 
+// U-21: the modal now fires rule toasts itself via fireRuleToasts, sourcing the
+// acknowledge handler from useAcknowledgeClean. Both are mocked so the tests assert
+// the modal's wiring without a QueryClient (BR-U21-06, BR-U21-12).
+const mockAcknowledge = jest.fn()
+jest.mock('@/lib/useAcknowledgeClean', () => ({ useAcknowledgeClean: () => mockAcknowledge }))
+jest.mock('@/components/scanner/RuleToastManager', () => ({ fireRuleToasts: jest.fn() }))
+
 import { api } from '@/lib/api'
 const mockApi = api as jest.Mocked<typeof api>
+
+function getFire() {
+  return (jest.requireMock('@/components/scanner/RuleToastManager') as { fireRuleToasts: jest.Mock }).fireRuleToasts
+}
+function getToast() {
+  return (jest.requireMock('sonner') as { toast: { success: jest.Mock; error: jest.Mock } }).toast
+}
 
 function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
   return {
@@ -32,23 +46,26 @@ function makeRow(overrides: Partial<WorkbenchRow> = {}): WorkbenchRow {
 
 const noop = jest.fn()
 
+const VENDOR_RESULT: RuleCreationResult = {
+  rule: { rule_id: 'rv1', disk_vendor: 'Vembertech', catalog_vendor: 'Surge Synth Team', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 2, clean_count: 1, needs_review_count: 1 },
+  affected_count: 2, clean_count: 1, needs_review_count: 1,
+}
+const NAME_RESULT: RuleCreationResult = {
+  rule: { rule_id: 'rn1', disk_name: 'Surge XT', catalog_name: 'Surge', disk_vendor: 'Vembertech', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
+  affected_count: 1, clean_count: 1, needs_review_count: 0,
+}
+
 function mockSuccess() {
   ;(mockApi.update as jest.Mock).mockResolvedValue({})
-  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue({
-    rule: { rule_id: 'rv1', disk_vendor: 'Vembertech', catalog_vendor: 'Surge Synth Team', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 2, clean_count: 1, needs_review_count: 1 },
-    affected_count: 2, clean_count: 1, needs_review_count: 1,
-  } satisfies RuleCreationResult)
-  ;(mockApi.scanner.createNameRule as jest.Mock).mockResolvedValue({
-    rule: { rule_id: 'rn1', disk_name: 'Surge XT', catalog_name: 'Surge', disk_vendor: 'Vembertech', enabled: true, created_by: 'test', created_at: '2026-01-01T00:00:00Z', affected_count: 1, clean_count: 1, needs_review_count: 0 },
-    affected_count: 1, clean_count: 1, needs_review_count: 0,
-  } satisfies RuleCreationResult)
+  ;(mockApi.scanner.createVendorRule as jest.Mock).mockResolvedValue(VENDOR_RESULT)
+  ;(mockApi.scanner.createNameRule as jest.Mock).mockResolvedValue(NAME_RESULT)
 }
 
 afterEach(() => jest.resetAllMocks())
 
 function renderAndClickSave(radioIndices: number[]) {
   mockSuccess()
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   const radios = screen.getAllByRole('radio')
   for (const idx of radioIndices) fireEvent.click(radios[idx])
   fireEvent.click(screen.getByRole('button', { name: /save/i }))
@@ -56,7 +73,7 @@ function renderAndClickSave(radioIndices: number[]) {
 
 // Step 56
 it('renders both disk and catalog values with radios for differing fields', () => {
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   // name differs: disk="Surge XT", catalog="Surge"
   expect(screen.getByText('Surge XT')).toBeInTheDocument()
   expect(screen.getByText('Surge')).toBeInTheDocument()
@@ -71,7 +88,7 @@ it('renders both disk and catalog values with radios for differing fields', () =
 it('shows no radio for matching fields', () => {
   // version matches (1.3 === 1.3), only name and vendor differ
   const row = makeRow()
-  render(<SingleResolutionModal row={row} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={row} onClose={noop} onSaved={noop} />)
   // version field (1.3) should render as plain text without radio
   const radios = screen.getAllByRole('radio')
   // 2 differing fields × 2 radios each = 4 radios (name and vendor)
@@ -80,12 +97,12 @@ it('shows no radio for matching fields', () => {
 
 // Step 58
 it('Save is disabled when no radio selected', () => {
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   expect(screen.getByRole('button', { name: /save/i })).toBeDisabled()
 })
 
 it('Save is enabled after all differing fields are resolved', () => {
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   const radios = screen.getAllByRole('radio')
   // select disk for first two differing fields (radios alternate disk/catalog per field)
   fireEvent.click(radios[0]) // name → disk
@@ -122,7 +139,7 @@ it('skips vendor rule creation when catalog vendor value is null', async () => {
   ;(mockApi.update as jest.Mock).mockResolvedValue({})
   render(<SingleResolutionModal
     row={makeRow({ catalog_record_name: 'Surge XT', catalog_record_vendor: null })}
-    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+    onClose={noop} onSaved={noop}
   />)
   const radios = screen.getAllByRole('radio')
   fireEvent.click(radios[1]) // vendor → catalog (null)
@@ -134,7 +151,7 @@ it('skips vendor rule creation when catalog vendor value is null', async () => {
 // Step 61
 it('shows inline error and keeps modal open when PATCH fails', async () => {
   ;(mockApi.update as jest.Mock).mockRejectedValue(new Error('Server error'))
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   const radios = screen.getAllByRole('radio')
   fireEvent.click(radios[0])
   fireEvent.click(radios[2])
@@ -143,25 +160,11 @@ it('shows inline error and keeps modal open when PATCH fails', async () => {
   expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
 })
 
-// Step 62
-it('calls onSaved and onFireRuleToasts on success', async () => {
-  mockSuccess()
-  const onSaved = jest.fn()
-  const onFireRuleToasts = jest.fn()
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={onSaved} onFireRuleToasts={onFireRuleToasts} />)
-  const radios = screen.getAllByRole('radio')
-  fireEvent.click(radios[0]) // disk name
-  fireEvent.click(radios[3]) // catalog vendor → triggers vendor rule
-  fireEvent.click(screen.getByRole('button', { name: /save/i }))
-  await waitFor(() => expect(onSaved).toHaveBeenCalled())
-  expect(onFireRuleToasts).toHaveBeenCalled()
-})
-
 // Step 63
 it('calls onClose on Cancel without calling onSaved', () => {
   const onClose = jest.fn()
   const onSaved = jest.fn()
-  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={onSaved} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={onSaved} />)
   fireEvent.click(screen.getByRole('button', { name: /cancel/i }))
   expect(onClose).toHaveBeenCalled()
   expect(onSaved).not.toHaveBeenCalled()
@@ -170,7 +173,7 @@ it('calls onClose on Cancel without calling onSaved', () => {
 // U-17: shared Dialog migration + close policy (BR-U17-02)
 it('renders via the shared Dialog with a built-in Close (X) that calls onClose', () => {
   const onClose = jest.fn()
-  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} />)
   expect(screen.getByRole('dialog')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: /close/i }))
   expect(onClose).toHaveBeenCalled()
@@ -178,20 +181,17 @@ it('renders via the shared Dialog with a built-in Close (X) that calls onClose',
 
 it('closes on Escape', () => {
   const onClose = jest.fn()
-  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={onClose} onSaved={noop} />)
   fireEvent.keyDown(document.body, { key: 'Escape', code: 'Escape' })
   expect(onClose).toHaveBeenCalled()
 })
 
 // U-19: Set Name Alias
-function getToast() {
-  return (jest.requireMock('sonner') as { toast: { success: jest.Mock; error: jest.Mock } }).toast
-}
 
 // Step 9 — button calls createAlias with the row's raw disk name + matched record
 it('Set Name Alias calls createAlias with disk_name and the matched record', async () => {
   ;(mockApi.scanner.createAlias as jest.Mock).mockResolvedValue(undefined)
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   fireEvent.click(screen.getByTestId('set-name-alias'))
   await waitFor(() => expect(mockApi.scanner.createAlias).toHaveBeenCalledWith({
     disk_name: 'Surge XT', catalog_record_id: 'c1', catalog_table: 'instruments',
@@ -201,7 +201,7 @@ it('Set Name Alias calls createAlias with disk_name and the matched record', asy
 // Step 10 — success: toast + modal stays open
 it('shows a success toast and keeps the modal open on alias success', async () => {
   ;(mockApi.scanner.createAlias as jest.Mock).mockResolvedValue(undefined)
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   fireEvent.click(screen.getByTestId('set-name-alias'))
   await waitFor(() => expect(getToast().success).toHaveBeenCalledWith(expect.stringContaining('Surge XT')))
   expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument()
@@ -213,7 +213,7 @@ it('surfaces a 409 inline and keeps the modal open without a success toast', asy
   ;(mockApi.scanner.createAlias as jest.Mock).mockRejectedValue(
     new Error('Surge XT is already aliased to effects abc'),
   )
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   fireEvent.click(screen.getByTestId('set-name-alias'))
   await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/already aliased/i))
   expect(getToast().success).not.toHaveBeenCalled()
@@ -224,7 +224,7 @@ it('surfaces a 409 inline and keeps the modal open without a success toast', asy
 it('does not call api.update when setting an alias, and Save still works after', async () => {
   ;(mockApi.scanner.createAlias as jest.Mock).mockResolvedValue(undefined)
   ;(mockApi.update as jest.Mock).mockResolvedValue({})
-  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   fireEvent.click(screen.getByTestId('set-name-alias'))
   await waitFor(() => expect(mockApi.scanner.createAlias).toHaveBeenCalled())
   expect(mockApi.update).not.toHaveBeenCalled()
@@ -237,7 +237,7 @@ it('does not call api.update when setting an alias, and Save still works after',
 it('hides Set Name Alias when the row has no matched catalog record', () => {
   render(<SingleResolutionModal
     row={makeRow({ catalog_record_id: null, catalog_record_name: null, catalog_record_vendor: null, catalog_record_version: null })}
-    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+    onClose={noop} onSaved={noop}
   />)
   expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
 })
@@ -245,7 +245,7 @@ it('hides Set Name Alias when the row has no matched catalog record', () => {
 it('hides Set Name Alias when the row has a record id but no catalog table', () => {
   render(<SingleResolutionModal
     row={makeRow({ catalog_record_table: null })}
-    onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+    onClose={noop} onSaved={noop}
   />)
   expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
 })
@@ -254,30 +254,30 @@ it('hides Set Name Alias when the row has a record id but no catalog table', () 
 
 // Step 9 — readOnly hides the editing controls
 it('renders no radios and no Save button in read-only mode', () => {
-  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} />)
   expect(screen.queryAllByRole('radio')).toHaveLength(0)
   expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
 })
 
 // Step 10 — readOnly hides Set Name Alias even with a matched record
 it('hides Set Name Alias in read-only mode even when a record is matched', () => {
-  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} />)
   expect(screen.queryByTestId('set-name-alias')).not.toBeInTheDocument()
 })
 
 // Step 11 — readOnly retitles the dialog
 it('titles the dialog "Match Details" in read-only mode and "Resolve Match" otherwise', () => {
-  const { rerender } = render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  const { rerender } = render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} />)
   expect(screen.getByText('Match Details')).toBeInTheDocument()
   expect(screen.queryByText('Resolve Match')).not.toBeInTheDocument()
-  rerender(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  rerender(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
   expect(screen.getByText('Resolve Match')).toBeInTheDocument()
   expect(screen.queryByText('Match Details')).not.toBeInTheDocument()
 })
 
 // Step 12 — readOnly still shows both disk and catalog values for inspection
 it('shows both disk and catalog values for differing fields in read-only mode', () => {
-  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop} />)
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} />)
   expect(screen.getByText('Surge XT')).toBeInTheDocument()
   expect(screen.getByText('Surge')).toBeInTheDocument()
   expect(screen.getByText('Vembertech')).toBeInTheDocument()
@@ -288,7 +288,7 @@ it('shows both disk and catalog values for differing fields in read-only mode', 
 it('shows the disk value and a fallback in the catalog cell for a differing field with a null catalog value', () => {
   render(<SingleResolutionModal
     row={makeRow({ catalog_record_name: null })}
-    readOnly onClose={noop} onSaved={noop} onFireRuleToasts={noop}
+    readOnly onClose={noop} onSaved={noop}
   />)
   // name differs (disk 'Surge XT' vs catalog null)
   const nameRow = screen.getByText('Name').closest('tr') as HTMLTableRowElement
@@ -296,4 +296,116 @@ it('shows the disk value and a fallback in the catalog cell for a differing fiel
   // [Name][disk][catalog] — disk shows the value, catalog side shows the null fallback (matches KnownPage convention)
   expect(cells[1]).toHaveTextContent('Surge XT')
   expect(cells[2]).toHaveTextContent('—')
+})
+
+// ── U-21: Resolution rule-creation feedback ──────────────────────────────────
+
+// Step 14 (T1) — resolving a differing vendor to Catalog fires one rule toast
+it('fires a rule toast once when a vendor rule is created on save', async () => {
+  renderAndClickSave([0, 3]) // name → disk, vendor → catalog
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(1))
+})
+
+// Step 15 (T2) — resolving a differing name to Catalog fires one rule toast
+it('fires a rule toast once when a name rule is created on save', async () => {
+  renderAndClickSave([1, 2]) // name → catalog, vendor → disk
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(1))
+  expect(mockApi.scanner.createNameRule).toHaveBeenCalledWith({ disk_name: 'Surge XT', catalog_name: 'Surge' })
+})
+
+// Step 16 (T3) — the vendor toast carries the carried type and label, not inferred
+it('passes ruleType "vendor" and the disk → catalog label to fireRuleToasts', async () => {
+  renderAndClickSave([0, 3]) // vendor → catalog
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(1))
+  expect(getFire()).toHaveBeenCalledWith(expect.objectContaining({
+    ruleType: 'vendor', ruleLabel: 'Vembertech → Surge Synth Team',
+  }))
+})
+
+// Step 17 (T4) — ruleId comes from rule.rule_id; counts come from the result
+it('passes ruleId from rule.rule_id plus clean/needs-review counts to fireRuleToasts', async () => {
+  renderAndClickSave([0, 3]) // vendor → catalog
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(1))
+  expect(getFire()).toHaveBeenCalledWith(expect.objectContaining({
+    ruleId: 'rv1', cleanCount: 1, needsReviewCount: 1,
+  }))
+})
+
+// Step 18 (T5) — a save creating both rules fires twice, once per rule
+it('fires a rule toast twice when both a vendor and a name rule are created', async () => {
+  renderAndClickSave([1, 3]) // name → catalog, vendor → catalog
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(2))
+  const types = getFire().mock.calls.map((c: unknown[]) => (c[0] as { ruleType: string }).ruleType)
+  expect(types).toEqual(expect.arrayContaining(['name', 'vendor']))
+})
+
+// Step 19 (T6) — resolving everything to Disk creates no rule and fires nothing
+it('fires no rule toast when every differing field is resolved to Disk', async () => {
+  renderAndClickSave([0, 2]) // name → disk, vendor → disk
+  await waitFor(() => expect(mockApi.update).toHaveBeenCalled())
+  expect(getFire()).not.toHaveBeenCalled()
+})
+
+// Step 20 (T7) — readOnly exposes no Save control, so no rule toast can fire
+it('has no Save control in read-only mode, so no rule toast can fire', () => {
+  render(<SingleResolutionModal row={makeRow()} readOnly onClose={noop} onSaved={noop} />)
+  expect(screen.queryByRole('button', { name: /save/i })).not.toBeInTheDocument()
+  expect(getFire()).not.toHaveBeenCalled()
+})
+
+// Step 21 (T8) — the acknowledgeClean handed to fireRuleToasts is the hook's handler
+it('passes the useAcknowledgeClean handler to fireRuleToasts', async () => {
+  renderAndClickSave([0, 3]) // vendor → catalog
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(1))
+  expect(getFire()).toHaveBeenCalledWith(expect.objectContaining({ acknowledgeClean: mockAcknowledge }))
+})
+
+// Step 22 (T15) — PATCH failure shows the inline error and never attempts rule creation
+it('does not attempt rule creation when the catalog PATCH fails', async () => {
+  ;(mockApi.update as jest.Mock).mockRejectedValue(new Error('Server error'))
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]); fireEvent.click(radios[3]) // vendor → catalog
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument())
+  expect(mockApi.scanner.createVendorRule).not.toHaveBeenCalled()
+  expect(getFire()).not.toHaveBeenCalled()
+})
+
+// Step 23 (T12) — rule creation rejecting still calls onSaved (save stands)
+it('still calls onSaved when rule creation fails after a committed save', async () => {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  ;(mockApi.scanner.createVendorRule as jest.Mock).mockRejectedValue(new Error('duplicate rule'))
+  const onSaved = jest.fn()
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={onSaved} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]); fireEvent.click(radios[3]) // vendor → catalog
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(onSaved).toHaveBeenCalled())
+})
+
+// Step 24 (T13) — rule creation rejecting fires an error toast naming the outcome
+it('fires an error toast when rule creation fails after a committed save', async () => {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  ;(mockApi.scanner.createVendorRule as jest.Mock).mockRejectedValue(new Error('duplicate rule'))
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[0]); fireEvent.click(radios[3]) // vendor → catalog
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(getToast().error).toHaveBeenCalledWith(expect.stringMatching(/record saved.*could not be created/i)))
+  expect(getFire()).not.toHaveBeenCalled()
+})
+
+// Step 25 (T14) — with two rules where one rejects, the fulfilled one still fires
+it('fires the fulfilled rule toast and errors only for the rejected rule when one of two fails', async () => {
+  ;(mockApi.update as jest.Mock).mockResolvedValue({})
+  ;(mockApi.scanner.createNameRule as jest.Mock).mockResolvedValue(NAME_RESULT)
+  ;(mockApi.scanner.createVendorRule as jest.Mock).mockRejectedValue(new Error('duplicate rule'))
+  render(<SingleResolutionModal row={makeRow()} onClose={noop} onSaved={noop} />)
+  const radios = screen.getAllByRole('radio')
+  fireEvent.click(radios[1]); fireEvent.click(radios[3]) // name → catalog (ok), vendor → catalog (fails)
+  fireEvent.click(screen.getByRole('button', { name: /save/i }))
+  await waitFor(() => expect(getFire()).toHaveBeenCalledTimes(1))
+  expect(getFire()).toHaveBeenCalledWith(expect.objectContaining({ ruleType: 'name' }))
+  expect(getToast().error).toHaveBeenCalledTimes(1)
 })

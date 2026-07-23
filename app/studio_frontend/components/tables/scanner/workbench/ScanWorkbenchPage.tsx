@@ -32,7 +32,7 @@ function renderActiveModal({ modal, onClose, onCloseAndInvalidate }: RenderModal
   if (modal.type === 'single-resolution') {
     return (
       <SingleResolutionModal row={modal.row} readOnly={modal.readOnly}
-        onClose={onClose} onSaved={onCloseAndInvalidate} onFireRuleToasts={() => undefined} />
+        onClose={onClose} onSaved={onCloseAndInvalidate} />
     )
   }
   if (modal.type === 'collision') {
@@ -57,7 +57,7 @@ function WorkbenchModals({ activeModal, setActiveModal, currentModalRow, setBulk
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background rounded-lg p-6 w-full max-w-lg shadow-xl">
             <SingleResolutionModal row={currentModalRow}
-              onClose={() => setBulkResolveQueue([])} onSaved={handleModalSaved} onFireRuleToasts={() => undefined} />
+              onClose={() => setBulkResolveQueue([])} onSaved={handleModalSaved} />
           </div>
         </div>
       )}

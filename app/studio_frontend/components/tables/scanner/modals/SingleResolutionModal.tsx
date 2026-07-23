@@ -10,7 +10,22 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { ScannerModalContent } from './ScannerModalContent'
-import type { FieldSource, RuleCreationResult, WorkbenchRow } from '@/lib/types'
+import { fireRuleToasts } from '@/components/scanner/RuleToastManager'
+import { useAcknowledgeClean } from '@/lib/useAcknowledgeClean'
+import type { FieldSource, RuleCreationResult, RuleType, WorkbenchRow } from '@/lib/types'
+
+// U-21: rules originating from the resolution flow are only ever vendor/name;
+// pattern rules are a rules-page concern (BR-U21-11). Narrowing at the type level
+// makes a pattern rule unconstructable here rather than guarding at runtime.
+type ResolutionRuleType = Extract<RuleType, 'vendor' | 'name'>
+
+// A transient pairing of an in-flight rule-creation request with the two facts the
+// response cannot carry: its type and its display label (BR-U21-08, BR-U21-09).
+interface PendingRuleCreation {
+  ruleType: ResolutionRuleType
+  ruleLabel: string
+  request: Promise<RuleCreationResult>
+}
 
 interface Field {
   key: 'name' | 'vendor' | 'version'
@@ -30,7 +45,6 @@ interface SingleResolutionModalProps {
   row: WorkbenchRow
   onClose: () => void
   onSaved: () => void
-  onFireRuleToasts: (result: RuleCreationResult) => void
   readOnly?: boolean
 }
 
@@ -99,17 +113,45 @@ function buildPatch(fields: Field[], sources: ResolutionState): Record<string, s
   return patch
 }
 
-function collectRulePromises(fields: Field[], sources: ResolutionState): Promise<RuleCreationResult>[] {
-  const promises: Promise<RuleCreationResult>[] = []
+function collectRulePromises(fields: Field[], sources: ResolutionState): PendingRuleCreation[] {
+  const pending: PendingRuleCreation[] = []
   for (const f of fields) {
-    if (f.diskValue === f.catalogValue || sources[f.sourceKey] !== 'catalog') continue
-    if (f.key === 'vendor' && f.catalogValue != null) promises.push(api.scanner.createVendorRule({ disk_vendor: f.diskValue, catalog_vendor: f.catalogValue }))
-    else if (f.key === 'name' && f.catalogValue != null) promises.push(api.scanner.createNameRule({ disk_name: f.diskValue, catalog_name: f.catalogValue }))
+    if (f.diskValue === f.catalogValue || sources[f.sourceKey] !== 'catalog' || f.catalogValue == null) continue
+    const ruleLabel = `${f.diskValue} → ${f.catalogValue}`
+    if (f.key === 'vendor') pending.push({ ruleType: 'vendor', ruleLabel, request: api.scanner.createVendorRule({ disk_vendor: f.diskValue, catalog_vendor: f.catalogValue }) })
+    else if (f.key === 'name') pending.push({ ruleType: 'name', ruleLabel, request: api.scanner.createNameRule({ disk_name: f.diskValue, catalog_name: f.catalogValue }) })
   }
-  return promises
+  return pending
 }
 
-export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts, readOnly = false }: Readonly<SingleResolutionModalProps>) {
+// Settle every rule independently (BR-U21-18) so one failure cannot discard a
+// sibling's notification. A fulfilled rule surfaces the same toasts as the rules
+// page; a rejected one is reported honestly while the committed save stands.
+async function notifyRuleCreations(
+  pending: PendingRuleCreation[],
+  acknowledgeClean: (id: string, type: RuleType) => Promise<number>,
+): Promise<void> {
+  const settled = await Promise.allSettled(pending.map((p) => p.request))
+  settled.forEach((outcome, i) => {
+    const { ruleType, ruleLabel } = pending[i]
+    if (outcome.status !== 'fulfilled') {
+      toast.error(`Record saved, but the normalization rule could not be created: ${ruleLabel}.`)
+      return
+    }
+    const result = outcome.value
+    fireRuleToasts({
+      ruleLabel,
+      ruleType,
+      ruleId: (result.rule as { rule_id: string }).rule_id,
+      cleanCount: result.clean_count,
+      needsReviewCount: result.needs_review_count,
+      acknowledgeClean,
+    })
+  })
+}
+
+export function SingleResolutionModal({ row, onClose, onSaved, readOnly = false }: Readonly<SingleResolutionModalProps>) {
+  const acknowledgeClean = useAcknowledgeClean()
   const fields: Field[] = [
     { key: 'name', label: 'Name', diskValue: row.disk_name, catalogValue: row.catalog_record_name, sourceKey: 'nameSource' },
     { key: 'vendor', label: 'Vendor', diskValue: row.disk_vendor, catalogValue: row.catalog_record_vendor, sourceKey: 'vendorSource' },
@@ -161,8 +203,7 @@ export function SingleResolutionModal({ row, onClose, onSaved, onFireRuleToasts,
       return
     }
 
-    const results = await Promise.all(collectRulePromises(fields, sources))
-    results.forEach((r) => onFireRuleToasts(r))
+    await notifyRuleCreations(collectRulePromises(fields, sources), acknowledgeClean)
     setIsSaving(false)
     onSaved()
   }
