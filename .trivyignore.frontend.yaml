@@ -71,60 +71,81 @@ vulnerabilities:
       major bump on the 7.x consumers.
     expired_at: 2026-10-23
 
-  # ── Base-image npm-CLI bundle ───────────────────────────────────────────────
+  # ── Base-image npm-CLI bundle (dev container: node:20-alpine, `next dev`) ────
   # These packages are NOT application dependencies (`npm ls <pkg>` is empty); they
-  # ship inside the npm CLI bundled in the node base image
-  # (usr/local/lib/node_modules/npm/node_modules/...), used only during npm
-  # install/publish in the build/dev container, never in the Next.js request path.
-  # Not bumpable via package.json; resolve when the node base image ships a newer npm.
+  # ship inside the npm CLI bundled in node:20-alpine
+  # (usr/local/lib/node_modules/npm/node_modules/...). studio_frontend is a dev-only
+  # container running `next dev`: npm executes at BUILD time against the pinned
+  # package-lock (trusted input) and never installs or extracts untrusted tarballs
+  # at runtime, so the node-tar extraction / sigstore verification paths are not
+  # reachable in normal operation. Not bumpable via package.json.
+  #
+  # Version-specific status (verified 2026-07-24): node:20-alpine bundles node-tar
+  # 6.2.1 and sigstore 2.3.1. Patched-base availability, checked against node bases:
+  #   - node-tar path-traversal variants (23745/23950/24842/26960/29786/31802) are
+  #     fixed by node-tar 7.x — available in node:24-alpine (7.5.15).
+  #   - node-tar 59873/59874 need 7.5.19 — NO node base ships it yet (node:24 = 7.5.15).
+  #   - sigstore 48815 needs 4.1.1 — available in node:24-alpine (sigstore 4.1.1).
+  # Adopting node:24-alpine (a node-major bump, needs app revalidation + apk-upgrade
+  # rework) is tracked as a separate frontend node-base-upgrade infra chore; these
+  # suppressions are retained until then and re-reviewed at expired_at.
 
   - id: CVE-2026-23745
     purls: &node_tar_purls
       - "pkg:npm/tar"
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
     expired_at: 2026-10-23
 
   - id: CVE-2026-23950
     purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
     expired_at: 2026-10-23
 
   - id: CVE-2026-24842
     purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
     expired_at: 2026-10-23
 
   - id: CVE-2026-26960
     purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
     expired_at: 2026-10-23
 
   - id: CVE-2026-29786
     purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
     expired_at: 2026-10-23
 
   - id: CVE-2026-31802
     purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
     expired_at: 2026-10-23
 
   - id: CVE-2026-59873
     purls: *node_tar_purls
-    statement: "node-tar — DoS via crafted gzip bomb. npm-CLI base-image bundle (npm ls tar empty), not an app dep; see section header. Resolves when the base image ships npm bundling node-tar >= 7.5.19."
+    statement: >-
+      node-tar 59873 (CRITICAL) — DoS via crafted gzip bomb. npm-CLI bundle in
+      node:20-alpine (ships node-tar 6.2.1), dev-only next-dev container, not an app
+      dep. Fixed in node-tar 7.5.19 but NO node base ships it yet (node:24 = 7.5.15),
+      so no patched base is available. See section header.
     expired_at: 2026-10-23
 
   - id: CVE-2026-59874
     purls: *node_tar_purls
-    statement: "node-tar — DoS via malformed tar archive. npm-CLI base-image bundle, not an app dep; see section header. Resolves when the base image ships npm bundling node-tar >= 7.5.19."
+    statement: >-
+      node-tar 59874 (HIGH) — DoS via malformed tar archive. npm-CLI bundle in
+      node:20-alpine (ships node-tar 6.2.1), dev-only next-dev container, not an app
+      dep. Fixed in node-tar 7.5.19 but NO node base ships it yet (node:24 = 7.5.15),
+      so no patched base is available. See section header.
     expired_at: 2026-10-23
 
   - id: CVE-2026-48815
     purls:
       - "pkg:npm/sigstore"
     statement: >-
-      sigstore < 4.1.1 — certificateOIDs verification bypass. Bundled inside the npm
-      CLI in the node base image (npm ls sigstore empty), runs only during npm
-      publish/provenance, never in the request path. Resolves when the base image
-      ships npm bundling sigstore >= 4.1.1.
+      sigstore < 4.1.1 — certificateOIDs verification bypass. npm-CLI bundle in
+      node:20-alpine (ships sigstore 2.3.1), dev-only next-dev container; runs only
+      during npm publish/provenance, never at runtime. A patched base EXISTS
+      (node:24-alpine ships sigstore 4.1.1); adopting it is deferred to the tracked
+      frontend node-base-upgrade infra chore. See section header.
     expired_at: 2026-10-23
