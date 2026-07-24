@@ -14,9 +14,6 @@ const pluginScannerDir = "app/plugin_scanner"
 // Root is the filesystem root of the monorepo, used to resolve tool paths.
 type Root string
 
-// ImageRef is a Docker image reference (SHA or tag) for container scanning.
-type ImageRef string
-
 // npmStep builds a ToolStep that runs npm with the given args in the frontend
 // directory. Used by NpmInstallStep and NpmAuditStep to avoid duplication.
 func npmStep(name string, args []string, root Root) ToolStep {
@@ -227,35 +224,19 @@ func StaticcheckStep(root Root) ToolStep {
 	return goStep("staticcheck", goBinPath("staticcheck"), []string{"./..."}, root)
 }
 
-// TrivyStep returns a step that scans a single container image with Trivy via
-// docker run. image should be the image SHA or tag returned by
-// `docker inspect <container> --format '{{.Image}}'`. Equivalent to the scan()
-// function inside scripts/run-trivy.sh.
-func TrivyStep(root Root, image ImageRef) ToolStep {
-	r := string(root)
-	return ToolStep{
-		Name: "trivy",
-		Bin:  "docker",
-		Args: []string{
-			"run", "--rm",
-			"-v", "/var/run/docker.sock:/var/run/docker.sock",
-			"-v", "trivy-cache:/root/.cache/trivy",
-			"-v", filepath.Join(r, ".trivyignore.yaml") + ":/src/.trivyignore.yaml:ro",
-			"ghcr.io/aquasecurity/trivy:latest",
-			"image",
-			"--severity", "HIGH,CRITICAL",
-			"--exit-code", "1",
-			"--no-progress",
-			"--ignorefile", "/src/.trivyignore.yaml",
-			string(image),
-		},
-	}
-}
+// trivyImage pins the Trivy scanner to an immutable digest (trivy 0.72.0) rather
+// than the mutable :latest tag, so scan behavior is reproducible and a silent
+// upstream retag cannot change what the gate enforces. This is the exact image
+// the suppression files were validated against. Bump deliberately alongside a
+// re-validation of .trivyignore.{backend,frontend}.yaml.
+const trivyImage = "ghcr.io/aquasecurity/trivy:0.72.0@sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f"
 
 // trivyContainerStep returns a step that resolves a running container's image
 // SHA via docker inspect at runtime, then scans it with Trivy for HIGH and
 // CRITICAL CVEs. Uses bash -c to chain inspect + trivy without a staging file.
-func trivyContainerStep(root Root, container string) ToolStep {
+// ignoreFile is the image-specific suppression file (relative to root) so a
+// suppression scoped to one image can never mask a finding in the other.
+func trivyContainerStep(root Root, container, ignoreFile string) ToolStep {
 	r := string(root)
 	// Escape any single quotes in r so it can be safely embedded in a
 	// single-quoted shell word (bash '"'"' idiom).
@@ -266,11 +247,11 @@ func trivyContainerStep(root Root, container string) ToolStep {
 			`docker run --rm `+
 			`-v /var/run/docker.sock:/var/run/docker.sock `+
 			`-v trivy-cache:/root/.cache/trivy `+
-			`-v '%s/.trivyignore.yaml:/src/.trivyignore.yaml:ro' `+
-			`ghcr.io/aquasecurity/trivy:latest image `+
+			`-v '%s/%s:/src/%s:ro' `+
+			`%s image `+
 			`--severity HIGH,CRITICAL --exit-code 1 --no-progress `+
-			`--ignorefile /src/.trivyignore.yaml "$img"`,
-		container, rSafe,
+			`--ignorefile /src/%s "$img"`,
+		container, rSafe, ignoreFile, ignoreFile, trivyImage, ignoreFile,
 	)
 	return ToolStep{
 		Name: "trivy-" + container,
@@ -279,14 +260,16 @@ func trivyContainerStep(root Root, container string) ToolStep {
 	}
 }
 
-// TrivyBackendStep scans the controlroom_backend container image.
+// TrivyBackendStep scans the controlroom_backend container image with the
+// backend-scoped suppression file.
 func TrivyBackendStep(root Root) ToolStep {
-	return trivyContainerStep(root, "controlroom_backend")
+	return trivyContainerStep(root, "controlroom_backend", ".trivyignore.backend.yaml")
 }
 
-// TrivyFrontendStep scans the studio_frontend container image.
+// TrivyFrontendStep scans the studio_frontend container image with the
+// frontend-scoped suppression file.
 func TrivyFrontendStep(root Root) ToolStep {
-	return trivyContainerStep(root, "studio_frontend")
+	return trivyContainerStep(root, "studio_frontend", ".trivyignore.frontend.yaml")
 }
 
 // DetectSecretsStep runs detect-secrets scan and diffs the result against

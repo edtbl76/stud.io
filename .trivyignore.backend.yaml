@@ -1,13 +1,13 @@
-# Trivy vulnerability suppressions (scoped YAML format).
+# Trivy vulnerability suppressions — controlroom_backend image ONLY.
 #
-# Each rule is scoped to the specific package(s) it applies to via `purls`, so a
-# CVE ID is never blanket-suppressed across unrelated packages. Every rule carries
-# a `statement` (justification consistent with the project's security posture) and
-# an `expired_at` date — after that date the suppression lapses and the CVE re-fails
-# the gate, forcing a re-review. Review horizon: 2026-10-23 (~3 months). Adjust the
-# dates when the underlying base image / dependency is upgraded.
+# This file is applied only to the controlroom_backend scan (see roadie
+# TrivyBackendStep), so a rule here can never suppress a finding in the
+# studio_frontend image. Every rule is scoped to its package(s) via `purls`, with
+# a `statement` justification and an `expired_at` review date (after which the
+# suppression lapses and the CVE re-fails the gate). Review horizon: 2026-10-23.
 #
-# Consumed by `roadie test scan trivy` via `trivy image --ignorefile .trivyignore.yaml`.
+# Consumed by `roadie test scan trivy` via
+# `trivy image --ignorefile .trivyignore.backend.yaml`.
 vulnerabilities:
   # ── Backend OS packages (debian trixie, python:3.12-slim) ───────────────────
   # Indirect OS dependencies only; controlroom_backend runs as non-root (appuser)
@@ -108,11 +108,11 @@ vulnerabilities:
       - "pkg:deb/debian/util-linux"
     statement: >-
       util-linux — integer overflow in libblkid DOS partition-table parsing. No fix
-      in trixie. Both scanned images never handle untrusted block devices or
+      in trixie. The backend image never handles untrusted block devices or
       partition tables, so the vulnerable libblkid path is unreachable.
     expired_at: 2026-10-23
 
-  # ── Perl (debian) in controlroom_backend ────────────────────────────────────
+  # ── Perl (debian) ───────────────────────────────────────────────────────────
   # Perl is a runtime dependency of the pg backup tooling only, never in the HTTP
   # request path. No fixed perl 5.40 packages available in debian trixie. The
   # affected code paths (Archive::Tar/IO-Compress/IO-Uncompress extraction,
@@ -175,7 +175,7 @@ vulnerabilities:
       backup-tooling only; see file header.
     expired_at: 2026-10-23
 
-  # ── SQLite (debian) in controlroom_backend ──────────────────────────────────
+  # ── SQLite (debian) ─────────────────────────────────────────────────────────
   # libsqlite3-0 is an indirect OS dep only; the application uses PostgreSQL
   # (asyncpg) exclusively and never opens a SQLite database.
 
@@ -188,124 +188,4 @@ vulnerabilities:
   - id: CVE-2026-11824
     purls: *sqlite_purls
     statement: "libsqlite3-0 < 3.53.2 — heap-based buffer overflow. App never opens a SQLite database; indirect OS dep."
-    expired_at: 2026-10-23
-
-  # ── Frontend npm — build/test tooling (studio_frontend) ─────────────────────
-  # Transitive dependencies of jest / playwright / next build / bundle-analyzer,
-  # installed in the dev container. Not in the HTTP request path with untrusted
-  # input. npm audit --audit-level=critical handles critical npm CVEs at pre-commit.
-
-  - id: CVE-2024-21538
-    purls:
-      - "pkg:npm/cross-spawn"
-    statement: "cross-spawn — ReDoS via regex. Dev/build tooling transitive dep; not in the request path."
-    expired_at: 2026-10-23
-
-  - id: CVE-2025-64756
-    purls:
-      - "pkg:npm/glob"
-    statement: "glob — command injection via malicious path. Dev/build tooling transitive dep; glob patterns are developer-authored, never attacker-controlled."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-26996
-    purls: &minimatch_purls
-      - "pkg:npm/minimatch"
-    statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-27903
-    purls: *minimatch_purls
-    statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-27904
-    purls: *minimatch_purls
-    statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-13149
-    purls:
-      - "pkg:npm/brace-expansion"
-    statement: >-
-      brace-expansion — ReDoS. minimatch's dependency, reached only via jest and
-      exceljs→archiver→glob→minimatch where glob patterns are developer-authored.
-      Same posture as the minimatch suppressions; not in the request path with
-      untrusted input.
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-59869
-    purls:
-      - "pkg:npm/js-yaml"
-    statement: >-
-      js-yaml — DoS via crafted YAML. js-yaml@3.14.2 is pulled only by
-      jest→babel-plugin-istanbul→@istanbuljs/load-nyc-config (coverage config), which
-      parses developer-authored nyc config, never untrusted YAML in the request path.
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-48779
-    purls:
-      - "pkg:npm/ws"
-    statement: >-
-      ws — memory-exhaustion DoS. ws is pulled only by build/test tooling
-      (bundle-analyzer, lighthouse, jsdom, puppeteer), never the production Next.js
-      request path. Fixed in ws 7.5.11 / 8.21.0 — not adopted to avoid forcing a
-      major bump on the 7.x consumers.
-    expired_at: 2026-10-23
-
-  # ── Base-image npm-CLI bundle (studio_frontend) ─────────────────────────────
-  # These packages are NOT application dependencies (`npm ls <pkg>` is empty); they
-  # ship inside the npm CLI bundled in the node base image
-  # (usr/local/lib/node_modules/npm/node_modules/...), used only during npm
-  # install/publish in the build/dev container, never in the Next.js request path.
-  # Not bumpable via package.json; resolve when the node base image ships a newer npm.
-
-  - id: CVE-2026-23745
-    purls: &node_tar_purls
-      - "pkg:npm/tar"
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-23950
-    purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-24842
-    purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-26960
-    purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-29786
-    purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-31802
-    purls: *node_tar_purls
-    statement: "node-tar — path traversal / file overwrite variant. npm-CLI base-image bundle, not an app dep; see section header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-59873
-    purls: *node_tar_purls
-    statement: "node-tar — DoS via crafted gzip bomb. npm-CLI base-image bundle (npm ls tar empty), not an app dep; see section header. Resolves when the base image ships npm bundling node-tar >= 7.5.19."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-59874
-    purls: *node_tar_purls
-    statement: "node-tar — DoS via malformed tar archive. npm-CLI base-image bundle, not an app dep; see section header. Resolves when the base image ships npm bundling node-tar >= 7.5.19."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-48815
-    purls:
-      - "pkg:npm/sigstore"
-    statement: >-
-      sigstore < 4.1.1 — certificateOIDs verification bypass. Bundled inside the npm
-      CLI in the node base image (npm ls sigstore empty), runs only during npm
-      publish/provenance, never in the request path. Resolves when the base image
-      ships npm bundling sigstore >= 4.1.1.
     expired_at: 2026-10-23
