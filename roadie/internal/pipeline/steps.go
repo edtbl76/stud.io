@@ -240,13 +240,13 @@ func TrivyStep(root Root, image ImageRef) ToolStep {
 			"run", "--rm",
 			"-v", "/var/run/docker.sock:/var/run/docker.sock",
 			"-v", "trivy-cache:/root/.cache/trivy",
-			"-v", filepath.Join(r, ".trivyignore") + ":/src/.trivyignore:ro",
+			"-v", filepath.Join(r, ".trivyignore.yaml") + ":/src/.trivyignore.yaml:ro",
 			"ghcr.io/aquasecurity/trivy:latest",
 			"image",
 			"--severity", "HIGH,CRITICAL",
 			"--exit-code", "1",
 			"--no-progress",
-			"--ignorefile", "/src/.trivyignore",
+			"--ignorefile", "/src/.trivyignore.yaml",
 			string(image),
 		},
 	}
@@ -266,10 +266,10 @@ func trivyContainerStep(root Root, container string) ToolStep {
 			`docker run --rm `+
 			`-v /var/run/docker.sock:/var/run/docker.sock `+
 			`-v trivy-cache:/root/.cache/trivy `+
-			`-v '%s/.trivyignore:/src/.trivyignore:ro' `+
+			`-v '%s/.trivyignore.yaml:/src/.trivyignore.yaml:ro' `+
 			`ghcr.io/aquasecurity/trivy:latest image `+
 			`--severity HIGH,CRITICAL --exit-code 1 --no-progress `+
-			`--ignorefile /src/.trivyignore "$img"`,
+			`--ignorefile /src/.trivyignore.yaml "$img"`,
 		container, rSafe,
 	)
 	return ToolStep{

@@ -85,13 +85,13 @@ These are asserted on 7 pages by `tests/security/test_security_headers.py` (run 
 
 Trivy runs in an ephemeral container with two mounts:
 - `/var/run/docker.sock` — allows Trivy to inspect local images
-- `.trivyignore` — suppression file for justified CVEs (mounted read-only)
+- `.trivyignore.yaml` — suppression file for justified CVEs (mounted read-only, passed via `--ignorefile`)
 
 `--exit-code 1` causes the scan to fail on any un-suppressed HIGH/CRITICAL finding.
 
-### CVE suppressions (`.trivyignore`)
+### CVE suppressions (`.trivyignore.yaml`)
 
-All suppressions require a written justification in `.trivyignore`. Current suppressions:
+Suppressions live in the scoped YAML ignore file `.trivyignore.yaml` (not the legacy flat `.trivyignore`, which was retired). Each rule is **scoped by package** via `purls`, so a CVE ID is never blanket-suppressed across unrelated packages; each carries a `statement` justification and an `expired_at` date after which the suppression lapses and the CVE re-fails the gate, forcing a re-review. The authoritative list and per-rule justifications live in `.trivyignore.yaml`; the table below is a summary:
 
 | CVE / GHSA | Package | Reason |
 |---|---|---|
@@ -106,7 +106,7 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 | `CVE-2026-48815` | `sigstore` (bundled in npm CLI, `node:20-alpine`) | Not an app dependency (`npm ls sigstore` is empty); runs only during npm publish/provenance, never in the request path. Not bumpable via `package.json`; resolves when the base image ships npm bundling sigstore ≥ 4.1.1. |
 | `CVE-2026-42496`, `CVE-2026-8376`, `CVE-2026-42497`, `CVE-2026-9538`, `CVE-2026-48962` | `perl`, `libperl5.40`, `perl-base`, `perl-modules-5.40` | No fix available in debian trixie. Perl is a runtime dependency required by pg backup tooling. Suppression accepted pending an upstream patch. |
 
-**When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a suppression with justification. Revisit existing suppressions whenever the affected package is upgraded — a suppression that was justified by "no fix available" may no longer apply.
+**When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a scoped rule to `.trivyignore.yaml` — `id` + `purls` (and/or `paths`) + a `statement` justification + an `expired_at` review date. Revisit existing rules whenever the affected package is upgraded or a rule's `expired_at` lapses — a suppression justified by "no fix available" may no longer apply.
 
 **Trivy DB timing (why a scan can "start" failing with no code change):** the scan result depends on the Trivy vulnerability database, which auto-updates in the shared `trivy-cache` volume. A scan can pass one day and fail the next — with an identical image — simply because the DB learned about a CVE that was always present in the image. This is not a stale build; it means the finding is newly disclosed, not newly introduced. `roadie release` and `roadie test scan` use the same trivy step against the running container, so they agree once both use the same DB. When a scan begins failing unexpectedly, check whether the CVE is newly added to the DB before suspecting a rebuild or cache problem.
 

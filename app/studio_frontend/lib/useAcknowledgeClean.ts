@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { api } from '@/lib/api'
 import { WORKBENCH_KEY } from '@/lib/useWorkbench'
 import type { RuleType } from '@/lib/types'
@@ -13,10 +14,18 @@ export function useAcknowledgeClean(): (id: string, type: RuleType) => Promise<n
   const acknowledge = useMutation({
     mutationFn: ({ id, type }: { id: string; type: RuleType }) => api.scanner.acknowledgeClean(id, type),
     onSuccess: () => qc.invalidateQueries({ queryKey: WORKBENCH_KEY }),
+    onError: () => toast.error('Could not acknowledge the cleaned records. Please try again.'),
   })
 
+  // The sole caller (the "Acknowledge All" toast action) fires this and forgets it,
+  // so the returned promise must never reject — a rejection there would be unhandled.
+  // The failure is surfaced by onError above; here we resolve to 0 acknowledged.
   return async (id: string, type: RuleType) => {
-    const result = await acknowledge.mutateAsync({ id, type })
-    return result.acknowledged
+    try {
+      const result = await acknowledge.mutateAsync({ id, type })
+      return result.acknowledged
+    } catch {
+      return 0
+    }
   }
 }
