@@ -81,17 +81,18 @@ These are asserted on 7 pages by `tests/security/test_security_headers.py` (run 
 
 ## Container image scanning (Trivy)
 
-`roadie test scan trivy` scans both container images (`controlroom_backend`, `studio_frontend`) for **HIGH** and **CRITICAL** CVEs using [Trivy](https://trivy.dev) from `ghcr.io/aquasecurity/trivy:latest`. It covers OS packages, Python packages, and npm packages installed in each image.
+`roadie test scan trivy` scans both container images (`controlroom_backend`, `studio_frontend`) for **HIGH** and **CRITICAL** CVEs using [Trivy](https://trivy.dev), pinned to an immutable digest (`ghcr.io/aquasecurity/trivy:0.72.0@sha256:cffe3f51…`) rather than `:latest` so scans are reproducible. It covers OS packages, Python packages, and npm packages installed in each image.
 
-Trivy runs in an ephemeral container with two mounts:
+Trivy runs in an ephemeral container with three mounts:
 - `/var/run/docker.sock` — allows Trivy to inspect local images
-- `.trivyignore` — suppression file for justified CVEs (mounted read-only)
+- `trivy-cache:/root/.cache/trivy` — persistent named volume caching the vulnerability database across runs
+- an **image-specific** suppression file — `.trivyignore.backend.yaml` for `controlroom_backend`, `.trivyignore.frontend.yaml` for `studio_frontend` (mounted read-only, passed via `--ignorefile`)
 
 `--exit-code 1` causes the scan to fail on any un-suppressed HIGH/CRITICAL finding.
 
-### CVE suppressions (`.trivyignore`)
+### CVE suppressions (`.trivyignore.backend.yaml` / `.trivyignore.frontend.yaml`)
 
-All suppressions require a written justification in `.trivyignore`. Current suppressions:
+Suppressions live in **two per-image** scoped YAML ignore files: `.trivyignore.backend.yaml` (applied only to the `controlroom_backend` scan) and `.trivyignore.frontend.yaml` (applied only to the `studio_frontend` scan). Splitting per image means a suppression justified for one image can never mask a matching package+CVE in the other — the backend file holds only OS/Python/perl/sqlite rules, the frontend file only npm rules. (The earlier single `.trivyignore.yaml`, and before it the flat `.trivyignore`, were retired.) Each rule is **scoped by package** via `purls`, so a CVE ID is never blanket-suppressed across unrelated packages; each carries a `statement` justification and an `expired_at` date after which the suppression lapses and the CVE re-fails the gate, forcing a re-review. The authoritative list and per-rule justifications live in the two files; the table below is a summary:
 
 | CVE / GHSA | Package | Reason |
 |---|---|---|
@@ -106,7 +107,7 @@ All suppressions require a written justification in `.trivyignore`. Current supp
 | `CVE-2026-48815` | `sigstore` (bundled in npm CLI, `node:20-alpine`) | Not an app dependency (`npm ls sigstore` is empty); runs only during npm publish/provenance, never in the request path. Not bumpable via `package.json`; resolves when the base image ships npm bundling sigstore ≥ 4.1.1. |
 | `CVE-2026-42496`, `CVE-2026-8376`, `CVE-2026-42497`, `CVE-2026-9538`, `CVE-2026-48962` | `perl`, `libperl5.40`, `perl-base`, `perl-modules-5.40` | No fix available in debian trixie. Perl is a runtime dependency required by pg backup tooling. Suppression accepted pending an upstream patch. |
 
-**When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a suppression with justification. Revisit existing suppressions whenever the affected package is upgraded — a suppression that was justified by "no fix available" may no longer apply.
+**When to update:** after upgrading base images or dependencies, re-run `roadie test scan trivy`. If new CVEs appear, either fix them (preferred) or add a scoped rule to the ignore file **for the affected image** (`.trivyignore.backend.yaml` or `.trivyignore.frontend.yaml`) — `id` + `purls` (and/or `paths`) + a `statement` justification + an `expired_at` review date. Keep each rule in the file whose image actually ships the package. Revisit existing rules whenever the affected package is upgraded or a rule's `expired_at` lapses — a suppression justified by "no fix available" may no longer apply.
 
 **Trivy DB timing (why a scan can "start" failing with no code change):** the scan result depends on the Trivy vulnerability database, which auto-updates in the shared `trivy-cache` volume. A scan can pass one day and fail the next — with an identical image — simply because the DB learned about a CVE that was always present in the image. This is not a stale build; it means the finding is newly disclosed, not newly introduced. `roadie release` and `roadie test scan` use the same trivy step against the running container, so they agree once both use the same DB. When a scan begins failing unexpectedly, check whether the CVE is newly added to the DB before suspecting a rebuild or cache problem.
 

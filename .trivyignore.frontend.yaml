@@ -1,0 +1,151 @@
+# Trivy vulnerability suppressions — studio_frontend image ONLY.
+#
+# This file is applied only to the studio_frontend scan (see roadie
+# TrivyFrontendStep), so a rule here can never suppress a finding in the
+# controlroom_backend image. Every rule is scoped to its package(s) via `purls`,
+# with a `statement` justification and an `expired_at` review date (after which the
+# suppression lapses and the CVE re-fails the gate). Review horizon: 2026-10-23.
+#
+# Consumed by `roadie test scan trivy` via
+# `trivy image --ignorefile .trivyignore.frontend.yaml`.
+vulnerabilities:
+  # ── Frontend npm — build/test tooling ───────────────────────────────────────
+  # Transitive dependencies of jest / playwright / next build / bundle-analyzer,
+  # installed in the dev container. Not in the HTTP request path with untrusted
+  # input. npm audit --audit-level=critical handles critical npm CVEs at pre-commit.
+
+  - id: CVE-2024-21538
+    purls:
+      - "pkg:npm/cross-spawn"
+    statement: "cross-spawn — ReDoS via regex. Dev/build tooling transitive dep; not in the request path."
+    expired_at: 2026-10-23
+
+  - id: CVE-2025-64756
+    purls:
+      - "pkg:npm/glob"
+    statement: "glob — command injection via malicious path. Dev/build tooling transitive dep; glob patterns are developer-authored, never attacker-controlled."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-26996
+    purls: &minimatch_purls
+      - "pkg:npm/minimatch"
+    statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-27903
+    purls: *minimatch_purls
+    statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-27904
+    purls: *minimatch_purls
+    statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-13149
+    purls:
+      - "pkg:npm/brace-expansion"
+    statement: >-
+      brace-expansion — ReDoS. minimatch's dependency, reached only via jest and
+      exceljs→archiver→glob→minimatch where glob patterns are developer-authored.
+      Same posture as the minimatch suppressions; not in the request path with
+      untrusted input.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-59869
+    purls:
+      - "pkg:npm/js-yaml"
+    statement: >-
+      js-yaml — DoS via crafted YAML. js-yaml@3.14.2 is pulled only by
+      jest→babel-plugin-istanbul→@istanbuljs/load-nyc-config (coverage config), which
+      parses developer-authored nyc config, never untrusted YAML in the request path.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-48779
+    purls:
+      - "pkg:npm/ws"
+    statement: >-
+      ws — memory-exhaustion DoS. ws is pulled only by build/test tooling
+      (bundle-analyzer, lighthouse, jsdom, puppeteer), never the production Next.js
+      request path. Fixed in ws 7.5.11 / 8.21.0 — not adopted to avoid forcing a
+      major bump on the 7.x consumers.
+    expired_at: 2026-10-23
+
+  # ── Base-image npm-CLI bundle (dev container: node:20-alpine, `next dev`) ────
+  # These packages are NOT application dependencies (`npm ls <pkg>` is empty); they
+  # ship inside the npm CLI bundled in node:20-alpine
+  # (usr/local/lib/node_modules/npm/node_modules/...). studio_frontend is a dev-only
+  # container running `next dev`: npm executes at BUILD time against the pinned
+  # package-lock (trusted input) and never installs or extracts untrusted tarballs
+  # at runtime, so the node-tar extraction / sigstore verification paths are not
+  # reachable in normal operation. Not bumpable via package.json.
+  #
+  # Version-specific status (verified 2026-07-24): node:20-alpine bundles node-tar
+  # 6.2.1 and sigstore 2.3.1. Patched-base availability, checked against node bases:
+  #   - node-tar path-traversal variants (23745/23950/24842/26960/29786/31802) are
+  #     fixed by node-tar 7.x — available in node:24-alpine (7.5.15).
+  #   - node-tar 59873/59874 need 7.5.19 — NO node base ships it yet (node:24 = 7.5.15).
+  #   - sigstore 48815 needs 4.1.1 — available in node:24-alpine (sigstore 4.1.1).
+  # Adopting node:24-alpine (a node-major bump, needs app revalidation + apk-upgrade
+  # rework) is tracked as a separate frontend node-base-upgrade infra chore; these
+  # suppressions are retained until then and re-reviewed at expired_at.
+
+  - id: CVE-2026-23745
+    purls: &node_tar_purls
+      - "pkg:npm/tar"
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-23950
+    purls: *node_tar_purls
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-24842
+    purls: *node_tar_purls
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-26960
+    purls: *node_tar_purls
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-29786
+    purls: *node_tar_purls
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-31802
+    purls: *node_tar_purls
+    statement: "node-tar path-traversal / file-overwrite variant. npm-CLI bundle in node:20-alpine (node-tar 6.2.1), dev-only next-dev container, not an app dep. Fixed by node-tar 7.x (node:24-alpine = 7.5.15); base bump deferred to the node-base-upgrade chore. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-59873
+    purls: *node_tar_purls
+    statement: >-
+      node-tar 59873 (CRITICAL) — DoS via crafted gzip bomb. npm-CLI bundle in
+      node:20-alpine (ships node-tar 6.2.1), dev-only next-dev container, not an app
+      dep. Fixed in node-tar 7.5.19 but NO node base ships it yet (node:24 = 7.5.15),
+      so no patched base is available. See section header.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-59874
+    purls: *node_tar_purls
+    statement: >-
+      node-tar 59874 (HIGH) — DoS via malformed tar archive. npm-CLI bundle in
+      node:20-alpine (ships node-tar 6.2.1), dev-only next-dev container, not an app
+      dep. Fixed in node-tar 7.5.19 but NO node base ships it yet (node:24 = 7.5.15),
+      so no patched base is available. See section header.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-48815
+    purls:
+      - "pkg:npm/sigstore"
+    statement: >-
+      sigstore < 4.1.1 — certificateOIDs verification bypass. npm-CLI bundle in
+      node:20-alpine (ships sigstore 2.3.1), dev-only next-dev container; runs only
+      during npm publish/provenance, never at runtime. A patched base EXISTS
+      (node:24-alpine ships sigstore 4.1.1); adopting it is deferred to the tracked
+      frontend node-base-upgrade infra chore. See section header.
+    expired_at: 2026-10-23

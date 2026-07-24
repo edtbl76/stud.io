@@ -1,0 +1,191 @@
+# Trivy vulnerability suppressions — controlroom_backend image ONLY.
+#
+# This file is applied only to the controlroom_backend scan (see roadie
+# TrivyBackendStep), so a rule here can never suppress a finding in the
+# studio_frontend image. Every rule is scoped to its package(s) via `purls`, with
+# a `statement` justification and an `expired_at` review date (after which the
+# suppression lapses and the CVE re-fails the gate). Review horizon: 2026-10-23.
+#
+# Consumed by `roadie test scan trivy` via
+# `trivy image --ignorefile .trivyignore.backend.yaml`.
+vulnerabilities:
+  # ── Backend OS packages (debian trixie, python:3.12-slim) ───────────────────
+  # Indirect OS dependencies only; controlroom_backend runs as non-root (appuser)
+  # and none are in the HTTP request path.
+
+  - id: CVE-2024-23342
+    purls:
+      - "pkg:pypi/ecdsa"
+    statement: >-
+      ecdsa — Minerva timing attack on ECDSA keys. Transitive dep of python-jose;
+      the app uses HS256 (HMAC) JWTs exclusively, not EC keys. No fix available
+      upstream. Consistent with the pip-audit suppression.
+    expired_at: 2026-10-23
+
+  - id: CVE-2025-69720
+    purls:
+      - "pkg:deb/debian/libncursesw6"
+      - "pkg:deb/debian/libtinfo6"
+      - "pkg:deb/debian/ncurses-base"
+      - "pkg:deb/debian/ncurses-bin"
+    statement: >-
+      ncurses — buffer overflow. No fix available in debian trixie. ncurses is not
+      used by the application; present only as an indirect OS dependency.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-4878
+    purls:
+      - "pkg:deb/debian/libcap2"
+    statement: >-
+      libcap — privilege escalation via TOCTOU in cap_set_file(). No fix available.
+      Indirect OS dep; the container runs as non-root (appuser) and never calls
+      cap_set_file().
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-29111
+    purls:
+      - "pkg:deb/debian/systemd"
+    statement: >-
+      systemd — arbitrary code execution via spurious IPC. No fix available.
+      Indirect OS dep; not reachable from the application; container runs non-root.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-4046
+    purls:
+      - "pkg:deb/debian/libc6"
+      - "pkg:deb/debian/libc-bin"
+    statement: >-
+      glibc — DoS via iconv() with specific character sets. fix_deferred in debian
+      trixie (no patched version). glibc iconv is not invoked by the application;
+      present only as an OS base-image dep.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-40356
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+    statement: >-
+      krb5 — DoS via integer underflow (CWE-191) in MIT Kerberos 5. No patched
+      debian trixie package yet. Indirect OS dep; the app uses JWT/bcrypt auth
+      exclusively and never reaches libgssapi-krb5-2.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-41992
+    purls:
+      - "pkg:deb/debian/gzip"
+    statement: >-
+      gzip — global buffer overflow in LZH decompression. No fix in trixie. gzip is
+      an OS base tool; the application never decompresses untrusted .lzh archives.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-54369
+    purls:
+      - "pkg:deb/debian/libacl1"
+    statement: >-
+      libacl1 — symlink-traversal privilege escalation. No fix in trixie. Indirect
+      OS dep; non-root container; the app performs no ACL ops on attacker-controlled
+      paths.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-54371
+    purls:
+      - "pkg:deb/debian/libattr1"
+    statement: >-
+      libattr1 — symlink-traversal privilege escalation via getfattr. No fix in
+      trixie. Indirect OS dep; non-root container; no xattr ops on attacker-
+      controlled paths.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-53615
+    purls:
+      - "pkg:deb/debian/bsdutils"
+      - "pkg:deb/debian/libblkid1"
+      - "pkg:deb/debian/liblastlog2-2"
+      - "pkg:deb/debian/libmount1"
+      - "pkg:deb/debian/libsmartcols1"
+      - "pkg:deb/debian/libuuid1"
+      - "pkg:deb/debian/login"
+      - "pkg:deb/debian/mount"
+      - "pkg:deb/debian/util-linux"
+    statement: >-
+      util-linux — integer overflow in libblkid DOS partition-table parsing. No fix
+      in trixie. The backend image never handles untrusted block devices or
+      partition tables, so the vulnerable libblkid path is unreachable.
+    expired_at: 2026-10-23
+
+  # ── Perl (debian) ───────────────────────────────────────────────────────────
+  # Perl is a runtime dependency of the pg backup tooling only, never in the HTTP
+  # request path. No fixed perl 5.40 packages available in debian trixie. The
+  # affected code paths (Archive::Tar/IO-Compress/IO-Uncompress extraction,
+  # Perl_study_chunk regex, Storable deserialization) operate only over developer-
+  # authored data, never user-supplied input.
+
+  - id: CVE-2026-42496
+    purls: &perl_purls
+      - "pkg:deb/debian/perl"
+      - "pkg:deb/debian/perl-base"
+      - "pkg:deb/debian/perl-modules-5.40"
+      - "pkg:deb/debian/libperl5.40"
+    statement: "Archive::Tar < 3.08 — symlink extraction attack. Perl backup-tooling only; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-42497
+    purls: *perl_purls
+    statement: "Archive::Tar < 3.08 — hardlink extraction attack. Perl backup-tooling only; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-9538
+    purls: *perl_purls
+    statement: "Archive::Tar < 3.10 — memory exhaustion via crafted archive. Perl backup-tooling only; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-8376
+    purls: *perl_purls
+    statement: "Perl <= 5.43.10 — heap buffer overflow during compilation. Perl backup-tooling only; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-48962
+    purls: *perl_purls
+    statement: "perl-IO-Compress — code execution via attacker-controlled output glob; not invoked by the app. Perl backup-tooling only; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-48959
+    purls: *perl_purls
+    statement: "perl IO::Uncompress::Unzip < 2.220 — CPU exhaustion via crafted zip; the affected path is not invoked. Perl backup-tooling only; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-13221
+    purls: *perl_purls
+    statement: >-
+      Perl_study_chunk compiles an oversized regex alternation (>65535 fixed-string
+      branches) into a trie that matches incorrectly. Exploitation needs an
+      attacker-controlled oversized regex; the backup tooling compiles only fixed,
+      developer-authored patterns. Perl backup-tooling only; see file header.
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-57432
+    purls: *perl_purls
+    statement: "Perl <= 5.43.10 — integer overflow. Perl backup-tooling only, not in the request path; see file header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-57433
+    purls: *perl_purls
+    statement: >-
+      Storable < 3.41 signed integer overflow when deserializing a Storable stream.
+      The backup tooling never deserializes untrusted Storable data. Perl
+      backup-tooling only; see file header.
+    expired_at: 2026-10-23
+
+  # ── SQLite (debian) ─────────────────────────────────────────────────────────
+  # libsqlite3-0 is an indirect OS dep only; the application uses PostgreSQL
+  # (asyncpg) exclusively and never opens a SQLite database.
+
+  - id: CVE-2026-11822
+    purls: &sqlite_purls
+      - "pkg:deb/debian/libsqlite3-0"
+    statement: "libsqlite3-0 < 3.53.2 — memory corruption. App never opens a SQLite database; indirect OS dep."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-11824
+    purls: *sqlite_purls
+    statement: "libsqlite3-0 < 3.53.2 — heap-based buffer overflow. App never opens a SQLite database; indirect OS dep."
+    expired_at: 2026-10-23
