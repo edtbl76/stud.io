@@ -145,3 +145,54 @@ async def test_unknown_action_rejected(client, conn, admin_headers):
     ids = await _insert_copies(conn, effect_id, 1)
     resp = await _resolve(client, admin_headers, {"action": "nuke", "copy_ids": ids})
     assert resp.status_code == 422
+
+
+# ── remove_straggler validates the collision set before dismissing anything ──
+
+
+@pytest.mark.asyncio
+async def test_remove_straggler_rejects_duplicate_copy_ids(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    ids = await _insert_copies(conn, effect_id, 2)
+    resp = await _resolve(
+        client, admin_headers,
+        {"action": "remove_straggler", "copy_ids": [ids[0], ids[0]], "keeper_id": ids[0]},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_remove_straggler_rejects_unknown_copy_id(client, conn, admin_headers):
+    effect_id = await _insert_effect(conn)
+    ids = await _insert_copies(conn, effect_id, 2)
+    stranger = str(await conn.fetchval("SELECT gen_random_uuid()"))
+    resp = await _resolve(
+        client, admin_headers,
+        {"action": "remove_straggler", "copy_ids": [ids[0], stranger], "keeper_id": ids[0]},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_remove_straggler_rejects_incomplete_collision_set(client, conn, admin_headers):
+    """A collision member left out of copy_ids is rejected — no partial resolution."""
+    effect_id = await _insert_effect(conn)
+    ids = await _insert_copies(conn, effect_id, 3)  # a 3-copy collision
+    resp = await _resolve(
+        client, admin_headers,
+        {"action": "remove_straggler", "copy_ids": ids[:2], "keeper_id": ids[0]},  # only 2 of 3
+    )
+    assert resp.status_code == 400
+    for rid in ids:  # nothing dismissed — validation ran before any mutation
+        assert not await _dismissed(conn, rid)
+
+
+@pytest.mark.asyncio
+async def test_remove_straggler_rejects_copies_from_two_collisions(client, conn, admin_headers):
+    a = await _insert_copies(conn, await _insert_effect(conn), 2)
+    b = await _insert_copies(conn, await _insert_effect(conn), 2)
+    resp = await _resolve(
+        client, admin_headers,
+        {"action": "remove_straggler", "copy_ids": a + b, "keeper_id": a[0]},
+    )
+    assert resp.status_code == 400
