@@ -4,7 +4,7 @@ import { CollisionModal } from '@/components/tables/scanner/modals/CollisionModa
 import type { WorkbenchRow } from '@/lib/types'
 
 jest.mock('@/lib/api', () => ({
-  api: { scanner: { confirm: jest.fn(), acknowledge: jest.fn(), dismiss: jest.fn(), exclude: jest.fn() } },
+  api: { scanner: { resolveCollision: jest.fn(), exclude: jest.fn() } },
 }))
 
 import { api } from '@/lib/api'
@@ -41,20 +41,17 @@ it('renders the shared catalog record and every duplicate copy', () => {
   expect(screen.getByText('/users/ed/proq.vst3')).toBeInTheDocument()
 })
 
-it('keep all confirms every copy in one batched request then resolves', async () => {
-  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 2, errors: [] })
+it('keep all resolves the whole collision in one atomic call', async () => {
+  ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue({ acknowledged: 2, dismissed: 0 })
   const onResolved = jest.fn()
   renderModal(onResolved)
   fireEvent.click(screen.getByTestId('collision-keep-all'))
   await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.confirm).toHaveBeenCalledTimes(1)
-  expect(mockApi.scanner.confirm).toHaveBeenCalledWith([
-    { result_id: 'r1', action: 'acknowledge' },
-    { result_id: 'r2', action: 'acknowledge' },
-  ])
-  // keep-all must use ONLY the batched confirm path, not the legacy per-copy endpoints
-  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
-  expect(mockApi.scanner.dismiss).not.toHaveBeenCalled()
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith({
+    action: 'keep_all',
+    copy_ids: ['r1', 'r2'],
+  })
 })
 
 it('remove straggler is disabled until a keeper is chosen', () => {
@@ -64,16 +61,19 @@ it('remove straggler is disabled until a keeper is chosen', () => {
   expect(screen.getByTestId('collision-remove-straggler')).not.toBeDisabled()
 })
 
-it('remove straggler acknowledges the keeper and dismisses the rest', async () => {
-  ;(mockApi.scanner.acknowledge as jest.Mock).mockResolvedValue({ applied: 1, errors: [] })
-  ;(mockApi.scanner.dismiss as jest.Mock).mockResolvedValue(undefined)
+it('remove straggler resolves with the chosen keeper in one atomic call', async () => {
+  ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue({ acknowledged: 1, dismissed: 1 })
   const onResolved = jest.fn()
   renderModal(onResolved)
   fireEvent.click(screen.getByTestId('collision-copy-r1'))
   fireEvent.click(screen.getByTestId('collision-remove-straggler'))
   await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.acknowledge).toHaveBeenCalledWith('r1')
-  expect(mockApi.scanner.dismiss).toHaveBeenCalledWith('r2')
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith({
+    action: 'remove_straggler',
+    copy_ids: ['r1', 'r2'],
+    keeper_id: 'r1',
+  })
 })
 
 it('exclude excludes the plugin then resolves', async () => {
@@ -90,11 +90,11 @@ it('cancel closes without any api call', () => {
   renderModal(noop, onClose)
   fireEvent.click(screen.getByTestId('collision-cancel'))
   expect(onClose).toHaveBeenCalled()
-  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
+  expect(mockApi.scanner.resolveCollision).not.toHaveBeenCalled()
 })
 
-it('shows an inline error and does not resolve when keep all reports per-copy errors', async () => {
-  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 1, errors: [{ result_id: 'r2', error: 'nope' }] })
+it('shows an inline error and does not resolve when the resolve call fails', async () => {
+  ;(mockApi.scanner.resolveCollision as jest.Mock).mockRejectedValue(new Error('Invalid collision resolution'))
   const onResolved = jest.fn()
   renderModal(onResolved)
   fireEvent.click(screen.getByTestId('collision-keep-all'))

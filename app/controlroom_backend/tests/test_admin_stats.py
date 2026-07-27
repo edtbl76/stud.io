@@ -16,11 +16,11 @@ async def test_stats_returns_200(client, admin_headers):
     assert response.status_code == 200
 
 
-async def test_stats_has_five_groups(client, admin_headers):
+async def test_stats_has_six_groups(client, admin_headers):
     response = await client.get("/studio/admin/stats", headers=admin_headers)
     data = response.json()
     labels = [g["label"] for g in data["groups"]]
-    assert labels == ["Catalog", "Session", "Tools", "Config", "GearList"]
+    assert labels == ["Catalog", "Session", "Tools", "Config", "GearList", "Scanner"]
 
 
 async def test_stats_has_all_tables(client, admin_headers):
@@ -34,8 +34,24 @@ async def test_stats_has_all_tables(client, admin_headers):
         "Effect Types", "Entity Types", "Instrument Types",
         "Model Types", "Plugin Formats", "Tag Types", "Tool Types",
         "Gear", "Gear Types",
+        "Scans", "Scan Results", "Vendor Rules", "Name Rules", "Name Patterns",
+        "Aliases", "Exclusions", "Links", "Rejections",
     }
     assert all_names == expected
+
+
+async def test_stats_has_scanner_group(client, admin_headers):
+    """The Scanner group lists the scanner content/rule tables (api keys excluded)."""
+    response = await client.get("/studio/admin/stats", headers=admin_headers)
+    data = response.json()
+    scanner = next((g for g in data["groups"] if g["label"] == "Scanner"), None)
+    assert scanner is not None, "expected a 'Scanner' stat group"
+    names = {t["name"] for t in scanner["tables"]}
+    assert names == {
+        "Scans", "Scan Results",
+        "Vendor Rules", "Name Rules", "Name Patterns",
+        "Aliases", "Exclusions", "Links", "Rejections",
+    }
 
 
 async def test_stats_total_equals_sum_of_counts(client, admin_headers):

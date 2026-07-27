@@ -27,7 +27,7 @@ The backend is a [FastAPI](https://fastapi.tiangolo.com/) application running on
 | `/studio/admin` | `routers/backup_ops.py`, `routers/change_review.py` + `change_review_list.py` + `change_review_undo.py`, `routers/admin_stats.py`, `routers/import_export.py` | Database backup, restore, verification, Change Review workflow, catalog row-count stats, and xlsx import/export |
 | `/studio/admin/users` | `routers/users.py` | User management (admin only) |
 | `/gearlist/*` | `routers/gearlist.py` | Catch-all proxy to the internal GearList Go service |
-| `/scanner` | `routers/scanner.py` (report/search/confirm/dismiss/keep) + `scanner_ingest.py` (`POST /scan`) + `scanner_auth.py` (API-key/JWT deps) + `scanner_pattern_rules.py` (pattern CRUD + alias-writing acknowledge-clean) + `scanner_pattern_eval.py` (pure resolver) + `scanner_aliases.py` (direct `POST /scanner/aliases` name-alias write, U-19) + `scanner_actions.py` + `scanner_match.py` + `scanner_admin.py` (keys/exclusions) | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, pattern rules + name aliases, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
+| `/scanner` | `routers/scanner.py` (report/search/confirm/dismiss/keep/collision-resolve) + `scanner_ingest.py` (`POST /scan`) + `scanner_auth.py` (API-key/JWT deps) + `scanner_pattern_rules.py` (pattern CRUD + alias-writing acknowledge-clean) + `scanner_pattern_eval.py` (pure resolver) + `scanner_aliases.py` (direct `POST /scanner/aliases` name-alias write, U-19) + `scanner_actions.py` + `scanner_match.py` + `scanner_admin.py` (keys/exclusions) | Plugin scanner ingest (API key auth), scan report, catalog matching, confirmation actions, pattern rules + name aliases, API key management, scan history. **Rewrite in progress** — see Scanner Rewrite section and `scanner/1.17.0` branch. |
 
 ---
 
@@ -304,7 +304,7 @@ The xlxs logic is split across three internal modules:
 
 ### Stats
 
-`GET /studio/admin/stats` — returns row counts for all 18 content and lookup tables grouped by Catalog, Session, Tools, and Config. Tables within each group are sorted by count descending, display name ascending as tie-break. The `total` field is the sum across all groups and excludes the `users` table.
+`GET /studio/admin/stats` — returns row counts for the content and lookup tables grouped by Catalog, Session, Tools, Config, GearList, and Scanner. Tables within each group are sorted by count descending, display name ascending as tie-break. The `total` field is the sum across all groups and excludes the `users` table (and the `scanner_api_keys` table, which is not surfaced here).
 
 ### Change Review
 
@@ -340,6 +340,12 @@ All scanner routes live under `/scanner`. Scan ingest uses API key auth (`Author
 - `force` — overrides the match to a user-selected catalog record (`target_id`, `target_table`); status becomes `matched` or `known`; writes a `scanner_plugin_links` entry.
 
 Confirmation errors are isolated per item (one failure does not roll back others). Returns `{applied, errors}`.
+
+`POST /scanner/collisions/resolve` — admin only. Resolves a whole collision (multiple installs of the same plugin sharing one catalog record) in a single transaction — all copies apply or none do, unlike the per-item `/confirm` loop. Body: `{action, copy_ids, keeper_id?}` where `copy_ids` is non-empty.
+- `keep_all` — acknowledges every copy in `copy_ids`.
+- `remove_straggler` — acknowledges `keeper_id` (which must be one of `copy_ids`) and dismisses the rest.
+
+Returns `{acknowledged, dismissed}`. Returns 400 on an invalid resolution (missing/foreign `keeper_id`, or a copy that cannot be acknowledged — the whole set rolls back), 422 on an empty `copy_ids` or unknown `action`.
 
 #### Orphan Management (admin only)
 

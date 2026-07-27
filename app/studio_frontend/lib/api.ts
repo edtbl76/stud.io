@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, ConfirmDecision, CreateAliasRequest, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, CollisionResolveRequest, CollisionResolveResult, ConfirmDecision, CreateAliasRequest, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -88,6 +88,10 @@ export const api = {
     },
     dismiss: (resultId: string) =>
       req<void>(`/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }),
+    resolveCollision: (body: CollisionResolveRequest) =>
+      req<CollisionResolveResult>('/scanner/collisions/resolve', {
+        method: 'POST', body: JSON.stringify(body),
+      }),
     keep: (resultId: string) =>
       req<void>(`/scanner/results/${resultId}/keep`, { method: 'PATCH' }),
     exclusions: () => req<Exclusion[]>('/scanner/exclusions'),

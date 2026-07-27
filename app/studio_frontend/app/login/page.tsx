@@ -5,7 +5,11 @@ import Script from 'next/script'
 import { useAuth } from '@/lib/auth'
 import { Loader2 } from 'lucide-react'
 
-const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
+// Read at call time (not a module-level const captured at import) so the value
+// is evaluated per render. Next.js inlines process.env.NEXT_PUBLIC_* textually,
+// so production behavior is unchanged; this also makes the Google-button gating
+// unit-testable without module resets. See page.google.test.tsx.
+const getGoogleClientId = (): string => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
 
 function useGoogleSignIn(loginGoogle: (credential: string) => Promise<void>) {
   const googleButtonRef = React.useRef<HTMLDivElement>(null)
@@ -13,10 +17,11 @@ function useGoogleSignIn(loginGoogle: (credential: string) => Promise<void>) {
   const [loading, setLoading] = React.useState(false)
 
   const initGoogle = React.useCallback(() => {
+    const clientId = getGoogleClientId()
     const gApi = globalThis.window?.google
-    if (!GOOGLE_CLIENT_ID || !gApi || !googleButtonRef.current) return
+    if (!clientId || !gApi || !googleButtonRef.current) return
     gApi.accounts.id.initialize({
-      client_id: GOOGLE_CLIENT_ID,
+      client_id: clientId,
       callback: (response) => {
         void (async () => {
           setError(null)
@@ -59,6 +64,7 @@ export default function LoginPage() {
 
   const error = formError ?? googleError
   const loading = formLoading || googleLoading
+  const googleClientId = getGoogleClientId()
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -75,7 +81,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      {GOOGLE_CLIENT_ID && (
+      {googleClientId && (
         <Script
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
@@ -140,7 +146,7 @@ export default function LoginPage() {
             Sign in
           </button>
 
-          {GOOGLE_CLIENT_ID && (
+          {googleClientId && (
             <>
               <div className="relative my-5">
                 <div className="absolute inset-0 flex items-center">

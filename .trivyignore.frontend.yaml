@@ -42,16 +42,6 @@ vulnerabilities:
     statement: "minimatch — DoS variant. Dev/build tooling transitive dep; patterns developer-authored, not in the request path."
     expired_at: 2026-10-23
 
-  - id: CVE-2026-13149
-    purls:
-      - "pkg:npm/brace-expansion"
-    statement: >-
-      brace-expansion — ReDoS. minimatch's dependency, reached only via jest and
-      exceljs→archiver→glob→minimatch where glob patterns are developer-authored.
-      Same posture as the minimatch suppressions; not in the request path with
-      untrusted input.
-    expired_at: 2026-10-23
-
   - id: CVE-2026-59869
     purls:
       - "pkg:npm/js-yaml"
@@ -148,4 +138,22 @@ vulnerabilities:
       during npm publish/provenance, never at runtime. A patched base EXISTS
       (node:24-alpine ships sigstore 4.1.1); adopting it is deferred to the tracked
       frontend node-base-upgrade infra chore. See section header.
+    expired_at: 2026-10-23
+
+  # brace-expansion — the APP tree is pinned to the fixed 5.0.8 via a package.json
+  # `overrides` entry (npm dedupes every nested copy to one 5.0.8), so these CVEs no
+  # longer touch app dependencies. The only residual vulnerable copy is the one
+  # bundled inside the npm CLI of node:20-alpine (brace-expansion 2.0.1), which is
+  # not app-installable and is dev-only (next-dev). Fixed only once the base image
+  # ships an npm whose bundle carries brace-expansion 5.0.8+ — tracked with the
+  # node-base-upgrade chore. See section header.
+  - id: CVE-2026-13149
+    purls: &brace_expansion_purls
+      - "pkg:npm/brace-expansion"
+    statement: "brace-expansion ReDoS — residual only in the node:20-alpine npm-CLI bundle (2.0.1); app tree pinned to fixed 5.0.8 via package.json overrides. Dev-only, not the request path. See section header."
+    expired_at: 2026-10-23
+
+  - id: CVE-2026-14257
+    purls: *brace_expansion_purls
+    statement: "brace-expansion DoS (through 5.0.7, fixed 5.0.8) — residual only in the node:20-alpine npm-CLI bundle (2.0.1); app tree pinned to fixed 5.0.8 via package.json overrides. Dev-only, not the request path. See section header."
     expired_at: 2026-10-23

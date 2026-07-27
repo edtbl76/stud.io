@@ -17,7 +17,9 @@ const COLLISION_ROW = {
   },
 }
 
-// U-18: a collision row resolves through the record-centric modal (keep all → acknowledge each copy).
+// U-18 + collision-resolve endpoint: a collision row resolves through the
+// record-centric modal. Keep all sends ONE atomic POST /scanner/collisions/resolve
+// that acknowledges every copy.
 test('collision row opens the record-centric modal and Keep all acknowledges every copy', async ({ page }) => {
   await page.route('**/api/scanner/workbench**', async (route) => {
     await route.fulfill({
@@ -26,14 +28,14 @@ test('collision row opens the record-centric modal and Keep all acknowledges eve
       body: JSON.stringify({ rows: [COLLISION_ROW], scan_id: 's1' }),
     })
   })
-  let confirmedIds: string[] = []
-  await page.route('**/api/scanner/confirm', async (route) => {
-    const body = route.request().postDataJSON() as { confirmations?: Array<{ result_id: string; action: string }> }
-    confirmedIds = (body.confirmations ?? []).map((c) => c.result_id)
+  interface ResolveBody { action?: string; copy_ids?: string[]; keeper_id?: string }
+  let resolveBody: ResolveBody = {}
+  await page.route('**/api/scanner/collisions/resolve', async (route) => {
+    resolveBody = route.request().postDataJSON() as ResolveBody
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ applied: confirmedIds.length, errors: [] }),
+      body: JSON.stringify({ acknowledged: resolveBody.copy_ids?.length ?? 0, dismissed: 0 }),
     })
   })
 
@@ -49,10 +51,11 @@ test('collision row opens the record-centric modal and Keep all acknowledges eve
   await expect(page.getByText('/lib/proq.vst3')).toBeVisible()
   await expect(page.getByText('/users/ed/proq.vst3')).toBeVisible()
 
-  // Keep all sends ONE batched confirm that acknowledges every copy (both r1 and r2),
+  // Keep all sends ONE atomic resolve call covering every copy (both r1 and r2),
   // then the modal closes.
   await page.getByTestId('collision-keep-all').click()
-  await expect.poll(() => confirmedIds.length).toBe(2)
-  expect(confirmedIds).toEqual(expect.arrayContaining(['r1', 'r2']))
+  await expect.poll(() => resolveBody.copy_ids?.length ?? 0).toBe(2)
+  expect(resolveBody.action).toBe('keep_all')
+  expect(resolveBody.copy_ids).toEqual(expect.arrayContaining(['r1', 'r2']))
   await expect(page.getByText(/Resolve Collision/)).not.toBeVisible({ timeout: 5000 })
 })

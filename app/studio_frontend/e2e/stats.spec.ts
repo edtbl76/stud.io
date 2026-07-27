@@ -1,16 +1,18 @@
 import { test, expect } from '@playwright/test'
 
-test('stats page loads and displays content from all four groups', async ({ page }) => {
+test('stats page loads and displays content from all six groups', async ({ page }) => {
   await page.goto('/studio/admin/stats')
 
   // Wait for the page heading — confirms the page rendered without error
   await expect(page.getByRole('heading', { name: 'Stats' })).toBeVisible({ timeout: 10_000 })
 
   // Spot-check one table name from each group — these only exist in the stats content area
-  await expect(page.getByText('Brands')).toBeVisible()     // Catalog
-  await expect(page.getByText('Libraries')).toBeVisible()  // Session
-  await expect(page.getByText('Workflow')).toBeVisible()   // Tools
-  await expect(page.getByText('Tag Types')).toBeVisible()  // Config
+  await expect(page.getByText('Brands')).toBeVisible()        // Catalog
+  await expect(page.getByText('Libraries')).toBeVisible()     // Session
+  await expect(page.getByText('Workflow')).toBeVisible()      // Tools
+  await expect(page.getByText('Tag Types')).toBeVisible()     // Config
+  await expect(page.getByText('Gear Types')).toBeVisible()    // GearList
+  await expect(page.getByText('Scan Results')).toBeVisible()  // Scanner
 })
 
 test('stats page shows a non-zero total', async ({ page }) => {

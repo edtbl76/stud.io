@@ -20,7 +20,14 @@ from database import get_conn
 from routers.auth import UserOut, get_current_user, require_admin
 from routers.scanner_actions import apply_confirmation
 from routers.scanner_catalog import CATALOG_TABLES, catalog_search_query
-from schemas.scanner import CatalogSearchResult, ConfirmPayload, ConfirmResult
+from schemas.scanner import (
+    CatalogSearchResult,
+    CollisionResolveRequest,
+    CollisionResolveResult,
+    Confirmation,
+    ConfirmPayload,
+    ConfirmResult,
+)
 
 router = APIRouter()
 
@@ -132,3 +139,43 @@ async def confirm_results(
         except ValueError as exc:
             errors.append({"result_id": str(c.result_id), "error": str(exc)})
     return ConfirmResult(applied=applied, errors=errors)
+
+
+# ---------------------------------------------------------------------------
+# POST /collisions/resolve
+# ---------------------------------------------------------------------------
+
+async def _resolve_keep_all(conn: Connection, copy_ids: list[UUID], username: str) -> CollisionResolveResult:
+    for rid in copy_ids:
+        await apply_confirmation(conn, Confirmation(result_id=rid, action="acknowledge"), username)
+    return CollisionResolveResult(acknowledged=len(copy_ids), dismissed=0)
+
+
+async def _resolve_remove_straggler(
+    conn: Connection, copy_ids: list[UUID], keeper_id: UUID | None, username: str,
+) -> CollisionResolveResult:
+    if keeper_id is None or keeper_id not in copy_ids:
+        raise ValueError("remove_straggler requires keeper_id to be one of copy_ids")
+    await apply_confirmation(conn, Confirmation(result_id=keeper_id, action="acknowledge"), username)
+    stragglers = [rid for rid in copy_ids if rid != keeper_id]
+    for rid in stragglers:
+        await conn.execute(
+            "UPDATE plugin_scan_results SET dismissed_at=NOW() WHERE result_id=$1", rid
+        )
+    return CollisionResolveResult(acknowledged=1, dismissed=len(stragglers))
+
+
+@router.post("/collisions/resolve", responses={400: {"description": "Invalid collision resolution"}})
+async def resolve_collision(
+    req: CollisionResolveRequest,
+    user: Annotated[UserOut, Depends(require_admin)],
+    conn: Annotated[Connection, Depends(get_conn)],
+) -> CollisionResolveResult:
+    """Resolve a whole collision in one transaction — all copies apply or none do."""
+    try:
+        async with conn.transaction():
+            if req.action == "keep_all":
+                return await _resolve_keep_all(conn, req.copy_ids, user.username)
+            return await _resolve_remove_straggler(conn, req.copy_ids, req.keeper_id, user.username)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
