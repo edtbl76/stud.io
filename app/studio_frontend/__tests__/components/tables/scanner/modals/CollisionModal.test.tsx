@@ -34,6 +34,21 @@ function renderModal(onResolved: jest.Mock = noop, onClose: jest.Mock = noop) {
   render(<CollisionModal row={makeRow()} onClose={onClose} onResolved={onResolved} />)
 }
 
+// Arrange a resolve that succeeds, render, and hand back the onResolved spy.
+function renderResolving(result: { acknowledged: number; dismissed: number }): jest.Mock {
+  ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue(result)
+  const onResolved = jest.fn()
+  renderModal(onResolved)
+  return onResolved
+}
+
+// Assert the modal made exactly one atomic resolve call with the given body, then resolved.
+async function expectResolvedOnceWith(onResolved: jest.Mock, body: Record<string, unknown>) {
+  await waitFor(() => expect(onResolved).toHaveBeenCalled())
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith(body)
+}
+
 it('renders the shared catalog record and every duplicate copy', () => {
   renderModal()
   expect(screen.getByText(/Resolve Collision/)).toBeInTheDocument()
@@ -42,16 +57,9 @@ it('renders the shared catalog record and every duplicate copy', () => {
 })
 
 it('keep all resolves the whole collision in one atomic call', async () => {
-  ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue({ acknowledged: 2, dismissed: 0 })
-  const onResolved = jest.fn()
-  renderModal(onResolved)
+  const onResolved = renderResolving({ acknowledged: 2, dismissed: 0 })
   fireEvent.click(screen.getByTestId('collision-keep-all'))
-  await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
-  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith({
-    action: 'keep_all',
-    copy_ids: ['r1', 'r2'],
-  })
+  await expectResolvedOnceWith(onResolved, { action: 'keep_all', copy_ids: ['r1', 'r2'] })
 })
 
 it('remove straggler is disabled until a keeper is chosen', () => {
@@ -62,14 +70,10 @@ it('remove straggler is disabled until a keeper is chosen', () => {
 })
 
 it('remove straggler resolves with the chosen keeper in one atomic call', async () => {
-  ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue({ acknowledged: 1, dismissed: 1 })
-  const onResolved = jest.fn()
-  renderModal(onResolved)
+  const onResolved = renderResolving({ acknowledged: 1, dismissed: 1 })
   fireEvent.click(screen.getByTestId('collision-copy-r1'))
   fireEvent.click(screen.getByTestId('collision-remove-straggler'))
-  await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
-  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith({
+  await expectResolvedOnceWith(onResolved, {
     action: 'remove_straggler',
     copy_ids: ['r1', 'r2'],
     keeper_id: 'r1',

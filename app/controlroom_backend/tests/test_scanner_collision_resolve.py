@@ -44,10 +44,7 @@ async def _insert_copies(conn, effect_id: str | None, n: int) -> list[str]:
     return ids
 
 
-async def _resolve(client, headers, *, action, copy_ids, keeper_id=None):
-    body: dict = {"action": action, "copy_ids": copy_ids}
-    if keeper_id is not None:
-        body["keeper_id"] = keeper_id
+async def _resolve(client, headers, body: dict):
     return await client.post("/scanner/collisions/resolve", json=body, headers=headers)
 
 
@@ -68,7 +65,7 @@ async def test_keep_all_acknowledges_every_copy(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     ids = await _insert_copies(conn, effect_id, 3)
 
-    resp = await _resolve(client, admin_headers, action="keep_all", copy_ids=ids)
+    resp = await _resolve(client, admin_headers, {"action": "keep_all", "copy_ids": ids})
 
     assert resp.status_code == 200
     assert resp.json()["acknowledged"] == 3
@@ -82,7 +79,9 @@ async def test_remove_straggler_acknowledges_keeper_and_dismisses_rest(client, c
     ids = await _insert_copies(conn, effect_id, 3)
     keeper = ids[0]
 
-    resp = await _resolve(client, admin_headers, action="remove_straggler", copy_ids=ids, keeper_id=keeper)
+    resp = await _resolve(
+        client, admin_headers, {"action": "remove_straggler", "copy_ids": ids, "keeper_id": keeper}
+    )
 
     assert resp.status_code == 200
     data = resp.json()
@@ -103,7 +102,7 @@ async def test_keep_all_is_atomic_rolls_back_on_a_bad_copy(client, conn, admin_h
     bad = await _insert_copies(conn, None, 1)  # no linked record → acknowledge raises
     ids = good + bad
 
-    resp = await _resolve(client, admin_headers, action="keep_all", copy_ids=ids)
+    resp = await _resolve(client, admin_headers, {"action": "keep_all", "copy_ids": ids})
 
     assert resp.status_code == 400
     # rollback: not even the good copies were confirmed
@@ -116,7 +115,7 @@ async def test_remove_straggler_requires_keeper_id(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     ids = await _insert_copies(conn, effect_id, 2)
 
-    resp = await _resolve(client, admin_headers, action="remove_straggler", copy_ids=ids)
+    resp = await _resolve(client, admin_headers, {"action": "remove_straggler", "copy_ids": ids})
 
     assert resp.status_code == 400
 
@@ -128,7 +127,7 @@ async def test_remove_straggler_keeper_must_be_in_copy_ids(client, conn, admin_h
     stranger = str(await conn.fetchval("SELECT gen_random_uuid()"))
 
     resp = await _resolve(
-        client, admin_headers, action="remove_straggler", copy_ids=ids, keeper_id=stranger
+        client, admin_headers, {"action": "remove_straggler", "copy_ids": ids, "keeper_id": stranger}
     )
 
     assert resp.status_code == 400
@@ -136,7 +135,7 @@ async def test_remove_straggler_keeper_must_be_in_copy_ids(client, conn, admin_h
 
 @pytest.mark.asyncio
 async def test_empty_copy_ids_rejected(client, conn, admin_headers):
-    resp = await _resolve(client, admin_headers, action="keep_all", copy_ids=[])
+    resp = await _resolve(client, admin_headers, {"action": "keep_all", "copy_ids": []})
     assert resp.status_code == 422
 
 
@@ -144,5 +143,5 @@ async def test_empty_copy_ids_rejected(client, conn, admin_headers):
 async def test_unknown_action_rejected(client, conn, admin_headers):
     effect_id = await _insert_effect(conn)
     ids = await _insert_copies(conn, effect_id, 1)
-    resp = await _resolve(client, admin_headers, action="nuke", copy_ids=ids)
+    resp = await _resolve(client, admin_headers, {"action": "nuke", "copy_ids": ids})
     assert resp.status_code == 422
