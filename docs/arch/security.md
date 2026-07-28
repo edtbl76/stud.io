@@ -182,6 +182,29 @@ Current suppressions:
 
 ---
 
+## DeepSource static analysis
+
+DeepSource is a SaaS static-analysis layer that complements SonarQube and CodeScene. It runs in the DeepSource cloud on every pull request (via the DeepSource GitHub app) and posts a check, so it gates PRs in the same trunk-based flow as the rest of `docs/arch/workflow.md` — no local roadie step is required.
+
+Configuration lives in `.deepsource.toml` (repo root), version-controlled so analysis is reproducible:
+
+| Analyzer | Scope |
+|---|---|
+| `python` | `app/controlroom_backend` (runtime `3.x.x`) |
+| `javascript` | `app/studio_frontend` (TypeScript dialect, React plugin, node + browser) |
+| `go` | all three modules under `github.com/studiocontrolroom` (`roadie`, `plugin_scanner`, `gearlist_backend`) — `import_root` set to the common namespace; DeepSource auto-detects the sub-paths |
+| `secrets` | repo-wide |
+
+`test_patterns` marks the pytest / jest / e2e / `*_test.go` trees as test code; `exclude_patterns` drops `node_modules`, `.next`, `dist`, `coverage`, and `aidlc-docs`.
+
+**Activation (one-time, GitHub app):** install the DeepSource GitHub app on the repo and activate it on deepsource.com. The first analysis runs on the next push/PR.
+
+**Deferred (phase 2):** the `test-coverage` analyzer is commented out — it produces data only once coverage is uploaded via the DeepSource CLI (`deepsource report`), which needs a `DEEPSOURCE_DSN`. Enable it when that upload is wired.
+
+**MCP access:** DeepSource's official MCP server is Team/Enterprise-only. On the free plan, the community fork (`sapientpants/deepsource-mcp-server`, API-key auth) is the fallback, contingent on the free plan exposing the DeepSource API. If wired into `.mcp.json`, source the key from the environment (`-e DEEPSOURCE_API_KEY`) rather than inlining it — follow the SonarQube pattern, not the CodeScene one (see the `.mcp.json` PAT note above).
+
+---
+
 ## The security test suite
 
 `roadie test scan` orchestrates all four checks:
@@ -211,4 +234,4 @@ Prerequisites: production stack running (`docker compose up -d`). The `sonar` sc
 | Transport headers | `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy` |
 | Dependencies | pip-audit + npm-audit on every commit; Trivy on container images |
 | Secrets | detect-secrets on every commit + full working tree scan |
-| Code quality | bandit (SAST) + SonarQube on every scan |
+| Code quality | bandit (SAST) + SonarQube on every scan; CodeScene Code Health + DeepSource on every PR |
