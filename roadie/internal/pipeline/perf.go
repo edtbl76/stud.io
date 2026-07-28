@@ -361,15 +361,24 @@ func runPerfLighthouse(ctx context.Context, cfg PerfConfig, root string, out io.
 	frontendDir := filepath.Join(root, "app", "studio_frontend")
 	nodeDir := ResolveNode()
 
-	const warningFile = "/tmp/perf-lcp-warnings"
-	os.Remove(warningFile)
+	// Secure per-run temp file for the perf spec to report LCP warnings into,
+	// passed by path via PERF_LCP_WARNING_FILE (no hardcoded, world-predictable path).
+	warnHandle, tmpErr := os.CreateTemp("", "perf-lcp-warnings-*")
+	if tmpErr != nil {
+		return StepResult{Name: "lighthouse", Err: tmpErr, Duration: time.Since(start)}
+	}
+	warningFile := warnHandle.Name()
+	warnHandle.Close()
+	defer os.Remove(warningFile)
 
 	step := ToolStep{
 		Name: "lighthouse",
 		Bin:  "npx",
 		Args: []string{"playwright", "test", "--config", "playwright.perf.config.ts"},
 		Dir:  frontendDir,
-		Env:  append(pathEnv(nodeDir), fmt.Sprintf("BASE_URL=http://localhost:%d", cfg.FrontendPort)),
+		Env: append(pathEnv(nodeDir),
+			fmt.Sprintf("BASE_URL=http://localhost:%d", cfg.FrontendPort),
+			"PERF_LCP_WARNING_FILE="+warningFile),
 	}
 	err := step.Run(ctx, out)
 

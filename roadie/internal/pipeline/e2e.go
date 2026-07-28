@@ -256,7 +256,7 @@ func provisionOneShard(ctx context.Context, cfg E2EConfig, db string) error {
 func dockerPsql(ctx context.Context, cfg E2EConfig, db, sql string) error {
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, "docker", "exec",
-		"-e", "PGPASSWORD="+cfg.DBPassword,
+		"-e", "PGPASSWORD="+cfg.DBPassword, // skipcq: SCT-A000
 		cfg.DBContainer,
 		"psql", "-U", cfg.DBUser, "-d", db, "-c", sql, "-q",
 	)

@@ -46,6 +46,18 @@ name = "go"
 [[analyzers]]
 name = "secrets"
 
+# Auto-enabled by DeepSource on activation and kept here so pushing this config
+# does not drop them: shell (shellcheck), docker (hadolint), sql. The repo has
+# shell scripts, Dockerfiles, and SQL migrations/seeds.
+[[analyzers]]
+name = "shell"
+
+[[analyzers]]
+name = "docker"
+
+[[analyzers]]
+name = "sql"
+
 # Enable once coverage upload (deepsource CLI + DEEPSOURCE_DSN) is wired — phase 2.
 # [[analyzers]]
 # name = "test-coverage"

@@ -49,11 +49,11 @@ func sonarDockerStep(root Root, token string) ToolStep {
 			"--network", "dev_default",
 			"--memory=16g",
 			"-e", "SONAR_HOST_URL=" + sonarDockerURL,
-			"-e", "SONAR_TOKEN=" + token,
+			"-e", "SONAR_TOKEN=" + token, // skipcq: SCT-A000
 			"-v", r + ":/usr/src",
 			"sonarsource/sonar-scanner-cli",
 			"-Dsonar.host.url=" + sonarDockerURL,
-			"-Dsonar.token=" + token,
+			"-Dsonar.token=" + token, // skipcq: SCT-A000
 			"-Dsonar.projectKey=" + sonarProjectKey,
 		},
 	}

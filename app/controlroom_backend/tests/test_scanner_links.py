@@ -162,6 +162,16 @@ async def _post_link(client, headers, body):
 
 
 @pytest.mark.asyncio
+async def test_create_link_rejects_unknown_catalog_table(client, conn, admin_headers):
+    """An unknown catalog_record_table is rejected with 400, not a 500 from the table lookup."""
+    result_id, effect_id = await _setup_link(conn)
+    resp = await _post_link(
+        client, admin_headers, _link_body(result_id, effect_id, catalog_record_table="not_a_table")
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
 async def test_create_link_binding_columns_match_confirm_shape(client, conn, admin_headers):
     result_id, effect_id = await _setup_link(conn)
     await _post_link(client, admin_headers, _link_body(result_id, effect_id))

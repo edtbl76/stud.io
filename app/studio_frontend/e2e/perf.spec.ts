@@ -148,7 +148,8 @@ for (const path of PAGES) {
         type: 'lcp-warning',
         description: `LCP for ${path} is ${(lcp / 1000).toFixed(2)}s — above 2.5s target, check HTML report`,
       })
-      fs.appendFileSync('/tmp/perf-lcp-warnings', `${path}: ${(lcp / 1000).toFixed(2)}s\n`)
+      const warnFile = process.env.PERF_LCP_WARNING_FILE
+      if (warnFile) fs.appendFileSync(warnFile, `${path}: ${(lcp / 1000).toFixed(2)}s\n`)
     }
 
     if (lcp >= LCP_FAIL_MS) {

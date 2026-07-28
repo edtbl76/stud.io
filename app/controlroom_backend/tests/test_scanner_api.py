@@ -356,7 +356,8 @@ async def test_scan_history_confirmation_excluded_requires_confirmed_by(client, 
         scan_id,
     )
     data = (await client.get("/scanner/scans", headers=auth_headers)).json()
-    run = next(d for d in data if d["scan_id"] == str(scan_id))
+    run = next((d for d in data if d["scan_id"] == str(scan_id)), None)
+    assert run is not None
     assert run["status_counts"]["excluded"] == 1
     assert run["confirmation_counts"]["excluded"] == 0
 

@@ -32,7 +32,8 @@ async def test_list_users_fields(client, auth_headers):
 
 async def test_list_users_google_linked_false_for_password_user(client, auth_headers):
     response = await client.get("/studio/admin/users", headers=auth_headers)
-    user = next(u for u in response.json() if u["username"] == "testuser")
+    user = next((u for u in response.json() if u["username"] == "testuser"), None)
+    assert user is not None
     assert user["google_linked"] is False
 
 

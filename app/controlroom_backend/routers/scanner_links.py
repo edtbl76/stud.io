@@ -76,6 +76,8 @@ async def _create_link_for_result(
     )
     if not row:
         raise HTTPException(status_code=404, detail="Scan result not found")
+    if catalog_ref.record_table not in CATALOG_TABLES:
+        raise HTTPException(status_code=400, detail=f"Unknown catalog table: {catalog_ref.record_table!r}")
     pk, nc = CATALOG_TABLES[catalog_ref.record_table]
     catalog = await conn.fetchrow(
         f"SELECT {nc} AS name, b.brand_name AS vendor "
@@ -159,14 +161,14 @@ async def find_link_candidates(
     return await _candidates_for_orphaned(conn, lq.source_id, q_lower)
 
 
-@router.post("/links", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
+@router.post("/links", status_code=status.HTTP_201_CREATED, responses={400: {"description": "Unknown catalog table"}, 404: {"description": "Scan result or catalog record not found"}})
 async def create_link(body: CreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     spec = _LinkSpec(_CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username, body.create_rules)
     created = await _create_link_for_result(conn, body.result_id, spec)
     return BulkLinkResult(links_created=int(created))
 
 
-@router.post("/links/bulk", status_code=status.HTTP_201_CREATED, responses={404: {"description": "Scan result or catalog record not found"}})
+@router.post("/links/bulk", status_code=status.HTTP_201_CREATED, responses={400: {"description": "Unknown catalog table"}, 404: {"description": "Scan result or catalog record not found"}})
 async def bulk_create_links(body: BulkCreateLinkRequest, user: Annotated[UserOut, Depends(require_admin)], conn: Annotated[Connection, Depends(get_conn)]) -> BulkLinkResult:
     spec = _LinkSpec(_CatalogRef(body.catalog_record_id, body.catalog_record_table), user.username, body.create_rules)
     async with conn.transaction():

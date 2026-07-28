@@ -49,7 +49,8 @@ def test_resolution_honors_match_fields(s) -> None:
     res = resolve_variant(row, ev)
     if res is None:
         return
-    parent = next(p for p in s.parents if p.record_id == res.catalog_record_id)
+    parent = next((p for p in s.parents if p.record_id == res.catalog_record_id), None)
+    assert parent is not None
     extracted = ev.compiled.match(row["name"]).group("name")
     # Independent re-check of the contract the resolver promises.
     assert parent.name.lower() == extracted.lower()

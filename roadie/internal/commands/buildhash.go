@@ -60,7 +60,7 @@ func updateContainerHash(root string, files []string) error {
 		return fmt.Errorf("computing build hash: %w", err)
 	}
 	path := filepath.Join(root, dockerHashFile)
-	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
 		return fmt.Errorf("creating cache dir: %w", err)
 	}
 	return os.WriteFile(path, []byte(h), 0644)
