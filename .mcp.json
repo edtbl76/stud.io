@@ -27,6 +27,11 @@
       "env": {
         "CS_ACCESS_TOKEN": "pat_eyJpZCI6NjI1ODQsInJhbmQiOiJZNy9CUVJuS1BXbUlUVit0VkVncXh2bEw4TUhRL2szOCJ9"
       }
+    },
+    "deepsource": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "deepsource-mcp-server@latest"]
     }
   }
 }
