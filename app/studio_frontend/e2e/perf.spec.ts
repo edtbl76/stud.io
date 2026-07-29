@@ -101,7 +101,7 @@ type Vitals = { fcp: number; lcp: number; tbt: number; cls: number }
 
 // Core Web Vitals, defaulting to Infinity when Lighthouse reports nothing —
 // distinguishes "never painted" from a real value so the gate fails safe.
-function readVitals(audits: LighthouseAudits): Vitals {
+function readVitals(audits: LighthouseAudits): Vitals { // skipcq: JS-0067 -- module-scope helper, not a browser global
   return {
     fcp: audits['first-contentful-paint']?.numericValue ?? Infinity,
     lcp: audits['largest-contentful-paint']?.numericValue ?? Infinity,
@@ -112,7 +112,7 @@ function readVitals(audits: LighthouseAudits): Vitals {
 
 // Lighthouse runtime error (NO_FCP, PAGE_HUNG, FAILED_DOCUMENT_REQUEST, …).
 // Always annotate so CI logs show why an audit produced no usable metrics.
-function annotateRuntimeError(testInfo: TestInfo, result: PlayAuditResult): void {
+function annotateRuntimeError(testInfo: TestInfo, result: PlayAuditResult): void { // skipcq: JS-0067 -- module-scope helper, not a browser global
   const runtimeError = result.lhr.runtimeError
   if (!runtimeError?.code) return
   testInfo.annotations.push({
@@ -123,7 +123,7 @@ function annotateRuntimeError(testInfo: TestInfo, result: PlayAuditResult): void
 
 // Always annotate FCP — helps distinguish "nothing painted" (FCP=Infinity)
 // from "LCP element never appeared" (FCP ok, LCP=Infinity).
-function annotateFcp(testInfo: TestInfo, fcp: number): void {
+function annotateFcp(testInfo: TestInfo, fcp: number): void { // skipcq: JS-0067 -- module-scope helper, not a browser global
   testInfo.annotations.push({
     type: 'fcp',
     description: fcp === Infinity ? 'NO_FCP (nothing painted)' : `${(fcp / 1000).toFixed(2)}s`,
@@ -132,7 +132,7 @@ function annotateFcp(testInfo: TestInfo, fcp: number): void {
 
 // Warn (annotate + append to the shared warnings file) between 2.5s and 4s;
 // capture a screenshot at/above the 4s hard-fail bound before the assertion.
-async function handleLcpThresholds(testInfo: TestInfo, page: Page, path: string, lcp: number): Promise<void> {
+async function handleLcpThresholds(testInfo: TestInfo, page: Page, path: string, lcp: number): Promise<void> { // skipcq: JS-0067 -- module-scope helper, not a browser global
   if (lcp >= LCP_WARN_MS && lcp < LCP_FAIL_MS) {
     testInfo.annotations.push({
       type: 'lcp-warning',
@@ -149,7 +149,7 @@ async function handleLcpThresholds(testInfo: TestInfo, page: Page, path: string,
 
 // Accessibility + Best-Practices scores and the Sustainable Web Design CO₂
 // estimate — all informational annotations, no hard thresholds enforced.
-function annotateInformational(
+function annotateInformational( // skipcq: JS-0067 -- module-scope helper, not a browser global
   testInfo: TestInfo, categories: LighthouseCategories, audits: LighthouseAudits,
 ): void {
   const a11yScore = categories['accessibility']?.score
