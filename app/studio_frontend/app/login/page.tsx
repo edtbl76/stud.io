@@ -65,12 +65,11 @@ interface LoginFieldProps {
   value: string
   onChange: (value: string) => void
   autoComplete: string
-  autoFocus?: boolean
   wrapperClassName?: string
 }
 
 const LoginField = ({
-  id, label, type, value, onChange, autoComplete, autoFocus, wrapperClassName,
+  id, label, type, value, onChange, autoComplete, wrapperClassName,
 }: Readonly<LoginFieldProps>) => (
   <div className={wrapperClassName}>
     <label htmlFor={id} className="block text-xs text-muted-foreground mb-1.5">
@@ -82,7 +81,6 @@ const LoginField = ({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       autoComplete={autoComplete}
-      autoFocus={autoFocus}
       required
       className="w-full rounded border border-border bg-muted px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
     />
@@ -111,6 +109,30 @@ const SubmitButton = ({ loading, children }: Readonly<{ loading: boolean; childr
   </button>
 )
 
+interface GoogleSignInProps {
+  clientId: string
+  onLoad: () => void
+  buttonRef: React.RefObject<HTMLDivElement | null>
+}
+
+// Self-gating: renders nothing when Google login is disabled. Bundling the GSI
+// script + divider + button here gives LoginPage a single render site instead of
+// two separate `googleClientId &&` branches (which pushed its complexity over 5).
+const GoogleSignIn = ({ clientId, onLoad, buttonRef }: Readonly<GoogleSignInProps>) => {
+  if (!clientId) return null
+  return (
+    <>
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onLoad={onLoad}
+      />
+      <OrDivider />
+      <div ref={buttonRef} className="flex justify-center" />
+    </>
+  )
+}
+
 export default function LoginPage() { // skipcq: JS-0067 -- Next.js page component, not a browser global
   const { login, loginGoogle } = useAuth()
   const [username, setUsername] = React.useState('')
@@ -138,14 +160,6 @@ export default function LoginPage() { // skipcq: JS-0067 -- Next.js page compone
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      {googleClientId && (
-        <Script
-          src="https://accounts.google.com/gsi/client"
-          strategy="afterInteractive"
-          onLoad={initGoogle}
-        />
-      )}
-
       <div className="w-full max-w-sm">
         {/* Header */}
         <div className="mb-8 text-center">
@@ -166,7 +180,6 @@ export default function LoginPage() { // skipcq: JS-0067 -- Next.js page compone
             value={username}
             onChange={setUsername}
             autoComplete="username"
-            autoFocus
             wrapperClassName="mb-4"
           />
 
@@ -186,12 +199,7 @@ export default function LoginPage() { // skipcq: JS-0067 -- Next.js page compone
 
           <SubmitButton loading={loading}>Sign in</SubmitButton>
 
-          {googleClientId && (
-            <>
-              <OrDivider />
-              <div ref={googleButtonRef} className="flex justify-center" />
-            </>
-          )}
+          <GoogleSignIn clientId={googleClientId} onLoad={initGoogle} buttonRef={googleButtonRef} />
         </form>
       </div>
     </div>
