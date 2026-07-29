@@ -17,7 +17,7 @@ interface CollisionModalProps {
   onResolved: () => void
 }
 
-export function CollisionModal({ row, onClose, onResolved }: Readonly<CollisionModalProps>) {
+export function CollisionModal({ row, onClose, onResolved }: Readonly<CollisionModalProps>) { // skipcq: JS-0067 -- exported component, not a browser global
   const [keeperId, setKeeperId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -35,7 +35,7 @@ function renderModal(onResolved: jest.Mock = noop, onClose: jest.Mock = noop) {
 }
 
 // Arrange a resolve that succeeds, render, and hand back the onResolved spy.
-function renderResolving(result: { acknowledged: number; dismissed: number }): jest.Mock {
+function renderResolving(result: { acknowledged: number; dismissed: number }): jest.Mock { // skipcq: JS-0067 -- module-scope test helper, not a browser global
   ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue(result)
   const onResolved = jest.fn()
   renderModal(onResolved)
@@ -43,7 +43,7 @@ function renderResolving(result: { acknowledged: number; dismissed: number }): j
 }
 
 // Assert the modal made exactly one atomic resolve call with the given body, then resolved.
-async function expectResolvedOnceWith(onResolved: jest.Mock, body: Record<string, unknown>) {
+async function expectResolvedOnceWith(onResolved: jest.Mock, body: Record<string, unknown>) { // skipcq: JS-0067 -- module-scope test helper, not a browser global
   await waitFor(() => expect(onResolved).toHaveBeenCalled())
   expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
   expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith(body)

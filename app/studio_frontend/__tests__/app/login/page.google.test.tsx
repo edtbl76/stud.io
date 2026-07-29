@@ -1,4 +1,4 @@
-import * as React from 'react'
+import * as React from 'react' // skipcq: JS-C1003 -- React namespace import is idiomatic
 import { render, waitFor } from '@testing-library/react'
 import LoginPage from '@/app/login/page'
 
@@ -28,7 +28,7 @@ const renderButton = jest.fn()
 // partial GSI mock without satisfying the full @types/google.accounts shape.
 const win = globalThis.window as unknown as { google?: unknown }
 
-function installGoogleMock() {
+function installGoogleMock() { // skipcq: JS-0067 -- module-scope test helper, not a browser global
   win.google = { accounts: { id: { initialize, renderButton, prompt: jest.fn(), cancel: jest.fn() } } }
 }
 

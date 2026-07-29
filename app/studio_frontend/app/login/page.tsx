@@ -11,7 +11,7 @@ import { Loader2 } from 'lucide-react'
 // unit-testable without module resets. See page.google.test.tsx.
 const getGoogleClientId = (): string => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? ''
 
-function useGoogleSignIn(loginGoogle: (credential: string) => Promise<void>) {
+function useGoogleSignIn(loginGoogle: (credential: string) => Promise<void>) { // skipcq: JS-0067 -- module-scope hook, not a browser global
   const googleButtonRef = React.useRef<HTMLDivElement>(null)
   const [error, setError] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(false)
@@ -54,7 +54,7 @@ function useGoogleSignIn(loginGoogle: (credential: string) => Promise<void>) {
   return { googleButtonRef, initGoogle, error, loading }
 }
 
-export default function LoginPage() {
+export default function LoginPage() { // skipcq: JS-0067 -- Next.js page component, not a browser global
   const { login, loginGoogle } = useAuth()
   const [username, setUsername] = React.useState('')
   const [password, setPassword] = React.useState('')
