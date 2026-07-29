@@ -10,7 +10,7 @@ def _next_call(call_iter):
     try:
         return next(call_iter)
     except StopIteration:
-        pytest.fail("subprocess mock called more times than expected")
+        return pytest.fail("subprocess mock called more times than expected")
 
 # Realistic pg_dump output header
 _DUMP_SQL = b"-- PostgreSQL database dump\n\nSELECT 1;\n"
