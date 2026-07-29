@@ -407,3 +407,16 @@ async def test_user_cannot_toggle_pattern_rule(client, auth_headers):
 async def test_unauthenticated_cannot_toggle_pattern_rule(client):
     response = await client.patch(f"/scanner/rules/pattern/{DUMMY_UUID}/toggle", json={"enabled": True})
     assert response.status_code == 401
+
+
+_RESOLVE_BODY = {"action": "keep_all", "copy_ids": [DUMMY_UUID]}
+
+
+async def test_user_cannot_resolve_collision(client, auth_headers):
+    response = await client.post("/scanner/collisions/resolve", json=_RESOLVE_BODY, headers=auth_headers)
+    assert response.status_code == 403
+
+
+async def test_unauthenticated_cannot_resolve_collision(client):
+    response = await client.post("/scanner/collisions/resolve", json=_RESOLVE_BODY)
+    assert response.status_code == 401

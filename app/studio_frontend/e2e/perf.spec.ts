@@ -27,7 +27,7 @@
  * Run via: roadie test perf
  */
 import * as fs from 'fs'
-import { test, expect, TestInfo, Browser } from '@playwright/test'
+import { test, expect, TestInfo, Browser, Page } from '@playwright/test'
 import { playAudit } from 'playwright-lighthouse'
 import { co2 } from '@tgwf/co2'
 
@@ -94,6 +94,82 @@ async function seedLighthouseCookies(browser: Browser): Promise<void> {
   await cdp.detach()
 }
 
+type PlayAuditResult = Awaited<ReturnType<typeof playAudit>>
+type LighthouseAudits = PlayAuditResult['lhr']['audits']
+type LighthouseCategories = PlayAuditResult['lhr']['categories']
+type Vitals = { fcp: number; lcp: number; tbt: number; cls: number }
+
+// Core Web Vitals, defaulting to Infinity when Lighthouse reports nothing —
+// distinguishes "never painted" from a real value so the gate fails safe.
+function readVitals(audits: LighthouseAudits): Vitals { // skipcq: JS-0067 -- module-scope helper, not a browser global
+  return {
+    fcp: audits['first-contentful-paint']?.numericValue ?? Infinity,
+    lcp: audits['largest-contentful-paint']?.numericValue ?? Infinity,
+    tbt: audits['total-blocking-time']?.numericValue ?? Infinity,
+    cls: audits['cumulative-layout-shift']?.numericValue ?? Infinity,
+  }
+}
+
+// Lighthouse runtime error (NO_FCP, PAGE_HUNG, FAILED_DOCUMENT_REQUEST, …).
+// Always annotate so CI logs show why an audit produced no usable metrics.
+function annotateRuntimeError(testInfo: TestInfo, result: PlayAuditResult): void { // skipcq: JS-0067 -- module-scope helper, not a browser global
+  const runtimeError = result.lhr.runtimeError
+  if (!runtimeError?.code) return
+  testInfo.annotations.push({
+    type: 'lighthouse-runtime-error',
+    description: `${runtimeError.code}: ${runtimeError.message}`,
+  })
+}
+
+// Always annotate FCP — helps distinguish "nothing painted" (FCP=Infinity)
+// from "LCP element never appeared" (FCP ok, LCP=Infinity).
+function annotateFcp(testInfo: TestInfo, fcp: number): void { // skipcq: JS-0067 -- module-scope helper, not a browser global
+  testInfo.annotations.push({
+    type: 'fcp',
+    description: fcp === Infinity ? 'NO_FCP (nothing painted)' : `${(fcp / 1000).toFixed(2)}s`,
+  })
+}
+
+// Warn (annotate + append to the shared warnings file) between 2.5s and 4s;
+// capture a screenshot at/above the 4s hard-fail bound before the assertion.
+async function handleLcpThresholds(testInfo: TestInfo, page: Page, path: string, lcp: number): Promise<void> { // skipcq: JS-0067 -- module-scope helper, not a browser global
+  if (lcp >= LCP_WARN_MS && lcp < LCP_FAIL_MS) {
+    testInfo.annotations.push({
+      type: 'lcp-warning',
+      description: `LCP for ${path} is ${(lcp / 1000).toFixed(2)}s — above 2.5s target, check HTML report`,
+    })
+    const warnFile = process.env.PERF_LCP_WARNING_FILE
+    if (warnFile) fs.appendFileSync(warnFile, `${path}: ${(lcp / 1000).toFixed(2)}s\n`)
+  }
+  if (lcp >= LCP_FAIL_MS) {
+    const screenshot = await page.screenshot({ fullPage: false })
+    await testInfo.attach('screenshot-at-failure', { body: screenshot, contentType: 'image/png' })
+  }
+}
+
+// Accessibility + Best-Practices scores and the Sustainable Web Design CO₂
+// estimate — all informational annotations, no hard thresholds enforced.
+function annotateInformational( // skipcq: JS-0067 -- module-scope helper, not a browser global
+  testInfo: TestInfo, categories: LighthouseCategories, audits: LighthouseAudits,
+): void {
+  const a11yScore = categories['accessibility']?.score
+  testInfo.annotations.push({
+    type: 'accessibility',
+    description: `Score: ${pct(a11yScore)} — full report: perf-reports/lighthouse/`,
+  })
+  const bpScore = categories['best-practices']?.score
+  testInfo.annotations.push({
+    type: 'best-practices (sustainability proxy)',
+    description: `Score: ${pct(bpScore)} — covers efficient resources, no deprecated APIs`,
+  })
+  const bytes = audits['total-byte-weight']?.numericValue ?? 0
+  const co2Grams = carbonModel.perByte(bytes) as number
+  testInfo.annotations.push({
+    type: 'co2_estimate',
+    description: `~${co2Grams.toFixed(4)}g CO₂ per visit (${(bytes / 1024).toFixed(0)} KB transferred) — SWD model, local estimate`,
+  })
+}
+
 for (const path of PAGES) {
   test(`Lighthouse: ${path}`, async ({ page, browser }, testInfo: TestInfo) => {
     await page.context().addCookies(AUTH_COOKIES)
@@ -119,67 +195,18 @@ for (const path of PAGES) {
     const audits     = result.lhr.audits
     const categories = result.lhr.categories
 
-    // ── Lighthouse runtime error (diagnostic) ────────────────────────────
-    // Populated when Lighthouse itself fails: NO_FCP, PAGE_HUNG,
-    // FAILED_DOCUMENT_REQUEST, etc. Always annotate so CI logs show why.
-    const runtimeError = result.lhr.runtimeError
-    if (runtimeError?.code) {
-      testInfo.annotations.push({
-        type: 'lighthouse-runtime-error',
-        description: `${runtimeError.code}: ${runtimeError.message}`,
-      })
-    }
+    annotateRuntimeError(testInfo, result)
 
     // ── Core Web Vitals (enforced) ────────────────────────────────────────
-    const fcp = audits['first-contentful-paint']?.numericValue ?? Infinity
-    const lcp = audits['largest-contentful-paint']?.numericValue ?? Infinity
-    const tbt = audits['total-blocking-time']?.numericValue ?? Infinity
-    const cls = audits['cumulative-layout-shift']?.numericValue ?? Infinity
-
-    // Always annotate FCP — helps distinguish "nothing painted" (FCP=Infinity)
-    // from "LCP element never appeared" (FCP ok, LCP=Infinity).
-    testInfo.annotations.push({
-      type: 'fcp',
-      description: fcp === Infinity ? 'NO_FCP (nothing painted)' : `${(fcp / 1000).toFixed(2)}s`,
-    })
-
-    if (lcp >= LCP_WARN_MS && lcp < LCP_FAIL_MS) {
-      testInfo.annotations.push({
-        type: 'lcp-warning',
-        description: `LCP for ${path} is ${(lcp / 1000).toFixed(2)}s — above 2.5s target, check HTML report`,
-      })
-      fs.appendFileSync('/tmp/perf-lcp-warnings', `${path}: ${(lcp / 1000).toFixed(2)}s\n`)
-    }
-
-    if (lcp >= LCP_FAIL_MS) {
-      const screenshot = await page.screenshot({ fullPage: false })
-      await testInfo.attach('screenshot-at-failure', { body: screenshot, contentType: 'image/png' })
-    }
+    const { fcp, lcp, tbt, cls } = readVitals(audits)
+    annotateFcp(testInfo, fcp)
+    await handleLcpThresholds(testInfo, page, path, lcp)
 
     expect(lcp, `LCP for ${path} (${(lcp / 1000).toFixed(2)}s)`).toBeLessThan(LCP_FAIL_MS)
     expect(tbt, `TBT for ${path} (${tbt.toFixed(0)}ms)`).toBeLessThan(TBT_FAIL_MS)
     expect(cls, `CLS for ${path} (${cls.toFixed(3)})`).toBeLessThan(CLS_FAIL)
 
-    // ── Accessibility (informational) ─────────────────────────────────────
-    const a11yScore = categories['accessibility']?.score
-    testInfo.annotations.push({
-      type: 'accessibility',
-      description: `Score: ${pct(a11yScore)} — full report: perf-reports/lighthouse/`,
-    })
-
-    // ── Best Practices / sustainability proxy (informational) ─────────────
-    const bpScore = categories['best-practices']?.score
-    testInfo.annotations.push({
-      type: 'best-practices (sustainability proxy)',
-      description: `Score: ${pct(bpScore)} — covers efficient resources, no deprecated APIs`,
-    })
-
-    // ── CO₂ estimate — Sustainable Web Design model (informational) ───────
-    const bytes = audits['total-byte-weight']?.numericValue ?? 0
-    const co2Grams = carbonModel.perByte(bytes) as number
-    testInfo.annotations.push({
-      type: 'co2_estimate',
-      description: `~${co2Grams.toFixed(4)}g CO₂ per visit (${(bytes / 1024).toFixed(0)} KB transferred) — SWD model, local estimate`,
-    })
+    // ── Informational annotations (a11y, best-practices, CO₂) ─────────────
+    annotateInformational(testInfo, categories, audits)
   })
 }

@@ -1,0 +1,63 @@
+version = 1
+
+# Generated / vendored / build output — never analyzed.
+exclude_patterns = [
+  "**/node_modules/**",
+  "**/.next/**",
+  "**/dist/**",
+  "**/coverage/**",
+  "**/*.min.js",
+  "aidlc-docs/**",
+]
+
+# Test code — analyzed with test-aware rules and excluded from some checks.
+test_patterns = [
+  "app/controlroom_backend/tests/**",
+  "app/studio_frontend/__tests__/**",
+  "app/studio_frontend/e2e/**",
+  "**/*_test.go",
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+]
+
+[[analyzers]]
+name = "python"
+
+  [analyzers.meta]
+  runtime_version = "3.x.x"
+
+[[analyzers]]
+name = "javascript"
+
+  [analyzers.meta]
+  plugins = ["react"]
+  environment = ["nodejs", "browser"]
+  dialect = "typescript"
+
+[[analyzers]]
+name = "go"
+
+  [analyzers.meta]
+  # Common root of all three modules (roadie, plugin_scanner, gearlist_backend);
+  # DeepSource auto-detects the individual import paths beneath it.
+  import_root = "github.com/studiocontrolroom"
+
+[[analyzers]]
+name = "secrets"
+
+# Auto-enabled by DeepSource on activation and kept here so pushing this config
+# does not drop them: shell (shellcheck), docker (hadolint), sql. The repo has
+# shell scripts, Dockerfiles, and SQL migrations/seeds.
+[[analyzers]]
+name = "shell"
+
+[[analyzers]]
+name = "docker"
+
+[[analyzers]]
+name = "sql"
+
+# Enable once coverage upload (deepsource CLI + DEEPSOURCE_DSN) is wired — phase 2.
+# [[analyzers]]
+# name = "test-coverage"

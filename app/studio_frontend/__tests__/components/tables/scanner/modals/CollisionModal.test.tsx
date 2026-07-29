@@ -4,7 +4,7 @@ import { CollisionModal } from '@/components/tables/scanner/modals/CollisionModa
 import type { WorkbenchRow } from '@/lib/types'
 
 jest.mock('@/lib/api', () => ({
-  api: { scanner: { confirm: jest.fn(), acknowledge: jest.fn(), dismiss: jest.fn(), exclude: jest.fn() } },
+  api: { scanner: { resolveCollision: jest.fn(), exclude: jest.fn() } },
 }))
 
 import { api } from '@/lib/api'
@@ -34,6 +34,21 @@ function renderModal(onResolved: jest.Mock = noop, onClose: jest.Mock = noop) {
   render(<CollisionModal row={makeRow()} onClose={onClose} onResolved={onResolved} />)
 }
 
+// Arrange a resolve that succeeds, render, and hand back the onResolved spy.
+function renderResolving(result: { acknowledged: number; dismissed: number }): jest.Mock { // skipcq: JS-0067 -- module-scope test helper, not a browser global
+  ;(mockApi.scanner.resolveCollision as jest.Mock).mockResolvedValue(result)
+  const onResolved = jest.fn()
+  renderModal(onResolved)
+  return onResolved
+}
+
+// Assert the modal made exactly one atomic resolve call with the given body, then resolved.
+async function expectResolvedOnceWith(onResolved: jest.Mock, body: Record<string, unknown>) { // skipcq: JS-0067 -- module-scope test helper, not a browser global
+  await waitFor(() => expect(onResolved).toHaveBeenCalled())
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledTimes(1)
+  expect(mockApi.scanner.resolveCollision).toHaveBeenCalledWith(body)
+}
+
 it('renders the shared catalog record and every duplicate copy', () => {
   renderModal()
   expect(screen.getByText(/Resolve Collision/)).toBeInTheDocument()
@@ -41,20 +56,10 @@ it('renders the shared catalog record and every duplicate copy', () => {
   expect(screen.getByText('/users/ed/proq.vst3')).toBeInTheDocument()
 })
 
-it('keep all confirms every copy in one batched request then resolves', async () => {
-  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 2, errors: [] })
-  const onResolved = jest.fn()
-  renderModal(onResolved)
+it('keep all resolves the whole collision in one atomic call', async () => {
+  const onResolved = renderResolving({ acknowledged: 2, dismissed: 0 })
   fireEvent.click(screen.getByTestId('collision-keep-all'))
-  await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.confirm).toHaveBeenCalledTimes(1)
-  expect(mockApi.scanner.confirm).toHaveBeenCalledWith([
-    { result_id: 'r1', action: 'acknowledge' },
-    { result_id: 'r2', action: 'acknowledge' },
-  ])
-  // keep-all must use ONLY the batched confirm path, not the legacy per-copy endpoints
-  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
-  expect(mockApi.scanner.dismiss).not.toHaveBeenCalled()
+  await expectResolvedOnceWith(onResolved, { action: 'keep_all', copy_ids: ['r1', 'r2'] })
 })
 
 it('remove straggler is disabled until a keeper is chosen', () => {
@@ -64,16 +69,15 @@ it('remove straggler is disabled until a keeper is chosen', () => {
   expect(screen.getByTestId('collision-remove-straggler')).not.toBeDisabled()
 })
 
-it('remove straggler acknowledges the keeper and dismisses the rest', async () => {
-  ;(mockApi.scanner.acknowledge as jest.Mock).mockResolvedValue({ applied: 1, errors: [] })
-  ;(mockApi.scanner.dismiss as jest.Mock).mockResolvedValue(undefined)
-  const onResolved = jest.fn()
-  renderModal(onResolved)
+it('remove straggler resolves with the chosen keeper in one atomic call', async () => {
+  const onResolved = renderResolving({ acknowledged: 1, dismissed: 1 })
   fireEvent.click(screen.getByTestId('collision-copy-r1'))
   fireEvent.click(screen.getByTestId('collision-remove-straggler'))
-  await waitFor(() => expect(onResolved).toHaveBeenCalled())
-  expect(mockApi.scanner.acknowledge).toHaveBeenCalledWith('r1')
-  expect(mockApi.scanner.dismiss).toHaveBeenCalledWith('r2')
+  await expectResolvedOnceWith(onResolved, {
+    action: 'remove_straggler',
+    copy_ids: ['r1', 'r2'],
+    keeper_id: 'r1',
+  })
 })
 
 it('exclude excludes the plugin then resolves', async () => {
@@ -90,11 +94,11 @@ it('cancel closes without any api call', () => {
   renderModal(noop, onClose)
   fireEvent.click(screen.getByTestId('collision-cancel'))
   expect(onClose).toHaveBeenCalled()
-  expect(mockApi.scanner.acknowledge).not.toHaveBeenCalled()
+  expect(mockApi.scanner.resolveCollision).not.toHaveBeenCalled()
 })
 
-it('shows an inline error and does not resolve when keep all reports per-copy errors', async () => {
-  ;(mockApi.scanner.confirm as jest.Mock).mockResolvedValue({ applied: 1, errors: [{ result_id: 'r2', error: 'nope' }] })
+it('shows an inline error and does not resolve when the resolve call fails', async () => {
+  ;(mockApi.scanner.resolveCollision as jest.Mock).mockRejectedValue(new Error('Invalid collision resolution'))
   const onResolved = jest.fn()
   renderModal(onResolved)
   fireEvent.click(screen.getByTestId('collision-keep-all'))

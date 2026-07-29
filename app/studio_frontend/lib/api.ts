@@ -1,4 +1,4 @@
-import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, ConfirmDecision, CreateAliasRequest, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
+import type { AcknowledgeResult, AllRules, BulkActionResult, BulkCreateLinkRequest, BulkLinkResult, BulkUpdateResult, CatalogSearchResult, CollisionResolveRequest, CollisionResolveResult, ConfirmDecision, CreateAliasRequest, CreateLinkRequest, Exclusion, FindLinkCandidatesResponse, HardResetResult, NameRuleInput, PatternRuleInput, RawScanReport, RuleCreationResult, RuleType, ScanListItem, ScannerApiKeyCreated, ScannerApiKeyResponse, SearchResponse, SoftResetResult, UpdateRuleInput, VendorRuleInput, WorkbenchResponse, WorkbenchServerParams } from '@/lib/types'
 import { DEFAULT_OPERATOR, VALUE_FREE_OPERATORS, DATE_RANGE_OPERATORS, type FilterState } from '@/lib/filterOperators'
 
 async function req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -47,7 +47,7 @@ export const api = {
   get:    <T>(ep: string, id: string) => req<T>(`${ep}/${id}`),
   create: <T>(ep: string, body: unknown) => req<T>(ep, { method: 'POST', body: JSON.stringify(body) }),
   update: <T>(ep: string, id: string, body: unknown) => req<T>(`${ep}/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
-  delete: (ep: string, id: string) => req<void>(`${ep}/${id}`, { method: 'DELETE' }),
+  delete: (ep: string, id: string) => req<void>(`${ep}/${id}`, { method: 'DELETE' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
   uploadPhoto: (ep: string, id: string, file: File) =>
     req<{ photo_key: string }>(`${ep}/${id}/photo`, {
       method: 'POST',
@@ -87,16 +87,20 @@ export const api = {
       return req<CatalogSearchResult[]>(`/scanner/catalog/search?${params}`)
     },
     dismiss: (resultId: string) =>
-      req<void>(`/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }),
+      req<void>(`/scanner/results/${resultId}/dismiss`, { method: 'PATCH' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
+    resolveCollision: (body: CollisionResolveRequest) =>
+      req<CollisionResolveResult>('/scanner/collisions/resolve', {
+        method: 'POST', body: JSON.stringify(body),
+      }),
     keep: (resultId: string) =>
-      req<void>(`/scanner/results/${resultId}/keep`, { method: 'PATCH' }),
+      req<void>(`/scanner/results/${resultId}/keep`, { method: 'PATCH' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     exclusions: () => req<Exclusion[]>('/scanner/exclusions'),
     removeExclusion: (exclusionId: string) =>
-      req<void>(`/scanner/exclude/${exclusionId}`, { method: 'DELETE' }),
+      req<void>(`/scanner/exclude/${exclusionId}`, { method: 'DELETE' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     listKeys: () => req<ScannerApiKeyResponse[]>('/scanner/keys'),
     createKey: (label: string) =>
       req<ScannerApiKeyCreated>('/scanner/keys', { method: 'POST', body: JSON.stringify({ label }) }),
-    revokeKey: (keyId: string) => req<void>(`/scanner/keys/${keyId}`, { method: 'DELETE' }),
+    revokeKey: (keyId: string) => req<void>(`/scanner/keys/${keyId}`, { method: 'DELETE' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     purge: (olderThanDays: number | 'all') => {
       const qs = olderThanDays === 'all' ? '' : `?older_than_days=${olderThanDays}`
       return req<{ deleted_count: number }>(`/scanner/scans${qs}`, { method: 'DELETE' })
@@ -113,13 +117,13 @@ export const api = {
       return req<RuleCreationResult>(`/scanner/rules/${type}/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
     },
     deleteRule: (id: string, type: RuleType) =>
-      req<void>(`/scanner/rules/${type}/${id}`, { method: 'DELETE' }),
+      req<void>(`/scanner/rules/${type}/${id}`, { method: 'DELETE' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     toggleRule: (id: string, type: RuleType, enabled: boolean) =>
       req<RuleCreationResult>(`/scanner/rules/${type}/${id}/toggle`, { method: 'PATCH', body: JSON.stringify({ enabled }) }),
     acknowledgeClean: (id: string, type: RuleType) =>
       req<AcknowledgeResult>(`/scanner/rules/${type}/${id}/acknowledge-clean`, { method: 'POST' }),
     createAlias: (body: CreateAliasRequest) =>
-      req<void>('/scanner/aliases', { method: 'POST', body: JSON.stringify(body) }),
+      req<void>('/scanner/aliases', { method: 'POST', body: JSON.stringify(body) }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     workbench: (params: WorkbenchServerParams) => {
       const p = new URLSearchParams()
       if (params.scan_id) p.set('scan_id', params.scan_id)
@@ -137,7 +141,7 @@ export const api = {
     bulkCreateLinks: (body: BulkCreateLinkRequest) =>
       req<BulkLinkResult>('/scanner/links/bulk', { method: 'POST', body: JSON.stringify(body) }),
     rejectMatch: (resultId: string) =>
-      req<void>(`/scanner/results/${resultId}/reject`, { method: 'POST' }),
+      req<void>(`/scanner/results/${resultId}/reject`, { method: 'POST' }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     softReset: () =>
       req<SoftResetResult>('/scanner/admin/reset/soft', { method: 'POST' }),
     hardReset: (confirmationText: string) =>
@@ -146,7 +150,7 @@ export const api = {
         body: JSON.stringify({ confirmation_text: confirmationText }),
       }),
     exclude: (vendor: string, name: string, format: string) =>
-      req<void>('/scanner/exclude', { method: 'POST', body: JSON.stringify({ vendor, name, format }) }),
+      req<void>('/scanner/exclude', { method: 'POST', body: JSON.stringify({ vendor, name, format }) }), // skipcq: JS-0333 -- void generic arg (Promise<void>) is valid TS
     bulkUpdate: (resultIds: string[]) =>
       req<BulkUpdateResult>('/scanner/workbench/bulk-update', {
         method: 'POST',

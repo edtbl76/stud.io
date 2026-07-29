@@ -2,6 +2,16 @@ import io
 import json
 from unittest.mock import patch, AsyncMock, MagicMock
 
+import pytest
+
+
+def _next_call(call_iter):
+    """Pull the next mocked subprocess result, failing clearly if the code over-called the mock."""
+    try:
+        return next(call_iter)
+    except StopIteration:
+        return pytest.fail("subprocess mock called more times than expected")
+
 # Realistic pg_dump output header
 _DUMP_SQL = b"-- PostgreSQL database dump\n\nSELECT 1;\n"
 
@@ -225,7 +235,7 @@ async def test_verify_passes_on_matching_hashes(client, admin_headers):
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
-        return next(call_iter)
+        return _next_call(call_iter)
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):
@@ -248,7 +258,7 @@ async def test_verify_fails_on_mismatched_hash(client, admin_headers):
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
-        return next(call_iter)
+        return _next_call(call_iter)
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
@@ -271,7 +281,7 @@ async def test_verify_fails_on_mismatched_rowcount(client, admin_headers):
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
-        return next(call_iter)
+        return _next_call(call_iter)
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=conn)):
@@ -292,7 +302,7 @@ async def test_verify_psql_failure_returns_500(client, admin_headers):
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
-        return next(call_iter)
+        return _next_call(call_iter)
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect):
         response = await client.post(
@@ -313,7 +323,7 @@ async def test_verify_cleanup_on_failure(client, admin_headers):
 
     async def side_effect(*args, **kwargs):
         subprocess_calls.append(args)
-        return next(call_iter)
+        return _next_call(call_iter)
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect):
         await client.post(
@@ -337,7 +347,7 @@ async def test_verify_roundtrip(client, admin_headers):
     call_iter = iter(psql_calls)
 
     async def side_effect(*args, **kwargs):
-        return next(call_iter)
+        return _next_call(call_iter)
 
     with patch("asyncio.create_subprocess_exec", side_effect=side_effect), \
          patch("asyncpg.connect", new=AsyncMock(return_value=_mock_asyncpg_conn())):

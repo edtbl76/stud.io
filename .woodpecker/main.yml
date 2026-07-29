@@ -54,7 +54,7 @@ steps:
       - roadie test scan --gate
     environment:
       SONAR_TOKEN:
-        from_secret: sonar_token  # pragma: allowlist secret
+        from_secret: sonar_token  # pragma: allowlist secret skipcq: SCT-A000
     when:
       - event: push
         branch: main

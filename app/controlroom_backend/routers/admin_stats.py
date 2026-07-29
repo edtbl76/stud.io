@@ -69,6 +69,20 @@ _STATS_GROUPS: list[tuple[str, list[TableConfig]]] = [
         TableConfig("Gear",       "gear",       True),
         TableConfig("Gear Types", "gear_types", True),
     ]),
+    # Scanner tables have no soft-delete column, so each is a plain COUNT(*)
+    # (has_soft_delete=False, active_filter=None). scanner_api_keys is excluded —
+    # credentials belong with Users, not the catalog stats page.
+    ("Scanner", [
+        TableConfig("Scans",         "plugin_scans",          False),
+        TableConfig("Scan Results",  "plugin_scan_results",   False),
+        TableConfig("Vendor Rules",  "scanner_vendor_rules",  False),
+        TableConfig("Name Rules",    "scanner_name_rules",    False),
+        TableConfig("Name Patterns", "scanner_name_patterns", False),
+        TableConfig("Aliases",       "scanner_name_aliases",  False),
+        TableConfig("Exclusions",    "scanner_exclusions",    False),
+        TableConfig("Links",         "scanner_plugin_links",  False),
+        TableConfig("Rejections",    "scanner_rejections",    False),
+    ]),
 ]
 
 

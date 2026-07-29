@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 480
     google_client_id: str = ""  # empty = Google login disabled
 
-    app_host: str = "0.0.0.0"
+    app_host: str = "0.0.0.0"  # skipcq: BAN-B104 -- intentional; app binds inside Docker (mirrors .bandit B104 skip)
     app_port: int = 5150
 
     @property

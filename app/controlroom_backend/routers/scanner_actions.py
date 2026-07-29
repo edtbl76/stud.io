@@ -131,7 +131,7 @@ async def _assert_catalog_row_exists(conn: Connection, table: str, record_id: st
 
 
 async def append_disk_path(
-    conn: Connection, record: tuple[str, object], entry: dict, username: str,
+    conn: Connection, record: tuple[str, UUID], entry: dict, username: str,
 ) -> None:
     """Append a {path, format, version} entry to a catalog ``record`` (table, pk)'s disk_paths.
 
@@ -154,7 +154,7 @@ async def append_disk_path(
                     old_data={"disk_paths": old_paths}, new_data={"disk_paths": new_paths})
 
 
-async def _append_disk_path(conn: Connection, table: str, rid: object, ctx: _ConfirmCtx) -> None:
+async def _append_disk_path(conn: Connection, table: str, rid: UUID, ctx: _ConfirmCtx) -> None:
     entry = {"path": ctx.row["path"], "format": ctx.row["format"], "version": ctx.row["version"]}
     await append_disk_path(conn, (table, rid), entry, ctx.username)
 

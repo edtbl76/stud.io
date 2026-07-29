@@ -313,6 +313,15 @@ export interface CollisionInfo {
   copies: CollisionCopy[]
 }
 
+export type CollisionResolveRequest =
+  | { action: 'keep_all'; copy_ids: string[] }
+  | { action: 'remove_straggler'; copy_ids: string[]; keeper_id: string }
+
+export interface CollisionResolveResult {
+  acknowledged: number
+  dismissed: number
+}
+
 export interface WorkbenchRow {
   result_id: string
   disk_name: string

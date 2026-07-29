@@ -267,7 +267,8 @@ async def test_active_candidates_includes_path(conn):
     # Step 1: the disk_paths append needs `path` on each candidate row.
     _, result_id = await insert_scan(conn, status="unlinked")
     rows = await _active_candidates(conn)
-    row = next(r for r in rows if r["result_id"] == result_id)
+    row = next((r for r in rows if r["result_id"] == result_id), None)
+    assert row is not None
     assert row["path"] == "/path/reverb.vst3"
 
 
@@ -300,7 +301,8 @@ async def test_append_variant_path_appends_and_dedupes(conn):
     await _append_variant_path(conn, res, row, "admin")  # second call must not double
     dp = await conn.fetchval("SELECT disk_paths FROM effects WHERE effect_id=$1", eid)
     assert sum(1 for e in dp if e["path"] == "/x/zz14.vst3") == 1
-    entry = next(e for e in dp if e["path"] == "/x/zz14.vst3")
+    entry = next((e for e in dp if e["path"] == "/x/zz14.vst3"), None)
+    assert entry is not None
     assert entry["format"] == "vst3" and entry["version"] == "2.0"
 
 

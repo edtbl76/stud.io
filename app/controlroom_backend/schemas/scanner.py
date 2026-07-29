@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +72,19 @@ class ConfirmPayload(BaseModel):
 class ConfirmResult(BaseModel):
     applied: int
     errors: list[dict[str, Any]]
+
+
+class CollisionResolveRequest(BaseModel):
+    """Resolve a whole collision atomically. keeper_id is required for
+    remove_straggler and must be one of copy_ids."""
+    action: Literal["keep_all", "remove_straggler"]
+    copy_ids: list[UUID] = Field(min_length=1)
+    keeper_id: UUID | None = None
+
+
+class CollisionResolveResult(BaseModel):
+    acknowledged: int
+    dismissed: int
 
 
 # ---------------------------------------------------------------------------
