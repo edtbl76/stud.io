@@ -176,21 +176,42 @@ def _build_null_expr(contains_expr: str) -> str:
     return " OR ".join(f"({col} IS NULL OR {col} = '')" for col in cols)
 
 
+def _dir_at(sort_dir: list[str], i: int) -> str:
+    """Direction for the i-th sort key; defaults to ASC when unspecified."""
+    if i < len(sort_dir) and sort_dir[i].lower() == "desc":
+        return "DESC"
+    return "ASC"
+
+
 def _build_order_clause(
     sort_by: list[str],
     sort_dir: list[str],
     sortable: frozenset[str],
     default_sort: str,
+    id_column: str,
 ) -> str:
-    """Build a multi-column ORDER BY clause, validating each column against sortable."""
+    """Build a deterministic multi-column ORDER BY clause.
+
+    Each requested key is validated against ``sortable``; unknown keys are
+    dropped. A unique tiebreaker on ``id_column`` is always appended (unless the
+    id is already an explicit sort key) so the result is a total order: this
+    keeps LIMIT/OFFSET pagination stable and makes tied rows reproducible instead
+    of relying on Postgres's non-stable sort. The tiebreaker follows the
+    direction of the least-significant sort key so a single-column sort reverses
+    cleanly when the direction flips.
+    """
     terms: list[str] = []
+    keys: list[str] = []
     for i, key in enumerate(sort_by):
-        if key not in sortable:
-            continue
-        direction = "DESC" if i < len(sort_dir) and sort_dir[i].lower() == "desc" else "ASC"
-        terms.append(f"{key} {direction}")
+        if key in sortable:
+            terms.append(f"{key} {_dir_at(sort_dir, i)}")
+            keys.append(key)
     if not terms:
         terms.append(f"{default_sort} ASC")
+        keys.append(default_sort)
+    if id_column not in keys:
+        last_dir = terms[-1].rsplit(" ", 1)[1]
+        terms.append(f"{id_column} {last_dir}")
     return "ORDER BY " + ", ".join(terms)
 
 
@@ -203,7 +224,7 @@ async def list_entities(
     filters: dict[str, FilterEntry] | None = None,
 ):
     """ List entities from a database, with optional per-column filtering and sorting """
-    order = _build_order_clause(params.sort_by, params.sort_dir, config.sortable, config.default_sort)
+    order = _build_order_clause(params.sort_by, params.sort_dir, config.sortable, config.default_sort, config.id_column)
     where, bind_vals = build_filter_clause(config.filterable, filters or {})
     n = len(bind_vals)
     total = await conn.fetchval(

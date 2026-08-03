@@ -5,47 +5,66 @@ from routers.filter_operators import FilterableField, FilterEntry
 
 _SORTABLE = frozenset({"brand_name", "legal_name", "created_at", "updated_at"})
 _DEFAULT = "brand_name"
+_ID = "brand_id"
 
 
 # ---------------------------------------------------------------------------
 # _build_order_clause
+#
+# A unique tiebreaker on the id column is always appended so the ordering is a
+# total order (stable pagination; reproducible tie ordering). The tiebreaker
+# follows the direction of the least-significant sort key.
 # ---------------------------------------------------------------------------
 
 def test_order_single_asc():
-    result = _build_order_clause(["brand_name"], ["asc"], _SORTABLE, _DEFAULT)
-    assert result == "ORDER BY brand_name ASC"
+    result = _build_order_clause(["brand_name"], ["asc"], _SORTABLE, _DEFAULT, _ID)
+    assert result == "ORDER BY brand_name ASC, brand_id ASC"
 
 
 def test_order_single_desc():
-    result = _build_order_clause(["brand_name"], ["desc"], _SORTABLE, _DEFAULT)
-    assert result == "ORDER BY brand_name DESC"
+    result = _build_order_clause(["brand_name"], ["desc"], _SORTABLE, _DEFAULT, _ID)
+    assert result == "ORDER BY brand_name DESC, brand_id DESC"
 
 
 def test_order_multi_column():
     result = _build_order_clause(
-        ["brand_name", "created_at"], ["asc", "desc"], _SORTABLE, _DEFAULT
+        ["brand_name", "created_at"], ["asc", "desc"], _SORTABLE, _DEFAULT, _ID
     )
-    assert result == "ORDER BY brand_name ASC, created_at DESC"
+    # tiebreaker follows the last (least-significant) key's direction: DESC
+    assert result == "ORDER BY brand_name ASC, created_at DESC, brand_id DESC"
 
 
 def test_order_dir_defaults_to_asc_when_missing():
-    result = _build_order_clause(["brand_name", "created_at"], ["desc"], _SORTABLE, _DEFAULT)
-    assert result == "ORDER BY brand_name DESC, created_at ASC"
+    result = _build_order_clause(["brand_name", "created_at"], ["desc"], _SORTABLE, _DEFAULT, _ID)
+    assert result == "ORDER BY brand_name DESC, created_at ASC, brand_id ASC"
 
 
 def test_order_invalid_column_skipped():
-    result = _build_order_clause(["brand_name", "__bad__"], ["asc", "asc"], _SORTABLE, _DEFAULT)
-    assert result == "ORDER BY brand_name ASC"
+    result = _build_order_clause(["brand_name", "__bad__"], ["asc", "asc"], _SORTABLE, _DEFAULT, _ID)
+    assert result == "ORDER BY brand_name ASC, brand_id ASC"
 
 
 def test_order_all_invalid_falls_back_to_default():
-    result = _build_order_clause(["__bad__", "__worse__"], ["asc", "asc"], _SORTABLE, _DEFAULT)
-    assert result == f"ORDER BY {_DEFAULT} ASC"
+    result = _build_order_clause(["__bad__", "__worse__"], ["asc", "asc"], _SORTABLE, _DEFAULT, _ID)
+    assert result == f"ORDER BY {_DEFAULT} ASC, {_ID} ASC"
 
 
 def test_order_empty_list_falls_back_to_default():
-    result = _build_order_clause([], [], _SORTABLE, _DEFAULT)
-    assert result == f"ORDER BY {_DEFAULT} ASC"
+    result = _build_order_clause([], [], _SORTABLE, _DEFAULT, _ID)
+    assert result == f"ORDER BY {_DEFAULT} ASC, {_ID} ASC"
+
+
+def test_order_tiebreaker_not_duplicated_when_id_already_sorted():
+    """If the id column is itself an explicit sort key, it is not appended twice."""
+    sortable = frozenset({"brand_id", "brand_name"})
+    result = _build_order_clause(["brand_id"], ["desc"], sortable, _DEFAULT, _ID)
+    assert result == "ORDER BY brand_id DESC"
+
+
+def test_order_tiebreaker_appended_after_valid_id_sort_key():
+    """When sorting by a non-id key that shares a name-space with id, id still appended once."""
+    result = _build_order_clause(["legal_name"], ["asc"], _SORTABLE, _DEFAULT, _ID)
+    assert result == "ORDER BY legal_name ASC, brand_id ASC"
 
 
 # ---------------------------------------------------------------------------

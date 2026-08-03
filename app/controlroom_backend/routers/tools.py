@@ -107,7 +107,7 @@ async def list_tools(
     filters: Annotated[dict[str, FilterEntry], Depends(parse_filters)],
 ):
     cfg = _cfg(category)
-    order = _build_order_clause(params.sort_by, params.sort_dir, _SORTABLE, _DEFAULT_SORT)
+    order = _build_order_clause(params.sort_by, params.sort_dir, _SORTABLE, _DEFAULT_SORT, cfg["id_col"])
     where, bind_vals = build_filter_clause(_FILTERABLE, filters)
     n = len(bind_vals)
     total = await conn.fetchval(

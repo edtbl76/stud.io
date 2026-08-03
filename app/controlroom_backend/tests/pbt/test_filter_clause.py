@@ -132,29 +132,30 @@ sort_keys_st = st.lists(col_name, min_size=0, max_size=5)
 sort_dirs_st = st.lists(st.sampled_from(["asc", "desc", "ASC", "DESC"]), min_size=0, max_size=5)
 
 
-@given(sort_keys_st, sort_dirs_st, sortable_st, col_name)
+@given(sort_keys_st, sort_dirs_st, sortable_st, col_name, col_name)
 @settings(max_examples=200)
-def test_order_clause_always_starts_with_order_by(sort_by, sort_dir, sortable, default_sort):
-    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort)
+def test_order_clause_always_starts_with_order_by(sort_by, sort_dir, sortable, default_sort, id_col):
+    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort, id_col)
     assert result.startswith("ORDER BY ")
 
 
-@given(sort_keys_st, sort_dirs_st, sortable_st, col_name)
+@given(sort_keys_st, sort_dirs_st, sortable_st, col_name, col_name)
 @settings(max_examples=200)
-def test_only_sortable_columns_appear_in_order_clause(sort_by, sort_dir, sortable, default_sort):
-    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort)
+def test_only_sortable_columns_appear_in_order_clause(sort_by, sort_dir, sortable, default_sort, id_col):
+    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort, id_col)
     # Extract column names from ORDER BY a ASC, b DESC, ...
     import re
     terms = re.findall(r'ORDER BY (.+)', result)[0].split(', ')
     for term in terms:
         col = term.split()[0]
-        assert col in sortable or col == default_sort
+        # id_col is the always-appended unique tiebreaker
+        assert col in sortable or col == default_sort or col == id_col
 
 
-@given(sort_keys_st, sort_dirs_st, sortable_st, col_name)
+@given(sort_keys_st, sort_dirs_st, sortable_st, col_name, col_name)
 @settings(max_examples=200)
-def test_direction_is_always_asc_or_desc(sort_by, sort_dir, sortable, default_sort):
-    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort)
+def test_direction_is_always_asc_or_desc(sort_by, sort_dir, sortable, default_sort, id_col):
+    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort, id_col)
     import re
     terms = re.findall(r'ORDER BY (.+)', result)[0].split(', ')
     for term in terms:
@@ -163,15 +164,32 @@ def test_direction_is_always_asc_or_desc(sort_by, sort_dir, sortable, default_so
         assert parts[1] in ("ASC", "DESC")
 
 
-@given(sortable_st, col_name)
+@given(sort_keys_st, sort_dirs_st, sortable_st, col_name, col_name)
 @settings(max_examples=200)
-def test_no_valid_sort_keys_falls_back_to_default(sortable, default_sort):
-    """Empty or all-invalid sort_by always falls back to default_sort ASC."""
+def test_order_clause_always_ends_with_id_tiebreaker(sort_by, sort_dir, sortable, default_sort, id_col):
+    """The clause is a total order: the id column is always present, and it is the
+    final (least-significant) term unless it is itself an explicit sort key."""
+    result = _build_order_clause(sort_by, sort_dir, sortable, default_sort, id_col)
+    import re
+    terms = re.findall(r'ORDER BY (.+)', result)[0].split(', ')
+    cols = [t.split()[0] for t in terms]
+    valid_keys = [k for k in sort_by if k in sortable]
+    assert id_col in cols
+    if id_col not in valid_keys:
+        assert cols[-1] == id_col
+
+
+@given(sortable_st, col_name, col_name)
+@settings(max_examples=200)
+def test_no_valid_sort_keys_falls_back_to_default(sortable, default_sort, id_col):
+    """Empty or all-invalid sort_by falls back to default_sort ASC plus id tiebreaker."""
+    tiebreak = "" if id_col == default_sort else f", {id_col} ASC"
+
     # Empty sort_by
-    result = _build_order_clause([], [], sortable, default_sort)
-    assert result == f"ORDER BY {default_sort} ASC"
+    result = _build_order_clause([], [], sortable, default_sort, id_col)
+    assert result == f"ORDER BY {default_sort} ASC{tiebreak}"
 
     # All-invalid sort_by (keys not in sortable) also falls back to default.
     invalid_keys = ["__invalid1__", "__invalid2__"]
-    result = _build_order_clause(invalid_keys, [], sortable, default_sort)
-    assert result == f"ORDER BY {default_sort} ASC"
+    result = _build_order_clause(invalid_keys, [], sortable, default_sort, id_col)
+    assert result == f"ORDER BY {default_sort} ASC{tiebreak}"

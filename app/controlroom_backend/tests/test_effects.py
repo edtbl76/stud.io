@@ -93,6 +93,22 @@ async def test_list_effects_sort(client):
     assert asc_names == list(reversed(desc_names))
 
 
+async def test_list_effects_sort_tiebreak_is_deterministic(client):
+    """effect_name is not unique, so ordering must fall back to the effect_id
+    tiebreaker: within a run of equal names, effect_id is monotonic, and the same
+    query returns the identical order every time (stable pagination)."""
+    total = (await client.get("/studio/session/effects")).json()["total"]
+    url = f"/studio/session/effects?limit={total}&sort_by=effect_name&sort_dir=asc"
+    first = (await client.get(url)).json()["items"]
+    second = (await client.get(url)).json()["items"]
+    # deterministic: identical order across repeated identical requests
+    assert [e["effect_id"] for e in first] == [e["effect_id"] for e in second]
+    # within tied names, the id tiebreaker is ascending
+    for a, b in zip(first, first[1:]):
+        if a["effect_name"] == b["effect_name"]:
+            assert a["effect_id"] <= b["effect_id"]
+
+
 # ---------------------------------------------------------------------------
 # GET ONE
 # ---------------------------------------------------------------------------
