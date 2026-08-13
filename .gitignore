@@ -342,9 +342,6 @@ docs/superpowers/
 docs/drafts/
 .worktrees/
 
-### Bazel
-/bazel-*
-
 ### GitHub Actions self-hosted runner
 /actions-runner/
 
