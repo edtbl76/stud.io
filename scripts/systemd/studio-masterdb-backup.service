@@ -1,0 +1,11 @@
+[Unit]
+Description=STUD.io masterdb → weyland MinIO backup (B127, production durability)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=edwardmangini
+# So the docker CLI reads the right context (Desktop pre-cutover, native post) + mc config from the user's home.
+Environment=DOCKER_CONFIG=/home/edwardmangini/.docker
+ExecStart=/home/edwardmangini/Documents/Studio/STUD.io/scripts/backup-masterdb.sh

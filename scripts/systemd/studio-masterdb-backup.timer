@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily STUD.io masterdb backup → weyland MinIO
+
+[Timer]
+# Daily; Persistent=true runs it at next boot if the scheduled time was missed while the laptop was off/asleep.
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=15m
+
+[Install]
+WantedBy=timers.target
