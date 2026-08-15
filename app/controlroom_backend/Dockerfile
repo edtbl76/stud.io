@@ -20,6 +20,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Lint/security tooling for the containerized roadie unit lane. Kept out of
+# requirements.txt on purpose so pip-audit does not audit its own dependency tree.
+RUN pip install --no-cache-dir bandit pip-audit
+
 COPY . .
 
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app

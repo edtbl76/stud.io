@@ -14,6 +14,48 @@ const pluginScannerDir = "app/plugin_scanner"
 // Root is the filesystem root of the monorepo, used to resolve tool paths.
 type Root string
 
+// backendTestImage is the dev/test image (the controlroom_backend_test service in
+// docker-compose.dev.yml). It carries the Python interpreter + pinned wheels +
+// lint/security tooling in the same Debian base we deploy to — running the Python
+// unit lane here instead of the host interpreter keeps tests in the deploy
+// environment and avoids host glibc/pyenv problems.
+const backendTestImage = "dev-controlroom_backend_test:latest"
+
+// containerize reroutes a host Python ToolStep to run inside backendTestImage
+// instead of the host interpreter. The whole repo is bind-mounted at its own path
+// so the step's absolute-path args resolve unchanged; the working dir is the
+// backend package so pytest's `from main import ...` imports resolve. When needsDB
+// is set the run shares studio_db's network namespace so conftest's
+// localhost:5432 reaches the database. The image supplies the interpreter and
+// wheels; the source comes from the mount, so tests run against the current tree.
+func containerize(step ToolStep, root Root, needsDB bool) ToolStep {
+	abs, err := filepath.Abs(string(root))
+	if err != nil {
+		abs = string(root)
+	}
+	// The repo is mounted at its own absolute path and the working dir is the
+	// repo root, so the step's root-relative args resolve exactly as they do on
+	// the host (roadie runs from the repo root).
+	workdir := abs
+	if step.Dir != "" {
+		if d, e := filepath.Abs(step.Dir); e == nil {
+			workdir = d
+		}
+	}
+	dockerArgs := []string{"run", "--rm"}
+	if needsDB {
+		dockerArgs = append(dockerArgs, "--network", "container:studio_db")
+	}
+	dockerArgs = append(dockerArgs,
+		"-v", abs+":"+abs,
+		"-w", workdir,
+		backendTestImage,
+		step.Bin,
+	)
+	dockerArgs = append(dockerArgs, step.Args...)
+	return ToolStep{Name: step.Name, Bin: "docker", Args: dockerArgs}
+}
+
 // npmStep builds a ToolStep that runs npm with the given args in the frontend
 // directory. Used by NpmInstallStep and NpmAuditStep to avoid duplication.
 func npmStep(name string, args []string, root Root) ToolStep {
@@ -90,18 +132,17 @@ func PytestStep(root Root, extraArgs ...string) ToolStep {
 	r := string(root)
 	args := []string{"-m", "pytest", filepath.Join(r, backendDir, "tests"), "-q", "--tb=short"}
 	args = append(args, extraArgs...)
-	return ToolStep{
+	return containerize(ToolStep{
 		Name: "pytest",
 		Bin:  "python",
 		Args: args,
-		Env:  pathEnv(ResolvePython()),
-	}
+	}, root, true)
 }
 
 // BanditStep returns a step that runs bandit static analysis against the backend.
 func BanditStep(root Root) ToolStep {
 	r := string(root)
-	return ToolStep{
+	return containerize(ToolStep{
 		Name: "bandit",
 		Bin:  "python",
 		Args: []string{
@@ -111,25 +152,23 @@ func BanditStep(root Root) ToolStep {
 			"-c", filepath.Join(r, ".bandit"),
 			"-ll", "-q",
 		},
-		Env: pathEnv(ResolvePython()),
-	}
+	}, root, false)
 }
 
 // RuffStep returns a step that runs ruff lint against the backend.
 func RuffStep(root Root) ToolStep {
 	r := string(root)
-	return ToolStep{
+	return containerize(ToolStep{
 		Name: "ruff",
 		Bin:  "python",
 		Args: []string{"-m", "ruff", "check", filepath.Join(r, backendDir), "--quiet"},
-		Env:  pathEnv(ResolvePython()),
-	}
+	}, root, false)
 }
 
 // PipAuditStep returns a step that audits Python dependencies for known CVEs.
 func PipAuditStep(root Root) ToolStep {
 	r := string(root)
-	return ToolStep{
+	return containerize(ToolStep{
 		Name: "pip-audit",
 		Bin:  "python",
 		Args: []string{
@@ -168,8 +207,7 @@ func PipAuditStep(root Root) ToolStep {
 			"--ignore-vuln", "CVE-2026-3219",
 			"--ignore-vuln", "CVE-2026-6357",
 		},
-		Env: pathEnv(ResolvePython()),
-	}
+	}, root, false)
 }
 
 // NpmAuditStep returns a step that audits npm dependencies for known CVEs.
