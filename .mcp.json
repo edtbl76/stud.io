@@ -5,13 +5,12 @@
       "command": "docker",
       "args": [
         "run", "--init", "-i", "--rm",
-        "--network", "dev_default",
         "-e", "SONARQUBE_TOKEN",
         "-e", "SONARQUBE_URL",
         "mcp/sonarqube"
       ],
       "env": {
-        "SONARQUBE_URL": "http://sonarqube:9000"
+        "SONARQUBE_URL": "http://192.168.1.243:30969"
       }
     },
     "codescene": {

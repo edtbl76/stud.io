@@ -42,12 +42,17 @@ async def test_model_pk_lookup_uses_index(conn):
 
 
 @pytest.mark.asyncio
-async def test_audit_log_pk_lookup_uses_index(conn):
-    plan = await conn.fetchval(
-        "EXPLAIN (FORMAT JSON) SELECT * FROM audit_log WHERE audit_id = $1",
-        '00000000-0000-0000-0000-000000000000',
+async def test_audit_log_pk_index_exists(conn):
+    """audit_log_pkey must exist. Unlike brands/models, audit_log is not
+    seeded, so it is empty in the test DB and the planner correctly picks a
+    Seq Scan (cost 0.00 is unbeatable on an empty table). Asserting the index
+    exists — as the gear_types/gear/scanner tests do — catches accidental
+    index removal without depending on row count or planner statistics."""
+    exists = await conn.fetchval(
+        "SELECT EXISTS(SELECT 1 FROM pg_indexes "
+        "WHERE tablename = 'audit_log' AND indexname = 'audit_log_pkey')"
     )
-    assert _uses_index(_plan_text(plan)), "audit_log PK lookup should use Index Scan"
+    assert exists, "audit_log_pkey index was dropped or renamed"
 
 
 # ---------------------------------------------------------------------------

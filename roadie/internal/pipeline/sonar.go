@@ -13,8 +13,8 @@ import (
 	"time"
 )
 
-const sonarURL = "http://localhost:1969"
-const sonarDockerURL = "http://sonarqube:9000"
+const sonarURL = "http://192.168.1.243:30969"       // B127: central weyland Sonar (LAN NodePort), was localhost:1969
+const sonarDockerURL = "http://192.168.1.243:30969" // B127: was http://sonarqube:9000 on dev_default (local Sonar retired)
 const sonarProjectKey = "controlroom"
 
 // PytestCoverageStep returns a step that runs pytest with XML coverage output.
@@ -46,7 +46,6 @@ func sonarDockerStep(root Root, token string) ToolStep {
 		Bin:  "docker",
 		Args: []string{
 			"run", "--rm",
-			"--network", "dev_default",
 			"--memory=16g",
 			"-e", "SONAR_HOST_URL=" + sonarDockerURL,
 			"-e", "SONAR_TOKEN=" + token, // skipcq: SCT-A000

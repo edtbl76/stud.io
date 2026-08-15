@@ -30,81 +30,12 @@ services:
       - studio_default
     restart: unless-stopped
 
-  sonarqube_db:
-    image: postgres:17
-    container_name: sonarqube_db
-    environment:
-      POSTGRES_DB: sonarqube
-      POSTGRES_USER: sonarqube
-      POSTGRES_PASSWORD: sonarqube  # skipcq: SCT-A000
-    volumes:
-      - sonarqube_db_data:/var/lib/postgresql/data
-    restart: unless-stopped
+  # sonarqube + sonarqube_db removed (B127) — STUD.io scans against the central weyland Sonar at
+  # 192.168.1.243:30969 (project `controlroom`, token in ~/.config/studio/sonar-token). See roadie sonar.go + .woodpecker.
 
-  # Agents run externally as systemd services (woodpecker-agent-1..4) using
-  # WOODPECKER_BACKEND=local. They connect to this server on port 9000.
-  woodpecker-server:
-    image: woodpeckerci/woodpecker-server:v3.14.1
-    container_name: woodpecker_server
-    ports:
-      - "1984:8000"
-      - "9000:9000"
-    environment:
-      WOODPECKER_GITHUB: "true"
-      WOODPECKER_GITHUB_CLIENT: Iv23liaJPsjezjNBlmtf
-      WOODPECKER_GITHUB_APP_ID: "3427818"
-      WOODPECKER_GITHUB_APP_PRIVATE_KEY_FILE: /etc/woodpecker/private-key.pem
-      WOODPECKER_HOST: ${WOODPECKER_HOST}
-      WOODPECKER_ADMIN: ${WOODPECKER_ADMIN:-edtbl76}
-      WOODPECKER_OPEN: "false"
-      WOODPECKER_DATABASE_DRIVER: sqlite3
-      WOODPECKER_DATABASE_DATASOURCE: /var/lib/woodpecker/woodpecker.db
-      WOODPECKER_GITHUB_SECRET_FILE: /run/secrets/woodpecker_client_secret
-      WOODPECKER_AGENT_SECRET_FILE: /run/secrets/woodpecker_agent_secret
-      WOODPECKER_FORGE_WEBHOOK_SECRET_FILE: /run/secrets/woodpecker_webhook_secret
-    secrets:
-      - woodpecker_client_secret
-      - woodpecker_agent_secret
-      - woodpecker_webhook_secret
-    volumes:
-      - woodpecker_data:/var/lib/woodpecker
-      # Stable symlink: ln -sf stud-io-woodpecker.<date>.private-key.pem woodpecker-private-key.pem
-      - ./woodpecker-private-key.pem:/etc/woodpecker/private-key.pem:ro
-    restart: unless-stopped
-
-  sonarqube:
-    image: sonarqube:community
-    container_name: sonarqube
-    depends_on:
-      - sonarqube_db
-    ports:
-      - "1969:9000"
-    environment:
-      SONAR_JDBC_URL: jdbc:postgresql://sonarqube_db:5432/sonarqube
-      SONAR_JDBC_USERNAME: sonarqube
-      SONAR_JDBC_PASSWORD: sonarqube  # skipcq: SCT-A000
-      SONAR_CE_JAVAOPTS: "-Xmx8g -Xms2g"
-      SONAR_WEB_JAVAOPTS: "-Xmx2g -Xms512m"
-    volumes:
-      - sonarqube_data:/opt/sonarqube/data
-      - sonarqube_extensions:/opt/sonarqube/extensions
-      - sonarqube_logs:/opt/sonarqube/logs
-    restart: unless-stopped
-
-volumes:
-  sonarqube_db_data:
-  sonarqube_data:
-  sonarqube_extensions:
-  sonarqube_logs:
-  woodpecker_data:
-
-secrets:
-  woodpecker_client_secret:
-    file: ./woodpecker_client_secret
-  woodpecker_agent_secret:
-    file: ./woodpecker_agent_secret
-  woodpecker_webhook_secret:
-    file: ./woodpecker_webhook_secret
+  # woodpecker-server REMOVED (B57/B127) — STUD.io CI runs on WEYLAND's Woodpecker (woodpecker.weyland.lab; agent
+  # gRPC NodePort 192.168.1.243:30900), NOT a local server. The rogueone woodpecker-agent-1..4 systemd units connect
+  # to weyland's server. No local CI server, no woodpecker_data/secrets here.
 
 networks:
   studio_default:

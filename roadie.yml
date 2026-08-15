@@ -25,22 +25,20 @@ stack:
       url: http://localhost:4001/health
     - name: MinIO
       type: http
-      url: http://localhost:1983/minio/health/live
+      url: http://192.168.1.243:30990/minio/health/live   # B127: central weyland MinIO (local studio_minio retired)
   dev_health_checks:
     - name: SonarQube
       type: http
-      url: http://localhost:1969
-    - name: Woodpecker
-      type: http
-      url: http://localhost:1984/healthz
+      url: http://192.168.1.243:30969/api/system/status   # B127: central weyland Sonar (local sonarqube retired)
+    # Woodpecker health-check removed (B57) — STUD.io CI runs on WEYLAND's Woodpecker, not a local dev-stack container.
   urls:
     app: https://localhost:2112
     api: https://localhost:5150
     docs: https://localhost:5150/docs
     gearlist: http://localhost:4001
-    minio: http://localhost:1982  # console UI; http is intentional for local dev — upgrade to https when MinIO is behind a TLS reverse-proxy
-    sonarqube: http://localhost:1969
-    woodpecker: http://localhost:1984
+    minio: https://minio.weyland.lab  # B127: weyland MinIO console (Keycloak forward-auth)
+    sonarqube: https://sonarqube.weyland.lab  # B127: weyland Sonar (Keycloak forward-auth)
+    woodpecker: https://woodpecker.weyland.lab  # B57: STUD.io CI runs on weyland's Woodpecker
 
 build:
   schema_files:

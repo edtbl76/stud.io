@@ -49,15 +49,14 @@ services:
       DB_USER: studio
       DB_PASSWORD: studio
       APP_PORT: 4001
-      MINIO_ENDPOINT: http://studiominio:9000
-      MINIO_ACCESS_KEY: studio-svc  # skipcq: SCT-A000
-      MINIO_SECRET_KEY: studiosvckey1  # skipcq: SCT-A000
+      MINIO_ENDPOINT: http://192.168.1.243:30990   # B127: central weyland MinIO (local studio_minio retired)
+      MINIO_ACCESS_KEY: studio-svc
+      MINIO_SECRET_KEY: ${STUDIO_MINIO_SECRET_KEY:?set STUDIO_MINIO_SECRET_KEY in .env}
       MINIO_BUCKET: studio-photos
     ports:
       - "127.0.0.1:4001:4001"
     depends_on:
       - studio_db
-      - studio_minio
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:4001/health"]
       interval: 10s
@@ -65,69 +64,29 @@ services:
       retries: 5
     restart: unless-stopped
 
-  studio_minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    container_name: studio_minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: studio
-      MINIO_ROOT_PASSWORD: studiominio
-    ports:
-      - "1983:9000"
-      - "1982:9001"
-    volumes:
-      - studio_minio_data:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      default:
-        aliases:
-          - studiominio
-    restart: unless-stopped
-
-  studio_minio_init:
-    image: minio/mc:RELEASE.2025-08-13T08-35-41Z
-    container_name: studio_minio_init
-    depends_on:
-      studio_minio:
-        condition: service_healthy
-    environment:
-      MINIO_ROOT_USER: studio
-      MINIO_ROOT_PASSWORD: studiominio
-      MINIO_SVC_ACCESS_KEY: studio-svc  # skipcq: SCT-A000
-      MINIO_SVC_SECRET_KEY: studiosvckey1  # skipcq: SCT-A000
-    entrypoint: >
-      /bin/sh -c "
-        mc alias set local http://studiominio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
-        mc mb --ignore-existing local/studio-photos &&
-        mc mb --ignore-existing local/studio-downloads &&
-        mc anonymous set download local/studio-downloads &&
-        mc admin user add local $$MINIO_SVC_ACCESS_KEY $$MINIO_SVC_SECRET_KEY &&
-        mc admin policy attach local readwrite --user $$MINIO_SVC_ACCESS_KEY &&
-        echo 'MinIO: buckets and service account ready.'
-      "
-    restart: on-failure
+  # studio_minio + studio_minio_init removed (B127) — STUD.io uses the central weyland MinIO at
+  # 192.168.1.243:30990 (scoped studio-svc user, buckets provisioned once on weyland). See docker-compose MINIO_* above.
 
   frontend:
     build:
       context: ./app/studio_frontend
     container_name: studio_frontend
+    # B127: native bind-mounts enforce real UIDs (Docker Desktop's VM file-share was permissive). The image runs
+    # as `appuser`, but the bind-mounted ./app is owned by host uid 1000 — run as 1000:1000 so Turbopack can
+    # write its lockfile / .next cache into the mount.
+    user: "1000:1000"
     environment:
       - BACKEND_URL=http://controlroom_backend:5150
       - NEXT_PUBLIC_GOOGLE_CLIENT_ID=684766376270-3ovib79ic0m2upj7b5jp2ueh4ofunm0v.apps.googleusercontent.com
-      - MINIO_ENDPOINT=http://studiominio:9000
-      - MINIO_ACCESS_KEY=studio-svc  # skipcq: SCT-A000
-      - MINIO_SECRET_KEY=studiosvckey1  # skipcq: SCT-A000
+      - MINIO_ENDPOINT=http://192.168.1.243:30990   # B127: central weyland MinIO
+      - MINIO_ACCESS_KEY=studio-svc
+      - MINIO_SECRET_KEY=${STUDIO_MINIO_SECRET_KEY:?set STUDIO_MINIO_SECRET_KEY in .env}
       - MINIO_BUCKET=studio-photos
     volumes:
       - ./app/studio_frontend:/app
       - /app/node_modules
     depends_on:
       - controlroom_backend
-      - studio_minio
     restart: unless-stopped
 
   nginx:
@@ -146,4 +105,3 @@ services:
 
 volumes:
   studio_db_data:
-  studio_minio_data:

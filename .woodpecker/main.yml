@@ -50,7 +50,7 @@ steps:
     depends_on: [npm-install, unit-pbt]
     commands:
       - '[ -n "$SONAR_TOKEN" ] || { echo "SONAR_TOKEN is empty — secret may be blocked (forked PR?) or not configured in Woodpecker."; exit 1; }'
-      - curl -sf http://localhost:1969 || { echo "SonarQube is not running. Run ''roadie start --dev''."; exit 1; }
+      - curl -sf http://192.168.1.243:30969/api/system/status || { echo "weyland SonarQube unreachable at 192.168.1.243:30969 (B127)."; exit 1; }
       - roadie test scan --gate
     environment:
       SONAR_TOKEN:
