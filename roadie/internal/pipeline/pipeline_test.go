@@ -465,11 +465,20 @@ func TestJestStep_Fields(t *testing.T) {
 	if s.Name != "jest" {
 		t.Errorf("Name: got %q, want jest", s.Name)
 	}
-	if s.Bin != "node_modules/.bin/jest" {
-		t.Errorf("Bin: got %q, want node_modules/.bin/jest (must be Dir-relative so chdir+exec resolves correctly)", s.Bin)
+	// Containerized into the frontend test image: docker run with workdir = frontend
+	// dir, jest invoked via its Dir-relative node_modules/.bin path so it resolves.
+	if s.Bin != "docker" {
+		t.Errorf("Bin: got %q, want docker (containerized)", s.Bin)
 	}
-	if s.Dir != "/repo/app/studio_frontend" {
-		t.Errorf("Dir: got %q, want /repo/app/studio_frontend", s.Dir)
+	args := strings.Join(s.Args, " ")
+	if !strings.Contains(args, "-w /repo/app/studio_frontend") {
+		t.Errorf("Args missing workdir -w /repo/app/studio_frontend: %v", s.Args)
+	}
+	if !strings.Contains(args, "node_modules/.bin/jest") {
+		t.Errorf("Args missing Dir-relative jest bin: %v", s.Args)
+	}
+	if !strings.Contains(args, frontendTestImage) {
+		t.Errorf("Args missing frontend test image %q: %v", frontendTestImage, s.Args)
 	}
 }
 
@@ -478,13 +487,18 @@ func TestNpmInstallStep_Fields(t *testing.T) {
 	if s.Name != "npm-install" {
 		t.Errorf("Name: got %q, want npm-install", s.Name)
 	}
-	if s.Bin != "bash" {
-		t.Errorf("Bin: got %q, want bash", s.Bin)
+	// Containerized: docker run … bash -c <script>, with workdir = frontend dir.
+	if s.Bin != "docker" {
+		t.Errorf("Bin: got %q, want docker (containerized)", s.Bin)
 	}
-	if s.Dir != "/repo/app/studio_frontend" {
-		t.Errorf("Dir: got %q, want /repo/app/studio_frontend", s.Dir)
+	args := strings.Join(s.Args, " ")
+	if !strings.Contains(args, "-w /repo/app/studio_frontend") {
+		t.Errorf("Args missing workdir -w /repo/app/studio_frontend: %v", s.Args)
 	}
-	if len(s.Args) < 2 || s.Args[0] != "-c" {
-		t.Errorf("Args: got %v, want [-c <script>]", s.Args)
+	if !strings.Contains(args, "bash -c ") {
+		t.Errorf("Args missing bash -c script: %v", s.Args)
+	}
+	if !strings.Contains(args, frontendTestImage) {
+		t.Errorf("Args missing frontend test image %q: %v", frontendTestImage, s.Args)
 	}
 }

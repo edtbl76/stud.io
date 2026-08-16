@@ -30,6 +30,23 @@ services:
       - studio_default
     restart: unless-stopped
 
+  # Shared Go toolchain image for the containerized roadie Go unit lane (gearlist_backend +
+  # plugin_scanner). Build-only — roadie invokes it via `docker run`, it is never `up`'d.
+  # Explicit image name so the tag is stable regardless of compose project name.
+  go_test:
+    build:
+      context: ./docker
+      dockerfile: go-test.Dockerfile
+    image: dev-go_test:latest
+
+  # Node toolchain image for the containerized roadie JS/TS unit lane (studio_frontend).
+  # Build-only — roadie invokes it via `docker run`, it is never `up`'d.
+  frontend_test:
+    build:
+      context: ./docker
+      dockerfile: frontend-test.Dockerfile
+    image: dev-studio_frontend_test:latest
+
   # sonarqube + sonarqube_db removed (B127) — STUD.io scans against the central weyland Sonar at
   # 192.168.1.243:30969 (project `controlroom`, token in ~/.config/studio/sonar-token). See roadie sonar.go + .woodpecker.
 

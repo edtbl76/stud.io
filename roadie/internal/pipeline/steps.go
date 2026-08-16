@@ -21,52 +21,73 @@ type Root string
 // environment and avoids host glibc/pyenv problems.
 const backendTestImage = "dev-controlroom_backend_test:latest"
 
-// containerize reroutes a host Python ToolStep to run inside backendTestImage
-// instead of the host interpreter. The whole repo is bind-mounted at its own path
-// so the step's absolute-path args resolve unchanged; the working dir is the
-// backend package so pytest's `from main import ...` imports resolve. When needsDB
-// is set the run shares studio_db's network namespace so conftest's
-// localhost:5432 reaches the database. The image supplies the interpreter and
-// wheels; the source comes from the mount, so tests run against the current tree.
-func containerize(step ToolStep, root Root, needsDB bool) ToolStep {
+// containerizeIn reroutes a host ToolStep to run inside the given image instead of
+// on the host. The whole repo is bind-mounted at its own absolute path so the
+// step's absolute-path args resolve unchanged; the working dir is the step's Dir
+// (or the repo root when Dir is empty), so root-relative args resolve exactly as
+// they do on the host. extraDockerArgs are inserted before the image (e.g.
+// --network for the DB, or cache -v mounts). The step's Bin becomes the
+// in-container command (it must be on the image PATH) and its Env is dropped — the
+// image supplies the toolchain; the source comes from the mount, so the step runs
+// against the current tree.
+func containerizeIn(step ToolStep, root Root, image string, extraDockerArgs ...string) ToolStep {
 	abs, err := filepath.Abs(string(root))
 	if err != nil {
 		abs = string(root)
 	}
-	// The repo is mounted at its own absolute path and the working dir is the
-	// repo root, so the step's root-relative args resolve exactly as they do on
-	// the host (roadie runs from the repo root).
 	workdir := abs
 	if step.Dir != "" {
 		if d, e := filepath.Abs(step.Dir); e == nil {
 			workdir = d
 		}
 	}
-	dockerArgs := []string{"run", "--rm"}
-	if needsDB {
-		dockerArgs = append(dockerArgs, "--network", "container:studio_db")
-	}
-	dockerArgs = append(dockerArgs,
-		"-v", abs+":"+abs,
-		"-w", workdir,
-		backendTestImage,
-		step.Bin,
-	)
+	dockerArgs := append([]string{"run", "--rm"}, extraDockerArgs...)
+	dockerArgs = append(dockerArgs, "-v", abs+":"+abs, "-w", workdir, image, step.Bin)
 	dockerArgs = append(dockerArgs, step.Args...)
 	return ToolStep{Name: step.Name, Bin: "docker", Args: dockerArgs}
 }
 
+// containerize reroutes a host Python ToolStep into backendTestImage. When needsDB
+// is set the run shares studio_db's network namespace so conftest's localhost:5432
+// reaches the database.
+func containerize(step ToolStep, root Root, needsDB bool) ToolStep {
+	var extra []string
+	if needsDB {
+		extra = []string{"--network", "container:studio_db"}
+	}
+	return containerizeIn(step, root, backendTestImage, extra...)
+}
+
+// frontendTestImage is the Node toolchain image for the JS/TS unit lane (the
+// frontend_test service in docker-compose.dev.yml). node:24 (LTS), not the deploy
+// node:20 — jest never runs in deploy, and jest.config.ts needs Node's native TS
+// type-stripping (23.6+) to parse, which node:20 lacks. node_modules is installed at
+// runtime into the bind-mounted repo by the containerized npm-install step, so
+// tsc/jest find it.
+const frontendTestImage = "dev-studio_frontend_test:latest"
+
+// npmCacheMounts persist npm's download cache across runs (named volume) so installs
+// aren't re-fetching every time.
+var npmCacheMounts = []string{"-v", "roadie-npm-cache:/root/.npm"}
+
+// containerizeNode reroutes a host JS/TS ToolStep into frontendTestImage. The Bin is
+// NOT rebased (unlike the Go lane): tsc/jest are invoked via their node_modules/.bin
+// path, which resolves in the bind-mounted repo, while npm and bash are on the image
+// PATH.
+func containerizeNode(step ToolStep, root Root) ToolStep {
+	return containerizeIn(step, root, frontendTestImage, npmCacheMounts...)
+}
+
 // npmStep builds a ToolStep that runs npm with the given args in the frontend
-// directory. Used by NpmInstallStep and NpmAuditStep to avoid duplication.
+// directory, containerized into frontendTestImage.
 func npmStep(name string, args []string, root Root) ToolStep {
 	r := string(root)
-	return ToolStep{
+	return containerizeNode(ToolStep{
 		Name: name,
 		Bin:  "npm",
 		Args: args,
 		Dir:  filepath.Join(r, frontendDir),
-		Env:  pathEnv(ResolveNode()),
-	}
+	}, root)
 }
 
 // NpmInstallStep returns a step that installs npm dependencies in the frontend
@@ -84,27 +105,25 @@ func NpmInstallStep(root Root) ToolStep {
 		`echo "package-lock.json unchanged — skipping npm install"; exit 0; fi; ` +
 		`npm install --include=dev; ` +
 		`mkdir -p '` + cacheDir + `' && echo "$hash" > '` + cacheFile + `'`
-	return ToolStep{
+	return containerizeNode(ToolStep{
 		Name: "npm-install",
 		Bin:  "bash",
 		Args: []string{"-c", script},
 		Dir:  filepath.Join(r, frontendDir),
-		Env:  pathEnv(ResolveNode()),
-	}
+	}, root)
 }
 
 // TscStep returns a step that runs tsc --noEmit against the frontend project.
 func TscStep(root Root) ToolStep {
 	r := string(root)
-	return ToolStep{
+	return containerizeNode(ToolStep{
 		Name: "tsc",
 		Bin:  filepath.Join(r, frontendDir, "node_modules", ".bin", "tsc"),
 		Args: []string{
 			"--project", filepath.Join(r, frontendDir, "tsconfig.json"),
 			"--noEmit",
 		},
-		Env: pathEnv(ResolveNode()),
-	}
+	}, root)
 }
 
 // JestStep returns a step that runs Jest. Pass coverage=true to emit an lcov
@@ -117,13 +136,12 @@ func JestStep(root Root, coverage bool, extraArgs ...string) ToolStep {
 		args = append(args, "--coverage", "--coverageReporters=lcov")
 	}
 	args = append(args, extraArgs...)
-	return ToolStep{
+	return containerizeNode(ToolStep{
 		Name: "jest",
 		Bin:  filepath.Join("node_modules", ".bin", "jest"),
 		Args: args,
 		Dir:  filepath.Join(r, frontendDir),
-		Env:  pathEnv(ResolveNode()),
-	}
+	}, root)
 }
 
 // PytestStep returns a step that runs pytest. Extra args are appended after the
@@ -215,6 +233,35 @@ func NpmAuditStep(root Root) ToolStep {
 	return npmStep("npm-audit", []string{"audit", "--audit-level=critical"}, root)
 }
 
+// goTestImage is the shared Go toolchain image (the go_test service in
+// docker-compose.dev.yml): the golang base (go + gcc for `go test -race`) plus
+// govulncheck, gosec, and staticcheck. Both Go modules (gearlist_backend and
+// plugin_scanner) run their unit lane here instead of the host toolchain, keeping
+// tests in a controlled environment and off host-toolchain drift.
+const goTestImage = "dev-go_test:latest"
+
+// goCacheMounts persist the Go build and module caches across runs (named volumes)
+// so the containerized Go lane does not re-download and re-compile every run.
+var goCacheMounts = []string{
+	"-v", "roadie-go-build:/root/.cache/go-build",
+	"-v", "roadie-go-mod:/go/pkg/mod",
+}
+
+// containerizeGo reroutes a host Go ToolStep into goTestImage. The Bin is reduced
+// to its base name (go, govulncheck, gosec, staticcheck) — all on PATH in the image
+// — so the host GOPATH/bin tool paths are irrelevant inside the container. When
+// needsDB is set the run shares studio_db's network namespace so DB-backed tests
+// that dial localhost:5432 reach the database (as the pytest lane does); static
+// analysis steps pass false.
+func containerizeGo(step ToolStep, root Root, needsDB bool) ToolStep {
+	step.Bin = filepath.Base(step.Bin)
+	extra := goCacheMounts
+	if needsDB {
+		extra = append([]string{"--network", "container:studio_db"}, goCacheMounts...)
+	}
+	return containerizeIn(step, root, goTestImage, extra...)
+}
+
 // goModuleStep builds a ToolStep running bin with args in the given absolute directory.
 func goModuleStep(name, bin string, args []string, dir string) ToolStep {
 	return ToolStep{
@@ -234,32 +281,31 @@ func goStep(name, bin string, args []string, root Root) ToolStep {
 // GoTestStep returns a step that runs all Go tests with the race detector and
 // emits a coverage profile to coverage.out in the gearlist_backend directory.
 func GoTestStep(root Root) ToolStep {
-	return ToolStep{
+	return containerizeGo(ToolStep{
 		Name: "go-test",
 		Bin:  "go",
 		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
 		Dir:  filepath.Join(string(root), gearlistDir),
-		Env:  pathEnv(ResolveGoExe()),
-	}
+	}, root, true)
 }
 
 // GovulncheckStep returns a step that scans gearlist_backend for known Go
 // vulnerabilities. Any non-zero exit code from govulncheck is treated as a
 // failure, including exit code 3 (module-level findings).
 func GovulncheckStep(root Root) ToolStep {
-	return goStep("govulncheck", goBinPath("govulncheck"), []string{"./..."}, root)
+	return containerizeGo(goStep("govulncheck", goBinPath("govulncheck"), []string{"./..."}, root), root, false)
 }
 
 // GosecStep returns a step that runs gosec static security analysis against
 // gearlist_backend, excluding test files.
 func GosecStep(root Root) ToolStep {
-	return goStep("gosec", goBinPath("gosec"), []string{"-quiet", "./..."}, root)
+	return containerizeGo(goStep("gosec", goBinPath("gosec"), []string{"-quiet", "./..."}, root), root, false)
 }
 
 // StaticcheckStep returns a step that runs staticcheck analysis against
 // gearlist_backend.
 func StaticcheckStep(root Root) ToolStep {
-	return goStep("staticcheck", goBinPath("staticcheck"), []string{"./..."}, root)
+	return containerizeGo(goStep("staticcheck", goBinPath("staticcheck"), []string{"./..."}, root), root, false)
 }
 
 // trivyImage pins the Trivy scanner to an immutable digest (trivy 0.72.0) rather
@@ -352,33 +398,32 @@ func DetectSecretsStep(root Root) ToolStep {
 
 // GoTestPluginScannerStep runs all plugin_scanner tests with the race detector.
 func GoTestPluginScannerStep(root Root) ToolStep {
-	return ToolStep{
+	return containerizeGo(ToolStep{
 		Name: "go-test-scanner",
 		Bin:  "go",
 		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
 		Dir:  filepath.Join(string(root), pluginScannerDir),
-		Env:  pathEnv(ResolveGoExe()),
-	}
+	}, root, false)
 }
 
 // GoVetPluginScannerStep runs go vet against plugin_scanner.
 func GoVetPluginScannerStep(root Root) ToolStep {
-	return goModuleStep("go-vet-scanner", "go", []string{"vet", "./..."}, filepath.Join(string(root), pluginScannerDir))
+	return containerizeGo(goModuleStep("go-vet-scanner", "go", []string{"vet", "./..."}, filepath.Join(string(root), pluginScannerDir)), root, false)
 }
 
 // GovulncheckPluginScannerStep scans plugin_scanner for known Go vulnerabilities.
 func GovulncheckPluginScannerStep(root Root) ToolStep {
-	return goModuleStep("govulncheck-scanner", goBinPath("govulncheck"), []string{"./..."}, filepath.Join(string(root), pluginScannerDir))
+	return containerizeGo(goModuleStep("govulncheck-scanner", goBinPath("govulncheck"), []string{"./..."}, filepath.Join(string(root), pluginScannerDir)), root, false)
 }
 
 // GosecPluginScannerStep runs gosec static analysis against plugin_scanner.
 func GosecPluginScannerStep(root Root) ToolStep {
-	return goModuleStep("gosec-scanner", goBinPath("gosec"), []string{"-quiet", "./..."}, filepath.Join(string(root), pluginScannerDir))
+	return containerizeGo(goModuleStep("gosec-scanner", goBinPath("gosec"), []string{"-quiet", "./..."}, filepath.Join(string(root), pluginScannerDir)), root, false)
 }
 
 // StaticcheckPluginScannerStep runs staticcheck against plugin_scanner.
 func StaticcheckPluginScannerStep(root Root) ToolStep {
-	return goModuleStep("staticcheck-scanner", goBinPath("staticcheck"), []string{"./..."}, filepath.Join(string(root), pluginScannerDir))
+	return containerizeGo(goModuleStep("staticcheck-scanner", goBinPath("staticcheck"), []string{"./..."}, filepath.Join(string(root), pluginScannerDir)), root, false)
 }
 
 // SecurityHeadersStep runs pytest against the HTTP security header assertions.
