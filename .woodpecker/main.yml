@@ -18,6 +18,10 @@ variables:
   - &ci_db_env
     ROADIE_TEST_DB_SOURCE: masterdb_test_ci
     ROADIE_BUILD_DATABASES: masterdb_test_ci
+    # roadie applies schema via `docker compose exec studio_db`, which resolves the target by compose
+    # PROJECT name. On a local Woodpecker agent the workflow runs from a clone dir whose name doesn't
+    # match, so the project defaults wrong and studio_db isn't found. Pin it to studio_db's real project.
+    COMPOSE_PROJECT_NAME: studio
 
 steps:
   # ── Step 1: Provision CI test database ──────────────────────────────────────
