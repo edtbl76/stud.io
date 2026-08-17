@@ -79,10 +79,12 @@ and perf suites. No skipping allowed.`,
 	}
 }
 
-// runBuild is the top-level coordinator: rebuild stack, apply schema, run tests.
-// With --schema-only it skips container rebuilds and test execution, applying
-// only the schema files to the configured test databases. Used in CI to provision
-// an isolated database namespace without disturbing the running stack.
+// runBuild is the top-level coordinator: rebuild stack, apply schema + seeds,
+// run tests. With --schema-only it skips container rebuilds and test execution,
+// applying the schema AND seed files to the configured test databases. Used in
+// CI to provision an isolated database namespace — schema plus reference-data
+// seeds, so E2E reference tables are populated — without disturbing the running
+// stack.
 func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.Writer) error {
 	if err := buildStack(ctx, cfg, flags, out); err != nil {
 		return err
@@ -90,11 +92,11 @@ func runBuild(ctx context.Context, cfg *config.Config, flags buildFlags, out io.
 	if err := applySchema(ctx, cfg, out); err != nil {
 		return err
 	}
-	if flags.schemaOnly {
-		return nil
-	}
 	if err := applySeeds(ctx, cfg, out); err != nil {
 		return err
+	}
+	if flags.schemaOnly {
+		return nil
 	}
 	return runTests(ctx, cfg, flags, out)
 }
