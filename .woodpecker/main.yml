@@ -1,3 +1,9 @@
+# B57 — pin STUD.io CI to the LOCAL backend (host shell + the real Go/Node/pyenv/Playwright toolchain),
+# NOT the weyland kubernetes agents on the shared Woodpecker server. Every workflow must carry this label
+# or it can schedule onto the wrong backend and fail.
+labels:
+  backend: local
+
 when:
   - event: pull_request
     evaluate: 'not (CI_COMMIT_AUTHOR contains "[bot]")'
