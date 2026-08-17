@@ -32,7 +32,7 @@ steps:
     commands:
       - rm -rf app/studio_frontend/.next-e2e-*
       - docker exec studio_db psql -U studio -lqt | cut -d'|' -f1 | grep -qw masterdb_test_ci || docker exec studio_db createdb -U studio masterdb_test_ci
-      - roadie build --schema-only
+      - roadie build --skip-tests   # schema + seeds (NOT --schema-only, which stops before seeds → empty reference tables → e2e fails); unit tests run in the unit-pbt step
     environment:
       <<: *ci_db_env
 
