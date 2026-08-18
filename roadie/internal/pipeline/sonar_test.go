@@ -216,13 +216,23 @@ func TestPytestCoverageStep_Fields(t *testing.T) {
 	if s.Name != "pytest-coverage" {
 		t.Errorf("Name: got %q, want pytest-coverage", s.Name)
 	}
-	if s.Bin != "python" {
-		t.Errorf("Bin: got %q, want python", s.Bin)
-	}
-	if s.Dir != "/repo" {
-		t.Errorf("Dir: got %q, want /repo (must run from repo root for coverage.xml paths)", s.Dir)
+	// Containerized into the backend test image (like PytestStep) so the host
+	// pyenv segfault under coverage + rapidfuzz AVX2 is avoided. docker run with
+	// workdir = repo root (so the relative --cov source path resolves for the
+	// scanner) and the DB netns shared for conftest.
+	if s.Bin != "docker" {
+		t.Errorf("Bin: got %q, want docker (containerized)", s.Bin)
 	}
 	args := strings.Join(s.Args, " ")
+	if !strings.Contains(args, "-w /repo") {
+		t.Errorf("Args missing workdir -w /repo: %v", s.Args)
+	}
+	if !strings.Contains(args, "--network container:studio_db") {
+		t.Errorf("Args missing DB netns share: %v", s.Args)
+	}
+	if !strings.Contains(args, backendTestImage) {
+		t.Errorf("Args missing backend test image %q: %v", backendTestImage, s.Args)
+	}
 	if !strings.Contains(args, "--cov=app/controlroom_backend") {
 		t.Errorf("expected --cov= arg, got: %s", args)
 	}

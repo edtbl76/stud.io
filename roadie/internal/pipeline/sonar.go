@@ -17,12 +17,18 @@ const sonarURL = "http://192.168.1.243:30969"       // B127: central weyland Son
 const sonarDockerURL = "http://192.168.1.243:30969" // B127: was http://sonarqube:9000 on dev_default (local Sonar retired)
 const sonarProjectKey = "controlroom"
 
-// PytestCoverageStep returns a step that runs pytest with XML coverage output.
-// Must be run from the repo root so the relative source path in coverage.xml
-// resolves correctly under the SonarQube scanner's /usr/src mount.
+// PytestCoverageStep returns a step that runs pytest with XML coverage output,
+// containerized into backendTestImage (like PytestStep) rather than on the host
+// interpreter. The host pyenv build segfaults under coverage instrumentation
+// combined with rapidfuzz's AVX2 native extension; the deploy-image interpreter
+// does not. The whole repo is bind-mounted at its own absolute path, so
+// coverage.xml written to backendDir lands on the host for the SonarQube
+// scanner's /usr/src mount. needsDB shares studio_db's netns for conftest.
+// Dir is the repo root so the relative --cov source path resolves as it does
+// for the scanner.
 func PytestCoverageStep(root Root) ToolStep {
 	r := string(root)
-	return ToolStep{
+	return containerize(ToolStep{
 		Name: "pytest-coverage",
 		Bin:  "python",
 		Args: []string{
@@ -33,9 +39,8 @@ func PytestCoverageStep(root Root) ToolStep {
 			"--cov-config=" + filepath.Join(r, backendDir, ".coveragerc"),
 			"--cov-report=xml:" + filepath.Join(r, backendDir, "coverage.xml"),
 		},
-		Env: pathEnv(ResolvePython()),
 		Dir: r,
-	}
+	}, root, true)
 }
 
 // sonarDockerStep returns a step that runs the SonarQube scanner CLI in Docker.
