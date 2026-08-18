@@ -63,6 +63,22 @@ func sonarDockerStep(root Root, token string) ToolStep {
 	}
 }
 
+// reownFrontendCoverageStep returns a containerized step that chowns the frontend
+// coverage directory back to the invoking user. The containerized jest step writes
+// coverage/lcov.info as root (container uid 0) into the bind-mounted repo, so the
+// host-side fixLcovPaths (which rewrites the file as the agent user) hits EPERM.
+// Running chown as root inside the image — the same identity that wrote the file —
+// is permitted and hands ownership back to the host user.
+func reownFrontendCoverageStep(root Root) ToolStep {
+	r := string(root)
+	owner := fmt.Sprintf("%d:%d", os.Getuid(), os.Getgid())
+	return containerizeNode(ToolStep{
+		Name: "reown-coverage",
+		Bin:  "chown",
+		Args: []string{"-R", owner, filepath.Join(r, frontendDir, "coverage")},
+	}, root)
+}
+
 // fixLcovPaths prefixes bare `SF:` lines in the frontend lcov.info with the
 // frontend subdirectory path. SonarQube resolves coverage paths from the
 // project root (/usr/src), not from the frontend directory.
@@ -111,6 +127,12 @@ func RunSonarScan(ctx context.Context, root Root, gate bool, out io.Writer) erro
 	fmt.Fprintln(out, "[sonar] Generating frontend coverage (jest)...")
 	if err := New(JestStep(root, true)).RunSequential(ctx, out); err != nil {
 		return err
+	}
+
+	// jest ran containerized as root; hand the coverage dir back to the agent user
+	// so the host-side fixLcovPaths below can rewrite lcov.info.
+	if err := New(reownFrontendCoverageStep(root)).RunSequential(ctx, out); err != nil {
+		return fmt.Errorf("sonar: reowning frontend coverage: %w", err)
 	}
 
 	fmt.Fprintln(out, "[sonar] Generating backend coverage (pytest)...")
