@@ -111,5 +111,8 @@ steps:
       PORT_INGEST_URL:
         from_secret: port_ingest_url
     commands:
-      - printf '{"number":%s,"status":"%s","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_PIPELINE_STATUS" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
+      # `|` literal block is REQUIRED — an inline `Content-Type: application/json` in a plain YAML scalar makes
+      # Woodpecker's parser read the command as a map ("cannot unmarshal map into string"). See runbooks/woodpecker.md.
+      - |
+        printf '{"number":%s,"status":"%s","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_PIPELINE_STATUS" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
 
