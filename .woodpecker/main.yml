@@ -98,3 +98,18 @@ steps:
         branch: main
       - event: manual
 
+  # ── Step 7: build status → Port ci_pipeline (B63 — CI reliability signal) ────
+  # Reports the whole main-pipeline outcome to the weyland Port catalog (success AND failure). Runs on the LOCAL
+  # backend (rogueone host shell), so it uses the host's curl and pipes the JSON via stdin (no host /tmp collision).
+  # Only `main` reports for STUD.io — plugin-scanner/roadie share the same pipeline number and would collide on the
+  # `repo-number` entity id (B63 v1; per-workflow ids are a later refinement).
+  - name: notify-port
+    image: /bin/bash
+    when:
+      - status: [success, failure]
+    environment:
+      PORT_INGEST_URL:
+        from_secret: port_ingest_url
+    commands:
+      - printf '{"number":%s,"status":"%s","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_PIPELINE_STATUS" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
+
