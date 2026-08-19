@@ -107,6 +107,11 @@ steps:
   # Local backend → host curl; `|` block REQUIRED (inline `Content-Type:` colon makes the parser read a map).
   - name: notify-port-pass
     image: /bin/bash
+    # MUST depend on every prior step. Without depends_on a step's only dep is the implicit clone, so
+    # `when: status:` evaluates while the workflow is still mid-run (status still success) and fires a FALSE
+    # green before scan/e2e/perf finish. Chaining behind all steps makes this the terminal stage, so the
+    # status gate reflects main's real outcome.
+    depends_on: [build, npm-install, unit-pbt, scan, e2e, perf]
     when:
       - status: success
     environment:
@@ -117,6 +122,7 @@ steps:
         printf '{"number":%s,"status":"success","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
   - name: notify-port-fail
     image: /bin/bash
+    depends_on: [build, npm-install, unit-pbt, scan, e2e, perf]
     when:
       - status: failure
     environment:
