@@ -116,7 +116,7 @@ steps:
       - status: success
     environment:
       PORT_INGEST_URL:
-        from_secret: port_ingest_url
+        from_secret: port_ingest_url  # pragma: allowlist secret
     commands:
       - |
         printf '{"number":%s,"status":"success","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
@@ -127,7 +127,7 @@ steps:
       - status: failure
     environment:
       PORT_INGEST_URL:
-        from_secret: port_ingest_url
+        from_secret: port_ingest_url  # pragma: allowlist secret
     commands:
       - |
         printf '{"number":%s,"status":"failure","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
