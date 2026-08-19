@@ -99,20 +99,30 @@ steps:
       - event: manual
 
   # ── Step 7: build status → Port ci_pipeline (B63 — CI reliability signal) ────
-  # Reports the whole main-pipeline outcome to the weyland Port catalog (success AND failure). Runs on the LOCAL
-  # backend (rogueone host shell), so it uses the host's curl and pipes the JSON via stdin (no host /tmp collision).
-  # Only `main` reports for STUD.io — plugin-scanner/roadie share the same pipeline number and would collide on the
-  # `repo-number` entity id (B63 v1; per-workflow ids are a later refinement).
-  - name: notify-port
+  # Reports the `main` workflow outcome to the weyland Port catalog. Two status-gated steps HARDCODE the status
+  # instead of reading $CI_PIPELINE_STATUS — on this multi-workflow pipeline (main/plugin-scanner/roadie run in
+  # parallel) that env var is EMPTY at main's notify time (pipeline not final), and Port silently drops an
+  # empty-enum status (ingest returns ok:true, but no entity). Only `main` reports (plugin-scanner/roadie share the
+  # pipeline number → would collide on the `repo-number` entity id; per-workflow ids are a later refinement).
+  # Local backend → host curl; `|` block REQUIRED (inline `Content-Type:` colon makes the parser read a map).
+  - name: notify-port-pass
     image: /bin/bash
     when:
-      - status: [success, failure]
+      - status: success
     environment:
       PORT_INGEST_URL:
         from_secret: port_ingest_url
     commands:
-      # `|` literal block is REQUIRED — an inline `Content-Type: application/json` in a plain YAML scalar makes
-      # Woodpecker's parser read the command as a map ("cannot unmarshal map into string"). See runbooks/woodpecker.md.
       - |
-        printf '{"number":%s,"status":"%s","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_PIPELINE_STATUS" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
+        printf '{"number":%s,"status":"success","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
+  - name: notify-port-fail
+    image: /bin/bash
+    when:
+      - status: failure
+    environment:
+      PORT_INGEST_URL:
+        from_secret: port_ingest_url
+    commands:
+      - |
+        printf '{"number":%s,"status":"failure","repo":"%s","branch":"%s","commit":"%s","event":"%s","url":"%s"}' "$CI_PIPELINE_NUMBER" "$CI_REPO" "$CI_COMMIT_BRANCH" "$CI_COMMIT_SHA" "$CI_PIPELINE_EVENT" "$CI_PIPELINE_URL" | curl -sf -X POST "$PORT_INGEST_URL" -H "Content-Type: application/json" -d @-
 
