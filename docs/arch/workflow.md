@@ -43,7 +43,8 @@ git push -u origin feat/my-change
 gh pr create --title "feat: my change" --fill
 
 # 5. Watch checks and AI reviews
-# CodeRabbit and Qodo Merge post reviews automatically — no action needed.
+# The cloud stack posts automatically — no action needed: DeepSource (7 analyzers),
+# CodeScene (Code Health Review), Sourcery, CodeRabbit, Qodo Merge. See code-review-stack.md.
 gh pr checks --watch
 
 # 6. Merge (squash)
@@ -134,9 +135,15 @@ Full GitHub configuration (repo settings, branch protection, installed apps): `d
 
 ---
 
-## CodeScene (local, interactive)
+## CodeScene (CI gate + local interactive)
 
-CodeScene is available as an MCP tool inside Claude Code sessions. It analyzes code health and technical debt directly from the working tree — no project setup on codescene.io required for the tools below.
+CodeScene runs in **two** complementary surfaces (full stack: `docs/arch/code-review-stack.md`):
+
+- **CI gate** — the repo is registered as CodeScene **project 78184**, which posts a **Code Health Review** delta
+  check on every PR (it appears in `gh pr checks`, alongside DeepSource / Sourcery / CodeRabbit / Qodo).
+- **Local, interactive** — the MCP tool below, run inside Claude Code against the working tree as a pre-PR check.
+
+The interactive tools analyze code health directly from the working tree — no project setup on codescene.io required for them.
 
 **When to use:**
 
@@ -156,7 +163,7 @@ Ask Claude to run a CodeScene check — for example:
 
 Claude will call the appropriate MCP tool and surface the results inline.
 
-**Not a CI gate.** These tools run interactively in Claude Code and are not wired into `test-scan.sh`. Use them as a pre-PR hygiene check, not a blocking step. If a file consistently scores low, treat it as a refactor candidate.
+**The MCP tools are the interactive surface** — run in Claude Code, not wired into `test-scan.sh`; use them as a pre-PR hygiene check. (The CI gate is the separate CodeScene **project 78184** Code Health Review check on the PR, above.) If a file consistently scores low, treat it as a refactor candidate.
 
 **Credentials:** `CS_ACCESS_TOKEN` is configured in the environment. No additional setup needed.
 

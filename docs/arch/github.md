@@ -50,7 +50,12 @@ EOF
 
 ## AI code review
 
-Two AI reviewers are configured to run automatically on every PR.
+The full cloud review stack runs automatically on every PR — **DeepSource** (7 analyzers: Python · JavaScript · Go ·
+SQL · Secrets · Shell · Docker), **CodeScene** (Code Health Review, project 78184), **Sourcery**, **CodeRabbit**, and
+**Qodo Merge** — verified on PR #121. The two LLM reviewers with committed config in this repo (CodeRabbit + Qodo) are
+detailed below; the SAST/behavioral tools (DeepSource/CodeScene/Sourcery) are covered in
+[`code-review-stack.md`](code-review-stack.md), which is the full-stack reference. **Greptile** is the one member not
+yet installed here.
 
 ### CodeRabbit
 
