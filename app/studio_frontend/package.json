@@ -55,7 +55,7 @@
     "fast-check": "^4.6.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
-    "lighthouse": "^12.8.2",
+    "lighthouse": "^13.5.0",
     "playwright-lighthouse": "^4.0.0",
     "postcss": "^8.5.12",
     "tailwindcss": "^4.2.2",
