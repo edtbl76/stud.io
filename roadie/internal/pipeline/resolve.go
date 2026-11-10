@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -41,7 +42,21 @@ func pathEnv(dir string) []string {
 
 // resolveNodeInHome is the testable core of ResolveNode.
 func resolveNodeInHome(homeDir string) string {
-	// Try NVM — pick the highest semver-versioned install.
+	return resolveNode(homeDir, nodeOnPath, []string{"/usr/local/bin", "/usr/bin"})
+}
+
+// nodeOnPath reports whether a node binary is already reachable on PATH.
+func nodeOnPath() bool {
+	_, err := exec.LookPath("node")
+	return err == nil
+}
+
+// resolveNode picks the node bin dir to prepend to PATH: nvm's highest version in homeDir first. Without nvm, a node
+// already on PATH wins and nothing is prepended (""): a system dir is used only when PATH has no node at all.
+//
+// Why (2026-11-10): a CI step's home has no .nvm, and Ubuntu's nodejs 18 in /usr/bin got prepended ahead of the nvm
+// Node the agent's PATH already carried, so Next 16 (Node >= 20.9) refused to start every e2e frontend.
+func resolveNode(homeDir string, onPath func() bool, systemDirs []string) string {
 	nvmVersionsDir := filepath.Join(homeDir, ".nvm", "versions", "node")
 	if entries, err := os.ReadDir(nvmVersionsDir); err == nil {
 		if name := highestSemver(entries); name != "" {
@@ -51,8 +66,10 @@ func resolveNodeInHome(homeDir string) string {
 			}
 		}
 	}
-	// Fall back to common system locations.
-	for _, dir := range []string{"/usr/local/bin", "/usr/bin"} {
+	if onPath() {
+		return ""
+	}
+	for _, dir := range systemDirs {
 		if fileExists(filepath.Join(dir, "node")) {
 			return dir
 		}

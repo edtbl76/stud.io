@@ -58,6 +58,50 @@ func TestResolveNodeInHome_NvmPicksHighestSemver_NotLexicographic(t *testing.T) 
 	}
 }
 
+// The 2026-11-10 CI break: a CI step's home has no .nvm, and Ubuntu's nodejs (18.19.1, installed 2026-09-24) sits in
+// /usr/bin. Returning /usr/bin put Node 18 FIRST on PATH, ahead of the nvm Node the agent's PATH already carried, and
+// Next 16 (Node >= 20.9) refused to start every e2e frontend. With no nvm in home, a node already on PATH must win.
+
+func TestResolveNode_NoNvm_NodeAlreadyOnPath_LeavesPathAlone(t *testing.T) {
+	tmp := t.TempDir()
+	system := filepath.Join(tmp, "usr-bin")
+	makeFakeBin(t, system, "node") // an old system node exists...
+	got := resolveNode(tmp, func() bool { return true }, []string{system})
+	if got != "" {
+		t.Errorf("node is already on PATH, so nothing should be prepended; got %q", got)
+	}
+}
+
+func TestResolveNode_NoNvm_NoNodeOnPath_FallsBackToSystemDir(t *testing.T) {
+	tmp := t.TempDir()
+	system := filepath.Join(tmp, "usr-bin")
+	makeFakeBin(t, system, "node")
+	got := resolveNode(tmp, func() bool { return false }, []string{system})
+	if got != system {
+		t.Errorf("with no node on PATH the system dir is the only option; want %q, got %q", system, got)
+	}
+}
+
+func TestResolveNode_NvmStillWinsOverPathAndSystem(t *testing.T) {
+	tmp := t.TempDir()
+	nvmBin := filepath.Join(tmp, ".nvm", "versions", "node", "v22.0.0", "bin")
+	makeFakeBin(t, nvmBin, "node")
+	system := filepath.Join(tmp, "usr-bin")
+	makeFakeBin(t, system, "node")
+	got := resolveNode(tmp, func() bool { return true }, []string{system})
+	if got != nvmBin {
+		t.Errorf("nvm's latest must still be chosen first; want %q, got %q", nvmBin, got)
+	}
+}
+
+func TestResolveNode_NoNodeAnywhere_ReturnsEmpty(t *testing.T) {
+	tmp := t.TempDir()
+	got := resolveNode(tmp, func() bool { return false }, []string{filepath.Join(tmp, "empty")})
+	if got != "" {
+		t.Errorf("no node anywhere; want empty, got %q", got)
+	}
+}
+
 func TestResolveNodeInHome_NoNvm_ReturnsEmpty(t *testing.T) {
 	tmp := t.TempDir()
 	got := resolveNodeInHome(tmp)
