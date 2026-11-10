@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -150,16 +152,21 @@ func RunSonarScan(ctx context.Context, root Root, gate bool, out io.Writer) erro
 	}
 
 	fmt.Fprintln(out, "[sonar] Running scanner...")
-	if err := New(sonarDockerStep(root, token)).RunSequential(ctx, out); err != nil {
+	var scanLog bytes.Buffer // the gate needs the CE task id the scanner prints
+	if err := New(sonarDockerStep(root, token)).RunSequential(ctx, io.MultiWriter(out, &scanLog)); err != nil {
 		return err
 	}
 
 	fmt.Fprintf(out, "[sonar] Dashboard: %s/dashboard?id=%s\n", sonarURL, sonarProjectKey)
 
-	if gate {
-		return checkSonarGate(ctx, sonarURL, token, out)
+	if !gate {
+		return nil
 	}
-	return nil
+	taskID, err := ceTaskIDFromScannerOutput(scanLog.String())
+	if err != nil {
+		return err
+	}
+	return checkSonarGate(ctx, sonarURL, token, taskID, out)
 }
 
 // ScanFlags controls which scan suites run.
@@ -267,14 +274,29 @@ type gateCondition struct {
 // sonarGateChecker holds the stable HTTP context for CE task polling and gate
 // status queries, eliminating the need to pass client/baseURL/token per call.
 type sonarGateChecker struct {
-	client  *http.Client
-	baseURL string
-	token   string
+	client    *http.Client
+	baseURL   string
+	token     string
+	pollEvery time.Duration // 0 means the default, 3s
 }
 
-// checkSonarGate polls the SonarQube API until the CE analysis task completes,
-// then checks the quality gate status.
-func checkSonarGate(ctx context.Context, baseURL, token string, out io.Writer) error {
+// ceTaskIDRe matches the scanner's "More about the report processing at <host>/api/ce/task?id=<id>" line.
+var ceTaskIDRe = regexp.MustCompile(`/api/ce/task\?id=([A-Za-z0-9_-]+)`)
+
+// ceTaskIDFromScannerOutput returns the CE task id of the analysis the scanner just uploaded (the last one printed).
+func ceTaskIDFromScannerOutput(s string) (string, error) {
+	m := ceTaskIDRe.FindAllStringSubmatch(s, -1)
+	if len(m) == 0 {
+		return "", fmt.Errorf("sonar gate: no CE task id in the scanner output, so the analysis to gate is unknown")
+	}
+	return m[len(m)-1][1], nil
+}
+
+// checkSonarGate waits for THIS run's analysis (CE task taskID) to finish, then checks the quality gate of that
+// analysis. Why (2026-11-10): it used to wait for "no pending task on the project" and read the project's latest
+// status; right after the upload the task was not queued yet, so the wait returned at once and the gate judged the
+// PREVIOUS analysis (stud.io CI #19 passed 4 new issues; #21 failed clean code).
+func checkSonarGate(ctx context.Context, baseURL, token, taskID string, out io.Writer) error {
 	lw := NewLabelWriter("sonar-gate", out)
 	checker := sonarGateChecker{
 		client:  &http.Client{Timeout: 15 * time.Second},
@@ -282,14 +304,18 @@ func checkSonarGate(ctx context.Context, baseURL, token string, out io.Writer) e
 		token:   token,
 	}
 
-	fmt.Fprint(lw, "Waiting for analysis task")
-	if err := checker.waitForCETask(ctx, lw); err != nil {
+	fmt.Fprintf(lw, "Waiting for analysis task %s", taskID)
+	analysisID, err := checker.waitForCETask(ctx, taskID, lw)
+	if err != nil {
 		return err
 	}
 
-	status, conditions, err := checker.fetchGateStatus(ctx)
+	status, conditions, err := checker.fetchGateStatus(ctx, analysisID)
 	if err != nil {
 		return err
+	}
+	if status == "" {
+		return fmt.Errorf("sonar gate: empty quality gate status for analysis %s", analysisID)
 	}
 
 	fmt.Fprintf(lw, "\nQuality gate: %s\n", status)
@@ -319,58 +345,75 @@ func advanceCEPoll(pending bool, pollErr error, consecutiveErrors *int) (done bo
 	return false, nil
 }
 
-// waitForCETask polls until no IN_PROGRESS/PENDING CE tasks remain.
-// Transient network or decode errors are tolerated up to maxConsecutiveCEErrors
-// consecutive failures; beyond that the poll is aborted with an error.
-func (c sonarGateChecker) waitForCETask(ctx context.Context, out io.Writer) error {
+// waitForCETask polls CE task taskID until it finishes and returns its analysisId. FAILED/CANCELED, or SUCCESS with no
+// analysisId, is an error. Transient network or decode errors are tolerated up to maxConsecutiveCEErrors consecutive
+// failures; beyond that the poll is aborted with an error.
+func (c sonarGateChecker) waitForCETask(ctx context.Context, taskID string, out io.Writer) (string, error) {
+	every := c.pollEvery
+	if every == 0 {
+		every = 3 * time.Second
+	}
 	consecutiveErrors := 0
 	for i := 0; i < 100; i++ {
-		pending, pollErr := c.isCETaskPending(ctx)
+		status, analysisID, pollErr := c.ceTaskStatus(ctx, taskID)
+		pending := status == "PENDING" || status == "IN_PROGRESS"
 		done, err := advanceCEPoll(pending, pollErr, &consecutiveErrors)
 		if err != nil {
-			return err
+			return "", err
 		}
 		if done {
-			return nil
+			return analysisOf(taskID, status, analysisID)
 		}
 		fmt.Fprint(out, ".")
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(3 * time.Second):
+			return "", ctx.Err()
+		case <-time.After(every):
 		}
 	}
-	return fmt.Errorf("CE task did not complete after 5 minutes")
+	return "", fmt.Errorf("CE task %s did not complete after 100 polls", taskID)
 }
 
-func (c sonarGateChecker) isCETaskPending(ctx context.Context) (bool, error) {
-	url := c.baseURL + "/api/ce/component?component=" + sonarProjectKey
+// analysisOf turns a finished CE task into the analysis id to gate on, failing closed on anything but a SUCCESS that
+// names its analysis.
+func analysisOf(taskID, status, analysisID string) (string, error) {
+	if status != "SUCCESS" {
+		return "", fmt.Errorf("sonar analysis task %s ended %s", taskID, status)
+	}
+	if analysisID == "" {
+		return "", fmt.Errorf("sonar analysis task %s succeeded but returned no analysisId", taskID)
+	}
+	return analysisID, nil
+}
+
+func (c sonarGateChecker) ceTaskStatus(ctx context.Context, taskID string) (string, string, error) {
+	url := c.baseURL + "/api/ce/task?id=" + taskID
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("Authorization", "Bearer "+c.token)
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("polling CE task: %w", err)
+		return "", "", fmt.Errorf("polling CE task: %w", err)
 	}
 	defer resp.Body.Close()
 
 	var body struct {
-		Queue   []struct{ Status string } `json:"queue"`
-		Current struct{ Status string }   `json:"current"`
+		Task struct {
+			Status     string `json:"status"`
+			AnalysisID string `json:"analysisId"`
+		} `json:"task"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
-		return false, fmt.Errorf("decoding CE task response: %w", err)
+		return "", "", fmt.Errorf("decoding CE task response: %w", err)
 	}
-	for _, t := range body.Queue {
-		if t.Status == "IN_PROGRESS" || t.Status == "PENDING" {
-			return true, nil
-		}
+	if body.Task.Status == "" {
+		return "", "", fmt.Errorf("CE task %s: response carried no status", taskID)
 	}
-	return body.Current.Status == "IN_PROGRESS" || body.Current.Status == "PENDING", nil
+	return body.Task.Status, body.Task.AnalysisID, nil
 }
 
-func (c sonarGateChecker) fetchGateStatus(ctx context.Context) (string, []gateCondition, error) {
-	url := c.baseURL + "/api/qualitygates/project_status?projectKey=" + sonarProjectKey
+func (c sonarGateChecker) fetchGateStatus(ctx context.Context, analysisID string) (string, []gateCondition, error) {
+	url := c.baseURL + "/api/qualitygates/project_status?analysisId=" + analysisID
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	req.Header.Set("Authorization", "Bearer "+c.token)
 
