@@ -4,24 +4,14 @@
 # TrivyBackendStep), so a rule here can never suppress a finding in the
 # studio_frontend image. Every rule is scoped to its package(s) via `purls`, with
 # a `statement` justification and an `expired_at` review date (after which the
-# suppression lapses and the CVE re-fails the gate). Review horizon: 2026-10-23.
+# suppression lapses and the CVE re-fails the gate). Review horizon: 2027-02-08.
 #
 # Consumed by `roadie test scan trivy` via
 # `trivy image --ignorefile .trivyignore.backend.yaml`.
+# Re-reviewed 2026-11-10 after every suppression lapsed on 2026-10-23 and CI's scan went red. The backend base was
+# rebuilt on python:3.12.15-slim (pinned by digest); none of the remaining findings has a Debian fix. 19 entries
+# the new base no longer needs were removed; 3 were renewed; 22 new ones were added, each with the check behind it.
 vulnerabilities:
-  # ── Backend OS packages (debian trixie, python:3.12-slim) ───────────────────
-  # Indirect OS dependencies only; controlroom_backend runs as non-root (appuser)
-  # and none are in the HTTP request path.
-
-  - id: CVE-2024-23342
-    purls:
-      - "pkg:pypi/ecdsa"
-    statement: >-
-      ecdsa — Minerva timing attack on ECDSA keys. Transitive dep of python-jose;
-      the app uses HS256 (HMAC) JWTs exclusively, not EC keys. No fix available
-      upstream. Consistent with the pip-audit suppression.
-    expired_at: 2026-10-23
-
   - id: CVE-2025-69720
     purls:
       - "pkg:deb/debian/libncursesw6"
@@ -29,73 +19,186 @@ vulnerabilities:
       - "pkg:deb/debian/ncurses-base"
       - "pkg:deb/debian/ncurses-bin"
     statement: >-
-      ncurses — buffer overflow. No fix available in debian trixie. ncurses is not
-      used by the application; present only as an indirect OS dependency.
-    expired_at: 2026-10-23
+      ncurses — buffer overflow. No fix available in debian trixie. ncurses is not used by the application; present only as an indirect OS dependency. Renewed 2026-11-10.
+    expired_at: 2027-02-08
 
-  - id: CVE-2026-4878
-    purls:
-      - "pkg:deb/debian/libcap2"
-    statement: >-
-      libcap — privilege escalation via TOCTOU in cap_set_file(). No fix available.
-      Indirect OS dep; the container runs as non-root (appuser) and never calls
-      cap_set_file().
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-29111
-    purls:
-      - "pkg:deb/debian/systemd"
-    statement: >-
-      systemd — arbitrary code execution via spurious IPC. No fix available.
-      Indirect OS dep; not reachable from the application; container runs non-root.
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-4046
-    purls:
-      - "pkg:deb/debian/libc6"
-      - "pkg:deb/debian/libc-bin"
-    statement: >-
-      glibc — DoS via iconv() with specific character sets. fix_deferred in debian
-      trixie (no patched version). glibc iconv is not invoked by the application;
-      present only as an OS base-image dep.
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-40356
+  - id: CVE-2026-107364
     purls:
       - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
     statement: >-
-      krb5 — DoS via integer underflow (CWE-191) in MIT Kerberos 5. No patched
-      debian trixie package yet. Indirect OS dep; the app uses JWT/bcrypt auth
-      exclusively and never reaches libgssapi-krb5-2.
-    expired_at: 2026-10-23
+      krb5 server-side (KDC ASN.1 decoder read overrun). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
 
-  - id: CVE-2026-41992
+  - id: CVE-2026-112315
     purls:
-      - "pkg:deb/debian/gzip"
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
     statement: >-
-      gzip — global buffer overflow in LZH decompression. No fix in trixie. gzip is
-      an OS base tool; the application never decompresses untrusted .lzh archives.
-    expired_at: 2026-10-23
+      krb5 server-side (kadmind RPCSEC_GSS memory leak). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112316
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind xdr_krb5_tl_data memory leak). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112317
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (KDC keytab decryption error-path memory leak). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112318
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind null policy name dereference). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112319
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind unbounded RPC XDR allocation). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112320
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind GSS-RPC auth flavor memory leak). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112321
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind AUTH_GSSAPI_INIT memory leak). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112322
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind AUTH_GSSAPI client cleanup CPU DoS). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-112323
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind failed AUTH_GSSAPI_INIT memory exhaustion). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-118380
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (kadmind request alteration). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-119079
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (KDC quadratic ASN.1 SEQUENCE OF decoding). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-119373
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    statement: >-
+      sqlite FTS5 heap overflow (DoS). libsqlite3 ships with Python, but no backend code or dependency uses SQLite: the app talks to Postgres through asyncpg (grep of app/controlroom_backend, 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-119374
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    statement: >-
+      sqlite FTS5 corrupted-index code execution. libsqlite3 ships with Python, but no backend code or dependency uses SQLite: the app talks to Postgres through asyncpg (grep of app/controlroom_backend, 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-119379
+    purls:
+      - "pkg:deb/debian/libsqlite3-0"
+    statement: >-
+      sqlite session-changeset code execution. libsqlite3 ships with Python, but no backend code or dependency uses SQLite: the app talks to Postgres through asyncpg (grep of app/controlroom_backend, 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-16742
+    purls:
+      - "pkg:deb/debian/libsystemd0"
+      - "pkg:deb/debian/libudev1"
+    statement: >-
+      systemd-homed local privilege escalation. Only libsystemd0/libudev1 are in the image; systemd-homed is not installed and no systemd runs in the container (checked 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
 
   - id: CVE-2026-54369
     purls:
       - "pkg:deb/debian/libacl1"
     statement: >-
-      libacl1 — symlink-traversal privilege escalation. No fix in trixie. Indirect
-      OS dep; non-root container; the app performs no ACL ops on attacker-controlled
-      paths.
-    expired_at: 2026-10-23
+      libacl1 — symlink-traversal privilege escalation. No fix in trixie. Indirect OS dep; non-root container; the app performs no ACL ops on attacker-controlled paths. Renewed 2026-11-10.
+    expired_at: 2027-02-08
 
-  - id: CVE-2026-54371
+  - id: CVE-2026-71199
     purls:
-      - "pkg:deb/debian/libattr1"
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
     statement: >-
-      libattr1 — symlink-traversal privilege escalation via getfattr. No fix in
-      trixie. Indirect OS dep; non-root container; no xattr ops on attacker-
-      controlled paths.
-    expired_at: 2026-10-23
+      krb5 server-side (KDC CAMMAC authentication-indicator alteration). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
 
-  - id: CVE-2026-53615
+  - id: CVE-2026-71200
+    purls:
+      - "pkg:deb/debian/libgssapi-krb5-2"
+      - "pkg:deb/debian/libk5crypto3"
+      - "pkg:deb/debian/libkrb5-3"
+      - "pkg:deb/debian/libkrb5support0"
+    statement: >-
+      krb5 server-side (KDC PKINIT NULL dereference). The image carries only the client libraries; the KDC (krb5kdc) and kadmind are not installed (checked 2026-11-10), so nothing here runs the vulnerable code. No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-76642
     purls:
       - "pkg:deb/debian/bsdutils"
       - "pkg:deb/debian/libblkid1"
@@ -107,100 +210,60 @@ vulnerabilities:
       - "pkg:deb/debian/mount"
       - "pkg:deb/debian/util-linux"
     statement: >-
-      util-linux — integer overflow in libblkid DOS partition-table parsing. No fix
-      in trixie. The backend image never handles untrusted block devices or
-      partition tables, so the vulnerable libblkid path is unreachable.
-    expired_at: 2026-10-23
+      util-linux external mount helper post-hooks. Needs privileged mounts or nsenter; the app runs as non-root appuser with no extra capabilities, and nsenter is not in the image (checked 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
 
-  - id: CVE-2026-14456
+  - id: CVE-2026-78408
     purls:
-      - "pkg:deb/debian/libssl3t64"
-      - "pkg:deb/debian/openssl"
-      - "pkg:deb/debian/openssl-provider-legacy"
+      - "pkg:deb/debian/bsdutils"
+      - "pkg:deb/debian/libblkid1"
+      - "pkg:deb/debian/liblastlog2-2"
+      - "pkg:deb/debian/libmount1"
+      - "pkg:deb/debian/libsmartcols1"
+      - "pkg:deb/debian/libuuid1"
+      - "pkg:deb/debian/login"
+      - "pkg:deb/debian/mount"
+      - "pkg:deb/debian/util-linux"
     statement: >-
-      openssl — DoS via unbounded memory in the QUIC *server* implementation.
-      fix_deferred in debian trixie: no patched version exists in trixie or sid
-      (debian: "minor issue, fix along with future update"; verified against the
-      debian security tracker 2026-08-19). 3.5.6-1~deb13u2 is the newest openssl
-      debian 13 ships, and the Dockerfile already runs apt-get upgrade -y, so no
-      package bump can resolve it. Not reachable: the backend is a Python app that
-      runs no OpenSSL QUIC listener. Revisit when debian ships a fixed openssl.
-    expired_at: 2026-10-23
+      util-linux nsenter --join-cgroup authority leak. Needs privileged mounts or nsenter; the app runs as non-root appuser with no extra capabilities, and nsenter is not in the image (checked 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
 
-  # ── Perl (debian) ───────────────────────────────────────────────────────────
-  # Perl is a runtime dependency of the pg backup tooling only, never in the HTTP
-  # request path. No fixed perl 5.40 packages available in debian trixie. The
-  # affected code paths (Archive::Tar/IO-Compress/IO-Uncompress extraction,
-  # Perl_study_chunk regex, Storable deserialization) operate only over developer-
-  # authored data, never user-supplied input.
+  - id: CVE-2026-78409
+    purls:
+      - "pkg:deb/debian/bsdutils"
+      - "pkg:deb/debian/libblkid1"
+      - "pkg:deb/debian/liblastlog2-2"
+      - "pkg:deb/debian/libmount1"
+      - "pkg:deb/debian/libsmartcols1"
+      - "pkg:deb/debian/libuuid1"
+      - "pkg:deb/debian/login"
+      - "pkg:deb/debian/mount"
+      - "pkg:deb/debian/util-linux"
+    statement: >-
+      util-linux X-mount.subdir symlink escape. Needs privileged mounts or nsenter; the app runs as non-root appuser with no extra capabilities, and nsenter is not in the image (checked 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
 
-  - id: CVE-2026-42496
-    purls: &perl_purls
+  - id: CVE-2026-78410
+    purls:
+      - "pkg:deb/debian/bsdutils"
+      - "pkg:deb/debian/libblkid1"
+      - "pkg:deb/debian/liblastlog2-2"
+      - "pkg:deb/debian/libmount1"
+      - "pkg:deb/debian/libsmartcols1"
+      - "pkg:deb/debian/libuuid1"
+      - "pkg:deb/debian/login"
+      - "pkg:deb/debian/mount"
+      - "pkg:deb/debian/util-linux"
+    statement: >-
+      util-linux restricted bind mount source redirection. Needs privileged mounts or nsenter; the app runs as non-root appuser with no extra capabilities, and nsenter is not in the image (checked 2026-11-10). No fix in trixie.
+    expired_at: 2027-02-08
+
+  - id: CVE-2026-9538
+    purls:
+      - "pkg:deb/debian/libperl5.40"
       - "pkg:deb/debian/perl"
       - "pkg:deb/debian/perl-base"
       - "pkg:deb/debian/perl-modules-5.40"
-      - "pkg:deb/debian/libperl5.40"
-    statement: "Archive::Tar < 3.08 — symlink extraction attack. Perl backup-tooling only; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-42497
-    purls: *perl_purls
-    statement: "Archive::Tar < 3.08 — hardlink extraction attack. Perl backup-tooling only; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-9538
-    purls: *perl_purls
-    statement: "Archive::Tar < 3.10 — memory exhaustion via crafted archive. Perl backup-tooling only; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-8376
-    purls: *perl_purls
-    statement: "Perl <= 5.43.10 — heap buffer overflow during compilation. Perl backup-tooling only; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-48962
-    purls: *perl_purls
-    statement: "perl-IO-Compress — code execution via attacker-controlled output glob; not invoked by the app. Perl backup-tooling only; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-48959
-    purls: *perl_purls
-    statement: "perl IO::Uncompress::Unzip < 2.220 — CPU exhaustion via crafted zip; the affected path is not invoked. Perl backup-tooling only; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-13221
-    purls: *perl_purls
     statement: >-
-      Perl_study_chunk compiles an oversized regex alternation (>65535 fixed-string
-      branches) into a trie that matches incorrectly. Exploitation needs an
-      attacker-controlled oversized regex; the backup tooling compiles only fixed,
-      developer-authored patterns. Perl backup-tooling only; see file header.
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-57432
-    purls: *perl_purls
-    statement: "Perl <= 5.43.10 — integer overflow. Perl backup-tooling only, not in the request path; see file header."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-57433
-    purls: *perl_purls
-    statement: >-
-      Storable < 3.41 signed integer overflow when deserializing a Storable stream.
-      The backup tooling never deserializes untrusted Storable data. Perl
-      backup-tooling only; see file header.
-    expired_at: 2026-10-23
-
-  # ── SQLite (debian) ─────────────────────────────────────────────────────────
-  # libsqlite3-0 is an indirect OS dep only; the application uses PostgreSQL
-  # (asyncpg) exclusively and never opens a SQLite database.
-
-  - id: CVE-2026-11822
-    purls: &sqlite_purls
-      - "pkg:deb/debian/libsqlite3-0"
-    statement: "libsqlite3-0 < 3.53.2 — memory corruption. App never opens a SQLite database; indirect OS dep."
-    expired_at: 2026-10-23
-
-  - id: CVE-2026-11824
-    purls: *sqlite_purls
-    statement: "libsqlite3-0 < 3.53.2 — heap-based buffer overflow. App never opens a SQLite database; indirect OS dep."
-    expired_at: 2026-10-23
+      Archive::Tar < 3.10 — memory exhaustion via crafted archive. Perl is an indirect OS dependency; the app never invokes Perl or unpacks untrusted tar archives. No fix in trixie. Renewed 2026-11-10.
+    expired_at: 2027-02-08

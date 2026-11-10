@@ -1,4 +1,6 @@
-FROM python:3.12-slim
+# 2026-11-10: pinned by digest (python 3.12.15, pushed 2026-10-22). The floating tag had sat at an August build on
+# rogueone, so the image missed three months of Debian security updates (trivy). Bump deliberately.
+FROM python:3.12.15-slim@sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704
 
 RUN apt-get update \
  && apt-get upgrade -y \
