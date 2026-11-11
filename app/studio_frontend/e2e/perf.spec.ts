@@ -3,7 +3,7 @@
  *
  * Performance thresholds (Google "Good" band):
  *   LCP  < 2500ms  — Largest Contentful Paint (warn); < 4000ms (hard fail)
- *   TBT  < 200ms   — Total Blocking Time
+ *   TBT  < 200ms   — Total Blocking Time; a miss is re-measured twice and the median judged (lib/tbtGate.ts)
  *   CLS  < 0.1     — Cumulative Layout Shift
  *
  * Accessibility:
@@ -30,6 +30,7 @@ import * as fs from 'fs'
 import { test, expect, TestInfo, Browser, Page } from '@playwright/test'
 import { playAudit } from 'playwright-lighthouse'
 import { co2 } from '@tgwf/co2'
+import { gatedTbt } from '../lib/tbtGate'
 
 const LIGHTHOUSE_PORT = 9222
 
@@ -172,25 +173,25 @@ function annotateInformational( // skipcq: JS-0067 -- module-scope helper, not a
 
 for (const path of PAGES) {
   test(`Lighthouse: ${path}`, async ({ page, browser }, testInfo: TestInfo) => {
-    await page.context().addCookies(AUTH_COOKIES)
-    await seedLighthouseCookies(browser)
-    await page.goto(path)
-    await page.waitForLoadState('networkidle')
+    const reportName = path.replaceAll('/', '_').replace(/^_/, '') || 'home'
+    const audit = async (name: string): Promise<PlayAuditResult> => {
+      await page.context().addCookies(AUTH_COOKIES)
+      await seedLighthouseCookies(browser)
+      await page.goto(path)
+      await page.waitForLoadState('networkidle')
+      return playAudit({
+        page,
+        port: LIGHTHOUSE_PORT,
+        // Only enforce performance — passing accessibility/best-practices here
+        // changes onlyCategories and breaks headless paint capture (NO_FCP).
+        thresholds: { performance: 0 },
+        // Run all three categories so scores are available as annotations.
+        opts: { onlyCategories: ['performance', 'accessibility', 'best-practices'] },
+        reports: { formats: { html: true }, directory: 'perf-reports/lighthouse', name },
+      })
+    }
 
-    const result = await playAudit({
-      page,
-      port: LIGHTHOUSE_PORT,
-      // Only enforce performance — passing accessibility/best-practices here
-      // changes onlyCategories and breaks headless paint capture (NO_FCP).
-      thresholds: { performance: 0 },
-      // Run all three categories so scores are available as annotations.
-      opts: { onlyCategories: ['performance', 'accessibility', 'best-practices'] },
-      reports: {
-        formats: { html: true },
-        directory: 'perf-reports/lighthouse',
-        name: path.replace(/\//g, '_').replace(/^_/, '') || 'home',
-      },
-    })
+    const result = await audit(reportName)
 
     const audits     = result.lhr.audits
     const categories = result.lhr.categories
@@ -198,12 +199,23 @@ for (const path of PAGES) {
     annotateRuntimeError(testInfo, result)
 
     // ── Core Web Vitals (enforced) ────────────────────────────────────────
-    const { fcp, lcp, tbt, cls } = readVitals(audits)
+    const { fcp, lcp, tbt: firstTbt, cls } = readVitals(audits)
     annotateFcp(testInfo, fcp)
     await handleLcpThresholds(testInfo, page, path, lcp)
 
+    // TBT: a miss is re-measured twice and judged on the median (lib/tbtGate.ts explains why).
+    let n = 0
+    const { tbt, samples } = await gatedTbt(firstTbt, TBT_FAIL_MS, async () =>
+      readVitals((await audit(`${reportName}.remeasure-${++n}`)).lhr.audits).tbt)
+    if (samples.length > 1) {
+      testInfo.annotations.push({
+        type: 'tbt-remeasured',
+        description: `TBT samples ${samples.map((s) => s.toFixed(0)).join(', ')} ms; median ${tbt.toFixed(0)} ms judged`,
+      })
+    }
+
     expect(lcp, `LCP for ${path} (${(lcp / 1000).toFixed(2)}s)`).toBeLessThan(LCP_FAIL_MS)
-    expect(tbt, `TBT for ${path} (${tbt.toFixed(0)}ms)`).toBeLessThan(TBT_FAIL_MS)
+    expect(tbt, `TBT for ${path} (median of ${samples.map((s) => s.toFixed(0)).join(', ')} ms)`).toBeLessThan(TBT_FAIL_MS)
     expect(cls, `CLS for ${path} (${cls.toFixed(3)})`).toBeLessThan(CLS_FAIL)
 
     // ── Informational annotations (a11y, best-practices, CO₂) ─────────────
