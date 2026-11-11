@@ -1,6 +1,7 @@
 # 2026-11-10: pinned by digest to Go 1.26.10, so the binary carries the fixed standard library (govulncheck).
-# Digest only (Sonar docker:S8431, tag plus digest is ambiguous); it is golang:1.26-alpine (1.26.10).
-FROM golang@sha256:a2012b4a1d1f9f7e9f44e0d39b805a901e856b1dd80b4e6ee4338db547050308 AS builder
+# 2026-11-11: Go 1.26.11 for GO-2026-6859 (owner-approved exception to the 14-day rule; Go security point release).
+# Digest only (Sonar docker:S8431, tag plus digest is ambiguous); it is golang:1.26.11-alpine.
+FROM golang@sha256:ae52b5bc6ed045a9ed26ab03dc19327a802a9cc9aa8b27ed57f5c6b60579b0bb AS builder
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download

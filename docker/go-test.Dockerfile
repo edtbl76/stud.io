@@ -5,7 +5,10 @@
 # don't pick up build-only tooling. Rebuild to bump tool versions.
 # 2026-11-10: pinned by digest to Go 1.26.10 (govulncheck flagged the stdlib in the old 1.26.6 build: crypto/x509
 # GO-2026-6809, net/http GO-2026-6613/6617/6612...). A floating tag would pull whatever is newest at rebuild.
-FROM golang:1.26@sha256:cfa27959837144bf4649802ba38e59daffd0dd2a7994aa83daaf113285b0f551
+# 2026-11-11: Go 1.26.11 for GO-2026-6859 (net/http HTTP/1 server crash, published that day). An owner-approved
+# exception to the 14-day release-age rule: an official Go security point release, released 2026-11-10.
+# Digest only (Sonar docker:S8431); it is golang:1.26.11.
+FROM golang@sha256:7af425da11f4fc1a9308eb704369e3f6d1c44e35bac0f874a59ade3f20fdc07e
 
 # Disable build VCS stamping. staticcheck/gosec/govulncheck compile the main
 # packages, and the compiler otherwise shells out to git for VCS info — which fails
