@@ -13,7 +13,7 @@
 # on node:20.20.2-alpine (pinned by digest) with a refreshed apk layer, npm 11.21.1 installed over the bundled npm, and
 # raised package.json overrides. That cleared 20 of the 22 old entries (the whole npm-CLI bundle set: tar, sigstore,
 # ip-address, glob, minimatch, cross-spawn, brace-expansion; plus app-tree js-yaml and ws), so they were removed.
-# What remains has either no upstream fix or a fix too new to adopt under the 14-day release-age rule.
+# What remains has no upstream fix. (The three undici entries for npm's bundle went 2026-11-11 with npm 11.21.2.)
 vulnerabilities:
   # ── extract-zip — no upstream fix ───────────────────────────────────────────
   # extract-zip 2.0.1 is the latest published version; both CVEs are status `affected`.
@@ -36,33 +36,3 @@ vulnerabilities:
       extract-zip — arbitrary file write via symlink in archive. No upstream fix (2.0.1 is latest). Same dev-only
       perf-test path as CVE-2026-56876; no untrusted archive ever reaches it. Added 2026-11-10.
     expired_at: 2027-02-08
-
-  # ── undici in the npm-CLI bundle — fix exists, not yet adoptable ────────────
-  # npm 11.21.1 (installed in the Dockerfile) bundles undici 6.29.0
-  # (usr/local/lib/node_modules/npm/node_modules/undici). The fix, undici 6.29.1, ships in
-  # npm >= 11.21.2, published 2026-11-04 and therefore not eligible under the 14-day
-  # release-age rule until 2026-11-18. npm runs only at image BUILD time against the pinned
-  # lockfile (trusted registry traffic); undici here is not an app dependency.
-  # TIME-BOXED: these expire 2026-11-18 on purpose. On that day bump the Dockerfile's
-  # `npm install -g npm@...` to >= 11.21.2 and delete these three entries.
-  - id: CVE-2026-109383
-    purls: &undici_purls
-      - "pkg:npm/undici"
-    statement: >-
-      undici 6.29.0 inside the npm 11.21.1 CLI bundle; fixed in 6.29.1 (npm >= 11.21.2, eligible 2026-11-18).
-      Build-time only, not an app dependency. Time-boxed: bump npm and drop this entry on 2026-11-18.
-    expired_at: 2026-11-18
-
-  - id: CVE-2026-109869
-    purls: *undici_purls
-    statement: >-
-      undici 6.29.0 inside the npm 11.21.1 CLI bundle; fixed in 6.29.1 (npm >= 11.21.2, eligible 2026-11-18).
-      Build-time only, not an app dependency. Time-boxed: bump npm and drop this entry on 2026-11-18.
-    expired_at: 2026-11-18
-
-  - id: CVE-2026-87018
-    purls: *undici_purls
-    statement: >-
-      undici 6.29.0 inside the npm 11.21.1 CLI bundle; fixed in 6.29.1 (npm >= 11.21.2, eligible 2026-11-18).
-      Build-time only, not an app dependency. Time-boxed: bump npm and drop this entry on 2026-11-18.
-    expired_at: 2026-11-18

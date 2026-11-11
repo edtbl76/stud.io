@@ -10,7 +10,7 @@ WORKDIR /app
 # npm 10.8.2 from the base bundles old tar/pacote/glob/minimatch (trivy, incl. a critical in tar); 11.21.1 (2026-10-15)
 # bundles fixed versions. Pinned; supports Node >= 20.17. One RUN for both (Sonar docker:S7031).
 RUN apk upgrade --no-cache zlib libcrypto3 libssl3 musl musl-utils \
- && npm install -g npm@11.21.1 # refreshed 2026-11-10
+ && npm install -g npm@11.21.2 # refreshed 2026-11-11 (undici 6.29.1; owner OK before the 14-day mark)
 COPY package*.json ./
 RUN npm ci
 COPY . .
