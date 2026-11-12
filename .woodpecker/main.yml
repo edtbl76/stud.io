@@ -74,13 +74,13 @@ steps:
         status: [success, failure]
     environment:
       TRUNK_API_TOKEN:
-        from_secret: trunk_org_token
+        from_secret: trunk_org_token  # pragma: allowlist secret
       TRUNK_COLLECTION_ID: ddxR1SoJ
       TRUNK_REPO_URL: https://github.com/edtbl76/stud.io
       TRUNK_CLI_VERSION: 0.16.1
-      TRUNK_CLI_SHA256: 8c34f99a41d4b3151f711aca05d01478b2f707dd698d3980d2524646021af5f2
-      UPLOADER_COMMIT: 45c0b1caaf8b53a4647a0fb18dade66b5cdaaf2b
-      UPLOADER_SHA256: 09f3887d98e403800cc7a249eb2979b18405dd096a9d823cb8b066d8f8e6dd55
+      TRUNK_CLI_SHA256: 8c34f99a41d4b3151f711aca05d01478b2f707dd698d3980d2524646021af5f2  # pragma: allowlist secret (a public sha256 / commit pin, not a credential)
+      UPLOADER_COMMIT: 45c0b1caaf8b53a4647a0fb18dade66b5cdaaf2b  # pragma: allowlist secret (a public sha256 / commit pin, not a credential)
+      UPLOADER_SHA256: 09f3887d98e403800cc7a249eb2979b18405dd096a9d823cb8b066d8f8e6dd55  # pragma: allowlist secret (a public sha256 / commit pin, not a credential)
     commands:
       - mkdir -p .trunk-ci
       - curl -sSfL --retry 5 --retry-all-errors --retry-delay 3 -o .trunk-ci/cli.tgz "https://github.com/trunk-io/analytics-cli/releases/download/$TRUNK_CLI_VERSION/trunk-analytics-cli-x86_64-unknown-linux.tar.gz"
