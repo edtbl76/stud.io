@@ -70,6 +70,7 @@
     "fast-check": "^4.6.0",
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
+    "jest-junit": "17.0.0",
     "lighthouse": "^12.8.2",
     "playwright-lighthouse": "^4.0.0",
     "postcss": "^8.5.23",

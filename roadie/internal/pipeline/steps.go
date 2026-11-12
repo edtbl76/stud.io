@@ -136,12 +136,18 @@ func JestStep(root Root, coverage bool, extraArgs ...string) ToolStep {
 		args = append(args, "--coverage", "--coverageReporters=lcov")
 	}
 	args = append(args, extraArgs...)
-	return containerizeNode(ToolStep{
+	docker := append([]string{}, npmCacheMounts...)
+	if d := junitDir(root); d != "" {
+		args = append(args, jestJUnitArgs...)
+		// The container doesn't inherit roadie's env: pass jest-junit's output dir explicitly.
+		docker = append(docker, "-e", "JEST_JUNIT_OUTPUT_DIR="+filepath.Join(d, "jest"))
+	}
+	return containerizeIn(ToolStep{
 		Name: "jest",
 		Bin:  filepath.Join("node_modules", ".bin", "jest"),
 		Args: args,
 		Dir:  filepath.Join(r, frontendDir),
-	}, root)
+	}, root, frontendTestImage, docker...)
 }
 
 // PytestStep returns a step that runs pytest. Extra args are appended after the
@@ -149,6 +155,9 @@ func JestStep(root Root, coverage bool, extraArgs ...string) ToolStep {
 func PytestStep(root Root, extraArgs ...string) ToolStep {
 	r := string(root)
 	args := []string{"-m", "pytest", filepath.Join(r, backendDir, "tests"), "-q", "--tb=short"}
+	if d := junitDir(root); d != "" {
+		args = append(args, "--junitxml="+filepath.Join(d, "pytest", "unit.xml"))
+	}
 	args = append(args, extraArgs...)
 	return containerize(ToolStep{
 		Name: "pytest",
@@ -281,10 +290,11 @@ func goStep(name, bin string, args []string, root Root) ToolStep {
 // GoTestStep returns a step that runs all Go tests with the race detector and
 // emits a coverage profile to coverage.out in the gearlist_backend directory.
 func GoTestStep(root Root) ToolStep {
+	bin, args := goTestInvocation(root, "gearlist.xml")
 	return containerizeGo(ToolStep{
 		Name: "go-test",
-		Bin:  "go",
-		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
+		Bin:  bin,
+		Args: args,
 		Dir:  filepath.Join(string(root), gearlistDir),
 	}, root, true)
 }
@@ -398,10 +408,11 @@ func DetectSecretsStep(root Root) ToolStep {
 
 // GoTestPluginScannerStep runs all plugin_scanner tests with the race detector.
 func GoTestPluginScannerStep(root Root) ToolStep {
+	bin, args := goTestInvocation(root, "plugin-scanner.xml")
 	return containerizeGo(ToolStep{
 		Name: "go-test-scanner",
-		Bin:  "go",
-		Args: []string{"test", "-race", "-coverprofile=coverage.out", "./..."},
+		Bin:  bin,
+		Args: args,
 		Dir:  filepath.Join(string(root), pluginScannerDir),
 	}, root, false)
 }

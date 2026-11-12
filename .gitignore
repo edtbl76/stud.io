@@ -218,6 +218,9 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # Unit test / coverage reports
+# JUnit for Trunk Flaky Tests (roadie with ROADIE_JUNIT=1, weyland B245) and the CI upload step's downloads
+/reports/junit/
+/.trunk-ci/
 htmlcov/
 .tox/
 .nox/

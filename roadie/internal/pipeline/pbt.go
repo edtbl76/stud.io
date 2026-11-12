@@ -82,15 +82,18 @@ func RunPBT(ctx context.Context, cfg PBTConfig, flags PBTFlags, out io.Writer) (
 // succeeds when no property tests exist yet.
 func fastCheckPBTStep(root Root, examples int) ToolStep {
 	r := string(root)
+	args := []string{"--testPathPatterns=__tests__/pbt/", "--passWithNoTests"}
+	env := append(pathEnv(ResolveNode()), "FC_NUM_RUNS="+strconv.Itoa(examples))
+	if d := junitDir(root); d != "" {
+		args = append(args, jestJUnitArgs...)
+		env = append(env, "JEST_JUNIT_OUTPUT_DIR="+filepath.Join(d, "fast-check"))
+	}
 	return ToolStep{
 		Name: "fast-check",
 		Bin:  filepath.Join("node_modules", ".bin", "jest"),
-		Args: []string{
-			"--testPathPatterns=__tests__/pbt/",
-			"--passWithNoTests",
-		},
-		Dir: filepath.Join(r, frontendDir),
-		Env: append(pathEnv(ResolveNode()), "FC_NUM_RUNS="+strconv.Itoa(examples)),
+		Args: args,
+		Dir:  filepath.Join(r, frontendDir),
+		Env:  env,
 	}
 }
 
@@ -101,9 +104,13 @@ func fastCheckPBTStep(root Root, examples int) ToolStep {
 func hypothesisPBTStep(root Root, examples int) ToolStep {
 	r := string(root)
 	testDir := filepath.Join(r, backendDir, "tests", "pbt")
+	junit := ""
+	if d := junitDir(root); d != "" {
+		junit = fmt.Sprintf(" --junitxml='%s'", filepath.Join(d, "hypothesis", "pbt.xml"))
+	}
 	script := fmt.Sprintf(
-		`python -m pytest '%s' -q --tb=short; s=$?; [ $s -eq 5 ] && exit 0 || exit $s`,
-		testDir,
+		`python -m pytest '%s' -q --tb=short%s; s=$?; [ $s -eq 5 ] && exit 0 || exit $s`,
+		testDir, junit,
 	)
 	return ToolStep{
 		Name: "hypothesis",

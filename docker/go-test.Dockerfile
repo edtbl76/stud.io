@@ -18,9 +18,12 @@ FROM golang@sha256:7af425da11f4fc1a9308eb704369e3f6d1c44e35bac0f874a59ade3f20fdc
 ENV GOFLAGS=-buildvcs=false
 
 # Pinned to the versions this image had run since 2026-09 (they were @latest): bump them deliberately.
+# gotestsum (2026-11-11, weyland B245): with ROADIE_JUNIT=1, roadie wraps `go test` in it to write the JUnit report
+# Trunk Flaky Tests reads; a plain local run still calls `go test` directly.
 RUN go install golang.org/x/vuln/cmd/govulncheck@v1.7.0 \
  && go install github.com/securego/gosec/v2/cmd/gosec@v2.28.0 \
- && go install honnef.co/go/tools/cmd/staticcheck@v0.7.0
+ && go install honnef.co/go/tools/cmd/staticcheck@v0.7.0 \
+ && go install gotest.tools/gotestsum@v1.13.0
 # go install drops the binaries in /go/bin, already on PATH in the golang image.
 
 WORKDIR /workspace
