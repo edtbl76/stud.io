@@ -71,7 +71,7 @@
     "jest": "^30.3.0",
     "jest-environment-jsdom": "^30.3.0",
     "jest-junit": "17.0.0",
-    "lighthouse": "^12.8.2",
+    "lighthouse": "^13.6.0",
     "playwright-lighthouse": "^4.0.0",
     "postcss": "^8.5.23",
     "tailwindcss": "^4.2.2",
