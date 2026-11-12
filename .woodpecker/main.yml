@@ -66,8 +66,12 @@ steps:
   - name: trunk-upload
     image: /bin/bash
     depends_on: [unit-pbt]
+    # Trusted events only: the org secret is scoped to cron/manual/push, so a pull_request run gets no token (and must
+    # not: PR code would otherwise see it). PR results don't reach Trunk; main's do.
     when:
-      - status: [success, failure]
+      - event: [push, manual]
+        branch: main
+        status: [success, failure]
     environment:
       TRUNK_API_TOKEN:
         from_secret: trunk_org_token
